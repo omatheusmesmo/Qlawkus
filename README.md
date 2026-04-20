@@ -1,10 +1,10 @@
-# SonicClaw
+# Qlawkus
 
 > Autonomous Personal Engineering Agent built with Quarkus LangChain4j like OpenClaw, but with Quarkus
 
-[![Status: Work in Progress](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow?style=for-the-badge)](https://github.com/omatheusmesmo/SonicClaw/issues)
+[![Status: Work in Progress](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow?style=for-the-badge)](https://github.com/omatheusmesmo/Qlawkus/issues)
 
-**This project is currently in active development.** The architecture is planned but not yet implemented. See [Issues](https://github.com/omatheusmesmo/SonicClaw/issues) for progress tracking.
+**This project is currently in active development.** The architecture is planned but not yet implemented. See [Issues](https://github.com/omatheusmesmo/Qlawkus/issues) for progress tracking.
 
 ---
 
@@ -166,7 +166,7 @@ src/main/java/dev/quarkusclaw/
 
 ## Roadmap
 
-> See [Issues](https://github.com/omatheusmesmo/SonicClaw/issues) for detailed task tracking
+> See [Issues](https://github.com/omatheusmesmo/Qlawkus/issues) for detailed task tracking
 
 | Milestone | Description | Status |
 |:----------|:------------|:-------|
