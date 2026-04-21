@@ -51,7 +51,7 @@ class SoulEngineTest {
     @Test
     @Transactional
     void getSystemMessage_containsMoodSection() {
-        SoulEntity soul = SoulEntity.findSoul();
+        Soul soul = Soul.findSoul();
         Mood currentMood = soul.mood;
 
         Optional<String> message = soulEngine.getSystemMessage(null);
@@ -63,9 +63,8 @@ class SoulEngineTest {
     @Test
     @Transactional
     void getSystemMessage_reflectsMoodChange() {
-        SoulEntity soul = SoulEntity.findSoul();
-        soul.mood = Mood.CURIOUS;
-        soul.persist();
+        Soul soul = Soul.findSoul();
+        soul.shiftMood(Mood.CURIOUS);
 
         Optional<String> message = soulEngine.getSystemMessage(null);
         assertTrue(message.isPresent());
@@ -74,7 +73,7 @@ class SoulEngineTest {
 
     @Test
     void toSystemMessage_composesAllFieldsAsMarkdown() {
-        SoulEntity soul = new SoulEntity();
+        Soul soul = new Soul();
         soul.name = "TestAgent";
         soul.coreIdentity = "I am a test agent.";
         soul.currentState = "Running tests.";
@@ -96,9 +95,8 @@ class SoulEngineTest {
     @Transactional
     void getSystemMessage_reflectsCurrentStateUpdate() {
         String newState = "Analyzing code repository at " + System.currentTimeMillis();
-        SoulEntity soul = SoulEntity.findSoul();
-        soul.currentState = newState;
-        soul.persist();
+        Soul soul = Soul.findSoul();
+        soul.shiftState(newState);
 
         Optional<String> message = soulEngine.getSystemMessage(null);
         assertTrue(message.isPresent());
