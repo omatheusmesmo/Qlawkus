@@ -106,7 +106,7 @@ src/main/java/dev/quarkusclaw/
 │   └── AgentOrchestrator.java           # ReAct loop control
 ├── cognition/
 │   ├── SoulEngine.java                  # Dynamic identity prompt builder
-│   ├── SoulEntity.java                  # Persisted mental state, mood, focus
+│ ├── Soul.java # Persisted mental state, mood, focus
 │   ├── EpisodicConsolidatorJob.java     # Late-night chat summarizer
 │   └── SemanticExtractorInterceptor.java # Background fact extraction
 ├── memory/

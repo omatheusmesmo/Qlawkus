@@ -12,7 +12,7 @@ public class SoulEngine implements SystemMessageProvider {
     @Override
     @Transactional
     public Optional<String> getSystemMessage(Object memoryId) {
-        SoulEntity soul = SoulEntity.findSoul();
+        Soul soul = Soul.findSoul();
         if (soul == null) {
             return Optional.empty();
         }

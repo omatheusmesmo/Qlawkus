@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.agent;
 
-import dev.omatheusmesmo.qlawkus.cognition.SoulEntity;
+import dev.omatheusmesmo.qlawkus.cognition.Soul;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -34,6 +34,6 @@ class AgentServiceTest {
 
     @Transactional
     String getSoulName() {
-        return SoulEntity.findSoul().name.toLowerCase();
+        return Soul.findSoul().name.toLowerCase();
     }
 }
