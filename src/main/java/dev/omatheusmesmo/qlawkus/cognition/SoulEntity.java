@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import jakarta.persistence.Cacheable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,6 +13,7 @@ import jakarta.persistence.PreUpdate;
 import java.time.LocalDateTime;
 
 @Entity
+@Cacheable
 public class SoulEntity extends PanacheEntityBase {
 
     @Id
