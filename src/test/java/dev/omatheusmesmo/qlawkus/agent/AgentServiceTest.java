@@ -22,15 +22,18 @@ class AgentServiceTest {
     }
 
     @Test
-    @Transactional
     void chat_returnsResponseWithSoulIdentity() {
-        SoulEntity soul = SoulEntity.findSoul();
-        String soulName = soul.name.toLowerCase();
+        String soulName = getSoulName();
 
         String response = agentService.chat("What is your name? You must include your exact name in your reply.");
         assertNotNull(response);
         assertFalse(response.isBlank());
         assertTrue(response.toLowerCase().contains(soulName),
                 "Response should contain the soul name '" + soulName + "'. Got: " + response);
+    }
+
+    @Transactional
+    String getSoulName() {
+        return SoulEntity.findSoul().name.toLowerCase();
     }
 }

@@ -17,22 +17,6 @@ public class SoulEngine implements SystemMessageProvider {
             return Optional.empty();
         }
 
-        String message = buildSystemMessage(soul);
-        return Optional.of(message);
-    }
-
-    String buildSystemMessage(SoulEntity soul) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("You are ").append(soul.name).append(".\n\n");
-        sb.append(soul.coreIdentity).append("\n\n");
-        sb.append("---\n\n");
-        sb.append("Current state: ").append(soul.currentState).append("\n\n");
-        sb.append("Current mood: ").append(soul.mood).append(" — ")
-                .append(soul.mood.getDescription()).append("\n\n");
-        sb.append("Adjust your approach based on your current mood ")
-                .append("while staying true to your core identity.");
-
-        return sb.toString();
+        return Optional.of(soul.toSystemMessage());
     }
 }

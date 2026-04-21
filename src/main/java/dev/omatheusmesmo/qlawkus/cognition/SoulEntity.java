@@ -46,4 +46,21 @@ public class SoulEntity extends PanacheEntityBase {
     void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    public String toSystemMessage() {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("# ").append(name).append("\n\n");
+        sb.append(coreIdentity).append("\n\n");
+        sb.append("---\n\n");
+        sb.append("## Current State\n\n");
+        sb.append(currentState).append("\n\n");
+        sb.append("## Current Mood\n\n");
+        sb.append("**").append(mood).append("** — ")
+                .append(mood.getDescription()).append("\n\n");
+        sb.append("*Adjust your approach based on your current mood ")
+                .append("while staying true to your core identity.*");
+
+        return sb.toString();
+    }
 }
