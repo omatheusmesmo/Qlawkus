@@ -11,12 +11,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
-class SoulEntityTest {
+class SoulTest {
 
     @Test
     @Transactional
     void findSoul_returnsSeededEntity() {
-        SoulEntity soul = SoulEntity.findSoul();
+        Soul soul = Soul.findSoul();
 
         assertNotNull(soul);
         assertEquals(1L, soul.id);
@@ -31,43 +31,54 @@ class SoulEntityTest {
 
     @Test
     @Transactional
-    void moodTransition_persistsNewMood() {
-        SoulEntity soul = SoulEntity.findSoul();
+    void shiftMood_persistsNewMood() {
+        Soul soul = Soul.findSoul();
         Mood previousMood = soul.mood;
         Mood newMood = previousMood == Mood.CURIOUS ? Mood.ALERT : Mood.CURIOUS;
 
-        soul.mood = newMood;
-        soul.persist();
+        soul.shiftMood(newMood);
 
-        SoulEntity reloaded = SoulEntity.findSoul();
+        Soul reloaded = Soul.findSoul();
         assertEquals(newMood, reloaded.mood);
     }
 
     @Test
     @Transactional
-    void currentStateUpdate_persistsChanges() {
-        SoulEntity soul = SoulEntity.findSoul();
+    void shiftState_persistsChanges() {
+        Soul soul = Soul.findSoul();
         String newState = "Reviewing open pull requests at " + LocalDateTime.now();
 
-        soul.currentState = newState;
-        soul.persist();
+        soul.shiftState(newState);
 
-        SoulEntity reloaded = SoulEntity.findSoul();
+        Soul reloaded = Soul.findSoul();
         assertEquals(newState, reloaded.currentState);
     }
 
     @Test
     @Transactional
+    void rename_persistsNewName() {
+        Soul soul = Soul.findSoul();
+        String newName = "TestAgent" + System.currentTimeMillis();
+
+        soul.rename(newName);
+
+        Soul reloaded = Soul.findSoul();
+        assertEquals(newName, reloaded.name);
+
+        soul.rename("Qlawkus");
+    }
+
+    @Test
+    @Transactional
     void preUpdate_setsUpdatedAt() throws InterruptedException {
-        SoulEntity soul = SoulEntity.findSoul();
+        Soul soul = Soul.findSoul();
         LocalDateTime beforeUpdate = soul.updatedAt;
 
         Thread.sleep(10);
 
-        soul.currentState = "Testing timestamp update at " + LocalDateTime.now();
-        soul.persist();
+        soul.shiftState("Testing timestamp update at " + LocalDateTime.now());
 
-        SoulEntity reloaded = SoulEntity.findSoul();
+        Soul reloaded = Soul.findSoul();
         assertNotNull(reloaded.updatedAt);
         assertTrue(reloaded.updatedAt.isAfter(beforeUpdate) || reloaded.updatedAt.equals(beforeUpdate));
     }

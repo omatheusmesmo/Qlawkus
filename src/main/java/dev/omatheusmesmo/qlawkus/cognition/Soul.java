@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Cacheable
-public class SoulEntity extends PanacheEntityBase {
+public class Soul extends PanacheEntityBase {
 
     @Id
     public Long id;
@@ -34,8 +34,24 @@ public class SoulEntity extends PanacheEntityBase {
 
     public LocalDateTime updatedAt;
 
-    public static SoulEntity findSoul() {
+    public static Soul findSoul() {
         return findById(1L);
+    }
+
+    public void rename(String newName) {
+        this.name = newName;
+    }
+
+    public void shiftState(String newState) {
+        this.currentState = newState;
+    }
+
+    public void shiftMood(Mood newMood) {
+        this.mood = newMood;
+    }
+
+    public void rewriteIdentity(String newCoreIdentity) {
+        this.coreIdentity = newCoreIdentity;
     }
 
     @PrePersist

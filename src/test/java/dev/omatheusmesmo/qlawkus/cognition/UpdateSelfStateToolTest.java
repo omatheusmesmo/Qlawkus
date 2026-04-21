@@ -22,7 +22,7 @@ class UpdateSelfStateToolTest {
         String result = updateSelfStateTool.updateCurrentState(newState);
 
         assertTrue(result.contains("Current state updated"));
-        SoulEntity soul = SoulEntity.findSoul();
+        Soul soul = Soul.findSoul();
         assertEquals(newState, soul.currentState);
     }
 
@@ -32,7 +32,7 @@ class UpdateSelfStateToolTest {
         String result = updateSelfStateTool.updateMood("CURIOUS");
 
         assertTrue(result.contains("Mood updated to: CURIOUS"));
-        SoulEntity soul = SoulEntity.findSoul();
+        Soul soul = Soul.findSoul();
         assertEquals(Mood.CURIOUS, soul.mood);
     }
 
@@ -53,7 +53,7 @@ class UpdateSelfStateToolTest {
         String result = updateSelfStateTool.updateCoreIdentity(newIdentity);
 
         assertEquals("Core identity updated.", result);
-        SoulEntity soul = SoulEntity.findSoul();
+        Soul soul = Soul.findSoul();
         assertEquals(newIdentity, soul.coreIdentity);
     }
 
@@ -65,7 +65,7 @@ class UpdateSelfStateToolTest {
         String result = updateSelfStateTool.updateName(newName);
 
         assertTrue(result.contains("Name updated to: " + newName));
-        SoulEntity soul = SoulEntity.findSoul();
+        Soul soul = Soul.findSoul();
         assertEquals(newName, soul.name);
     }
 
@@ -75,7 +75,7 @@ class UpdateSelfStateToolTest {
         String result = updateSelfStateTool.updateMood("playful");
 
         assertTrue(result.contains("Mood updated to: PLAYFUL"));
-        SoulEntity soul = SoulEntity.findSoul();
+        Soul soul = Soul.findSoul();
         assertEquals(Mood.PLAYFUL, soul.mood);
     }
 }
