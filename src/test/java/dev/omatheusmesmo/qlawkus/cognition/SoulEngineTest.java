@@ -7,8 +7,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
@@ -21,24 +19,21 @@ class SoulEngineTest {
     @Transactional
     void getSystemMessage_returnsPresentWithSeededSoul() {
         Optional<String> message = soulEngine.getSystemMessage(null);
-
         assertTrue(message.isPresent());
     }
 
     @Test
     @Transactional
-    void getSystemMessage_containsName() {
+    void getSystemMessage_containsNameAsMarkdownHeader() {
         Optional<String> message = soulEngine.getSystemMessage(null);
-
         assertTrue(message.isPresent());
-        assertTrue(message.get().startsWith("You are Qlawkus."));
+        assertTrue(message.get().startsWith("# Qlawkus"));
     }
 
     @Test
     @Transactional
     void getSystemMessage_containsCoreIdentity() {
         Optional<String> message = soulEngine.getSystemMessage(null);
-
         assertTrue(message.isPresent());
         assertTrue(message.get().contains("Who I Am"));
         assertTrue(message.get().contains("How I Work"));
@@ -47,25 +42,22 @@ class SoulEngineTest {
 
     @Test
     @Transactional
-    void getSystemMessage_containsCurrentState() {
+    void getSystemMessage_containsCurrentStateSection() {
         Optional<String> message = soulEngine.getSystemMessage(null);
-
         assertTrue(message.isPresent());
-        assertTrue(message.get().contains("Current state:"));
+        assertTrue(message.get().contains("## Current State"));
     }
 
     @Test
     @Transactional
-    void getSystemMessage_containsMoodAndDescription() {
+    void getSystemMessage_containsMoodSection() {
         SoulEntity soul = SoulEntity.findSoul();
         Mood currentMood = soul.mood;
 
         Optional<String> message = soulEngine.getSystemMessage(null);
-
         assertTrue(message.isPresent());
-        String content = message.get();
-        assertTrue(content.contains("Current mood:"));
-        assertTrue(content.contains(currentMood.getDescription()));
+        assertTrue(message.get().contains("## Current Mood"));
+        assertTrue(message.get().contains(currentMood.getDescription()));
     }
 
     @Test
@@ -76,25 +68,26 @@ class SoulEngineTest {
         soul.persist();
 
         Optional<String> message = soulEngine.getSystemMessage(null);
-
         assertTrue(message.isPresent());
         assertTrue(message.get().contains(Mood.CURIOUS.getDescription()));
     }
 
     @Test
-    void buildSystemMessage_composesAllFields() {
+    void toSystemMessage_composesAllFieldsAsMarkdown() {
         SoulEntity soul = new SoulEntity();
         soul.name = "TestAgent";
         soul.coreIdentity = "I am a test agent.";
         soul.currentState = "Running tests.";
         soul.mood = Mood.PLAYFUL;
 
-        String message = soulEngine.buildSystemMessage(soul);
+        String message = soul.toSystemMessage();
 
-        assertTrue(message.startsWith("You are TestAgent."));
+        assertTrue(message.startsWith("# TestAgent"));
         assertTrue(message.contains("I am a test agent."));
+        assertTrue(message.contains("## Current State"));
         assertTrue(message.contains("Running tests."));
-        assertTrue(message.contains("Current mood: PLAYFUL"));
+        assertTrue(message.contains("## Current Mood"));
+        assertTrue(message.contains("**PLAYFUL**"));
         assertTrue(message.contains(Mood.PLAYFUL.getDescription()));
         assertTrue(message.contains("Adjust your approach"));
     }
@@ -108,7 +101,6 @@ class SoulEngineTest {
         soul.persist();
 
         Optional<String> message = soulEngine.getSystemMessage(null);
-
         assertTrue(message.isPresent());
         assertTrue(message.get().contains(newState));
     }
