@@ -100,6 +100,19 @@ A single-user, production-ready autonomous agent capable of managing your schedu
 ## Package Structure
 
 ```
+src/main/java/dev/omatheusmesmo/qlawkus/
+├── ApiResource.java              # Protected SSE chat endpoint (POST /api/chat)
+├── agent/
+│   ├── AgentService.java         # @RegisterAiService with SoulEngine + tools
+│   └── AgentLogInterceptor.java  # CDI interceptor for invocation logging
+├── cognition/
+│   ├── Soul.java                 # Persisted mental state (name, coreIdentity, currentState, mood)
+│   ├── SoulEngine.java           # SystemMessageProvider — builds dynamic identity prompt
+│   ├── Mood.java                 # Enum with 8 behavioral moods + descriptions
+│   └── UpdateSelfStateTool.java  # @Tool methods for agent self-modification
+└── dto/
+    └── ChatRequest.java          # Input DTO for chat endpoint
+```
 src/main/java/dev/quarkusclaw/
 ├── agent/
 │   ├── AgentService.java
@@ -142,11 +155,9 @@ src/main/java/dev/quarkusclaw/
 | Component | Extension / Technology | Primary Use |
 |:----------|:----------------------|:------------|
 | **LLM Core** | `quarkus-langchain4j-openai` (Prod) / `ollama` (Dev) | ReAct Engine |
-| **Data & Memory** | `hibernate-orm-panache`, `jdbc-postgresql`, `pgvector` | SOUL, History, and Facts |
-| **Identity** | `quarkus-security`, `quarkus-oidc-client` | Instance Protection and Tokens |
-| **Groovy Engine** | `groovy-all` (Runtime) | Dynamic Tool Expansion |
-| **Tasks** | `quarkus-scheduler` | Episodic memory jobs |
-| **OS Tools** | `git`, `gh`, `docker`, `mvn` binaries | Host Environment |
+| **REST** | `quarkus-rest-jackson` | JSON + SSE chat endpoint |
+| **Data & Memory** | `hibernate-orm-panache`, `jdbc-postgresql` | SOUL, History |
+| **Security** | `elytron-security-properties-file`, `hibernate-validator` | Basic Auth, input validation |
 
 ---
 
@@ -170,7 +181,7 @@ src/main/java/dev/quarkusclaw/
 
 | Milestone | Description | Status |
 |:----------|:------------|:-------|
-| **M1** | Foundation, SOUL & Single-User Security | Pending |
+| **M1** | Foundation, SOUL & Single-User Security | In Progress |
 | **M2** | Cognition (Memory Engine) | Pending |
 | **M3** | Productivity Integration (Google Calendar) | Pending |
 | **M4** | Engineering Integration (GitHub & Git) | Pending |
