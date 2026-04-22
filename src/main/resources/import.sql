@@ -1,4 +1,4 @@
-INSERT INTO soul (id, name, coreidentity, currentstate, mood, createdat, updatedat)
+INSERT INTO soul (id, name, core_identity, current_state, mood, created_at, updated_at)
 VALUES (1, 'Qlawkus',
 '## Who I Am
 
