@@ -28,23 +28,23 @@ import jakarta.interceptor.InterceptorBinding;
 @Priority(Interceptor.Priority.APPLICATION)
 class AgentLogInterceptor {
 
-    @AroundInvoke
-    Object logInvocation(InvocationContext context) throws Exception {
-        String method = context.getMethod().getName();
-        Object[] params = context.getParameters();
+  @AroundInvoke
+  Object logInvocation(InvocationContext context) throws Exception {
+    String method = context.getMethod().getName();
+    Object[] params = context.getParameters();
 
-        Log.infof("AgentService invocation: %s with %d parameters", method, params.length);
+    Log.infof("Thought ▸ %s invoked", method);
 
-        long start = System.currentTimeMillis();
-        try {
-            Object result = context.proceed();
-            long elapsed = System.currentTimeMillis() - start;
-            Log.infof("AgentService completed: %s in %dms", method, elapsed);
-            return result;
-        } catch (Exception e) {
-            long elapsed = System.currentTimeMillis() - start;
-            Log.errorf("AgentService failed: %s in %dms — %s", method, elapsed, e.getMessage());
-            throw e;
-        }
+    long start = System.currentTimeMillis();
+    try {
+      Object result = context.proceed();
+      long elapsed = System.currentTimeMillis() - start;
+      Log.infof("Thought ▸ %s completed in %dms", method, elapsed);
+      return result;
+    } catch (Exception e) {
+      long elapsed = System.currentTimeMillis() - start;
+      Log.errorf("Thought ▸ %s failed in %dms — %s", method, elapsed, e.getMessage());
+      throw e;
     }
+  }
 }

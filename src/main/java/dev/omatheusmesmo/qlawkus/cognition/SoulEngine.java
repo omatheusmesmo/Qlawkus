@@ -9,14 +9,13 @@ import java.util.Optional;
 @ApplicationScoped
 public class SoulEngine implements SystemMessageProvider {
 
-    @Override
-    @Transactional
-    public Optional<String> getSystemMessage(Object memoryId) {
-        Soul soul = Soul.findSoul();
-        if (soul == null) {
-            return Optional.empty();
-        }
-
-        return Optional.of(soul.toSystemMessage());
+  @Override
+  @Transactional
+  public Optional<String> getSystemMessage(Object memoryId) {
+    Soul soul = Soul.findSoul();
+    if (soul == null) {
+      return Optional.empty();
     }
+    return Optional.of(soul.toSystemMessage());
+  }
 }
