@@ -181,7 +181,7 @@ src/main/java/dev/quarkusclaw/
 
 | Milestone | Description | Status |
 |:----------|:------------|:-------|
-| **M1** | Foundation, SOUL & Single-User Security | In Progress |
+| **M1** | Foundation, SOUL & Single-User Security | Done |
 | **M2** | Cognition (Memory Engine) | Pending |
 | **M3** | Productivity Integration (Google Calendar) | Pending |
 | **M4** | Engineering Integration (GitHub & Git) | Pending |
