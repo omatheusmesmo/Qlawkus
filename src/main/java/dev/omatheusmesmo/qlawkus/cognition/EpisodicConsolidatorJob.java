@@ -1,12 +1,8 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.langchain4j.data.document.Metadata;
-import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.store.embedding.EmbeddingStore;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -23,10 +19,10 @@ public class EpisodicConsolidatorJob {
   ChatModel chatModel;
 
   @Inject
-  EmbeddingModel embeddingModel;
+  EmbeddingService embeddingService;
 
   @Inject
-  EmbeddingStore<TextSegment> embeddingStore;
+  JournalPersistHelper journalPersistHelper;
 
   @Scheduled(cron = "{qlawkus.consolidator.cron:0 0 3 * * ?}")
   void consolidate() {
@@ -34,7 +30,6 @@ public class EpisodicConsolidatorJob {
     consolidateDate(yesterday);
   }
 
-  @Transactional
   void consolidateDate(LocalDate date) {
     if (Journal.existsForDate(date)) {
       Log.debugf("Journal already exists for %s, skipping", date);
@@ -48,16 +43,10 @@ public class EpisodicConsolidatorJob {
     }
 
     String summary = summarizeMessages(entities, date);
-
-    Journal journal = new Journal();
-    journal.date = date;
-    journal.summary = summary;
-    journal.messageCount = entities.size();
-    journal.persist();
-
-    embedSummary(journal);
-
-    Log.infof("Consolidated %d messages into journal for %s", entities.size(), date);
+    Journal journal = journalPersistHelper.persist(date, summary, entities.size());
+    if (journal != null) {
+      embedSummary(journal);
+    }
   }
 
   void embedSummary(Journal journal) {
@@ -65,10 +54,7 @@ public class EpisodicConsolidatorJob {
       Metadata metadata = new Metadata();
       metadata.put("source", "episodic-consolidator");
       metadata.put("date", journal.date.toString());
-      TextSegment segment = TextSegment.from(journal.summary, metadata);
-      Embedding embedding = embeddingModel.embed(journal.summary).content();
-      embeddingStore.add(embedding, segment);
-      Log.infof("Embedded journal summary for %s", journal.date);
+      embeddingService.store(journal.summary, metadata);
     } catch (Exception e) {
       Log.warnf(e, "Failed to embed journal summary for %s", journal.date);
     }
