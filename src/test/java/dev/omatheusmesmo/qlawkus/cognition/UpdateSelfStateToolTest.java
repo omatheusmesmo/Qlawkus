@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.cognition;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -11,8 +12,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @QuarkusTest
 class UpdateSelfStateToolTest {
 
-    @Inject
-    UpdateSelfStateTool updateSelfStateTool;
+  @Inject
+  UpdateSelfStateTool updateSelfStateTool;
+
+  @AfterEach
+  @Transactional
+  void resetSoul() {
+    Soul soul = Soul.findSoul();
+    soul.rename("Qlawkus");
+    soul.shiftMood(Mood.FOCUSED);
+    soul.shiftState("Awaiting first interaction. No active context or specialization yet.");
+  }
 
     @Test
     @Transactional

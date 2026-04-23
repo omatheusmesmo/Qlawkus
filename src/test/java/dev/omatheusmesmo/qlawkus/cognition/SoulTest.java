@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.cognition;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -13,73 +14,80 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @QuarkusTest
 class SoulTest {
 
-    @Test
-    @Transactional
-    void findSoul_returnsSeededEntity() {
-        Soul soul = Soul.findSoul();
+  @AfterEach
+  @Transactional
+  void resetSoul() {
+    Soul soul = Soul.findSoul();
+    soul.rename("Qlawkus");
+    soul.shiftMood(Mood.FOCUSED);
+    soul.shiftState("Awaiting first interaction. No active context or specialization yet.");
+  }
 
-        assertNotNull(soul);
-        assertEquals(1L, soul.id);
-        assertEquals("Qlawkus", soul.name);
-        assertNotNull(soul.coreIdentity);
-        assertTrue(soul.coreIdentity.contains("Who I Am"));
-        assertNotNull(soul.currentState);
-        assertNotNull(soul.mood);
-        assertNotNull(soul.createdAt);
-        assertNotNull(soul.updatedAt);
-    }
+  @Test
+  @Transactional
+  void findSoul_returnsSeededEntity() {
+    Soul soul = Soul.findSoul();
 
-    @Test
-    @Transactional
-    void shiftMood_persistsNewMood() {
-        Soul soul = Soul.findSoul();
-        Mood previousMood = soul.mood;
-        Mood newMood = previousMood == Mood.CURIOUS ? Mood.ALERT : Mood.CURIOUS;
+    assertNotNull(soul);
+    assertEquals(1L, soul.id);
+    assertEquals("Qlawkus", soul.name);
+    assertNotNull(soul.coreIdentity);
+    assertTrue(soul.coreIdentity.contains("Who I Am"));
+    assertNotNull(soul.currentState);
+    assertNotNull(soul.mood);
+    assertNotNull(soul.createdAt);
+    assertNotNull(soul.updatedAt);
+  }
 
-        soul.shiftMood(newMood);
+  @Test
+  @Transactional
+  void shiftMood_persistsNewMood() {
+    Soul soul = Soul.findSoul();
+    Mood previousMood = soul.mood;
+    Mood newMood = previousMood == Mood.CURIOUS ? Mood.ALERT : Mood.CURIOUS;
 
-        Soul reloaded = Soul.findSoul();
-        assertEquals(newMood, reloaded.mood);
-    }
+    soul.shiftMood(newMood);
 
-    @Test
-    @Transactional
-    void shiftState_persistsChanges() {
-        Soul soul = Soul.findSoul();
-        String newState = "Reviewing open pull requests at " + LocalDateTime.now();
+    Soul reloaded = Soul.findSoul();
+    assertEquals(newMood, reloaded.mood);
+  }
 
-        soul.shiftState(newState);
+  @Test
+  @Transactional
+  void shiftState_persistsChanges() {
+    Soul soul = Soul.findSoul();
+    String newState = "Reviewing open pull requests at " + LocalDateTime.now();
 
-        Soul reloaded = Soul.findSoul();
-        assertEquals(newState, reloaded.currentState);
-    }
+    soul.shiftState(newState);
 
-    @Test
-    @Transactional
-    void rename_persistsNewName() {
-        Soul soul = Soul.findSoul();
-        String newName = "TestAgent" + System.currentTimeMillis();
+    Soul reloaded = Soul.findSoul();
+    assertEquals(newState, reloaded.currentState);
+  }
 
-        soul.rename(newName);
+  @Test
+  @Transactional
+  void rename_persistsNewName() {
+    Soul soul = Soul.findSoul();
+    String newName = "TestAgent" + System.currentTimeMillis();
 
-        Soul reloaded = Soul.findSoul();
-        assertEquals(newName, reloaded.name);
+    soul.rename(newName);
 
-        soul.rename("Qlawkus");
-    }
+    Soul reloaded = Soul.findSoul();
+    assertEquals(newName, reloaded.name);
+  }
 
-    @Test
-    @Transactional
-    void preUpdate_setsUpdatedAt() throws InterruptedException {
-        Soul soul = Soul.findSoul();
-        LocalDateTime beforeUpdate = soul.updatedAt;
+  @Test
+  @Transactional
+  void preUpdate_setsUpdatedAt() throws InterruptedException {
+    Soul soul = Soul.findSoul();
+    LocalDateTime beforeUpdate = soul.updatedAt;
 
-        Thread.sleep(10);
+    Thread.sleep(10);
 
-        soul.shiftState("Testing timestamp update at " + LocalDateTime.now());
+    soul.shiftState("Testing timestamp update at " + LocalDateTime.now());
 
-        Soul reloaded = Soul.findSoul();
-        assertNotNull(reloaded.updatedAt);
-        assertTrue(reloaded.updatedAt.isAfter(beforeUpdate) || reloaded.updatedAt.equals(beforeUpdate));
-    }
+    Soul reloaded = Soul.findSoul();
+    assertNotNull(reloaded.updatedAt);
+    assertTrue(reloaded.updatedAt.isAfter(beforeUpdate) || reloaded.updatedAt.equals(beforeUpdate));
+  }
 }
