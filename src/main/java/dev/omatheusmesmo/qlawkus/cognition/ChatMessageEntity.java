@@ -13,7 +13,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Entity
@@ -34,7 +36,7 @@ public class ChatMessageEntity extends PanacheEntityBase {
   public String content;
 
   @Column(nullable = false)
-  public LocalDateTime createdAt;
+  public Instant createdAt;
 
   public static List<ChatMessageEntity> findByMemoryIdOrdered(String memoryId) {
     return list("memoryId = ?1 order by createdAt", memoryId);
@@ -44,9 +46,15 @@ public class ChatMessageEntity extends PanacheEntityBase {
     return delete("memoryId = ?1", memoryId);
   }
 
+  public static List<ChatMessageEntity> findByDateRange(LocalDate date) {
+    Instant start = date.atStartOfDay(ZoneOffset.UTC).toInstant();
+    Instant end = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+    return list("createdAt >= ?1 and createdAt < ?2 order by createdAt", start, end);
+  }
+
   @PrePersist
   void persistCreatedAt() {
-    createdAt = LocalDateTime.now();
+    createdAt = Instant.now();
   }
 
   public static ChatMessageEntity fromChatMessage(String memoryId, ChatMessage message) {

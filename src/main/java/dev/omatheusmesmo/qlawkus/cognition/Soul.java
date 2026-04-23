@@ -10,7 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Cacheable
@@ -30,9 +30,9 @@ public class Soul extends PanacheEntityBase {
     @Enumerated(EnumType.STRING)
     public Mood mood;
 
-    public LocalDateTime createdAt;
+  public Instant createdAt;
 
-    public LocalDateTime updatedAt;
+  public Instant updatedAt;
 
     public static Soul findSoul() {
         return findById(1L);
@@ -54,16 +54,16 @@ public class Soul extends PanacheEntityBase {
         this.coreIdentity = newCoreIdentity;
     }
 
-    @PrePersist
-    void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
+  @PrePersist
+  void onCreate() {
+    createdAt = Instant.now();
+    updatedAt = Instant.now();
+  }
 
-    @PreUpdate
-    void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+  @PreUpdate
+  void onUpdate() {
+    updatedAt = Instant.now();
+  }
 
     public String toSystemMessage() {
         StringBuilder sb = new StringBuilder();
