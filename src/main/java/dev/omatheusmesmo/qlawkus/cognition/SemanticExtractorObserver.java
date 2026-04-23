@@ -1,12 +1,8 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.langchain4j.data.document.Metadata;
-import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.store.embedding.EmbeddingStore;
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -21,10 +17,7 @@ public class SemanticExtractorObserver {
   ChatModel chatModel;
 
   @Inject
-  EmbeddingModel embeddingModel;
-
-  @Inject
-  EmbeddingStore<TextSegment> embeddingStore;
+  EmbeddingService embeddingService;
 
   void onChatCompleted(@Observes(during = TransactionPhase.AFTER_COMPLETION) ChatCompletedEvent event) {
     if (event.messages().isEmpty()) return;
@@ -41,17 +34,17 @@ public class SemanticExtractorObserver {
       }
 
       String extractionPrompt = """
-          Extract factual information and user preferences from this conversation.
-          Return each fact as a separate line prefixed with '- '. If no facts or preferences are present, return nothing.
+        Extract factual information and user preferences from this conversation.
+        Return each fact as a separate line prefixed with '- '. If no facts or preferences are present, return nothing.
 
-          Examples:
-          - User prefers dark theme in IDE
-          - User works with Java and Quarkus
-          - User's name is Matheus
-          - User dislikes var keyword in Java
+        Examples:
+        - User prefers dark theme in IDE
+        - User works with Java and Quarkus
+        - User's name is Matheus
+        - User dislikes var keyword in Java
 
-          Conversation:
-          %s""".formatted(conversation);
+        Conversation:
+        %s""".formatted(conversation);
 
       String response = chatModel.chat(extractionPrompt);
       if (response == null || response.isBlank()) return;
@@ -62,9 +55,7 @@ public class SemanticExtractorObserver {
 
         Metadata metadata = new Metadata();
         metadata.put("source", "semantic-extractor");
-        TextSegment segment = TextSegment.from(fact, metadata);
-        Embedding embedding = embeddingModel.embed(fact).content();
-        embeddingStore.add(embedding, segment);
+        embeddingService.store(fact, metadata);
         Log.infof("Semantic fact extracted: %s", fact);
       }
     } catch (Exception e) {

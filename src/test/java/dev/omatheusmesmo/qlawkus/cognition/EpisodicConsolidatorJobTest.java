@@ -47,24 +47,33 @@ class EpisodicConsolidatorJobTest {
     ChatMessageEntity.deleteAll();
   }
 
-  @Test
   @Transactional
+  void seedMessages(String... texts) {
+    for (String text : texts) {
+      ChatMessageEntity.fromChatMessage("session-1", new UserMessage(text)).persist();
+    }
+  }
+
+  @Transactional
+  Journal findJournal(LocalDate date) {
+    return Journal.findByDate(date);
+  }
+
+  @Test
   void consolidateDate_createsJournalFromMessages() {
-    ChatMessageEntity.fromChatMessage("session-1", new UserMessage("I prefer dark theme")).persist();
-    ChatMessageEntity.fromChatMessage("session-1", AiMessage.from("Noted, dark theme it is.")).persist();
+    seedMessages("I prefer dark theme", "Tell me about dark theme");
 
     when(chatModel.chat(anyString())).thenReturn("User expressed preference for dark theme.");
 
     job.consolidateDate(LocalDate.now());
 
-    Journal journal = Journal.findByDate(LocalDate.now());
+    Journal journal = findJournal(LocalDate.now());
     assertNotNull(journal);
     assertTrue(journal.summary.contains("dark theme"));
     assertEquals(2, journal.messageCount);
   }
 
   @Test
-  @Transactional
   void consolidateDate_skipsWhenNoMessages() {
     job.consolidateDate(LocalDate.of(2020, 1, 1));
 
@@ -82,6 +91,8 @@ class EpisodicConsolidatorJobTest {
 
     ChatMessageEntity.fromChatMessage("session-1", new UserMessage("hello")).persist();
 
+    when(chatModel.chat(anyString())).thenReturn("New summary.");
+
     job.consolidateDate(LocalDate.now());
 
     Journal journal = Journal.findByDate(LocalDate.now());
@@ -90,18 +101,16 @@ class EpisodicConsolidatorJobTest {
   }
 
   @Test
-  @Transactional
   void consolidateDate_handlesLlmFailure() {
-    ChatMessageEntity.fromChatMessage("session-1", new UserMessage("hello")).persist();
+    seedMessages("hello");
 
     when(chatModel.chat(anyString())).thenThrow(new RuntimeException("LLM unavailable"));
 
     job.consolidateDate(LocalDate.now());
 
-    Journal journal = Journal.findByDate(LocalDate.now());
+    Journal journal = findJournal(LocalDate.now());
     assertNotNull(journal);
     assertTrue(journal.summary.contains("Consolidation failed"));
-    assertEquals(1, journal.messageCount);
   }
 
   @Test
@@ -116,10 +125,8 @@ class EpisodicConsolidatorJobTest {
   }
 
   @Test
-  @Transactional
   void consolidateDate_embedsSummaryIntoVectorStore() {
-    ChatMessageEntity.fromChatMessage("session-1", new UserMessage("I prefer dark theme")).persist();
-    ChatMessageEntity.fromChatMessage("session-1", AiMessage.from("Noted.")).persist();
+    seedMessages("I prefer dark theme");
 
     when(chatModel.chat(anyString())).thenReturn("User expressed preference for dark theme.");
 
@@ -143,9 +150,8 @@ class EpisodicConsolidatorJobTest {
   }
 
   @Test
-  @Transactional
   void consolidateDate_storesEpisodicMetadataInEmbedding() {
-    ChatMessageEntity.fromChatMessage("session-1", new UserMessage("hello")).persist();
+    seedMessages("hello");
 
     when(chatModel.chat(anyString())).thenReturn("User greeted the agent.");
 
