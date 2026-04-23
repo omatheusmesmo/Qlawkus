@@ -5,7 +5,7 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -56,7 +56,7 @@ class SoulTest {
   @Transactional
   void shiftState_persistsChanges() {
     Soul soul = Soul.findSoul();
-    String newState = "Reviewing open pull requests at " + LocalDateTime.now();
+    String newState = "Reviewing open pull requests at " + Instant.now();
 
     soul.shiftState(newState);
 
@@ -80,11 +80,11 @@ class SoulTest {
   @Transactional
   void preUpdate_setsUpdatedAt() throws InterruptedException {
     Soul soul = Soul.findSoul();
-    LocalDateTime beforeUpdate = soul.updatedAt;
+    Instant beforeUpdate = soul.updatedAt;
 
     Thread.sleep(10);
 
-    soul.shiftState("Testing timestamp update at " + LocalDateTime.now());
+    soul.shiftState("Testing timestamp update at " + Instant.now());
 
     Soul reloaded = Soul.findSoul();
     assertNotNull(reloaded.updatedAt);
