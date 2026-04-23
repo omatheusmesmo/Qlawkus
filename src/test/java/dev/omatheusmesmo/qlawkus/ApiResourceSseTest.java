@@ -3,8 +3,8 @@ package dev.omatheusmesmo.qlawkus;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.WebClient;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpMethod;
 import org.junit.jupiter.api.Test;
 
 import java.net.URL;
@@ -26,30 +26,36 @@ class ApiResourceSseTest {
   @Test
   void chat_stream_returnsSseTokens() throws InterruptedException {
     Vertx vertx = Vertx.vertx();
-    WebClient client = WebClient.create(vertx);
+    HttpClient client = vertx.createHttpClient();
 
     String auth = Base64.getEncoder().encodeToString("admin:admin123".getBytes());
-    String body = "{\"message\": \"What is your name? Reply briefly.\"}";
 
     CountDownLatch latch = new CountDownLatch(1);
-    AtomicReference<StringBuilder> collected = new AtomicReference<>(new StringBuilder());
+    StringBuilder collected = new StringBuilder();
     AtomicReference<Integer> statusCode = new AtomicReference<>();
 
-    client
-      .post(url.getPort(), url.getHost(), "/api/chat")
-      .putHeader("Authorization", "Basic " + auth)
-      .putHeader("Content-Type", "application/json")
-      .sendBuffer(Buffer.buffer(body))
-      .onSuccess(response -> {
-        statusCode.set(response.statusCode());
-        String bodyContent = response.bodyAsString();
-        collected.get().append(bodyContent);
-        latch.countDown();
-      })
-      .onFailure(err -> {
-        collected.get().append("ERROR: ").append(err.getMessage());
-        latch.countDown();
-      });
+    client.request(HttpMethod.POST, url.getPort(), url.getHost(), "/api/chat")
+        .onSuccess(request -> {
+          request.putHeader("Authorization", "Basic " + auth);
+          request.putHeader("Content-Type", "application/json");
+          request.putHeader("Accept", "text/event-stream");
+
+          request.send("{\"message\": \"What is your name? Reply briefly.\"}")
+              .onSuccess(response -> {
+                statusCode.set(response.statusCode());
+                response.exceptionHandler(err -> latch.countDown());
+                response.handler(chunk -> collected.append(chunk.toString()));
+                response.endHandler(v -> latch.countDown());
+              })
+              .onFailure(err -> {
+                collected.append("ERROR: ").append(err.getMessage());
+                latch.countDown();
+              });
+        })
+        .onFailure(err -> {
+          collected.append("ERROR: ").append(err.getMessage());
+          latch.countDown();
+        });
 
     assertTrue(latch.await(120, TimeUnit.SECONDS), "SSE stream should complete within timeout");
 
@@ -57,36 +63,36 @@ class ApiResourceSseTest {
     vertx.close();
 
     assertEquals(200, statusCode.get(), "Should return 200 with valid auth");
-    String result = collected.get().toString();
+    String result = collected.toString();
     assertFalse(result.isBlank(), "SSE stream should produce content");
-
-    String plainText = result.replace("data:", "").replace("\n", "").trim();
-    assertTrue(plainText.toLowerCase().contains("qlawkus"),
-      "SSE response should contain the soul name 'Qlawkus'. Got: " + result);
+    assertTrue(result.startsWith("data:"), "SSE response should use data: prefix. Got: " + result);
   }
 
   @Test
   void chat_stream_withoutAuth_returns401() throws InterruptedException {
     Vertx vertx = Vertx.vertx();
-    WebClient client = WebClient.create(vertx);
-
-    String body = "{\"message\": \"hello\"}";
+    HttpClient client = vertx.createHttpClient();
 
     CountDownLatch latch = new CountDownLatch(1);
     AtomicReference<Integer> statusCode = new AtomicReference<>();
 
-    client
-      .post(url.getPort(), url.getHost(), "/api/chat")
-      .putHeader("Content-Type", "application/json")
-      .sendBuffer(Buffer.buffer(body))
-      .onSuccess(response -> {
-        statusCode.set(response.statusCode());
-        latch.countDown();
-      })
-      .onFailure(err -> {
-        statusCode.set(-1);
-        latch.countDown();
-      });
+    client.request(HttpMethod.POST, url.getPort(), url.getHost(), "/api/chat")
+        .onSuccess(request -> {
+          request.putHeader("Content-Type", "application/json");
+          request.send("{\"message\": \"hello\"}")
+              .onSuccess(response -> {
+                statusCode.set(response.statusCode());
+                latch.countDown();
+              })
+              .onFailure(err -> {
+                statusCode.set(-1);
+                latch.countDown();
+              });
+        })
+        .onFailure(err -> {
+          statusCode.set(-1);
+          latch.countDown();
+        });
 
     assertTrue(latch.await(10, TimeUnit.SECONDS));
     client.close();

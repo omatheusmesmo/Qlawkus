@@ -1,0 +1,57 @@
+package dev.omatheusmesmo.qlawkus.cognition;
+
+import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@QuarkusTest
+class VectorFactStoreTest {
+
+  @Inject
+  VectorFactStore vectorFactStore;
+
+  @Inject
+  EmbeddingModel embeddingModel;
+
+  @Inject
+  EmbeddingStore<TextSegment> embeddingStore;
+
+  @Test
+  void searchRelevantFacts_returnsMatchingFacts() {
+    Metadata metadata = new Metadata();
+    metadata.put("source", "semantic-extractor");
+    TextSegment segment = TextSegment.from("User prefers dark theme in IDE", metadata);
+    Embedding embedding = embeddingModel.embed(segment).content();
+    embeddingStore.add(embedding, segment);
+
+    List<String> facts = vectorFactStore.searchRelevantFacts("IDE theme preference", 5);
+
+    assertFalse(facts.isEmpty());
+    assertTrue(facts.stream().anyMatch(f -> f.toLowerCase().contains("dark theme")));
+  }
+
+  @Test
+  void searchRelevantFacts_returnsMultipleFacts() {
+    Metadata metadata = new Metadata();
+    metadata.put("source", "semantic-extractor");
+
+    TextSegment seg1 = TextSegment.from("User codes in Rust programming language", metadata);
+    embeddingStore.add(embeddingModel.embed(seg1).content(), seg1);
+
+    TextSegment seg2 = TextSegment.from("User works with Kubernetes and Docker", metadata);
+    embeddingStore.add(embeddingModel.embed(seg2).content(), seg2);
+
+    List<String> facts = vectorFactStore.searchRelevantFacts("programming and infrastructure tools", 10);
+
+    assertFalse(facts.isEmpty());
+  }
+}
