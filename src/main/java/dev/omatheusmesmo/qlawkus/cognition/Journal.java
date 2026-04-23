@@ -10,6 +10,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 public class Journal extends PanacheEntityBase {
@@ -37,6 +38,10 @@ public class Journal extends PanacheEntityBase {
 
   public static boolean existsForDate(LocalDate date) {
     return count("date = ?1", date) > 0;
+  }
+
+  public static List<Journal> findByDateRange(LocalDate start, LocalDate end) {
+    return list("date >= ?1 and date <= ?2 order by date", start, end);
   }
 
   @PrePersist

@@ -1,8 +1,15 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
+import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
+import dev.langchain4j.store.embedding.EmbeddingStore;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -26,6 +33,12 @@ class EpisodicConsolidatorJobTest {
 
   @Inject
   EpisodicConsolidatorJob job;
+
+  @Inject
+  EmbeddingModel embeddingModel;
+
+  @Inject
+  EmbeddingStore<TextSegment> embeddingStore;
 
   @AfterEach
   @Transactional
@@ -100,5 +113,56 @@ class EpisodicConsolidatorJobTest {
     String summary = job.summarizeMessages(java.util.List.of(entity), LocalDate.now());
 
     assertEquals("Summarized conversation.", summary);
+  }
+
+  @Test
+  @Transactional
+  void consolidateDate_embedsSummaryIntoVectorStore() {
+    ChatMessageEntity.fromChatMessage("session-1", new UserMessage("I prefer dark theme")).persist();
+    ChatMessageEntity.fromChatMessage("session-1", AiMessage.from("Noted.")).persist();
+
+    when(chatModel.chat(anyString())).thenReturn("User expressed preference for dark theme.");
+
+    job.consolidateDate(LocalDate.now());
+
+    Embedding queryEmbedding = embeddingModel.embed("dark theme preference").content();
+    EmbeddingSearchResult<TextSegment> results = embeddingStore.search(
+        EmbeddingSearchRequest.builder()
+            .queryEmbedding(queryEmbedding)
+            .maxResults(5)
+            .minScore(0.5)
+            .build()
+    );
+
+    boolean found = results.matches().stream()
+        .map(EmbeddingMatch::embedded)
+        .map(TextSegment::text)
+        .anyMatch(text -> text.contains("dark theme"));
+
+    assertTrue(found, "Expected to find journal summary with 'dark theme' in vector store");
+  }
+
+  @Test
+  @Transactional
+  void consolidateDate_storesEpisodicMetadataInEmbedding() {
+    ChatMessageEntity.fromChatMessage("session-1", new UserMessage("hello")).persist();
+
+    when(chatModel.chat(anyString())).thenReturn("User greeted the agent.");
+
+    job.consolidateDate(LocalDate.now());
+
+    Embedding queryEmbedding = embeddingModel.embed("user greeting").content();
+    EmbeddingSearchResult<TextSegment> results = embeddingStore.search(
+        EmbeddingSearchRequest.builder()
+            .queryEmbedding(queryEmbedding)
+            .maxResults(5)
+            .minScore(0.5)
+            .build()
+    );
+
+    boolean hasSource = results.matches().stream()
+        .anyMatch(m -> "episodic-consolidator".equals(m.embedded().metadata().getString("source")));
+
+    assertTrue(hasSource, "Expected metadata source=episodic-consolidator");
   }
 }
