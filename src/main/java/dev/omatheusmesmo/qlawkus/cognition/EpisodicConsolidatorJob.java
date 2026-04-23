@@ -1,7 +1,12 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
+import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.store.embedding.EmbeddingStore;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -16,6 +21,12 @@ public class EpisodicConsolidatorJob {
 
   @Inject
   ChatModel chatModel;
+
+  @Inject
+  EmbeddingModel embeddingModel;
+
+  @Inject
+  EmbeddingStore<TextSegment> embeddingStore;
 
   @Scheduled(cron = "{qlawkus.consolidator.cron:0 0 3 * * ?}")
   void consolidate() {
@@ -44,7 +55,23 @@ public class EpisodicConsolidatorJob {
     journal.messageCount = entities.size();
     journal.persist();
 
+    embedSummary(journal);
+
     Log.infof("Consolidated %d messages into journal for %s", entities.size(), date);
+  }
+
+  void embedSummary(Journal journal) {
+    try {
+      Metadata metadata = new Metadata();
+      metadata.put("source", "episodic-consolidator");
+      metadata.put("date", journal.date.toString());
+      TextSegment segment = TextSegment.from(journal.summary, metadata);
+      Embedding embedding = embeddingModel.embed(journal.summary).content();
+      embeddingStore.add(embedding, segment);
+      Log.infof("Embedded journal summary for %s", journal.date);
+    } catch (Exception e) {
+      Log.warnf(e, "Failed to embed journal summary for %s", journal.date);
+    }
   }
 
   String summarizeMessages(List<ChatMessageEntity> entities, LocalDate date) {
