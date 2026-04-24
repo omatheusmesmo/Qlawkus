@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
+import dev.omatheusmesmo.qlawkus.repository.EmbeddingRepository;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -22,8 +23,16 @@ public class EmbeddingService {
   @Inject
   EmbeddingStore<TextSegment> embeddingStore;
 
+  @Inject
+  EmbeddingRepository embeddingRepository;
+
   public void store(String text, Metadata metadata) {
     try {
+      String hash = EmbeddingRepository.md5(text);
+      if (embeddingRepository.existsByContentHash(hash)) {
+        Log.debugf("Embedding already exists for text, skipping: %s", text);
+        return;
+      }
       TextSegment segment = TextSegment.from(text, metadata);
       Embedding embedding = embeddingModel.embed(text).content();
       embeddingStore.add(embedding, segment);

@@ -1,6 +1,5 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
-import dev.omatheusmesmo.qlawkus.dto.EmbeddingSourceInfo;
 import dev.omatheusmesmo.qlawkus.dto.JournalSummary;
 import dev.omatheusmesmo.qlawkus.dto.MemorySummary;
 import dev.omatheusmesmo.qlawkus.repository.EmbeddingRepository;
@@ -22,17 +21,6 @@ public class MemoryAdminService {
     long journalCount = Journal.count();
     long chatMessageCount = ChatMessageEntity.count();
     return new MemorySummary(sources, journalCount, chatMessageCount);
-  }
-
-  @Transactional
-  public List<String> listEmbeddingSources() {
-    return embeddingRepository.listSources();
-  }
-
-  @Transactional
-  public EmbeddingSourceInfo getEmbeddingSourceInfo(String source) {
-    long count = embeddingRepository.countBySource(source);
-    return new EmbeddingSourceInfo(source, count);
   }
 
   @Transactional
