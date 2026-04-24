@@ -1,4 +1,4 @@
-package dev.omatheusmesmo.qlawkus;
+package dev.omatheusmesmo.qlawkus.rest;
 
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;

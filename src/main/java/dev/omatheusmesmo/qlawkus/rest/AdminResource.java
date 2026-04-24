@@ -1,7 +1,6 @@
-package dev.omatheusmesmo.qlawkus;
+package dev.omatheusmesmo.qlawkus.rest;
 
 import dev.omatheusmesmo.qlawkus.cognition.MemoryAdminService;
-import dev.omatheusmesmo.qlawkus.dto.EmbeddingSourceInfo;
 import dev.omatheusmesmo.qlawkus.dto.JournalSummary;
 import dev.omatheusmesmo.qlawkus.dto.MemorySummary;
 import io.quarkus.security.Authenticated;
@@ -24,15 +23,6 @@ public class AdminResource {
   @GET
   public MemorySummary list() {
     return adminService.getMemorySummary();
-  }
-
-  @GET
-  @Path("/embeddings")
-  public Object listEmbeddings(@QueryParam("source") String source) {
-    if (source != null) {
-      return adminService.getEmbeddingSourceInfo(source);
-    }
-    return Map.of("sources", adminService.listEmbeddingSources());
   }
 
   @GET

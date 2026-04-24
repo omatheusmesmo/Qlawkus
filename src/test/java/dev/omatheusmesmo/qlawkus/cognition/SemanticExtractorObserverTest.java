@@ -11,10 +11,13 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.omatheusmesmo.qlawkus.repository.EmbeddingRepository;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -36,35 +39,44 @@ class SemanticExtractorObserverTest {
   @Inject
   EmbeddingStore<TextSegment> embeddingStore;
 
+  @Inject
+  EmbeddingRepository embeddingRepository;
+
+  @AfterEach
+  @Transactional
+  void cleanup() {
+    embeddingRepository.deleteAll();
+  }
+
   @Test
   void extractAndStore_storesFactsInVectorStore() {
     when(chatModel.chat(anyString())).thenReturn("- User prefers Vim over VS Code\n- User codes in Rust");
 
     List<ChatMessage> messages = List.of(
-        new UserMessage("I love Vim, never switching to VS Code"),
-        AiMessage.from("Noted! Vim is a great editor.")
+      new UserMessage("I love Vim, never switching to VS Code"),
+      AiMessage.from("Noted! Vim is a great editor.")
     );
 
     observer.extractAndStore(messages);
 
     Embedding queryEmbedding = embeddingModel.embed("editor preference Vim VS Code").content();
     EmbeddingSearchResult<TextSegment> results = embeddingStore.search(
-        EmbeddingSearchRequest.builder()
-            .queryEmbedding(queryEmbedding)
-            .maxResults(10)
-            .minScore(0.5)
-            .build()
+      EmbeddingSearchRequest.builder()
+        .queryEmbedding(queryEmbedding)
+        .maxResults(10)
+        .minScore(0.5)
+        .build()
     );
 
     assertFactFound(results, "Vim");
 
     Embedding rustQuery = embeddingModel.embed("programming language Rust").content();
     EmbeddingSearchResult<TextSegment> rustResults = embeddingStore.search(
-        EmbeddingSearchRequest.builder()
-            .queryEmbedding(rustQuery)
-            .maxResults(10)
-            .minScore(0.5)
-            .build()
+      EmbeddingSearchRequest.builder()
+        .queryEmbedding(rustQuery)
+        .maxResults(10)
+        .minScore(0.5)
+        .build()
     );
 
     assertFactFound(rustResults, "Rust");
@@ -75,23 +87,23 @@ class SemanticExtractorObserverTest {
     when(chatModel.chat(anyString())).thenReturn("- User's name is Matheus");
 
     List<ChatMessage> messages = List.of(
-        new UserMessage("My name is Matheus"),
-        AiMessage.from("Nice to meet you, Matheus!")
+      new UserMessage("My name is Matheus"),
+      AiMessage.from("Nice to meet you, Matheus!")
     );
 
     observer.extractAndStore(messages);
 
     Embedding queryEmbedding = embeddingModel.embed("user name Matheus").content();
     EmbeddingSearchResult<TextSegment> results = embeddingStore.search(
-        EmbeddingSearchRequest.builder()
-            .queryEmbedding(queryEmbedding)
-            .maxResults(10)
-            .minScore(0.5)
-            .build()
+      EmbeddingSearchRequest.builder()
+        .queryEmbedding(queryEmbedding)
+        .maxResults(10)
+        .minScore(0.5)
+        .build()
     );
 
     boolean hasSource = results.matches().stream()
-        .anyMatch(m -> "semantic-extractor".equals(m.embedded().metadata().getString("source")));
+      .anyMatch(m -> "semantic-extractor".equals(m.embedded().metadata().getString("source")));
     assertTrue(hasSource, "Expected metadata source=semantic-extractor");
   }
 
@@ -113,10 +125,10 @@ class SemanticExtractorObserverTest {
 
   private void assertFactFound(EmbeddingSearchResult<TextSegment> results, String keyword) {
     boolean found = results.matches().stream()
-        .map(EmbeddingMatch::embedded)
-        .map(TextSegment::text)
-        .anyMatch(text -> text.toLowerCase().contains(keyword.toLowerCase()));
+      .map(EmbeddingMatch::embedded)
+      .map(TextSegment::text)
+      .anyMatch(text -> text.toLowerCase().contains(keyword.toLowerCase()));
     assertTrue(found, "Expected to find fact containing '" + keyword + "' but found: " +
-        results.matches().stream().map(m -> m.embedded().text()).toList());
+      results.matches().stream().map(m -> m.embedded().text()).toList());
   }
 }
