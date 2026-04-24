@@ -5,9 +5,12 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.omatheusmesmo.qlawkus.repository.EmbeddingRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -24,6 +27,15 @@ class VectorFactStoreTest {
 
   @Inject
   EmbeddingStore<TextSegment> embeddingStore;
+
+  @Inject
+  EmbeddingRepository embeddingRepository;
+
+  @AfterEach
+  @Transactional
+  void cleanup() {
+    embeddingRepository.deleteAll();
+  }
 
   @Test
   void searchRelevantFacts_returnsMatchingFacts() {

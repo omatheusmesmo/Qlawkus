@@ -5,10 +5,13 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.omatheusmesmo.qlawkus.repository.EmbeddingRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +30,9 @@ class SearchMemoriesToolTest {
   @Inject
   EmbeddingStore<TextSegment> embeddingStore;
 
+  @Inject
+  EmbeddingRepository embeddingRepository;
+
   static final String[] FACTS = {
     "User prefers Vim over VS Code for editing",
     "User codes in Rust and dislikes Java verbosity",
@@ -43,6 +49,12 @@ class SearchMemoriesToolTest {
   @BeforeAll
   static void checkFacts() {
     assert FACTS.length == 10;
+  }
+
+  @AfterEach
+  @Transactional
+  void cleanup() {
+    embeddingRepository.deleteAll();
   }
 
   void seedFacts() {

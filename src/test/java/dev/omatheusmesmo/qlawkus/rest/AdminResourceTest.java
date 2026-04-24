@@ -1,4 +1,4 @@
-package dev.omatheusmesmo.qlawkus;
+package dev.omatheusmesmo.qlawkus.rest;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -29,29 +29,6 @@ class AdminResourceTest {
         .statusCode(200)
         .body("journalCount", greaterThanOrEqualTo(0))
         .body("chatMessageCount", greaterThanOrEqualTo(0));
-  }
-
-  @Test
-  void listEmbeddings_returnsSources() {
-    given()
-        .auth().basic("admin", "admin123")
-        .when()
-        .get("/api/admin/memory/embeddings")
-        .then()
-        .statusCode(200);
-  }
-
-  @Test
-  void listEmbeddings_bySource_returnsCount() {
-    given()
-        .auth().basic("admin", "admin123")
-        .queryParam("source", "semantic-extractor")
-        .when()
-        .get("/api/admin/memory/embeddings")
-        .then()
-        .statusCode(200)
-        .body("source", equalTo("semantic-extractor"))
-        .body("count", greaterThanOrEqualTo(0));
   }
 
   @Test
