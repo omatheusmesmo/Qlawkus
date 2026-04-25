@@ -13,6 +13,7 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.omatheusmesmo.qlawkus.repository.EmbeddingRepository;
 import io.quarkus.test.InjectMock;
+import org.junit.jupiter.api.Tag;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -24,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
+@Tag("slow")
 @QuarkusTest
 class SemanticExtractorObserverTest {
 

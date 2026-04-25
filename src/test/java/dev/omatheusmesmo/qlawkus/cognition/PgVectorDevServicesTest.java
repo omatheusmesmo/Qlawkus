@@ -6,10 +6,12 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+@Tag("slow")
 @QuarkusTest
 class PgVectorDevServicesTest {
 
