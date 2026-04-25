@@ -10,21 +10,30 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.omatheusmesmo.qlawkus.repository.EmbeddingRepository;
+import io.quarkus.scheduler.Scheduler;
+import io.quarkus.scheduler.Trigger;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Tag;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
+@Tag("slow")
 @QuarkusTest
 class EpisodicConsolidatorJobTest {
 
@@ -37,15 +46,25 @@ class EpisodicConsolidatorJobTest {
   @Inject
   EmbeddingModel embeddingModel;
 
-  @Inject
-  EmbeddingStore<TextSegment> embeddingStore;
+    @Inject
+    EmbeddingStore<TextSegment> embeddingStore;
 
-  @AfterEach
-  @Transactional
-  void cleanup() {
-    Journal.deleteAll();
-    ChatMessageEntity.deleteAll();
-  }
+    @Inject
+    SearchMemoriesTool searchMemoriesTool;
+
+    @Inject
+    EmbeddingRepository embeddingRepository;
+
+    @Inject
+    Scheduler scheduler;
+
+    @AfterEach
+    @Transactional
+    void cleanup() {
+        Journal.deleteAll();
+        ChatMessageEntity.deleteAll();
+        embeddingRepository.deleteAll();
+    }
 
   @Transactional
   void seedMessages(String... texts) {
@@ -65,9 +84,9 @@ class EpisodicConsolidatorJobTest {
 
     when(chatModel.chat(anyString())).thenReturn("User expressed preference for dark theme.");
 
-    job.consolidateDate(LocalDate.now());
+    job.consolidateDate(LocalDate.now(ZoneOffset.UTC));
 
-    Journal journal = findJournal(LocalDate.now());
+    Journal journal = findJournal(LocalDate.now(ZoneOffset.UTC));
     assertNotNull(journal);
     assertTrue(journal.summary.contains("dark theme"));
     assertEquals(2, journal.messageCount);
@@ -84,7 +103,7 @@ class EpisodicConsolidatorJobTest {
   @Transactional
   void consolidateDate_skipsWhenJournalAlreadyExists() {
     Journal existing = new Journal();
-    existing.date = LocalDate.now();
+    existing.date = LocalDate.now(ZoneOffset.UTC);
     existing.summary = "Existing summary";
     existing.messageCount = 5;
     existing.persist();
@@ -93,9 +112,9 @@ class EpisodicConsolidatorJobTest {
 
     when(chatModel.chat(anyString())).thenReturn("New summary.");
 
-    job.consolidateDate(LocalDate.now());
+    job.consolidateDate(LocalDate.now(ZoneOffset.UTC));
 
-    Journal journal = Journal.findByDate(LocalDate.now());
+    Journal journal = Journal.findByDate(LocalDate.now(ZoneOffset.UTC));
     assertEquals("Existing summary", journal.summary);
     assertEquals(5, journal.messageCount);
   }
@@ -106,9 +125,9 @@ class EpisodicConsolidatorJobTest {
 
     when(chatModel.chat(anyString())).thenThrow(new RuntimeException("LLM unavailable"));
 
-    job.consolidateDate(LocalDate.now());
+    job.consolidateDate(LocalDate.now(ZoneOffset.UTC));
 
-    Journal journal = findJournal(LocalDate.now());
+    Journal journal = findJournal(LocalDate.now(ZoneOffset.UTC));
     assertNotNull(journal);
     assertTrue(journal.summary.contains("Consolidation failed"));
   }
@@ -119,7 +138,7 @@ class EpisodicConsolidatorJobTest {
 
     ChatMessageEntity entity = ChatMessageEntity.fromChatMessage("session-1", new UserMessage("test message"));
 
-    String summary = job.summarizeMessages(java.util.List.of(entity), LocalDate.now());
+    String summary = job.summarizeMessages(java.util.List.of(entity), LocalDate.now(ZoneOffset.UTC));
 
     assertEquals("Summarized conversation.", summary);
   }
@@ -130,7 +149,7 @@ class EpisodicConsolidatorJobTest {
 
     when(chatModel.chat(anyString())).thenReturn("User expressed preference for dark theme.");
 
-    job.consolidateDate(LocalDate.now());
+    job.consolidateDate(LocalDate.now(ZoneOffset.UTC));
 
     Embedding queryEmbedding = embeddingModel.embed("dark theme preference").content();
     EmbeddingSearchResult<TextSegment> results = embeddingStore.search(
@@ -155,7 +174,7 @@ class EpisodicConsolidatorJobTest {
 
     when(chatModel.chat(anyString())).thenReturn("User greeted the agent.");
 
-    job.consolidateDate(LocalDate.now());
+    job.consolidateDate(LocalDate.now(ZoneOffset.UTC));
 
     Embedding queryEmbedding = embeddingModel.embed("user greeting").content();
     EmbeddingSearchResult<TextSegment> results = embeddingStore.search(
@@ -169,6 +188,32 @@ class EpisodicConsolidatorJobTest {
     boolean hasSource = results.matches().stream()
         .anyMatch(m -> "episodic-consolidator".equals(m.embedded().metadata().getString("source")));
 
-    assertTrue(hasSource, "Expected metadata source=episodic-consolidator");
-  }
+        assertTrue(hasSource, "Expected metadata source=episodic-consolidator");
+    }
+
+    @Test
+    void scheduler_registersConsolidatorJob() {
+        List<Trigger> triggers = scheduler.getScheduledJobs();
+        Optional<Trigger> consolidatorJob = triggers.stream()
+                .filter(t -> t.getId() != null && t.getId().contains("EpisodicConsolidatorJob"))
+                .findFirst();
+
+        assertTrue(consolidatorJob.isPresent(),
+                "Expected EpisodicConsolidatorJob to be registered in the scheduler");
+    }
+
+    @Test
+    void consolidatedSummary_isRetrievableViaSearchMemoriesTool() {
+        seedMessages("I always deploy on Fridays, it's my tradition");
+
+        when(chatModel.chat(anyString())).thenReturn(
+                "User has a tradition of deploying on Fridays despite common advice against it.");
+
+        job.consolidateDate(LocalDate.now(ZoneOffset.UTC));
+
+        List<String> results = searchMemoriesTool.searchMemories("deployment policy Friday");
+        assertFalse(results.isEmpty(), "SearchMemoriesTool should find consolidated journal summary");
+        assertTrue(results.stream().anyMatch(f -> f.toLowerCase().contains("friday") || f.toLowerCase().contains("deploy")),
+                "Expected result about Friday deployment tradition, got: " + results);
+    }
 }
