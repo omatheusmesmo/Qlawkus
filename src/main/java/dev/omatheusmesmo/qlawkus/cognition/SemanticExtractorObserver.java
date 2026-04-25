@@ -4,10 +4,8 @@ import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import io.quarkus.logging.Log;
-import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.event.Observes;
-import jakarta.enterprise.event.TransactionPhase;
+import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
 
 @ApplicationScoped
@@ -19,11 +17,10 @@ public class SemanticExtractorObserver {
   @Inject
   EmbeddingService embeddingService;
 
-  void onChatCompleted(@Observes(during = TransactionPhase.AFTER_COMPLETION) ChatCompletedEvent event) {
+  void onChatCompleted(@ObservesAsync ChatCompletedEvent event) {
     if (event.messages().isEmpty()) return;
 
-    Infrastructure.getDefaultWorkerPool()
-        .submit(() -> extractAndStore(event.messages()));
+    extractAndStore(event.messages());
   }
 
   void extractAndStore(Iterable<ChatMessage> messages) {
@@ -34,17 +31,17 @@ public class SemanticExtractorObserver {
       }
 
       String extractionPrompt = """
-        Extract factual information and user preferences from this conversation.
-        Return each fact as a separate line prefixed with '- '. If no facts or preferences are present, return nothing.
+Extract factual information and user preferences from this conversation.
+Return each fact as a separate line prefixed with '- '. If no facts or preferences are present, return nothing.
 
-        Examples:
-        - User prefers dark theme in IDE
-        - User works with Java and Quarkus
-        - User's name is Matheus
-        - User dislikes var keyword in Java
+Examples:
+- User prefers dark theme in IDE
+- User works with Java and Quarkus
+- User's name is Matheus
+- User dislikes var keyword in Java
 
-        Conversation:
-        %s""".formatted(conversation);
+Conversation:
+%s""".formatted(conversation);
 
       String response = chatModel.chat(extractionPrompt);
       if (response == null || response.isBlank()) return;

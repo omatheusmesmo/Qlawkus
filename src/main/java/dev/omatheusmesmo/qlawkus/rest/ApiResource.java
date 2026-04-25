@@ -38,13 +38,12 @@ public class ApiResource {
   @Produces(MediaType.SERVER_SENT_EVENTS)
   public Multi<String> chat(@Valid ChatRequest request) {
     return agentService.chat(request.message())
-        .onCompletion().invoke(() -> {
-          try {
-            List<ChatMessage> messages = memoryStore.getMessages(DEFAULT_MEMORY_ID);
-            eventEmitter.fire(new ChatCompletedEvent(messages));
-          } catch (Exception e) {
-            // best effort — never block the response
-          }
-        });
+      .onCompletion().invoke(() -> {
+        try {
+          List<ChatMessage> messages = memoryStore.getMessages(DEFAULT_MEMORY_ID);
+          eventEmitter.fireAsync(new ChatCompletedEvent(messages));
+        } catch (Exception e) {
+        }
+      });
   }
 }

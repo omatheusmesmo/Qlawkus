@@ -15,14 +15,11 @@ class SoulEngineTest {
   @Inject
   SoulEngine soulEngine;
 
-  @AfterEach
-  @Transactional
-  void resetSoul() {
-    Soul soul = Soul.findSoul();
-    soul.rename("Qlawkus");
-    soul.shiftMood(Mood.FOCUSED);
-    soul.shiftState("Awaiting first interaction. No active context or specialization yet.");
-  }
+    @AfterEach
+    @Transactional
+    void resetSoul() {
+        SoulResetHelper.resetToDefaults();
+    }
 
   @Test
   @Transactional
