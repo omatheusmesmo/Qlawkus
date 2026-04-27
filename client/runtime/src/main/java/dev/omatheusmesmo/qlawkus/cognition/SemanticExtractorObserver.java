@@ -23,7 +23,7 @@ public class SemanticExtractorObserver {
     extractAndStore(event.messages());
   }
 
-  void extractAndStore(Iterable<ChatMessage> messages) {
+  public void extractAndStore(Iterable<ChatMessage> messages) {
     try {
       StringBuilder conversation = new StringBuilder();
       for (ChatMessage m : messages) {
