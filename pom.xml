@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+
   <groupId>dev.omatheusmesmo</groupId>
   <artifactId>qlawkus</artifactId>
   <version>0.2.1-SNAPSHOT</version>
-  <packaging>quarkus</packaging>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>client</module>
+    <module>tools</module>
+    <module>integration-tests</module>
+  </modules>
 
   <properties>
     <compiler-plugin.version>3.15.0</compiler-plugin.version>
@@ -37,154 +44,49 @@
     </dependencies>
   </dependencyManagement>
 
-  <dependencies>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-hibernate-orm-panache</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-jdbc-postgresql</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-flyway</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-elytron-security-properties-file</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkiverse.langchain4j</groupId>
-      <artifactId>quarkus-langchain4j-ollama</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkiverse.langchain4j</groupId>
-      <artifactId>quarkus-langchain4j-openai</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkiverse.langchain4j</groupId>
-      <artifactId>quarkus-langchain4j-pgvector</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-arc</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-scheduler</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-rest-jackson</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-hibernate-validator</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.rest-assured</groupId>
-      <artifactId>rest-assured</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit-mockito</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.awaitility</groupId>
-      <artifactId>awaitility</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkiverse.wiremock</groupId>
-      <artifactId>quarkus-wiremock</artifactId>
-      <version>1.6.1</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkiverse.wiremock</groupId>
-      <artifactId>quarkus-wiremock-test</artifactId>
-      <version>1.6.1</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
-
   <build>
-    <plugins>
-      <plugin>
-        <groupId>${quarkus.platform.group-id}</groupId>
-        <artifactId>quarkus-maven-plugin</artifactId>
-        <version>${quarkus.platform.version}</version>
-        <extensions>true</extensions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>${compiler-plugin.version}</version>
-        <configuration>
-          <parameters>true</parameters>
-        </configuration>
-      </plugin>
-    <plugin>
-      <artifactId>maven-surefire-plugin</artifactId>
-      <version>${surefire-plugin.version}</version>
-      <configuration>
-        <argLine>@{argLine}</argLine>
-        <excludedGroups>slow</excludedGroups>
-        <systemPropertyVariables>
-          <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-          <maven.home>${maven.home}</maven.home>
-        </systemPropertyVariables>
-      </configuration>
-    </plugin>
-      <plugin>
-        <artifactId>maven-failsafe-plugin</artifactId>
-        <version>${surefire-plugin.version}</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>integration-test</goal>
-              <goal>verify</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <argLine>@{argLine}</argLine>
-          <systemPropertyVariables>
-            <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
-            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-            <maven.home>${maven.home}</maven.home>
-          </systemPropertyVariables>
-        </configuration>
-      </plugin>
-    </plugins>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>${quarkus.platform.group-id}</groupId>
+          <artifactId>quarkus-maven-plugin</artifactId>
+          <version>${quarkus.platform.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${compiler-plugin.version}</version>
+          <configuration>
+            <parameters>true</parameters>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${surefire-plugin.version}</version>
+          <configuration>
+            <argLine>@{argLine}</argLine>
+            <systemPropertyVariables>
+              <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+              <maven.home>${maven.home}</maven.home>
+            </systemPropertyVariables>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${surefire-plugin.version}</version>
+          <configuration>
+            <argLine>@{argLine}</argLine>
+            <systemPropertyVariables>
+              <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+              <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+              <maven.home>${maven.home}</maven.home>
+            </systemPropertyVariables>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
   </build>
 
   <profiles>
-    <profile>
-      <id>integration</id>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <version>${surefire-plugin.version}</version>
-      <configuration combine.self="override">
-          <argLine>@{argLine}</argLine>
-          <systemPropertyVariables>
-            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-            <maven.home>${maven.home}</maven.home>
-          </systemPropertyVariables>
-        </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
     <profile>
       <id>native</id>
       <activation>
