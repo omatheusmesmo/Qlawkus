@@ -30,7 +30,7 @@ public class EpisodicConsolidatorJob {
     consolidateDate(yesterday);
   }
 
-  void consolidateDate(LocalDate date) {
+  public void consolidateDate(LocalDate date) {
     if (Journal.existsForDate(date)) {
       Log.debugf("Journal already exists for %s, skipping", date);
       return;
@@ -60,7 +60,7 @@ public class EpisodicConsolidatorJob {
     }
   }
 
-  String summarizeMessages(List<ChatMessageEntity> entities, LocalDate date) {
+  public String summarizeMessages(List<ChatMessageEntity> entities, LocalDate date) {
     StringBuilder conversation = new StringBuilder();
     for (ChatMessageEntity entity : entities) {
       ChatMessage message = entity.toChatMessage();
