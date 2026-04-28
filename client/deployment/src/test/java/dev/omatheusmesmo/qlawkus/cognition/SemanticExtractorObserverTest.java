@@ -11,7 +11,7 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.omatheusmesmo.qlawkus.repository.EmbeddingRepository;
+import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
 import io.quarkus.test.InjectMock;
 import org.junit.jupiter.api.Tag;
 import io.quarkus.test.junit.QuarkusTest;

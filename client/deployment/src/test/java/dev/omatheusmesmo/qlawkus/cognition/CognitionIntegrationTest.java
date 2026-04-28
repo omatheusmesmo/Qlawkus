@@ -5,7 +5,9 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
-import dev.omatheusmesmo.qlawkus.repository.EmbeddingRepository;
+import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
+import dev.omatheusmesmo.qlawkus.store.pg.ChatMessageEntity;
+import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
@@ -34,7 +36,7 @@ class CognitionIntegrationTest {
   ChatModel chatModel;
 
   @Inject
-  PersistentMemoryStore memoryStore;
+  WorkingMemoryStore memoryStore;
 
   @Inject
   EmbeddingRepository embeddingRepository;

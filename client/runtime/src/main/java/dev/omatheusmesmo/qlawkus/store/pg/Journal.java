@@ -1,4 +1,4 @@
-package dev.omatheusmesmo.qlawkus.cognition;
+package dev.omatheusmesmo.qlawkus.store.pg;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;

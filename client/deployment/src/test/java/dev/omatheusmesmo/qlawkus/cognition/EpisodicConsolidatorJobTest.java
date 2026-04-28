@@ -10,7 +10,10 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.omatheusmesmo.qlawkus.repository.EmbeddingRepository;
+import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
+import dev.omatheusmesmo.qlawkus.store.pg.ChatMessageEntity;
+import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
+import dev.omatheusmesmo.qlawkus.store.pg.Journal;
 import io.quarkus.scheduler.Scheduler;
 import io.quarkus.scheduler.Trigger;
 import io.quarkus.test.InjectMock;
@@ -42,6 +45,9 @@ class EpisodicConsolidatorJobTest {
 
   @Inject
   EpisodicConsolidatorJob job;
+
+  @Inject
+  EpisodicStore episodicStore;
 
   @Inject
   EmbeddingModel embeddingModel;
@@ -96,7 +102,7 @@ class EpisodicConsolidatorJobTest {
   void consolidateDate_skipsWhenNoMessages() {
     job.consolidateDate(LocalDate.of(2020, 1, 1));
 
-    assertEquals(0, Journal.count());
+    assertEquals(0, episodicStore.count());
   }
 
   @Test
@@ -136,9 +142,9 @@ class EpisodicConsolidatorJobTest {
   void summarizeMessages_returnsSummary() {
     when(chatModel.chat(anyString())).thenReturn("Summarized conversation.");
 
-    ChatMessageEntity entity = ChatMessageEntity.fromChatMessage("session-1", new UserMessage("test message"));
+    List<dev.langchain4j.data.message.ChatMessage> messages = java.util.List.of(new UserMessage("test message"));
 
-    String summary = job.summarizeMessages(java.util.List.of(entity), LocalDate.now(ZoneOffset.UTC));
+    String summary = job.summarizeMessages(messages, LocalDate.now(ZoneOffset.UTC));
 
     assertEquals("Summarized conversation.", summary);
   }
