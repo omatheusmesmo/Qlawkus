@@ -4,6 +4,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.omatheusmesmo.qlawkus.store.pg.ChatMessageEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;

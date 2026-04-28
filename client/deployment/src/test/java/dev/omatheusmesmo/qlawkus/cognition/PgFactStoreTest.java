@@ -5,7 +5,8 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.omatheusmesmo.qlawkus.repository.EmbeddingRepository;
+import dev.omatheusmesmo.qlawkus.store.FactStore;
+import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -19,10 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag("slow")
 @QuarkusTest
-class VectorFactStoreTest {
+class PgFactStoreTest {
 
   @Inject
-  VectorFactStore vectorFactStore;
+  FactStore factStore;
 
   @Inject
   EmbeddingModel embeddingModel;
@@ -47,7 +48,7 @@ class VectorFactStoreTest {
     Embedding embedding = embeddingModel.embed(segment).content();
     embeddingStore.add(embedding, segment);
 
-    List<String> facts = vectorFactStore.searchRelevantFacts("IDE theme preference", 5);
+    List<String> facts = factStore.search("IDE theme preference", 5, 0.75);
 
     assertFalse(facts.isEmpty());
     assertTrue(facts.stream().anyMatch(f -> f.toLowerCase().contains("dark theme")));
@@ -64,7 +65,7 @@ class VectorFactStoreTest {
     TextSegment seg2 = TextSegment.from("User works with Kubernetes and Docker", metadata);
     embeddingStore.add(embeddingModel.embed(seg2).content(), seg2);
 
-    List<String> facts = vectorFactStore.searchRelevantFacts("programming and infrastructure tools", 10);
+    List<String> facts = factStore.search("programming and infrastructure tools", 10, 0.75);
 
     assertFalse(facts.isEmpty());
   }
