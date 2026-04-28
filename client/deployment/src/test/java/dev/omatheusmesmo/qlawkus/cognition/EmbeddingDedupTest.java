@@ -1,10 +1,12 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.langchain4j.data.document.Metadata;
-import dev.omatheusmesmo.qlawkus.repository.EmbeddingRepository;
+import dev.omatheusmesmo.qlawkus.store.FactStore;
+import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -16,58 +18,55 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @QuarkusTest
 class EmbeddingDedupTest {
 
-    @Inject
-    EmbeddingService embeddingService;
+  @Inject
+  FactStore factStore;
 
-    @Inject
-    EmbeddingRepository embeddingRepository;
+  @Inject
+  EmbeddingRepository embeddingRepository;
 
-    @AfterEach
-    @Transactional
-    void cleanup() {
-        embeddingRepository.deleteAll();
-    }
+  @AfterEach
+  @Transactional
+  void cleanup() {
+    embeddingRepository.deleteAll();
+  }
 
-    @Test
-    void store_sameTextTwice_onlyOneEmbedding() {
-        String text = "User prefers dark theme in IDE";
-        Metadata metadata = new Metadata();
-        metadata.put("source", "dedup-test");
+  @Test
+  void store_sameTextTwice_onlyOneEmbedding() {
+    String text = "User prefers dark theme in IDE";
+    Map<String, Object> metadata = Map.of("source", "dedup-test");
 
-        embeddingService.store(text, metadata);
-        embeddingService.store(text, metadata);
+    factStore.store(text, metadata);
+    factStore.store(text, metadata);
 
-        long count = embeddingRepository.countBySource("dedup-test");
-        assertTrue(count <= 1, "Duplicate text should result in at most one embedding, got " + count);
-    }
+    long count = embeddingRepository.countBySource("dedup-test");
+    assertTrue(count <= 1, "Duplicate text should result in at most one embedding, got " + count);
+  }
 
-    @Test
-    void store_differentTexts_bothStored() {
-        Metadata metadata = new Metadata();
-        metadata.put("source", "dedup-test");
+  @Test
+  void store_differentTexts_bothStored() {
+    Map<String, Object> metadata = Map.of("source", "dedup-test");
 
-        embeddingService.store("User prefers dark theme", metadata);
-        embeddingService.store("User prefers light theme", metadata);
+    factStore.store("User prefers dark theme", metadata);
+    factStore.store("User prefers light theme", metadata);
 
-        long count = embeddingRepository.countBySource("dedup-test");
-        assertTrue(count >= 2, "Different texts should both be stored, got " + count);
-    }
+    long count = embeddingRepository.countBySource("dedup-test");
+    assertTrue(count >= 2, "Different texts should both be stored, got " + count);
+  }
 
-    @Test
-    void existsByContentHash_returnsTrueAfterStore() {
-        String text = "Dedup hash verification test";
-        Metadata metadata = new Metadata();
-        metadata.put("source", "dedup-test");
+  @Test
+  void existsByContentHash_returnsTrueAfterStore() {
+    String text = "Dedup hash verification test";
+    Map<String, Object> metadata = Map.of("source", "dedup-test");
 
-        embeddingService.store(text, metadata);
+    factStore.store(text, metadata);
 
-        String hash = EmbeddingRepository.md5(text);
-        assertTrue(embeddingRepository.existsByContentHash(hash));
-    }
+    String hash = EmbeddingRepository.md5(text);
+    assertTrue(embeddingRepository.existsByContentHash(hash));
+  }
 
-    @Test
-    void existsByContentHash_returnsFalseForUnknown() {
-        String hash = EmbeddingRepository.md5("this text was never stored");
-        assertFalse(embeddingRepository.existsByContentHash(hash));
-    }
+  @Test
+  void existsByContentHash_returnsFalseForUnknown() {
+    String hash = EmbeddingRepository.md5("this text was never stored");
+    assertFalse(embeddingRepository.existsByContentHash(hash));
+  }
 }

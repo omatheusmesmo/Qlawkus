@@ -1,4 +1,4 @@
-package dev.omatheusmesmo.qlawkus.repository;
+package dev.omatheusmesmo.qlawkus.store.pg;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.repository;
 
+import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

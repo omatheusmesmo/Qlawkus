@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.cognition;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -13,10 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
-class PersistentMemoryStoreTest {
+class PgWorkingMemoryStoreTest {
 
   @Inject
-  PersistentMemoryStore store;
+  WorkingMemoryStore store;
 
   @Test
   @Transactional
@@ -31,8 +32,8 @@ class PersistentMemoryStoreTest {
   void updateMessages_persistsAndRetrievesMessages() {
     String sessionId = "test-session-1";
     store.updateMessages(sessionId, List.of(
-        new UserMessage("hello"),
-        AiMessage.from("hi there")
+      new UserMessage("hello"),
+      AiMessage.from("hi there")
     ));
 
     List<ChatMessage> retrieved = store.getMessages(sessionId);
@@ -47,12 +48,12 @@ class PersistentMemoryStoreTest {
   void updateMessages_replacesExistingMessages() {
     String sessionId = "test-session-2";
     store.updateMessages(sessionId, List.of(
-        new UserMessage("first"),
-        AiMessage.from("first response")
+      new UserMessage("first"),
+      AiMessage.from("first response")
     ));
     store.updateMessages(sessionId, List.of(
-        new UserMessage("second"),
-        AiMessage.from("second response")
+      new UserMessage("second"),
+      AiMessage.from("second response")
     ));
 
     List<ChatMessage> retrieved = store.getMessages(sessionId);

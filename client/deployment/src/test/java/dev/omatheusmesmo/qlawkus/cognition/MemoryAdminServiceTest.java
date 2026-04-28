@@ -1,5 +1,9 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
+import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
+import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
+import dev.omatheusmesmo.qlawkus.store.pg.ChatMessageEntity;
+import dev.omatheusmesmo.qlawkus.store.pg.Journal;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -15,6 +19,12 @@ class MemoryAdminServiceTest {
 
   @Inject
   MemoryAdminService adminService;
+
+  @Inject
+  EpisodicStore episodicStore;
+
+  @Inject
+  WorkingMemoryStore workingMemoryStore;
 
   @AfterEach
   @Transactional
@@ -41,7 +51,7 @@ class MemoryAdminServiceTest {
     long deleted = adminService.purgeJournals();
 
     assertEquals(2, deleted);
-    assertEquals(0, Journal.count());
+    assertEquals(0, episodicStore.count());
   }
 
   @Test
@@ -57,7 +67,7 @@ class MemoryAdminServiceTest {
 
     adminService.purgeAllMemory();
 
-    assertEquals(0, Journal.count());
-    assertEquals(0, ChatMessageEntity.count());
+    assertEquals(0, episodicStore.count());
+    assertEquals(0, workingMemoryStore.count());
   }
 }

@@ -1,10 +1,10 @@
 package dev.omatheusmesmo.qlawkus.rest;
 
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.cognition.ChatCompletedEvent;
 import dev.omatheusmesmo.qlawkus.dto.ChatRequest;
+import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import io.quarkus.security.Authenticated;
 import io.smallrye.mutiny.Multi;
 import jakarta.enterprise.event.Event;
@@ -27,7 +27,7 @@ public class ApiResource {
   AgentService agentService;
 
   @Inject
-  ChatMemoryStore memoryStore;
+  WorkingMemoryStore memoryStore;
 
   @Inject
   Event<ChatCompletedEvent> eventEmitter;

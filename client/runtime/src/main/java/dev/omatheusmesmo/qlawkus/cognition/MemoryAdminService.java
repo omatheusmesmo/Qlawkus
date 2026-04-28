@@ -2,7 +2,9 @@ package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.omatheusmesmo.qlawkus.dto.JournalSummary;
 import dev.omatheusmesmo.qlawkus.dto.MemorySummary;
-import dev.omatheusmesmo.qlawkus.repository.EmbeddingRepository;
+import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
+import dev.omatheusmesmo.qlawkus.store.FactStore;
+import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -13,44 +15,47 @@ import java.util.List;
 public class MemoryAdminService {
 
   @Inject
-  EmbeddingRepository embeddingRepository;
+  FactStore factStore;
+
+  @Inject
+  EpisodicStore episodicStore;
+
+  @Inject
+  WorkingMemoryStore workingMemoryStore;
 
   @Transactional
   public MemorySummary getMemorySummary() {
-    List<String> sources = embeddingRepository.listSources();
-    long journalCount = Journal.count();
-    long chatMessageCount = ChatMessageEntity.count();
+    List<String> sources = factStore.listSources();
+    long journalCount = episodicStore.count();
+    long chatMessageCount = workingMemoryStore.count();
     return new MemorySummary(sources, journalCount, chatMessageCount);
   }
 
   @Transactional
   public List<JournalSummary> listJournals() {
-    return Journal.listAll().stream()
-        .map(j -> (Journal) j)
-        .map(j -> new JournalSummary(j.id, j.date, j.summary, j.messageCount, j.createdAt))
-        .toList();
+    return episodicStore.listJournals();
   }
 
   @Transactional
   public long purgeEmbeddingsBySource(String source) {
-    long deleted = embeddingRepository.deleteBySource(source);
+    long deleted = factStore.purgeBySource(source);
     Log.infof("Purged %d embeddings with source=%s", deleted, source);
     return deleted;
   }
 
   @Transactional
   public long purgeJournals() {
-    embeddingRepository.deleteBySource("episodic-consolidator");
-    long deleted = Journal.deleteAll();
+    factStore.purgeBySource("episodic-consolidator");
+    long deleted = episodicStore.purgeAll();
     Log.infof("Purged %d journals", deleted);
     return deleted;
   }
 
   @Transactional
   public void purgeAllMemory() {
-    embeddingRepository.deleteBySource("semantic-extractor");
-    Journal.deleteAll();
-    ChatMessageEntity.deleteAll();
+    factStore.purgeBySource("semantic-extractor");
+    episodicStore.purgeAll();
+    workingMemoryStore.purgeAll();
     Log.info("Purged all memory: embeddings, journals, chat messages");
   }
 }
