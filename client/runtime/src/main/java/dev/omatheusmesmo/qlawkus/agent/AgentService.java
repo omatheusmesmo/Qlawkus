@@ -4,11 +4,16 @@ import dev.langchain4j.service.UserMessage;
 import dev.omatheusmesmo.qlawkus.cognition.SearchMemoriesTool;
 import dev.omatheusmesmo.qlawkus.cognition.SoulEngine;
 import dev.omatheusmesmo.qlawkus.cognition.UpdateSelfStateTool;
+import dev.omatheusmesmo.qlawkus.tool.ClawToolProviderSupplier;
 import io.quarkiverse.langchain4j.RegisterAiService;
 import io.smallrye.mutiny.Multi;
 import jakarta.enterprise.context.ApplicationScoped;
 
-@RegisterAiService(systemMessageProviderSupplier = SoulEngine.class, tools = {UpdateSelfStateTool.class, SearchMemoriesTool.class})
+@RegisterAiService(
+    systemMessageProviderSupplier = SoulEngine.class,
+    tools = {UpdateSelfStateTool.class, SearchMemoriesTool.class},
+    toolProviderSupplier = ClawToolProviderSupplier.class
+)
 @ApplicationScoped
 @Logged
 public interface AgentService {
