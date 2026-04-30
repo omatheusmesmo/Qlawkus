@@ -14,11 +14,6 @@
   <dependencies>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
-      <artifactId>qlawkus-client-deployment</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-client</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -32,6 +27,11 @@
       <artifactId>rest-assured</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -41,23 +41,33 @@
         <artifactId>quarkus-maven-plugin</artifactId>
         <extensions>true</extensions>
       </plugin>
-      <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <excludedGroups>slow</excludedGroups>
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-failsafe-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>integration-test</goal>
-              <goal>verify</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+    <plugin>
+      <artifactId>maven-surefire-plugin</artifactId>
+      <configuration>
+        <excludedGroups>slow</excludedGroups>
+        <systemPropertyVariables>
+          <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+          <maven.home>${maven.home}</maven.home>
+        </systemPropertyVariables>
+      </configuration>
+    </plugin>
+    <plugin>
+      <artifactId>maven-failsafe-plugin</artifactId>
+      <configuration>
+        <systemPropertyVariables>
+          <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+          <maven.home>${maven.home}</maven.home>
+        </systemPropertyVariables>
+      </configuration>
+      <executions>
+        <execution>
+          <goals>
+            <goal>integration-test</goal>
+            <goal>verify</goal>
+          </goals>
+        </execution>
+      </executions>
+    </plugin>
     </plugins>
   </build>
 </project>

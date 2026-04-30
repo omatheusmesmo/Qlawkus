@@ -1,10 +1,12 @@
-package dev.omatheusmesmo.qlawkus.cognition;
+package dev.omatheusmesmo.qlawkus.it;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
+import dev.omatheusmesmo.qlawkus.cognition.ChatCompletedEvent;
+import dev.omatheusmesmo.qlawkus.cognition.SemanticExtractorObserver;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import dev.omatheusmesmo.qlawkus.store.pg.ChatMessageEntity;
 import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
@@ -14,7 +16,6 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
@@ -25,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @QuarkusTest
-@Tag("slow")
 @Execution(ExecutionMode.SAME_THREAD)
 class CognitionIntegrationTest {
 
