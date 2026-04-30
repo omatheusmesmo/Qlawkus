@@ -1,6 +1,8 @@
 package dev.omatheusmesmo.qlawkus.deployment;
 
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.ClawToolProvider;
+import dev.omatheusmesmo.qlawkus.tool.ClawToolProviderSupplier;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
@@ -19,12 +21,21 @@ class ClientProcessor {
     private static final String FEATURE = "qlawkus-client";
     private static final DotName CLAW_TOOL_ANNOTATION = DotName.createSimple(ClawTool.class.getName());
 
-    @BuildStep
-    FeatureBuildItem feature() {
-        return new FeatureBuildItem(FEATURE);
-    }
+  @BuildStep
+  FeatureBuildItem feature() {
+    return new FeatureBuildItem(FEATURE);
+  }
 
-    @BuildStep
+  @BuildStep
+  AdditionalBeanBuildItem registerClawToolInfrastructure() {
+    return AdditionalBeanBuildItem.builder()
+      .addBeanClass(ClawToolProvider.class)
+      .addBeanClass(ClawToolProviderSupplier.class)
+      .setUnremovable()
+      .build();
+  }
+
+  @BuildStep
     List<AdditionalBeanBuildItem> registerClawTools(CombinedIndexBuildItem combinedIndex) {
         Collection<AnnotationInstance> annotations = combinedIndex.getIndex().getAnnotations(CLAW_TOOL_ANNOTATION);
 
