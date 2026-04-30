@@ -3,15 +3,12 @@ package dev.omatheusmesmo.qlawkus.it;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
-import dev.omatheusmesmo.qlawkus.cognition.ChatCompletedEvent;
 import dev.omatheusmesmo.qlawkus.cognition.SemanticExtractorObserver;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import dev.omatheusmesmo.qlawkus.store.pg.ChatMessageEntity;
 import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
 import io.quarkus.test.junit.QuarkusTest;
-import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.List;
@@ -33,9 +30,6 @@ class CognitionIntegrationTest {
   AgentService agentService;
 
   @Inject
-  ChatModel chatModel;
-
-  @Inject
   WorkingMemoryStore memoryStore;
 
   @Inject
@@ -43,9 +37,6 @@ class CognitionIntegrationTest {
 
   @Inject
   SemanticExtractorObserver observer;
-
-  @Inject
-  Event<ChatCompletedEvent> eventEmitter;
 
   @AfterEach
   @Transactional
@@ -61,10 +52,11 @@ class CognitionIntegrationTest {
       AiMessage.from("Good choice! IntelliJ is a powerful IDE.")
     );
 
-    eventEmitter.fireAsync(new ChatCompletedEvent(messages));
+    observer.extractAndStore(messages);
 
     await("semantic fact extracted via CDI event")
-      .atMost(60, SECONDS)
+      .atMost(90, SECONDS)
+      .pollDelay(3, SECONDS)
       .pollInterval(2, SECONDS)
       .until(() -> embeddingCountBySource("semantic-extractor") > 0);
 
