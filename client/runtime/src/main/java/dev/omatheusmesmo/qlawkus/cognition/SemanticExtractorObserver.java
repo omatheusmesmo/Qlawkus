@@ -55,7 +55,7 @@ public class SemanticExtractorObserver {
         Log.infof("Semantic fact extracted: %s", fact);
       }
     } catch (Exception e) {
-      Log.warnf(e, "Failed to extract semantic facts");
+      Log.errorf(e, "Failed to extract semantic facts");
     }
   }
 }
