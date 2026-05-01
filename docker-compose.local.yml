@@ -1,0 +1,64 @@
+services:
+  qlawkus:
+    build:
+      context: app
+      dockerfile: src/main/docker/Dockerfile.jvm
+    environment:
+      - QUARKUS_PROFILE=prod
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-qlawkus}
+      - QUARKUS_DATASOURCE_USERNAME=${POSTGRES_USER:-qlawkus}
+      - QUARKUS_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
+      - QUARKUS_LANGCHAIN4J_OPENAI_BASE_URL=http://ollama:11434/v1
+      - QUARKUS_LANGCHAIN4J_OPENAI_API_KEY=dummy
+      - QUARKUS_LANGCHAIN4J_OPENAI_CHAT_MODEL_MODEL_NAME=${OLLAMA_MODEL:-gemma4:e2b}
+      - QUARKUS_LANGCHAIN4J_OPENAI_EMBEDDING_MODEL_MODEL_NAME=${OLLAMA_EMBEDDING_MODEL:-mxbai-embed-large}
+      - QUARKUS_LANGCHAIN4J_OPENAI_TIMEOUT=120s
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-qlawkus}"
+      POSTGRES_USER: "${POSTGRES_USER:-qlawkus}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-qlawkus}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-qlawkus} -d ${POSTGRES_DB:-qlawkus}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  ollama:
+    image: ollama/ollama
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  ollama-init:
+    image: ollama/ollama
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["sh", "-c", "ollama pull ${OLLAMA_MODEL:-gemma4:e2b} && ollama pull ${OLLAMA_EMBEDDING_MODEL:-mxbai-embed-large}"]
+    environment:
+      OLLAMA_HOST: "http://ollama:11434"
+
+volumes:
+  pgdata:
+  ollama-data:

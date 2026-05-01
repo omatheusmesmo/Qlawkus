@@ -14,33 +14,33 @@ class ApiResourceTest {
     given()
       .contentType(ContentType.JSON)
       .body("{\"message\": \"hello\"}")
-    .when()
+      .when()
       .post("/api/chat")
-    .then()
+      .then()
       .statusCode(401);
   }
 
   @Test
   void chat_withInvalidCredentials_returns401() {
     given()
-      .auth().basic("admin", "wrongpassword")
+      .auth().basic("qlawkus", "wrongpassword")
       .contentType(ContentType.JSON)
       .body("{\"message\": \"hello\"}")
-    .when()
+      .when()
       .post("/api/chat")
-    .then()
+      .then()
       .statusCode(401);
   }
 
   @Test
   void chat_withEmptyMessage_returns400() {
     given()
-      .auth().basic("admin", "admin123")
+      .auth().basic("qlawkus", "qlawkus-test")
       .contentType(ContentType.JSON)
       .body("{\"message\": \"\"}")
-    .when()
+      .when()
       .post("/api/chat")
-    .then()
+      .then()
       .statusCode(400);
   }
 }
