@@ -10,6 +10,7 @@
   <modules>
     <module>client</module>
     <module>tools</module>
+    <module>app</module>
     <module>integration-tests</module>
   </modules>
 

@@ -1,0 +1,57 @@
+services:
+  qlawkus:
+    build:
+      context: app
+      dockerfile: src/main/docker/Dockerfile.jvm
+    environment:
+      - NVIDIA_AI_API_KEY=${NVIDIA_AI_API_KEY}
+      - NVIDIA_CHAT_MODEL=${NVIDIA_CHAT_MODEL:-z-ai/glm-5.1}
+      - NVIDIA_EMBEDDING_MODEL=${NVIDIA_EMBEDDING_MODEL:-nvidia/nv-embedqa-e5-v5}
+      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-1024}
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-qlawkus}
+      - QUARKUS_DATASOURCE_USERNAME=${POSTGRES_USER:-qlawkus}
+      - QUARKUS_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  qlawkus-native:
+    build:
+      context: app
+      dockerfile: src/main/docker/Dockerfile.native-micro
+    profiles:
+      - native
+    environment:
+      - NVIDIA_AI_API_KEY=${NVIDIA_AI_API_KEY}
+      - NVIDIA_CHAT_MODEL=${NVIDIA_CHAT_MODEL:-z-ai/glm-5.1}
+      - NVIDIA_EMBEDDING_MODEL=${NVIDIA_EMBEDDING_MODEL:-nvidia/nv-embedqa-e5-v5}
+      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-1024}
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-qlawkus}
+      - QUARKUS_DATASOURCE_USERNAME=${POSTGRES_USER:-qlawkus}
+      - QUARKUS_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-qlawkus}"
+      POSTGRES_USER: "${POSTGRES_USER:-qlawkus}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-qlawkus}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-qlawkus} -d ${POSTGRES_DB:-qlawkus}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  pgdata:
