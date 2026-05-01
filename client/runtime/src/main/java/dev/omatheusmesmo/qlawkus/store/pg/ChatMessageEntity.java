@@ -46,7 +46,12 @@ public class ChatMessageEntity extends PanacheEntityBase {
     return delete("memoryId = ?1", memoryId);
   }
 
-  public static List<ChatMessageEntity> findByDateRange(LocalDate date) {
+    public static String findLatestMemoryId() {
+        ChatMessageEntity latest = find("id is not null order by id desc").firstResult();
+        return latest != null ? latest.memoryId : null;
+    }
+
+    public static List<ChatMessageEntity> findByDateRange(LocalDate date) {
     Instant start = date.atStartOfDay(ZoneOffset.UTC).toInstant();
     Instant end = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
     return list("createdAt >= ?1 and createdAt < ?2 order by createdAt", start, end);

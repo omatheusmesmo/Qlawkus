@@ -51,7 +51,7 @@ class SmokeTest {
 
   @Test
   void apiChatEndpoint_streamsSseFromRealLLM() throws Exception {
-    String auth = Base64.getEncoder().encodeToString("admin:admin123".getBytes());
+    String auth = Base64.getEncoder().encodeToString("qlawkus:qlawkus-test".getBytes());
 
     HttpClient client = HttpClient.newBuilder()
       .connectTimeout(Duration.ofSeconds(10))
