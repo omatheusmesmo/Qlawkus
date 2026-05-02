@@ -85,13 +85,13 @@
     <dependency>
       <groupId>io.quarkiverse.wiremock</groupId>
       <artifactId>quarkus-wiremock</artifactId>
-      <version>1.6.1</version>
+      <version>${quarkus-wiremock.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.quarkiverse.wiremock</groupId>
       <artifactId>quarkus-wiremock-test</artifactId>
-      <version>1.6.1</version>
+      <version>${quarkus-wiremock.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -117,9 +117,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <excludedGroups>slow</excludedGroups>
-        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>

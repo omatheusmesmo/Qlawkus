@@ -1,4 +1,4 @@
-package dev.omatheusmesmo.qlawkus.cognition;
+package dev.omatheusmesmo.qlawkus.it.cognition;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.AiMessage;
@@ -10,6 +10,8 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.omatheusmesmo.qlawkus.cognition.EpisodicConsolidatorJob;
+import dev.omatheusmesmo.qlawkus.cognition.SearchMemoriesTool;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
 import dev.omatheusmesmo.qlawkus.store.pg.ChatMessageEntity;
 import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
@@ -18,7 +20,6 @@ import io.quarkus.scheduler.Scheduler;
 import io.quarkus.scheduler.Trigger;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Tag;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.AfterEach;
@@ -36,7 +37,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-@Tag("slow")
 @QuarkusTest
 class EpisodicConsolidatorJobTest {
 

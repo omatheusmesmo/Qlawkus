@@ -1,4 +1,4 @@
-package dev.omatheusmesmo.qlawkus.cognition;
+package dev.omatheusmesmo.qlawkus.it.cognition;
 
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
@@ -12,13 +12,11 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Tag("slow")
 @QuarkusTest
 class PgFactStoreTest {
 
