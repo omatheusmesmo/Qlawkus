@@ -62,6 +62,9 @@ class ClientProcessor {
             classNames.add(annotation.target().asClass().name().toString());
         }
 
-        return new ReflectiveClassBuildItem(true, true, classNames.toArray(String[]::new));
+        return ReflectiveClassBuildItem.builder(classNames)
+                .methods()
+                .fields()
+                .build();
     }
 }
