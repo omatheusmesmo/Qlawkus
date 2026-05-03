@@ -1,6 +1,8 @@
 package dev.omatheusmesmo.qlawkus.tool.shell;
 
 import dev.omatheusmesmo.qlawkus.dto.CommandResult;
+import dev.omatheusmesmo.qlawkus.dto.EnvironmentResult;
+import dev.omatheusmesmo.qlawkus.dto.ProcessInfo;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -23,8 +25,7 @@ class ShellToolTest {
 
     @Test
     void runCommand_success_returnsStdoutAndZeroExitCode() {
-        String echoCmd = ShellTool.IS_WINDOWS ? "echo hello" : "echo hello";
-        CommandResult result = shellTool.runCommand(echoCmd, null, null);
+        CommandResult result = shellTool.runCommand("echo hello", null, null);
 
         assertEquals(0, result.exitCode(), "Exit code should be 0");
         assertTrue(result.stdout().contains("hello"), "stdout should contain 'hello'");
@@ -136,5 +137,85 @@ class ShellToolTest {
         } else {
             assertEquals(List.of("sh", "-c", "echo hello"), ShellTool.shellCommand("echo hello"));
         }
+    }
+
+    @Test
+    void listEnvironment_returnsOsAndShellAndWorkspace() {
+        EnvironmentResult env = shellTool.listEnvironment();
+
+        assertNotNull(env.os(), "OS should not be null");
+        assertFalse(env.os().isBlank(), "OS should not be blank");
+        assertNotNull(env.shell(), "Shell should not be null");
+        assertFalse(env.shell().isBlank(), "Shell should not be blank");
+        assertNotNull(env.workspace(), "Workspace should not be null");
+        assertFalse(env.workspace().isBlank(), "Workspace should not be blank");
+        assertNotNull(env.availableCommands(), "Available commands should not be null");
+    }
+
+    @Test
+    void listEnvironment_probesCommandsOnPath() {
+        EnvironmentResult env = shellTool.listEnvironment();
+
+        List<String> available = env.availableCommands();
+        assertNotNull(available, "Available commands list should not be null");
+        assertFalse(available.contains("nonexistent_command_xyz_12345"),
+                "Nonexistent command should not appear in available list");
+    }
+
+    @Test
+    void listEnvironment_toString_containsAllFields() {
+        EnvironmentResult env = shellTool.listEnvironment();
+        String str = env.toString();
+
+        assertTrue(str.contains("OS:"), "toString should contain OS");
+        assertTrue(str.contains("Shell:"), "toString should contain Shell");
+        assertTrue(str.contains("Workspace:"), "toString should contain Workspace");
+        assertTrue(str.contains("Available commands:"), "toString should contain Available commands");
+    }
+
+    @Test
+    void listActiveProcesses_tracksSpawnedProcesses() {
+        shellTool.runCommand("echo tracked_process_test", null, null);
+
+        List<ProcessInfo> processes = shellTool.listActiveProcesses();
+
+        assertFalse(processes.isEmpty(), "Should have tracked at least one process");
+        boolean found = processes.stream()
+                .anyMatch(p -> p.command().contains("tracked_process_test"));
+        assertTrue(found, "Should find the tracked process by command, got: " + processes);
+    }
+
+    @Test
+    void listActiveProcesses_completedProcessHasCompletedStatus() {
+        shellTool.runCommand("echo completed_status_test", null, null);
+
+        List<ProcessInfo> processes = shellTool.listActiveProcesses();
+
+        boolean found = processes.stream()
+                .anyMatch(p -> p.command().contains("completed_status_test") && "completed".equals(p.status()));
+        assertTrue(found, "Completed process should have 'completed' status, got: " + processes);
+    }
+
+    @Test
+    void listActiveProcesses_timedOutProcessHasTimedOutStatus() {
+        shellTool.runCommand("sleep 60", null, 1);
+
+        List<ProcessInfo> processes = shellTool.listActiveProcesses();
+
+        boolean found = processes.stream()
+                .anyMatch(p -> p.command().contains("sleep 60") && "timed_out".equals(p.status()));
+        assertTrue(found, "Timed out process should have 'timed_out' status, got: " + processes);
+    }
+
+    @Test
+    void isCommandAvailable_echoAlwaysAvailable() {
+        String probeCmd = ShellTool.IS_WINDOWS ? "echo" : "echo";
+        assertTrue(shellTool.isCommandAvailable(probeCmd), "echo should always be available");
+    }
+
+    @Test
+    void isCommandAvailable_nonexistentReturnsFalse() {
+        assertFalse(shellTool.isCommandAvailable("nonexistent_command_xyz_12345"),
+                "Nonexistent command should return false");
     }
 }
