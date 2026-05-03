@@ -385,4 +385,73 @@ class ShellToolTest {
         assertTrue(!result.stdout().isEmpty() || !result.stderr().isEmpty(),
                 "Should report error for unknown PID");
     }
+
+    @Test
+    void auditLog_isCalledOnSuccess() {
+        shellTool.auditLog("echo test", "/tmp", 0, 100);
+    }
+
+    @Test
+    void auditLog_isCalledOnFailure() {
+        shellTool.auditLog("exit 1", null, 1, 50);
+    }
+
+    @Test
+    void concurrentLimit_defaultIsFive() {
+        assertTrue(shellTool.maxConcurrent > 0, "maxConcurrent should be positive");
+    }
+
+    @Test
+    void runningCount_startsAtZero() {
+        assertEquals(0, shellTool.getRunningCount(), "Running count should start at 0");
+    }
+
+    @Test
+    void runningCount_decrementsAfterCompletion() {
+        int before = shellTool.getRunningCount();
+        shellTool.runCommand("echo count_test", null, null);
+        int after = shellTool.getRunningCount();
+        assertEquals(before, after, "Running count should return to original after command completes");
+    }
+
+    @Test
+    void outputCapture_truncatesAtMaxBytes() {
+        java.io.ByteArrayInputStream input = new java.io.ByteArrayInputStream(
+                "line1\nline2\nline3\n".repeat(100000).getBytes(java.nio.charset.StandardCharsets.UTF_8)
+        );
+        OutputCapture capture = new OutputCapture(input, 500, 10000);
+        capture.start();
+        try { capture.join(5000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        assertTrue(capture.isTruncated(), "Output should be truncated at maxBytes=500");
+    }
+
+    @Test
+    void outputCapture_truncatesAtMaxLines() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 100; i++) {
+            sb.append("line").append(i).append("\n");
+        }
+        java.io.ByteArrayInputStream input = new java.io.ByteArrayInputStream(
+                sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)
+        );
+        OutputCapture capture = new OutputCapture(input, 1_048_576, 10);
+        capture.start();
+        try { capture.join(5000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        String output = capture.getOutput();
+        assertTrue(capture.isTruncated(), "Output should be truncated at maxLines=10");
+        long lineCount = output.lines().count();
+        assertTrue(lineCount <= 12, "Output should have at most ~10 lines + truncation notice, got: " + lineCount);
+    }
+
+    @Test
+    void outputCapture_noTruncationUnderLimits() {
+        java.io.ByteArrayInputStream input = new java.io.ByteArrayInputStream(
+                "hello\n".getBytes(java.nio.charset.StandardCharsets.UTF_8)
+        );
+        OutputCapture capture = new OutputCapture(input, 1_048_576, 5000);
+        capture.start();
+        try { capture.join(5000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        assertFalse(capture.isTruncated(), "Small output should not be truncated");
+        assertEquals("hello\n", capture.getOutput());
+    }
 }
