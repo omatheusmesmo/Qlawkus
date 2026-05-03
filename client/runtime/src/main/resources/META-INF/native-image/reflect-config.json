@@ -1,0 +1,43 @@
+[
+  {
+    "name": "com.pty4j.PtyProcess",
+    "allPublicMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true
+  },
+  {
+    "name": "com.pty4j.PtyProcessBuilder",
+    "allPublicMethods": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "com.pty4j.WinSize",
+    "allPublicMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true
+  },
+  {
+    "name": "com.pty4j.unix.UnixPtyProcess",
+    "allPublicMethods": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "com.pty4j.unix.Pty",
+    "allPublicMethods": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "com.pty4j.unix.PtyHelpers",
+    "allPublicMethods": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "com.pty4j.windows.WinPtyProcess",
+    "allPublicMethods": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "com.pty4j.PtyProcess$1",
+    "allPublicMethods": true
+  }
+]
