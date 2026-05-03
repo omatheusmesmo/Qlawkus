@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.tool.shell;
 import dev.omatheusmesmo.qlawkus.dto.CommandResult;
 import dev.omatheusmesmo.qlawkus.dto.EnvironmentResult;
 import dev.omatheusmesmo.qlawkus.dto.ProcessInfo;
+import dev.omatheusmesmo.qlawkus.dto.SecurityResult;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -11,7 +12,6 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
-import java.io.File;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,6 +22,12 @@ class ShellToolTest {
     @Inject
     @ClawTool
     ShellTool shellTool;
+
+    @Inject
+    CommandFilter commandFilter;
+
+    @Inject
+    WorkspaceConfinement workspaceConfinement;
 
     @Test
     void runCommand_success_returnsStdoutAndZeroExitCode() {
@@ -62,13 +68,21 @@ class ShellToolTest {
     }
 
     @Test
-    void runCommand_timeout_killsProcess() {
+    void runCommand_explicitTimeout_killsProcess() {
         CommandResult result = shellTool.runCommand("sleep 60", null, 2);
 
         assertEquals(-1, result.exitCode(), "Exit code should be -1 on timeout");
         assertTrue(result.stderr().contains("timed out"), "stderr should mention timeout");
         assertTrue(result.durationMs() >= 1500, "Duration should be at least ~2s, was: " + result.durationMs());
         assertTrue(result.durationMs() < 10000, "Duration should be well under 10s, was: " + result.durationMs());
+    }
+
+    @Test
+    void runCommand_noTimeout_runsUntilCompletion() {
+        CommandResult result = shellTool.runCommand("echo fast", null, null);
+
+        assertEquals(0, result.exitCode(), "Exit code should be 0");
+        assertTrue(result.stdout().contains("fast"), "stdout should contain 'fast'");
     }
 
     @Test
@@ -84,23 +98,14 @@ class ShellToolTest {
     }
 
     @Test
-    void runCommand_customWorkdir_overridesDefault() {
-        File tempDir = new File(System.getProperty("java.io.tmpdir"));
-        String printDirCmd = ShellTool.IS_WINDOWS ? "cd" : "pwd";
-        CommandResult result = shellTool.runCommand(printDirCmd, tempDir.getAbsolutePath(), null);
+    void runCommand_customWorkdir_insideWorkspace() {
+        String workspace = workspaceConfinement.getWorkspacePath().toString();
+        CommandResult result = shellTool.runCommand("pwd", workspace, null);
 
         assertEquals(0, result.exitCode(), "Exit code should be 0");
         String output = result.stdout().trim();
-        assertTrue(output.equals(tempDir.getAbsolutePath()) || output.contains(tempDir.getName()),
-                "stdout should reference the temp dir, got: " + output);
-    }
-
-    @Test
-    void runCommand_customTimeout_isRespected() {
-        CommandResult result = shellTool.runCommand("sleep 10", null, 1);
-
-        assertEquals(-1, result.exitCode(), "Exit code should be -1 on timeout");
-        assertTrue(result.durationMs() < 5000, "Duration should be under 5s with 1s timeout, was: " + result.durationMs());
+        assertTrue(output.contains(workspace) || output.equals(workspace),
+                "stdout should reference the workspace dir, got: " + output);
     }
 
     @Test
@@ -141,7 +146,7 @@ class ShellToolTest {
 
     @Test
     void listEnvironment_returnsOsAndShellAndWorkspace() {
-        EnvironmentResult env = shellTool.listEnvironment();
+        EnvironmentResult env = shellTool.listEnvironment(false);
 
         assertNotNull(env.os(), "OS should not be null");
         assertFalse(env.os().isBlank(), "OS should not be blank");
@@ -153,24 +158,41 @@ class ShellToolTest {
     }
 
     @Test
-    void listEnvironment_probesCommandsOnPath() {
-        EnvironmentResult env = shellTool.listEnvironment();
+    void listEnvironment_cachedCommandsAvailable() {
+        EnvironmentResult env = shellTool.listEnvironment(false);
 
         List<String> available = env.availableCommands();
         assertNotNull(available, "Available commands list should not be null");
+        assertFalse(available.isEmpty(), "PATH should have at least some commands");
         assertFalse(available.contains("nonexistent_command_xyz_12345"),
                 "Nonexistent command should not appear in available list");
     }
 
     @Test
-    void listEnvironment_toString_containsAllFields() {
-        EnvironmentResult env = shellTool.listEnvironment();
-        String str = env.toString();
+    void listEnvironment_refreshRescansPath() {
+        EnvironmentResult cached = shellTool.listEnvironment(false);
+        EnvironmentResult refreshed = shellTool.listEnvironment(true);
 
-        assertTrue(str.contains("OS:"), "toString should contain OS");
-        assertTrue(str.contains("Shell:"), "toString should contain Shell");
-        assertTrue(str.contains("Workspace:"), "toString should contain Workspace");
-        assertTrue(str.contains("Available commands:"), "toString should contain Available commands");
+        assertFalse(refreshed.availableCommands().isEmpty(), "Refreshed scan should find commands");
+        assertEquals(cached.availableCommands().size(), refreshed.availableCommands().size(),
+                "Refresh should find same commands unless something changed");
+    }
+
+    @Test
+    void scanPath_findsCommonCommands() {
+        List<String> commands = shellTool.scanPath();
+
+        assertFalse(commands.isEmpty(), "PATH scan should find executables");
+        assertTrue(commands.contains("ls") || commands.contains("dir") || commands.contains("echo"),
+                "Should find at least one common command, got: " + commands);
+    }
+
+    @Test
+    void scanPath_doesNotContainFakeCommands() {
+        List<String> commands = shellTool.scanPath();
+
+        assertFalse(commands.contains("nonexistent_command_xyz_12345"),
+                "Fake command should not appear in PATH scan");
     }
 
     @Test
@@ -209,13 +231,158 @@ class ShellToolTest {
 
     @Test
     void isCommandAvailable_echoAlwaysAvailable() {
-        String probeCmd = ShellTool.IS_WINDOWS ? "echo" : "echo";
-        assertTrue(shellTool.isCommandAvailable(probeCmd), "echo should always be available");
+        assertTrue(shellTool.isCommandAvailable("echo"), "echo should always be available");
     }
 
     @Test
     void isCommandAvailable_nonexistentReturnsFalse() {
         assertFalse(shellTool.isCommandAvailable("nonexistent_command_xyz_12345"),
                 "Nonexistent command should return false");
+    }
+
+    @Test
+    void commandFilter_denylist_blocksSudo() {
+        SecurityResult result = commandFilter.check("sudo rm -rf /");
+        assertTrue(result.blocked(), "sudo should be blocked");
+        assertTrue(result.pattern().contains("sudo"), "Pattern should mention sudo");
+    }
+
+    @Test
+    void commandFilter_denylist_blocksRmRfRoot() {
+        SecurityResult result = commandFilter.check("rm -rf /");
+        assertTrue(result.blocked(), "rm -rf / should be blocked");
+    }
+
+    @Test
+    void commandFilter_denylist_blocksMkfs() {
+        SecurityResult result = commandFilter.check("mkfs.ext4 /dev/sda1");
+        assertTrue(result.blocked(), "mkfs should be blocked");
+    }
+
+    @Test
+    void commandFilter_denylist_blocksShutdown() {
+        SecurityResult result = commandFilter.check("shutdown -h now");
+        assertTrue(result.blocked(), "shutdown should be blocked");
+    }
+
+    @Test
+    void commandFilter_denylist_allowsSafeCommand() {
+        SecurityResult result = commandFilter.check("ls -la");
+        assertFalse(result.blocked(), "ls should be allowed");
+    }
+
+    @Test
+    void commandFilter_denylist_allowsGit() {
+        SecurityResult result = commandFilter.check("git status");
+        assertFalse(result.blocked(), "git should be allowed");
+    }
+
+    @Test
+    void commandFilter_allowlistMode_blocksNonAllowlisted() {
+        CommandFilter testFilter = new CommandFilter();
+        testFilter.denylist = List.of();
+        testFilter.allowlistMode = true;
+        testFilter.allowlist = List.of("git *", "ls", "echo *");
+
+        assertTrue(testFilter.check("git status").blocked() == false, "git should be allowed in allowlist");
+        assertTrue(testFilter.check("rm -rf /").blocked(), "rm should be blocked in allowlist mode");
+        assertTrue(testFilter.check("docker ps").blocked(), "docker should be blocked in allowlist mode");
+    }
+
+    @Test
+    void commandFilter_globMatch_exactMatch() {
+        assertTrue(CommandFilter.globMatch("shutdown", "shutdown"));
+        assertTrue(CommandFilter.globMatch("shutdown", "shutdown -h now"));
+        assertFalse(CommandFilter.globMatch("shutdown", "echo shutdown"));
+    }
+
+    @Test
+    void commandFilter_globMatch_wildcardPrefix() {
+        assertTrue(CommandFilter.globMatch("sudo *", "sudo rm -rf /"));
+        assertTrue(CommandFilter.globMatch("sudo *", "sudo apt install"));
+        assertFalse(CommandFilter.globMatch("sudo *", "echo hello"));
+    }
+
+    @Test
+    void commandFilter_globMatch_wildcardSuffix() {
+        assertTrue(CommandFilter.globMatch("mkfs*", "mkfs.ext4 /dev/sda1"));
+        assertTrue(CommandFilter.globMatch("mkfs*", "mkfs"));
+        assertFalse(CommandFilter.globMatch("mkfs*", "ls mkfs"));
+    }
+
+    @Test
+    void workspaceConfinement_blocksPathTraversal() {
+        String workspace = workspaceConfinement.getWorkspacePath().toString();
+        String traversalPath = workspace + "/../../../etc/passwd";
+
+        SecurityResult result = workspaceConfinement.check(traversalPath);
+        assertTrue(result.blocked(), "Path traversal should be blocked");
+        assertEquals("path_traversal", result.pattern());
+    }
+
+    @Test
+    void workspaceConfinement_allowsPathInsideWorkspace() {
+        String workspace = workspaceConfinement.getWorkspacePath().toString();
+        String insidePath = workspace + "/src/main";
+
+        SecurityResult result = workspaceConfinement.check(insidePath);
+        assertFalse(result.blocked(), "Path inside workspace should be allowed, got: " + result);
+    }
+
+    @Test
+    void workspaceConfinement_allowsNullWorkdir() {
+        SecurityResult result = workspaceConfinement.check(null);
+        assertFalse(result.blocked(), "Null workdir should default to workspace root and be allowed");
+    }
+
+    @Test
+    void workspaceConfinement_blocksAbsoluteOutsidePath() {
+        SecurityResult result = workspaceConfinement.check("/etc/passwd");
+        assertTrue(result.blocked(), "Absolute path outside workspace should be blocked, got: " + result);
+    }
+
+    @Test
+    void runCommand_denylistBlocksSudo() {
+        CommandResult result = shellTool.runCommand("sudo apt install something", null, null);
+
+        assertEquals(ShellTool.SECURITY_BLOCK_EXIT_CODE, result.exitCode(), "Blocked command should return -2");
+        assertTrue(result.stderr().contains("BLOCKED"), "stderr should contain BLOCKED");
+    }
+
+    @Test
+    void runCommand_workspaceConfinementBlocksTraversal() {
+        String workspace = workspaceConfinement.getWorkspacePath().toString();
+        CommandResult result = shellTool.runCommand("cat /etc/passwd",
+                workspace + "/../../../etc", null);
+
+        assertEquals(ShellTool.SECURITY_BLOCK_EXIT_CODE, result.exitCode(), "Path traversal should return -2");
+        assertTrue(result.stderr().contains("BLOCKED"), "stderr should contain BLOCKED");
+    }
+
+    @Test
+    void checkSecurity_allowsSafeCommand() {
+        SecurityResult result = shellTool.checkSecurity("git status", null);
+        assertFalse(result.blocked(), "git status should be allowed");
+    }
+
+    @Test
+    void checkSecurity_blocksDangerousCommand() {
+        SecurityResult result = shellTool.checkSecurity("sudo rm -rf /", null);
+        assertTrue(result.blocked(), "sudo rm -rf / should be blocked");
+    }
+
+    @Test
+    void checkSecurity_blocksTraversalWorkdir() {
+        String workspace = workspaceConfinement.getWorkspacePath().toString();
+        SecurityResult result = shellTool.checkSecurity("ls", workspace + "/../../etc");
+        assertTrue(result.blocked(), "Traversal workdir should be blocked");
+    }
+
+    @Test
+    void killProcess_forUnknownPid_returnsError() {
+        CommandResult result = shellTool.killProcess(999999998L);
+
+        assertTrue(!result.stdout().isEmpty() || !result.stderr().isEmpty(),
+                "Should report error for unknown PID");
     }
 }
