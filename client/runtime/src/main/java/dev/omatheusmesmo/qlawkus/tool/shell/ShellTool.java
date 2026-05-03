@@ -4,17 +4,23 @@ import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.dto.CommandResult;
 import dev.omatheusmesmo.qlawkus.dto.EnvironmentResult;
 import dev.omatheusmesmo.qlawkus.dto.ProcessInfo;
+import dev.omatheusmesmo.qlawkus.dto.SecurityResult;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import io.quarkus.logging.Log;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 @ClawTool
@@ -22,27 +28,50 @@ public class ShellTool {
 
     public static final boolean IS_WINDOWS = System.getProperty("os.name", "").toLowerCase().contains("win");
 
-    static final List<String> PROBED_COMMANDS = List.of(
-            "git", "gh", "docker", "kubectl", "mvn", "gradle", "npm", "python3", "java", "curl", "wget", "ssh"
-    );
+    static final Set<String> WINDOWS_EXTENSIONS = Set.of(".exe", ".bat", ".cmd", ".ps1");
 
-    @ConfigProperty(name = "qlawkus.shell.default-timeout-seconds", defaultValue = "30")
-    int defaultTimeoutSeconds;
+    static final int SECURITY_BLOCK_EXIT_CODE = -2;
 
     @ConfigProperty(name = "qlawkus.shell.workspace-root", defaultValue = ".")
     String workspaceRoot;
 
+    @Inject
+    CommandFilter commandFilter;
+
+    @Inject
+    WorkspaceConfinement workspaceConfinement;
+
     private final Map<Long, TrackedProcess> activeProcesses = new LinkedHashMap<>();
+
+    private volatile List<String> cachedPathCommands;
+
+    @PostConstruct
+    void init() {
+        cachedPathCommands = scanPath();
+        Log.infof("ShellTool: PATH scan found %d available commands", cachedPathCommands.size());
+    }
 
     @Tool("Run a shell command and return structured results: stdout, stderr, exit code, and duration. " +
             "Parameters: command (required) — the shell command to execute, " +
             "workdir (optional) — working directory override (defaults to workspace root), " +
-            "timeoutSeconds (optional) — execution timeout in seconds (defaults to 30)")
+            "timeoutSeconds (optional) — execution timeout in seconds (omit to run indefinitely until completion)")
     public CommandResult runCommand(String command, String workdir, Integer timeoutSeconds) {
-        Path dir = resolveWorkdir(workdir);
-        int timeout = timeoutSeconds != null ? timeoutSeconds : defaultTimeoutSeconds;
+        SecurityResult commandCheck = commandFilter.check(command);
+        if (commandCheck.blocked()) {
+            Log.warnf("ShellTool: command blocked — %s", commandCheck);
+            return blockedResult(commandCheck, System.currentTimeMillis());
+        }
 
-        Log.debugf("ShellTool: executing '%s' in %s (timeout=%ds)", command, dir, timeout);
+        SecurityResult pathCheck = workspaceConfinement.check(workdir);
+        if (pathCheck.blocked()) {
+            Log.warnf("ShellTool: workdir blocked — %s", pathCheck);
+            return blockedResult(pathCheck, System.currentTimeMillis());
+        }
+
+        Path dir = workspaceConfinement.resolveCanonical(workdir);
+
+        Log.debugf("ShellTool: executing '%s' in %s (timeout=%s)", command, dir,
+                timeoutSeconds != null ? timeoutSeconds + "s" : "none");
 
         ProcessBuilder pb = new ProcessBuilder()
                 .command(shellCommand(command))
@@ -69,7 +98,12 @@ public class ShellTool {
 
         boolean finished;
         try {
-            finished = process.waitFor(timeout, TimeUnit.SECONDS);
+            if (timeoutSeconds != null) {
+                finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
+            } else {
+                process.waitFor();
+                finished = true;
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             process.destroyForcibly();
@@ -86,10 +120,10 @@ public class ShellTool {
         if (!finished) {
             process.destroyForcibly();
             tracked.status = "timed_out";
-            Log.warnf("ShellTool: command '%s' timed out after %ds", command, timeout);
+            Log.warnf("ShellTool: command '%s' timed out after %ds", command, timeoutSeconds);
             return new CommandResult(
                     stdoutCapture.getOutput(),
-                    stderrCapture.getOutput() + "\n[Command timed out after " + timeout + "s]",
+                    stderrCapture.getOutput() + "\n[Command timed out after " + timeoutSeconds + "s]",
                     -1,
                     System.currentTimeMillis() - start,
                     stdoutCapture.isTruncated() || stderrCapture.isTruncated()
@@ -119,29 +153,70 @@ public class ShellTool {
         );
     }
 
-    @Tool("Discover the execution environment: OS, default shell, workspace path, and available CLI tools on PATH")
-    public EnvironmentResult listEnvironment() {
+    @Tool("Discover the execution environment: OS, default shell, workspace path, and available CLI tools. " +
+            "Set refresh=true to rescan PATH for newly installed commands.")
+    public EnvironmentResult listEnvironment(boolean refresh) {
+        if (refresh) {
+            cachedPathCommands = scanPath();
+            Log.infof("ShellTool: PATH rescan found %d available commands", cachedPathCommands.size());
+        }
+
         String os = System.getProperty("os.name", "unknown");
         String shell = IS_WINDOWS ? "cmd" : System.getenv().getOrDefault("SHELL", "sh");
-        String workspace = Path.of(workspaceRoot).toAbsolutePath().toString();
+        String workspace = workspaceConfinement.getWorkspacePath().toString();
 
-        List<String> available = new ArrayList<>();
-        for (String cmd : PROBED_COMMANDS) {
-            if (isCommandAvailable(cmd)) {
-                available.add(cmd);
+        return new EnvironmentResult(os, shell, workspace, cachedPathCommands);
+    }
+
+    /**
+     * Scans all directories in the PATH environment variable for executable files.
+     * On Unix: files with execute permission. On Windows: files with known extensions (.exe, .bat, .cmd, .ps1).
+     * Returns a sorted, deduplicated list of command names.
+     */
+    public List<String> scanPath() {
+        Set<String> commands = new TreeSet<>();
+
+        String pathEnv = System.getenv("PATH");
+        if (pathEnv == null || pathEnv.isBlank()) {
+            return List.of();
+        }
+
+        String separator = IS_WINDOWS ? ";" : ":";
+        for (String dir : pathEnv.split(separator)) {
+            File directory = new File(dir);
+            if (!directory.isDirectory()) {
+                continue;
+            }
+            File[] files = directory.listFiles();
+            if (files == null) {
+                continue;
+            }
+            for (File file : files) {
+                if (!file.isFile()) {
+                    continue;
+                }
+                if (IS_WINDOWS) {
+                    String name = file.getName().toLowerCase();
+                    for (String ext : WINDOWS_EXTENSIONS) {
+                        if (name.endsWith(ext)) {
+                            commands.add(file.getName().substring(0, name.length() - ext.length()));
+                            break;
+                        }
+                    }
+                } else {
+                    if (Files.isExecutable(file.toPath())) {
+                        commands.add(file.getName());
+                    }
+                }
             }
         }
 
-        Log.debugf("ShellTool: listEnvironment — os=%s, shell=%s, workspace=%s, available=%s",
-                os, shell, workspace, available);
-
-        return new EnvironmentResult(os, shell, workspace, available);
+        return List.copyOf(commands);
     }
 
     @Tool("List processes spawned by the agent that are still tracked, with pid, command, and status")
     public List<ProcessInfo> listActiveProcesses() {
         List<ProcessInfo> processes = new ArrayList<>();
-        long now = System.currentTimeMillis();
 
         for (TrackedProcess tp : activeProcesses.values()) {
             processes.add(new ProcessInfo(tp.pid, tp.command, tp.startedAtMs, tp.status));
@@ -151,6 +226,50 @@ public class ShellTool {
         return processes;
     }
 
+    @Tool("Kill a running process by PID. Use listActiveProcesses to find the PID first. " +
+            "Parameter: pid (required) — the process ID to kill")
+    public CommandResult killProcess(long pid) {
+        TrackedProcess tracked = activeProcesses.get(pid);
+        if (tracked == null) {
+            return new CommandResult("", "No tracked process with PID " + pid, -1, 0, false);
+        }
+
+        try {
+            ProcessHandle handle = ProcessHandle.of(pid).orElse(null);
+            if (handle != null && handle.isAlive()) {
+                handle.destroyForcibly();
+                tracked.status = "killed";
+                Log.infof("ShellTool: killed process pid=%d command='%s'", pid, tracked.command);
+                return new CommandResult("Process " + pid + " killed", "", 0, 0, false);
+            } else {
+                tracked.status = "already_dead";
+                return new CommandResult("Process " + pid + " was already terminated", "", 0, 0, false);
+            }
+        } catch (Exception e) {
+            return new CommandResult("", "Failed to kill process " + pid + ": " + e.getMessage(), -1, 0, false);
+        }
+    }
+
+    @Tool("Check whether a command and workdir are safe to execute before running them. " +
+            "Returns SecurityResult with blocked=true/false, reason, and matched pattern. " +
+            "Parameters: command (required) — the command to check, workdir (optional) — the working directory to check")
+    public SecurityResult checkSecurity(String command, String workdir) {
+        SecurityResult commandCheck = commandFilter.check(command);
+        if (commandCheck.blocked()) {
+            return commandCheck;
+        }
+
+        if (workdir != null && !workdir.isBlank()) {
+            return workspaceConfinement.check(workdir);
+        }
+
+        return new SecurityResult(false, "", "", command);
+    }
+
+    /**
+     * Checks if a specific command is available on PATH.
+     * Uses native OS probe: {@code command -v} on Unix, {@code where} on Windows.
+     */
     public boolean isCommandAvailable(String command) {
         String probeCmd = IS_WINDOWS ? "where " + command + " >nul 2>&1" : "command -v " + command;
         try {
@@ -166,11 +285,19 @@ public class ShellTool {
         }
     }
 
+    private CommandResult blockedResult(SecurityResult security, long start) {
+        return new CommandResult(
+                "",
+                security.toString(),
+                SECURITY_BLOCK_EXIT_CODE,
+                System.currentTimeMillis() - start,
+                false
+        );
+    }
+
     private Path resolveWorkdir(String workdir) {
-        if (workdir != null && !workdir.isBlank()) {
-            return Path.of(workdir).toAbsolutePath();
-        }
-        return Path.of(workspaceRoot).toAbsolutePath();
+        Path resolved = workspaceConfinement.resolveCanonical(workdir);
+        return resolved != null ? resolved : Path.of(workspaceRoot).toAbsolutePath();
     }
 
     public static List<String> shellCommand(String command) {
