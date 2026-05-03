@@ -221,6 +221,11 @@ public class ShellTool {
         return new EnvironmentResult(os, shell, workspace, cachedPathCommands);
     }
 
+    /**
+     * Scans all directories in the PATH environment variable for executable files.
+     * On Unix: files with execute permission. On Windows: files with known extensions (.exe, .bat, .cmd, .ps1).
+     * Returns a sorted, deduplicated list of command names.
+     */
     public List<String> scanPath() {
         Set<String> commands = new TreeSet<>();
 
@@ -318,6 +323,10 @@ public class ShellTool {
         return new SecurityResult(false, "", "", command);
     }
 
+    /**
+     * Checks if a specific command is available on PATH.
+     * Uses native OS probe: {@code command -v} on Unix, {@code where} on Windows.
+     */
     public boolean isCommandAvailable(String command) {
         String probeCmd = IS_WINDOWS ? "where " + command + " >nul 2>&1" : "command -v " + command;
         try {
@@ -355,6 +364,11 @@ public class ShellTool {
                 System.currentTimeMillis() - start,
                 false
         );
+    }
+
+    private Path resolveWorkdir(String workdir) {
+        Path resolved = workspaceConfinement.resolveCanonical(workdir);
+        return resolved != null ? resolved : Path.of(workspaceRoot).toAbsolutePath();
     }
 
     public static List<String> shellCommand(String command) {
