@@ -5,18 +5,24 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-class OutputCapture extends Thread {
+public class OutputCapture extends Thread {
 
-    private static final int MAX_BYTES = 1_048_576;
-    private static final byte[] TRUNCATION_SUFFIX = "\n[Output truncated — exceeded 1MB limit]".getBytes(StandardCharsets.UTF_8);
+    private final int maxBytes;
+    private final int maxLines;
+
+    private static final byte[] TRUNCATION_SUFFIX = "\n[Output truncated]".getBytes(StandardCharsets.UTF_8);
 
     private final InputStream input;
     private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     private boolean truncated = false;
     private IOException error;
 
-    OutputCapture(InputStream input) {
+    private int lineCount = 0;
+
+    public OutputCapture(InputStream input, int maxBytes, int maxLines) {
         this.input = input;
+        this.maxBytes = maxBytes;
+        this.maxLines = maxLines;
         setDaemon(true);
     }
 
@@ -26,7 +32,7 @@ class OutputCapture extends Thread {
         try {
             int read;
             while ((read = input.read(chunk)) != -1) {
-                int allowed = MAX_BYTES - buffer.size();
+                int allowed = maxBytes - buffer.size();
                 if (allowed <= 0) {
                     truncated = true;
                     drainRemaining();
@@ -39,9 +45,15 @@ class OutputCapture extends Thread {
                     break;
                 }
                 buffer.write(chunk, 0, read);
+                lineCount += countLines(chunk, read);
+                if (lineCount > maxLines) {
+                    truncated = true;
+                    drainRemaining();
+                    break;
+                }
             }
             if (truncated) {
-                int suffixSpace = MAX_BYTES - buffer.size();
+                int suffixSpace = maxBytes - buffer.size();
                 if (suffixSpace > 0) {
                     buffer.write(TRUNCATION_SUFFIX, 0, Math.min(TRUNCATION_SUFFIX.length, suffixSpace));
                 }
@@ -56,23 +68,52 @@ class OutputCapture extends Thread {
         }
     }
 
-    String getOutput() {
-        return buffer.toString(StandardCharsets.UTF_8);
+    public String getOutput() {
+        String raw = buffer.toString(StandardCharsets.UTF_8);
+        return stripExcessLines(raw);
     }
 
-    boolean isTruncated() {
+    public boolean isTruncated() {
         return truncated;
     }
 
-    IOException getError() {
+    public IOException getError() {
         return error;
+    }
+
+    private String stripExcessLines(String raw) {
+        if (maxLines <= 0) {
+            return raw;
+        }
+        String[] lines = raw.split("\n", -1);
+        if (lines.length <= maxLines) {
+            return raw;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < maxLines; i++) {
+            sb.append(lines[i]);
+            if (i < maxLines - 1) {
+                sb.append("\n");
+            }
+        }
+        sb.append("\n[").append(lines.length - maxLines).append(" more lines truncated]");
+        return sb.toString();
+    }
+
+    private int countLines(byte[] chunk, int length) {
+        int count = 0;
+        for (int i = 0; i < length; i++) {
+            if (chunk[i] == '\n') {
+                count++;
+            }
+        }
+        return count;
     }
 
     private void drainRemaining() {
         byte[] discard = new byte[8192];
         try {
             while (input.read(discard) != -1) {
-                // drain to unblock the writing process
             }
         } catch (IOException ignored) {
         }
