@@ -42,7 +42,7 @@ public class ShellTool {
      * Maximum number of simultaneously running processes the agent may spawn.
      * Additional commands are rejected until a slot frees up. Default: 5.
      */
-    @ConfigProperty(name = "qlawkus.shell.max-concurrent", defaultValue = "5")
+    @ConfigProperty(name = "qlawkus.shell.max-concurrent", defaultValue = "10")
     public int maxConcurrent;
 
     /**
