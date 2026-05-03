@@ -1,0 +1,9 @@
+name: "Google Auth (Device Flow)"
+metadata:
+  keywords:
+  - "google"
+  - "device-flow"
+  - "oauth2"
+  categories:
+  - "productivity"
+  status: "experimental"
