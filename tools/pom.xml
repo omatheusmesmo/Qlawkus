@@ -5,9 +5,13 @@
   <parent>
     <groupId>dev.omatheusmesmo</groupId>
     <artifactId>qlawkus</artifactId>
-    <version>0.2.1-SNAPSHOT</version>
+    <version>0.3.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>qlawkus-tools-parent</artifactId>
-  <packaging>pom</packaging>
+    <artifactId>qlawkus-tools-parent</artifactId>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>qlawkus-tools-google-auth</module>
+    </modules>
 </project>
