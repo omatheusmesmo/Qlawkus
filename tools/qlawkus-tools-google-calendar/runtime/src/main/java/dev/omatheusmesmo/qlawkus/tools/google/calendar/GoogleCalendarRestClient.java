@@ -3,6 +3,8 @@ package dev.omatheusmesmo.qlawkus.tools.google.calendar;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleAuthHeadersFilter;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEvent;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventList;
+import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.FreeBusyRequest;
+import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.FreeBusyResponse;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
@@ -32,4 +34,8 @@ public interface GoogleCalendarRestClient {
     CalendarEvent createEvent(
             @PathParam("calendarId") String calendarId,
             CalendarEvent event);
+
+    @POST
+    @Path("/freeBusy")
+    FreeBusyResponse queryFreeBusy(FreeBusyRequest request);
 }

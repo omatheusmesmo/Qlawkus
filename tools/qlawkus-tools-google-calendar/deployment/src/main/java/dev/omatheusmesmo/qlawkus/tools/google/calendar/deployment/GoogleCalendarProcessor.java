@@ -7,6 +7,8 @@ import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEvent;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventAttendee;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventList;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.EventDateTime;
+import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.FreeBusyRequest;
+import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.FreeBusyResponse;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.Capabilities;
 import io.quarkus.deployment.annotations.BuildStep;
@@ -47,7 +49,12 @@ class GoogleCalendarProcessor {
                 CalendarEventList.class.getName(),
                 CalendarEvent.class.getName(),
                 EventDateTime.class.getName(),
-                CalendarEventAttendee.class.getName()
+                CalendarEventAttendee.class.getName(),
+                FreeBusyRequest.class.getName(),
+                FreeBusyRequest.FreeBusyItem.class.getName(),
+                FreeBusyResponse.class.getName(),
+                FreeBusyResponse.FreeBusyCalendar.class.getName(),
+                FreeBusyResponse.TimeRange.class.getName()
         ).methods().fields().build();
     }
 }
