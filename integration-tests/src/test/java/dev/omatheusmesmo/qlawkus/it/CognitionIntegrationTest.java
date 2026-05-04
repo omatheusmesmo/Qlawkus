@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
+import java.time.Duration;
+
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -85,7 +87,7 @@ class CognitionIntegrationTest {
       .collect()
       .in(StringBuilder::new, StringBuilder::append)
       .await()
-      .atMost(java.time.Duration.ofSeconds(300))
+                .atMost(Duration.ofSeconds(300))
       .toString();
 
     assertFalse(response.isBlank());
