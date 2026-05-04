@@ -1,52 +1,30 @@
 package dev.omatheusmesmo.qlawkus.tool.shell;
 
+import dev.omatheusmesmo.qlawkus.config.ShellConfig;
 import dev.omatheusmesmo.qlawkus.dto.SecurityResult;
 import io.quarkus.logging.Log;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.util.List;
 
-import jakarta.enterprise.context.ApplicationScoped;
-
-/**
- * Validates shell commands against a security policy.
- *
- * <p>Two mutually exclusive modes:</p>
- * <ul>
- *   <li><b>Denylist mode</b> (default) — all commands are allowed except those matching the denylist patterns.</li>
- *   <li><b>Allowlist mode</b> — only commands matching the allowlist patterns are allowed; everything else is blocked.
- *       When active, the denylist is ignored entirely.</li>
- * </ul>
- *
- * <p>Patterns support glob syntax: {@code *} matches any characters, {@code ?} matches a single character.
- * Without wildcards, a pattern matches the exact command or a command that starts with the pattern followed by a space
- * (e.g. {@code "sudo"} matches both {@code "sudo"} and {@code "sudo apt install"}).</p>
- */
 @ApplicationScoped
 public class CommandFilter {
 
-    /**
-     * Comma-separated list of denied command patterns. Always active in denylist mode.
-     * Supports glob wildcards ({@code *}, {@code ?}).
-     * Default: {@code sudo *,su *,rm -rf /*,mkfs*,dd if=*,format,shutdown,reboot}
-     */
-    @ConfigProperty(name = "qlawkus.shell.denylist", defaultValue = "sudo *,su *,rm -rf /*,mkfs*,dd if=*,format,shutdown,reboot")
+    @Inject
+    ShellConfig shellConfig;
+
     public List<String> denylist;
-
-    /**
-     * When {@code true}, switches to allowlist mode: only commands matching {@link #allowlist} are allowed.
-     * The denylist is completely ignored in this mode. Default: {@code false}.
-     */
-    @ConfigProperty(name = "qlawkus.shell.allowlist-mode", defaultValue = "false")
     public boolean allowlistMode;
-
-    /**
-     * Comma-separated list of allowed command patterns. Only used when {@link #allowlistMode} is {@code true}.
-     * Supports glob wildcards ({@code *}, {@code ?}).
-     * Default: empty (no commands allowed in allowlist mode until explicitly configured).
-     */
-    @ConfigProperty(name = "qlawkus.shell.allowlist", defaultValue = "none")
     public List<String> allowlist;
+
+    @PostConstruct
+    void init() {
+        this.denylist = shellConfig.denylist();
+        this.allowlistMode = shellConfig.allowlistMode();
+        this.allowlist = shellConfig.allowlist();
+    }
 
     /**
      * Checks a command against the active security policy.

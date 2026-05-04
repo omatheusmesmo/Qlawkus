@@ -1,13 +1,14 @@
 package dev.omatheusmesmo.qlawkus.tool.shell;
 
 import dev.langchain4j.agent.tool.Tool;
+import dev.omatheusmesmo.qlawkus.config.FileConfig;
 import dev.omatheusmesmo.qlawkus.dto.FileEntry;
 import dev.omatheusmesmo.qlawkus.dto.FileResult;
 import dev.omatheusmesmo.qlawkus.dto.SecurityResult;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import io.quarkus.logging.Log;
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -26,17 +27,22 @@ public class FileTool {
     private static final long KB = 1024;
     private static final long MB = 1024 * KB;
 
-    @ConfigProperty(name = "qlawkus.file.max-read-size", defaultValue = "5242880")
-    long maxReadSize;
-
-    @ConfigProperty(name = "qlawkus.file.max-write-size", defaultValue = "10485760")
-    long maxWriteSize;
-
-    @ConfigProperty(name = "qlawkus.file.encoding", defaultValue = "UTF-8")
-    String encoding;
+    @Inject
+    FileConfig fileConfig;
 
     @Inject
     WorkspaceConfinement workspaceConfinement;
+
+    long maxReadSize;
+    long maxWriteSize;
+    String encoding;
+
+    @PostConstruct
+    void init() {
+        this.maxReadSize = fileConfig.maxReadSize();
+        this.maxWriteSize = fileConfig.maxWriteSize();
+        this.encoding = fileConfig.encoding();
+    }
 
     @Tool("Read a file's content within the workspace. " +
             "Parameters: path (required) — file path relative to workspace root. " +

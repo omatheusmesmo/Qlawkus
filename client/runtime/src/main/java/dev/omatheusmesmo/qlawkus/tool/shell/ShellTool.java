@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tool.shell;
 
 import dev.langchain4j.agent.tool.Tool;
+import dev.omatheusmesmo.qlawkus.config.ShellConfig;
 import dev.omatheusmesmo.qlawkus.dto.CommandResult;
 import dev.omatheusmesmo.qlawkus.dto.EnvironmentResult;
 import dev.omatheusmesmo.qlawkus.dto.ProcessInfo;
@@ -9,7 +10,6 @@ import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import io.quarkus.logging.Log;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,28 +35,15 @@ public class ShellTool {
 
     static final int CONCURRENT_LIMIT_EXIT_CODE = -3;
 
-    @ConfigProperty(name = "qlawkus.shell.workspace-root", defaultValue = ".")
+    @Inject
+    ShellConfig shellConfig;
+
     String workspaceRoot;
 
-    /**
-     * Maximum number of simultaneously running processes the agent may spawn.
-     * Additional commands are rejected until a slot frees up. Default: 5.
-     */
-    @ConfigProperty(name = "qlawkus.shell.max-concurrent", defaultValue = "10")
     public int maxConcurrent;
 
-    /**
-     * Maximum bytes captured per stream (stdout/stderr). Output beyond this is truncated.
-     * Default: 1048576 (1MB).
-     */
-    @ConfigProperty(name = "qlawkus.shell.max-output-bytes", defaultValue = "1048576")
     int maxOutputBytes;
 
-    /**
-     * Maximum lines returned per stream. Lines beyond this are stripped from the end.
-     * Default: 5000.
-     */
-    @ConfigProperty(name = "qlawkus.shell.max-output-lines", defaultValue = "5000")
     int maxOutputLines;
 
     @Inject
@@ -72,6 +59,10 @@ public class ShellTool {
 
     @PostConstruct
     void init() {
+        this.workspaceRoot = shellConfig.workspaceRoot();
+        this.maxConcurrent = shellConfig.maxConcurrent();
+        this.maxOutputBytes = shellConfig.maxOutputBytes();
+        this.maxOutputLines = shellConfig.maxOutputLines();
         cachedPathCommands = scanPath();
         Log.infof("ShellTool: PATH scan found %d available commands", cachedPathCommands.size());
     }
