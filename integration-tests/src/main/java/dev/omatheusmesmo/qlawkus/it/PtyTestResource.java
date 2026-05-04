@@ -14,6 +14,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
+import java.util.Map;
 
 @Path("/api/test/pty")
 @Authenticated
@@ -25,12 +26,13 @@ public class PtyTestResource {
 
     @POST
     @Path("/start")
-    public Response startSession(@QueryParam("cmd") String cmd, @QueryParam("workdir") String workdir) {
+    public Response startSession(@QueryParam("cmd") String cmd, @QueryParam("workdir") String workdir,
+            @QueryParam("prompts") String prompts) {
         try {
-            String sessionId = interactiveShellTool.startSession(cmd, workdir);
-            return Response.ok("{\"sessionId\":\"" + sessionId + "\"}").build();
+            String sessionId = interactiveShellTool.startSession(cmd, workdir, prompts);
+            return Response.ok(Map.of("sessionId", sessionId)).build();
         } catch (UnsupportedOperationException e) {
-            return Response.ok("{\"error\":\"" + e.getMessage() + "\"}").build();
+            return Response.ok(Map.of("error", e.getMessage())).build();
         }
     }
 
@@ -45,7 +47,7 @@ public class PtyTestResource {
     @Path("/send/{sessionId}")
     public Response sendInput(@PathParam("sessionId") String sessionId, @QueryParam("input") String input) {
         String result = interactiveShellTool.sendInput(sessionId, input);
-        return Response.ok("{\"result\":\"" + result + "\"}").build();
+        return Response.ok(Map.of("result", result)).build();
     }
 
     @DELETE
@@ -53,9 +55,9 @@ public class PtyTestResource {
     public Response closeSession(@PathParam("sessionId") String sessionId) {
         try {
             String result = interactiveShellTool.closeSession(sessionId);
-            return Response.ok("{\"result\":\"" + result + "\"}").build();
+            return Response.ok(Map.of("result", result)).build();
         } catch (UnsupportedOperationException e) {
-            return Response.ok("{\"error\":\"" + e.getMessage() + "\"}").build();
+            return Response.ok(Map.of("error", e.getMessage())).build();
         }
     }
 
