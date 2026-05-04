@@ -45,4 +45,8 @@ public interface GoogleCalendarConfig {
     /** End of working hours (hour of day, 0-23). */
     @WithDefault("18")
     int workDayEnd();
+
+    /** User timezone for displaying times and converting input. Defaults to America/Sao_Paulo. */
+    @WithDefault("America/Sao_Paulo")
+    String timezone();
 }
