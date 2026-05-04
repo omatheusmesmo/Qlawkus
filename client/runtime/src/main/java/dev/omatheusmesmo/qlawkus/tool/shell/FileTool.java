@@ -33,8 +33,19 @@ public class FileTool {
     @Inject
     WorkspaceConfinement workspaceConfinement;
 
+    /**
+     * Maximum file size in bytes allowed for read operations. Default: 5242880 (5MB).
+     */
     long maxReadSize;
+
+    /**
+     * Maximum file size in bytes allowed for write operations. Default: 10485760 (10MB).
+     */
     long maxWriteSize;
+
+    /**
+     * Character encoding for file read/write operations. Default: {@code UTF-8}.
+     */
     String encoding;
 
     @PostConstruct
