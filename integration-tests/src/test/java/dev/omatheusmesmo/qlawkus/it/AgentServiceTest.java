@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
+import java.time.Duration;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -41,21 +43,21 @@ class AgentServiceTest {
       .collect()
       .in(StringBuilder::new, StringBuilder::append)
       .await()
-      .atMost(java.time.Duration.ofSeconds(300))
-      .toString();
-    assertNotNull(response);
-    assertFalse(response.isBlank(), "LLM should return a non-blank response");
-    assertTrue(response.toLowerCase().contains("qlawkus"),
-      "Response should contain the soul name 'Qlawkus'. Got: " + response);
-  }
+                .atMost(Duration.ofSeconds(300))
+                .toString();
+            assertNotNull(response);
+            assertFalse(response.isBlank(), "LLM should return a non-blank response");
+            assertTrue(response.toLowerCase().contains("qlawkus"),
+                "Response should contain the soul name 'Qlawkus'. Got: " + response);
+    }
 
-  @Test
-  void chat_usesToolToChangeOwnName() {
-    String response = agentService.chat("Change your name to Nova. Use your available tools to do it.")
-      .collect()
-      .in(StringBuilder::new, StringBuilder::append)
-      .await()
-      .atMost(java.time.Duration.ofSeconds(300))
+    @Test
+    void chat_usesToolToChangeOwnName() {
+        String response = agentService.chat("Change your name to Nova. Use your available tools to do it.")
+                .collect()
+                .in(StringBuilder::new, StringBuilder::append)
+                .await()
+                .atMost(Duration.ofSeconds(300))
       .toString();
     assertNotNull(response);
     assertFalse(response.isBlank(), "LLM should return a non-blank response");

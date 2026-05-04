@@ -21,21 +21,21 @@ class ClientProcessor {
     private static final String FEATURE = "qlawkus-client";
     private static final DotName CLAW_TOOL_ANNOTATION = DotName.createSimple(ClawTool.class.getName());
 
-  @BuildStep
-  FeatureBuildItem feature() {
-    return new FeatureBuildItem(FEATURE);
-  }
+    @BuildStep
+    FeatureBuildItem feature() {
+        return new FeatureBuildItem(FEATURE);
+    }
 
-  @BuildStep
-  AdditionalBeanBuildItem registerClawToolInfrastructure() {
-    return AdditionalBeanBuildItem.builder()
-      .addBeanClass(ClawToolProvider.class)
-      .addBeanClass(ClawToolProviderSupplier.class)
-      .setUnremovable()
-      .build();
-  }
+    @BuildStep
+    AdditionalBeanBuildItem registerClawToolInfrastructure() {
+        return AdditionalBeanBuildItem.builder()
+                .addBeanClass(ClawToolProvider.class)
+                .addBeanClass(ClawToolProviderSupplier.class)
+                .setUnremovable()
+                .build();
+    }
 
-  @BuildStep
+    @BuildStep
     List<AdditionalBeanBuildItem> registerClawTools(CombinedIndexBuildItem combinedIndex) {
         Collection<AnnotationInstance> annotations = combinedIndex.getIndex().getAnnotations(CLAW_TOOL_ANNOTATION);
 

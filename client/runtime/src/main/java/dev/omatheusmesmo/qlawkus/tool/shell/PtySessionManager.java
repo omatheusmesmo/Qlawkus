@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.tool.shell;
 
 import com.pty4j.PtyProcess;
 import com.pty4j.PtyProcessBuilder;
+import dev.omatheusmesmo.qlawkus.config.ShellConfig;
 import dev.omatheusmesmo.qlawkus.dto.SessionInfo;
 import dev.omatheusmesmo.qlawkus.dto.SessionOutput;
 import io.quarkus.logging.Log;
@@ -10,15 +11,16 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -33,42 +35,39 @@ public class PtySessionManager {
 
     private final boolean nativeImageMode;
 
-    @ConfigProperty(name = "qlawkus.shell.pty.max-sessions", defaultValue = "10")
-    int maxSessions;
-
-    @ConfigProperty(name = "qlawkus.shell.pty.idle-timeout-minutes", defaultValue = "30")
-    int idleTimeoutMinutes;
-
-    @ConfigProperty(name = "qlawkus.shell.pty.buffer-lines", defaultValue = "50000")
-    int bufferLines;
-
-    @ConfigProperty(name = "qlawkus.shell.pty.default-cols", defaultValue = "120")
-    int defaultCols;
-
-    @ConfigProperty(name = "qlawkus.shell.pty.default-rows", defaultValue = "40")
-    int defaultRows;
-
-    @ConfigProperty(name = "qlawkus.shell.workspace-root", defaultValue = ".")
-    String workspaceRoot;
-
-    @ConfigProperty(name = "qlawkus.shell.default-shell", defaultValue = "auto")
-    String defaultShellConfig;
-
-    @ConfigProperty(name = "qlawkus.shell.clean-profile", defaultValue = "true")
-    public boolean cleanProfile;
-
-    @ConfigProperty(name = "qlawkus.shell.prompts")
-    List<String> defaultPromptPatterns;
-
-    private String detectedDefaultShell;
-
-    private final ConcurrentHashMap<String, PtySession> sessions = new ConcurrentHashMap<>();
+    @Inject
+    ShellConfig shellConfig;
 
     @Inject
     WorkspaceConfinement workspaceConfinement;
 
+    int maxSessions;
+    int idleTimeoutMinutes;
+    int bufferLines;
+    int defaultCols;
+    int defaultRows;
+    String workspaceRoot;
+    String defaultShellConfig;
+    public boolean cleanProfile;
+    List<String> defaultPromptPatterns;
+    private String detectedDefaultShell;
+
+    private final ConcurrentHashMap<String, PtySession> sessions = new ConcurrentHashMap<>();
+
     @PostConstruct
     void init() {
+        this.workspaceRoot = shellConfig.workspaceRoot();
+        this.defaultShellConfig = shellConfig.defaultShell();
+        this.cleanProfile = shellConfig.cleanProfile();
+        this.defaultPromptPatterns = shellConfig.prompts().orElse(List.of());
+        ShellConfig.PtyConfig pty = shellConfig.pty();
+        if (pty != null) {
+            this.maxSessions = pty.maxSessions();
+            this.idleTimeoutMinutes = pty.idleTimeoutMinutes();
+            this.bufferLines = pty.bufferLines();
+            this.defaultCols = pty.defaultCols();
+            this.defaultRows = pty.defaultRows();
+        }
         detectedDefaultShell = detectDefaultShell();
         if (!"auto".equals(defaultShellConfig)) {
             detectedDefaultShell = defaultShellConfig;
@@ -123,9 +122,9 @@ public class PtySessionManager {
                 ? new String[]{"cmd", "/c", effectiveCommand}
                 : new String[]{"sh", "-c", effectiveCommand};
 
-        java.io.File dir = resolveDir(workdir);
+        File dir = resolveDir(workdir);
 
-        Map<String, String> env = new java.util.HashMap<>(System.getenv());
+        Map<String, String> env = new HashMap<>(System.getenv());
         env.put("TERM", "xterm-256color");
 
         PtyProcess process = new PtyProcessBuilder()
@@ -258,9 +257,9 @@ public class PtySessionManager {
         return session;
     }
 
-    private java.io.File resolveDir(String workdir) {
+    private File resolveDir(String workdir) {
         if (workdir == null || workdir.isBlank()) {
-            return new java.io.File(workspaceRoot).getAbsoluteFile();
+            return new File(workspaceRoot).getAbsoluteFile();
         }
         var security = workspaceConfinement.check(workdir);
         if (security.blocked()) {

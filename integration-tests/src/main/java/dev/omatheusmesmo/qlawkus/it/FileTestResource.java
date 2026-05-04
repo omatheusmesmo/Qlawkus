@@ -8,12 +8,13 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
+import io.quarkus.security.Authenticated;
 import jakarta.ws.rs.core.Response;
 
 import java.util.List;
 
 @Path("/api/test/file")
-@io.quarkus.security.Authenticated
+@Authenticated
 public class FileTestResource {
 
     @Inject
