@@ -6,6 +6,7 @@ import dev.omatheusmesmo.qlawkus.dto.SessionInfo;
 import dev.omatheusmesmo.qlawkus.dto.SessionOutput;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -22,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 @ApplicationScoped
 public class PtySessionManager {
@@ -48,10 +51,41 @@ public class PtySessionManager {
     @ConfigProperty(name = "qlawkus.shell.workspace-root", defaultValue = ".")
     String workspaceRoot;
 
+    @ConfigProperty(name = "qlawkus.shell.default-shell", defaultValue = "auto")
+    String defaultShellConfig;
+
+    @ConfigProperty(name = "qlawkus.shell.clean-profile", defaultValue = "true")
+    public boolean cleanProfile;
+
+    @ConfigProperty(name = "qlawkus.shell.prompts")
+    List<String> defaultPromptPatterns;
+
+    private String detectedDefaultShell;
+
     private final ConcurrentHashMap<String, PtySession> sessions = new ConcurrentHashMap<>();
 
     @Inject
     WorkspaceConfinement workspaceConfinement;
+
+    @PostConstruct
+    void init() {
+        detectedDefaultShell = detectDefaultShell();
+        if (!"auto".equals(defaultShellConfig)) {
+            detectedDefaultShell = defaultShellConfig;
+        }
+        Log.infof("Default shell: %s, clean-profile: %s", detectedDefaultShell, cleanProfile);
+    }
+
+    static String detectDefaultShell() {
+        if (ShellTool.IS_WINDOWS) {
+            return "cmd.exe";
+        }
+        String shell = System.getenv("SHELL");
+        if (shell != null && !shell.isBlank()) {
+            return shell;
+        }
+        return "/bin/sh";
+    }
 
     PtySessionManager() {
         nativeImageMode = "true".equals(System.getProperty("io.quarkus.native.image", "false"))
@@ -75,7 +109,7 @@ public class PtySessionManager {
         return nativeImageMode;
     }
 
-    public String startSession(String command, String workdir) throws IOException {
+    public String startSession(String command, String workdir, List<String> prompts) throws IOException {
         if (nativeImageMode) {
             throw new UnsupportedOperationException(NATIVE_IMAGE_UNAVAILABLE);
         }
@@ -84,9 +118,10 @@ public class PtySessionManager {
         }
 
         String sessionId = UUID.randomUUID().toString();
+        String effectiveCommand = resolveCommand(command);
         String[] cmdArgs = ShellTool.IS_WINDOWS
-                ? new String[]{"cmd", "/c", command}
-                : new String[]{"sh", "-c", command};
+                ? new String[]{"cmd", "/c", effectiveCommand}
+                : new String[]{"sh", "-c", effectiveCommand};
 
         java.io.File dir = resolveDir(workdir);
 
@@ -102,6 +137,8 @@ public class PtySessionManager {
                 .start();
 
         RollingBuffer buffer = new RollingBuffer(bufferLines);
+        List<Pattern> compiledPrompts = compilePromptPatterns(prompts);
+        PtySession session = new PtySession(sessionId, effectiveCommand, process, buffer, null, compiledPrompts);
 
         Thread readerThread = new Thread(() -> {
             try (BufferedReader reader = new BufferedReader(
@@ -109,6 +146,7 @@ public class PtySessionManager {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     buffer.addLine(line);
+                    session.checkPrompt(line);
                 }
             } catch (IOException e) {
                 if (!"closed".equals(sessions.get(sessionId) != null ? sessions.get(sessionId).getStatus() : "")) {
@@ -119,7 +157,7 @@ public class PtySessionManager {
         readerThread.setDaemon(true);
         readerThread.start();
 
-        PtySession session = new PtySession(sessionId, command, process, buffer, readerThread);
+        session.setReaderThread(readerThread);
         sessions.put(sessionId, session);
 
         Log.infof("PTY session started: id=%s command='%s' dir=%s", sessionId, command, dir);
@@ -128,7 +166,7 @@ public class PtySessionManager {
 
     public SessionOutput readSession(String sessionId, int offset) {
         if (nativeImageMode) {
-            return new SessionOutput(List.of("ERROR: " + NATIVE_IMAGE_UNAVAILABLE), false, 0);
+            return new SessionOutput(List.of("ERROR: " + NATIVE_IMAGE_UNAVAILABLE), false, 0, false);
         }
         PtySession session = requireSession(sessionId);
         session.updateStatus();
@@ -136,8 +174,10 @@ public class PtySessionManager {
 
         List<String> lines = session.getOutputBuffer().getLinesFrom(offset);
         boolean hasMore = session.getOutputBuffer().hasMoreAfter(offset + lines.size());
+        boolean promptDetected = session.isPromptDetected();
+        session.clearPromptDetected();
 
-        return new SessionOutput(lines, hasMore, offset + lines.size());
+        return new SessionOutput(lines, hasMore, offset + lines.size(), promptDetected);
     }
 
     public void sendInput(String sessionId, String input) throws IOException {
@@ -168,7 +208,8 @@ public class PtySessionManager {
                     session.getSessionId(),
                     session.getCommand(),
                     session.getStatus(),
-                    session.getLastActivity().toEpochMilli()
+                    session.getLastActivity().toEpochMilli(),
+                    session.getPromptPatternStrings()
             ));
         }
         return result;
@@ -226,5 +267,62 @@ public class PtySessionManager {
             throw new SecurityException("Workdir blocked: " + security.reason());
         }
         return workspaceConfinement.resolveCanonical(workdir).toFile();
+    }
+
+    public String resolveCommand(String command) {
+        if (command == null || command.isBlank()) {
+            return applyCleanProfile(detectedDefaultShell);
+        }
+        String trimmed = command.trim();
+        if (isBareShellName(trimmed)) {
+            return applyCleanProfile(resolveShellPath(trimmed));
+        }
+        return command;
+    }
+
+    private boolean isBareShellName(String command) {
+        return !command.contains("/") && !command.contains("\\") && !command.contains(" ")
+                && List.of("bash", "sh", "zsh", "fish", "dash", "ksh", "csh", "tcsh").contains(command);
+    }
+
+    private String resolveShellPath(String shellName) {
+        if (ShellTool.IS_WINDOWS) {
+            return shellName;
+        }
+        return "/bin/" + shellName;
+    }
+
+    private String applyCleanProfile(String shellCommand) {
+        if (!cleanProfile || ShellTool.IS_WINDOWS) {
+            return shellCommand;
+        }
+        String lower = shellCommand.toLowerCase();
+        if (lower.endsWith("/bash") || lower.endsWith("/sh") || lower.endsWith("/zsh")
+                || lower.endsWith("/dash") || lower.endsWith("/ksh")) {
+            return shellCommand + " --norc --noprofile";
+        }
+        return shellCommand;
+    }
+
+    List<Pattern> compilePromptPatterns(List<String> prompts) {
+        List<String> effective = (prompts != null && !prompts.isEmpty()) ? prompts : defaultPromptPatterns;
+        if (effective == null || effective.isEmpty()) {
+            return List.of();
+        }
+        List<Pattern> compiled = new ArrayList<>();
+        for (String p : effective) {
+            if (p != null && !p.isBlank()) {
+                try {
+                    compiled.add(Pattern.compile(p));
+                } catch (PatternSyntaxException e) {
+                    Log.warnf("Invalid prompt pattern '%s': %s", p, e.getMessage());
+                }
+            }
+        }
+        return compiled;
+    }
+
+    public String getDefaultShell() {
+        return detectedDefaultShell;
     }
 }
