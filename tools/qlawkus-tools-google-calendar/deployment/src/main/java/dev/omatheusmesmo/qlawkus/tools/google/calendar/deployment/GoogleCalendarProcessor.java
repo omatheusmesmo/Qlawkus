@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.tools.google.calendar.deployment;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.CalendarTool;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.GoogleCalendarConfig;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.GoogleCalendarRestClient;
+import dev.omatheusmesmo.qlawkus.tools.google.calendar.TimezoneNormalizer;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEvent;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventAttendee;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventList;
@@ -37,6 +38,7 @@ class GoogleCalendarProcessor {
                 .addBeanClass(CalendarTool.class)
                 .addBeanClass(GoogleCalendarConfig.class)
                 .addBeanClass(GoogleCalendarRestClient.class)
+                .addBeanClass(TimezoneNormalizer.class)
                 .setRemovable()
                 .build();
     }
@@ -46,6 +48,7 @@ class GoogleCalendarProcessor {
         return ReflectiveClassBuildItem.builder(
                 CalendarTool.class.getName(),
                 GoogleCalendarConfig.class.getName(),
+                TimezoneNormalizer.class.getName(),
                 CalendarEventList.class.getName(),
                 CalendarEvent.class.getName(),
                 EventDateTime.class.getName(),
