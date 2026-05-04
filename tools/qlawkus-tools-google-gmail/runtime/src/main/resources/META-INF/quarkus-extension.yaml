@@ -1,0 +1,9 @@
+name: "Google Gmail"
+metadata:
+  keywords:
+    - "google"
+    - "gmail"
+    - "productivity"
+  categories:
+    - "productivity"
+  status: "experimental"

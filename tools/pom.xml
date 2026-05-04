@@ -15,5 +15,6 @@
     <modules>
         <module>qlawkus-tools-google-auth</module>
         <module>qlawkus-tools-google-calendar</module>
+        <module>qlawkus-tools-google-gmail</module>
     </modules>
 </project>
