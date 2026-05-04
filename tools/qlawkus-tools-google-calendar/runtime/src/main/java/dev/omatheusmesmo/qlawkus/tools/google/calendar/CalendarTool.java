@@ -37,6 +37,9 @@ public class CalendarTool {
     @RestClient
     GoogleCalendarRestClient calendarClient;
 
+    @Inject
+    TimezoneNormalizer timezoneNormalizer;
+
     @Tool("List upcoming Google Calendar events for the next N days. Returns event summary, time, location and attendees.")
     public String listEvents(int days) {
         if (days <= 0) {
@@ -123,7 +126,8 @@ public class CalendarTool {
 
             StringBuilder sb = new StringBuilder("Busy slots on " + date + ":\n");
             for (FreeBusyResponse.TimeRange range : calendar.busy()) {
-                sb.append("- ").append(range.start()).append(" to ").append(range.end()).append("\n");
+                sb.append("- ").append(timezoneNormalizer.displayLocal(range.start()))
+                        .append(" to ").append(timezoneNormalizer.displayLocal(range.end())).append("\n");
             }
             return sb.toString().trim();
         } catch (Exception e) {
@@ -169,8 +173,8 @@ public class CalendarTool {
                 Duration gap = Duration.between(slotStart, slotEnd);
                 if (!gap.minus(minSlot).isNegative()) {
                     focusSlots.add(String.format("- %s to %s (%dh%dm free)",
-                            slotStart.format(RFC3339),
-                            slotEnd.format(RFC3339),
+                            timezoneNormalizer.displayLocal(slotStart),
+                            timezoneNormalizer.displayLocal(slotEnd),
                             gap.toHours(),
                             gap.toMinutesPart()));
                 }
@@ -193,11 +197,15 @@ public class CalendarTool {
         sb.append(event.summary() != null ? event.summary() : "(no title)");
 
         if (event.start() != null) {
-            String start = event.start().dateTime() != null ? event.start().dateTime() : event.start().date();
+            String start = event.start().dateTime() != null
+                    ? timezoneNormalizer.displayLocal(event.start().dateTime())
+                    : event.start().date();
             sb.append(" | Start: ").append(start);
         }
         if (event.end() != null) {
-            String end = event.end().dateTime() != null ? event.end().dateTime() : event.end().date();
+            String end = event.end().dateTime() != null
+                    ? timezoneNormalizer.displayLocal(event.end().dateTime())
+                    : event.end().date();
             sb.append(" | End: ").append(end);
         }
         if (event.location() != null) {
