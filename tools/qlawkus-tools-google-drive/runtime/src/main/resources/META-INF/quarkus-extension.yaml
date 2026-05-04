@@ -1,0 +1,9 @@
+name: "Google Drive"
+metadata:
+  keywords:
+    - "google"
+    - "drive"
+    - "productivity"
+  categories:
+    - "productivity"
+  status: "experimental"
