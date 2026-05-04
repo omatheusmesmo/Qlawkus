@@ -11,6 +11,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
+import java.util.Map;
 
 @Path("/api/test/shell")
 @Authenticated
@@ -45,6 +46,6 @@ public class ShellTestResource {
     @Path("/available")
     public Response isCommandAvailable(@QueryParam("cmd") String cmd) {
         boolean available = shellTool.isCommandAvailable(cmd);
-        return Response.ok().entity("{\"available\":" + available + "}").build();
+        return Response.ok(Map.of("available", available)).build();
     }
 }

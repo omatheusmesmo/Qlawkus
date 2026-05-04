@@ -4,5 +4,5 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.util.List;
 
 @RegisterForReflection
-public record SessionOutput(List<String> lines, boolean hasMore, int offset) {
+public record SessionOutput(List<String> lines, boolean hasMore, int offset, boolean promptDetected) {
 }
