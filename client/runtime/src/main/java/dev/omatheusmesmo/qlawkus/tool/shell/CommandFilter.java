@@ -9,14 +9,44 @@ import jakarta.inject.Inject;
 
 import java.util.List;
 
+/**
+ * Validates shell commands against a security policy.
+ *
+ * <p>Two mutually exclusive modes:</p>
+ * <ul>
+ * <li><b>Denylist mode</b> (default) — all commands are allowed except those matching the denylist patterns.</li>
+ * <li><b>Allowlist mode</b> — only commands matching the allowlist patterns are allowed; everything else is blocked.
+ * When active, the denylist is ignored entirely.</li>
+ * </ul>
+ *
+ * <p>Patterns support glob syntax: {@code *} matches any characters, {@code ?} matches a single character.
+ * Without wildcards, a pattern matches the exact command or a command that starts with the pattern followed by a space
+ * (e.g. {@code "sudo"} matches both {@code "sudo"} and {@code "sudo apt install"}).</p>
+ */
 @ApplicationScoped
 public class CommandFilter {
 
     @Inject
     ShellConfig shellConfig;
 
+    /**
+     * Comma-separated list of denied command patterns. Always active in denylist mode.
+     * Supports glob wildcards ({@code *}, {@code ?}).
+     * Default: {@code sudo *,su *,rm -rf /*,mkfs*,dd if=*,format,shutdown,reboot}
+     */
     public List<String> denylist;
+
+    /**
+     * When {@code true}, switches to allowlist mode: only commands matching {@link #allowlist} are allowed.
+     * The denylist is completely ignored in this mode. Default: {@code false}.
+     */
     public boolean allowlistMode;
+
+    /**
+     * Comma-separated list of allowed command patterns. Only used when {@link #allowlistMode} is {@code true}.
+     * Supports glob wildcards ({@code *}, {@code ?}).
+     * Default: empty (no commands allowed in allowlist mode until explicitly configured).
+     */
     public List<String> allowlist;
 
     @PostConstruct

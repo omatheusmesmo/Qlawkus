@@ -14,9 +14,15 @@ import java.time.Duration;
 @ApplicationScoped
 public class StartupThoughtObserver {
 
+    /**
+     * Agent service used to generate startup reflection thoughts.
+     */
     @Inject
     AgentService agentService;
 
+    /**
+     * Configuration controlling whether startup thought generation is enabled.
+     */
     @Inject
     StartupConfig startupConfig;
 
