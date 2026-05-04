@@ -5,7 +5,8 @@
   <parent>
     <groupId>dev.omatheusmesmo</groupId>
     <artifactId>qlawkus</artifactId>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>0.2.1-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
     <artifactId>qlawkus-tools-parent</artifactId>
@@ -13,5 +14,6 @@
 
     <modules>
         <module>qlawkus-tools-google-auth</module>
+        <module>qlawkus-tools-google-calendar</module>
     </modules>
 </project>
