@@ -7,6 +7,8 @@ import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEvent;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventAttendee;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventList;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.EventDateTime;
+import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.FreeBusyRequest;
+import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.FreeBusyResponse;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -14,9 +16,9 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -95,6 +97,36 @@ public class CalendarTool {
         } catch (Exception e) {
             Log.errorf(e, "Failed to create Google Calendar event");
             return "Error creating calendar event: " + e.getMessage();
+        }
+    }
+
+    @Tool("Check calendar availability for a given date. Returns busy time ranges so you can find free slots.")
+    public String checkAvailability(
+            @P("Date to check, e.g. 2026-05-10") LocalDate date) {
+
+        String timeMin = date.atTime(OffsetTime.of(0, 0, 0, 0, ZoneOffset.UTC)).format(RFC3339);
+        String timeMax = date.atTime(OffsetTime.of(23, 59, 59, 0, ZoneOffset.UTC)).format(RFC3339);
+
+        FreeBusyRequest request = new FreeBusyRequest(
+                timeMin, timeMax,
+                List.of(new FreeBusyRequest.FreeBusyItem(config.calendarId())));
+
+        try {
+            FreeBusyResponse response = calendarClient.queryFreeBusy(request);
+            FreeBusyResponse.FreeBusyCalendar calendar = response.calendars().get(config.calendarId());
+
+            if (calendar == null || calendar.busy().isEmpty()) {
+                return "No busy slots on " + date + ". Full day available.";
+            }
+
+            StringBuilder sb = new StringBuilder("Busy slots on " + date + ":\n");
+            for (FreeBusyResponse.TimeRange range : calendar.busy()) {
+                sb.append("- ").append(range.start()).append(" to ").append(range.end()).append("\n");
+            }
+            return sb.toString().trim();
+        } catch (Exception e) {
+            Log.errorf(e, "Failed to check calendar availability");
+            return "Error checking availability: " + e.getMessage();
         }
     }
 
