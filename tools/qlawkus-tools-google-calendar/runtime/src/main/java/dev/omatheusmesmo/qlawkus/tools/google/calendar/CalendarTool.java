@@ -14,11 +14,13 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -127,6 +129,62 @@ public class CalendarTool {
         } catch (Exception e) {
             Log.errorf(e, "Failed to check calendar availability");
             return "Error checking availability: " + e.getMessage();
+        }
+    }
+
+    @Tool("Find available focus time slots of at least 2 hours on a given date. Uses freeBusy data and working hours to suggest gaps.")
+    public String suggestFocusTime(
+            @P("Date to check, e.g. 2026-05-10") LocalDate date) {
+
+        OffsetDateTime dayStart = date.atTime(config.workDayStart(), 0, 0).atOffset(ZoneOffset.UTC);
+        OffsetDateTime dayEnd = date.atTime(config.workDayEnd(), 0, 0).atOffset(ZoneOffset.UTC);
+        Duration minSlot = Duration.ofHours(config.focusTimeHours());
+
+        FreeBusyRequest request = new FreeBusyRequest(
+                dayStart.format(RFC3339),
+                dayEnd.format(RFC3339),
+                List.of(new FreeBusyRequest.FreeBusyItem(config.calendarId())));
+
+        try {
+            FreeBusyResponse response = calendarClient.queryFreeBusy(request);
+            FreeBusyResponse.FreeBusyCalendar calendar = response.calendars().get(config.calendarId());
+
+            List<OffsetDateTime> boundaries = new ArrayList<>();
+            boundaries.add(dayStart);
+
+            if (calendar != null) {
+                for (FreeBusyResponse.TimeRange range : calendar.busy()) {
+                    boundaries.add(OffsetDateTime.parse(range.start()));
+                    boundaries.add(OffsetDateTime.parse(range.end()));
+                }
+            }
+
+            boundaries.add(dayEnd);
+            boundaries.sort(OffsetDateTime::compareTo);
+
+            List<String> focusSlots = new ArrayList<>();
+            for (int i = 1; i < boundaries.size(); i += 2) {
+                OffsetDateTime slotStart = boundaries.get(i);
+                OffsetDateTime slotEnd = boundaries.get(i + 1);
+                Duration gap = Duration.between(slotStart, slotEnd);
+                if (!gap.minus(minSlot).isNegative()) {
+                    focusSlots.add(String.format("- %s to %s (%dh%dm free)",
+                            slotStart.format(RFC3339),
+                            slotEnd.format(RFC3339),
+                            gap.toHours(),
+                            gap.toMinutesPart()));
+                }
+            }
+
+            if (focusSlots.isEmpty()) {
+                return "No focus time slots of " + config.focusTimeHours() + "h+ available on " + date
+                        + " within working hours (" + config.workDayStart() + ":00-" + config.workDayEnd() + ":00).";
+            }
+
+            return "Focus time slots on " + date + ":\n" + String.join("\n", focusSlots);
+        } catch (Exception e) {
+            Log.errorf(e, "Failed to suggest focus time");
+            return "Error suggesting focus time: " + e.getMessage();
         }
     }
 
