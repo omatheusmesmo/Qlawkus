@@ -29,6 +29,11 @@
             <artifactId>qlawkus-tools-google-calendar</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>dev.omatheusmesmo</groupId>
+            <artifactId>qlawkus-tools-google-gmail</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk18on</artifactId>
