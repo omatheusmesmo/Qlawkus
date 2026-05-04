@@ -38,7 +38,7 @@ public class WorkspaceConfinement {
         return resolved != null ? resolved : Path.of(workspaceRoot).toAbsolutePath();
     }
 
-    Path resolveCanonical(String pathStr) {
+    public Path resolveCanonical(String pathStr) {
         if (pathStr == null || pathStr.isBlank()) {
             return resolveCanonical(workspaceRoot);
         }
