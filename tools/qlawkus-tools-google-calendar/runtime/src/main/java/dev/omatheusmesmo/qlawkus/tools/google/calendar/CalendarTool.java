@@ -1,9 +1,12 @@
 package dev.omatheusmesmo.qlawkus.tools.google.calendar;
 
+import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEvent;
+import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventAttendee;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventList;
+import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.EventDateTime;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -13,6 +16,8 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @ClawTool
@@ -60,6 +65,36 @@ public class CalendarTool {
         } catch (Exception e) {
             Log.errorf(e, "Failed to list Google Calendar events");
             return "Error listing calendar events: " + e.getMessage();
+        }
+    }
+
+    @Tool("Create a Google Calendar event. Provide summary, start time and end time. Optionally provide location and attendee email addresses.")
+    public String createEvent(
+            @P("Event title or summary") String summary,
+            @P("Start time, e.g. 2026-05-10T14:00:00-03:00") OffsetDateTime startTime,
+            @P("End time, e.g. 2026-05-10T15:00:00-03:00") OffsetDateTime endTime,
+            @P(value = "Location of the event", required = false) String location,
+            @P(value = "List of attendee email addresses", required = false) List<String> attendeeEmails) {
+
+        EventDateTime start = new EventDateTime(startTime.format(RFC3339), null, null);
+        EventDateTime end = new EventDateTime(endTime.format(RFC3339), null, null);
+
+        List<CalendarEventAttendee> attendees = List.of();
+        if (attendeeEmails != null && !attendeeEmails.isEmpty()) {
+            attendees = attendeeEmails.stream()
+                    .map(email -> new CalendarEventAttendee(email, null, null))
+                    .toList();
+        }
+
+        CalendarEvent event = new CalendarEvent(
+                null, summary, null, location, start, end, null, attendees);
+
+        try {
+            CalendarEvent created = calendarClient.createEvent(config.calendarId(), event);
+            return "Event created: " + formatEvent(created);
+        } catch (Exception e) {
+            Log.errorf(e, "Failed to create Google Calendar event");
+            return "Error creating calendar event: " + e.getMessage();
         }
     }
 
