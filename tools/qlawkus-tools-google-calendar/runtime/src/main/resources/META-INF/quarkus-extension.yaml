@@ -1,0 +1,9 @@
+name: "Google Calendar"
+metadata:
+  keywords:
+    - "google"
+    - "calendar"
+    - "productivity"
+  categories:
+    - "productivity"
+  status: "experimental"

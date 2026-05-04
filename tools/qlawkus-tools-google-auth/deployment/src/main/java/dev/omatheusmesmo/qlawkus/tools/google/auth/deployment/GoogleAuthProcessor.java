@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.google.auth.deployment;
 
 import dev.omatheusmesmo.qlawkus.tools.google.auth.CredentialVaultService;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleAuthHeadersFilter;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleAuthResource;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleCredential;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleVaultConfig;
@@ -44,6 +45,14 @@ class GoogleAuthProcessor {
             GoogleAuthConfig.class.getName(),
             GoogleCredential.class.getName()
         ).methods().fields().build();
+    }
+
+    @BuildStep
+    AdditionalBeanBuildItem registerAuthHeadersFilter() {
+        return AdditionalBeanBuildItem.builder()
+                .addBeanClass(GoogleAuthHeadersFilter.class)
+                .setRemovable()
+                .build();
     }
 
     @BuildStep(onlyIf = IsVaultEnabled.class)

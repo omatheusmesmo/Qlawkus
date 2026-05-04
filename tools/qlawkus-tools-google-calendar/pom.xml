@@ -9,8 +9,8 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-  <artifactId>qlawkus-tools-google-auth-parent</artifactId>
-  <name>Qlawkus Tools - Google Auth - Parent</name>
+    <artifactId>qlawkus-tools-google-calendar-parent</artifactId>
+    <name>Qlawkus Tools - Google Calendar - Parent</name>
     <packaging>pom</packaging>
 
     <modules>
