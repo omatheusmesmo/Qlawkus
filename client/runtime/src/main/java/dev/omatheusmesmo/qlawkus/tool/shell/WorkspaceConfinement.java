@@ -1,19 +1,27 @@
 package dev.omatheusmesmo.qlawkus.tool.shell;
 
+import dev.omatheusmesmo.qlawkus.config.ShellConfig;
 import dev.omatheusmesmo.qlawkus.dto.SecurityResult;
 import io.quarkus.logging.Log;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.io.IOException;
 import java.nio.file.Path;
 
-import jakarta.enterprise.context.ApplicationScoped;
-
 @ApplicationScoped
 public class WorkspaceConfinement {
 
-    @ConfigProperty(name = "qlawkus.shell.workspace-root", defaultValue = ".")
+    @Inject
+    ShellConfig shellConfig;
+
     String workspaceRoot;
+
+    @PostConstruct
+    void init() {
+        this.workspaceRoot = shellConfig.workspaceRoot();
+    }
 
     public SecurityResult check(String workdir) {
         Path resolved = resolveCanonical(workdir);
