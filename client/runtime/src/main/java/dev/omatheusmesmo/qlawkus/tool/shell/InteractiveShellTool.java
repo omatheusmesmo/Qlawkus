@@ -13,13 +13,16 @@ public class InteractiveShellTool {
     @Inject
     PtySessionManager sessionManager;
 
-    @Tool("Start an interactive PTY session (e.g. bash, python REPL, docker exec). " +
-            "Returns a sessionId for use with readSession/sendInput/closeSession. " +
-            "Parameters: command (required) — the command to run in the PTY, " +
-            "workdir (optional) — working directory (defaults to workspace root)")
+    @Tool("Start an interactive PTY session (e.g. bash, python REPL, docker exec). "
+            + "Returns a sessionId for use with readSession/sendInput/closeSession. "
+            + "Parameters: command (required) — the command to run in the PTY, "
+            + "workdir (optional) — working directory (defaults to workspace root). "
+            + "NOTE: PTY sessions are not available in native image mode — use runCommand instead.")
     public String startSession(String command, String workdir) {
         try {
             return sessionManager.startSession(command, workdir);
+        } catch (UnsupportedOperationException e) {
+            return "ERROR: " + e.getMessage();
         } catch (IllegalStateException e) {
             return "ERROR: " + e.getMessage();
         } catch (Exception e) {
