@@ -38,12 +38,27 @@ public class ShellTool {
     @Inject
     ShellConfig shellConfig;
 
+    /**
+     * Workspace root directory for shell command execution. Default: {@code .} (current directory).
+     */
     String workspaceRoot;
 
+    /**
+     * Maximum number of simultaneously running processes the agent may spawn.
+     * Additional commands are rejected until a slot frees up. Default: 10.
+     */
     public int maxConcurrent;
 
+    /**
+     * Maximum bytes captured per stream (stdout/stderr). Output beyond this is truncated.
+     * Default: 1048576 (1MB).
+     */
     int maxOutputBytes;
 
+    /**
+     * Maximum lines returned per stream. Lines beyond this are stripped from the end.
+     * Default: 5000.
+     */
     int maxOutputLines;
 
     @Inject
