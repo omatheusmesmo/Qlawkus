@@ -33,4 +33,16 @@ public interface GoogleCalendarConfig {
      */
     @WithDefault("25")
     int maxResults();
+
+    /** Minimum duration (in hours) for a focus time slot. */
+    @WithDefault("2")
+    int focusTimeHours();
+
+    /** Start of working hours (hour of day, 0-23). Focus slots are only suggested within this range. */
+    @WithDefault("8")
+    int workDayStart();
+
+    /** End of working hours (hour of day, 0-23). */
+    @WithDefault("18")
+    int workDayEnd();
 }
