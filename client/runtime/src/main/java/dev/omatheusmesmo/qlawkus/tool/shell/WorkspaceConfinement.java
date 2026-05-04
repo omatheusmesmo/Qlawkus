@@ -16,6 +16,10 @@ public class WorkspaceConfinement {
     @Inject
     ShellConfig shellConfig;
 
+    /**
+     * Workspace root directory. All path operations are confined to this directory and its subdirectories.
+     * Default: {@code .} (current directory).
+     */
     String workspaceRoot;
 
     @PostConstruct

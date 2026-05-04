@@ -41,14 +41,49 @@ public class PtySessionManager {
     @Inject
     WorkspaceConfinement workspaceConfinement;
 
+    /**
+     * Maximum number of concurrent PTY sessions. Default: 10.
+     */
     int maxSessions;
+
+    /**
+     * Idle timeout in minutes before session cleanup. Default: 30.
+     */
     int idleTimeoutMinutes;
+
+    /**
+     * Maximum lines retained in session output buffer. Default: 50000.
+     */
     int bufferLines;
+
+    /**
+     * Default terminal columns for new sessions. Default: 120.
+     */
     int defaultCols;
+
+    /**
+     * Default terminal rows for new sessions. Default: 40.
+     */
     int defaultRows;
+
+    /**
+     * Workspace root directory for PTY session execution. Default: {@code .}.
+     */
     String workspaceRoot;
+
+    /**
+     * Default shell command. Use "auto" to detect from $SHELL. Default: {@code auto}.
+     */
     String defaultShellConfig;
+
+    /**
+     * Whether to append --norc --noprofile to bare shell names. Default: {@code true}.
+     */
     public boolean cleanProfile;
+
+    /**
+     * Regex patterns for shell prompt detection. Optional — defaults to empty list.
+     */
     List<String> defaultPromptPatterns;
     private String detectedDefaultShell;
 
