@@ -4,18 +4,30 @@
 
     <parent>
         <groupId>dev.omatheusmesmo</groupId>
-        <artifactId>qlawkus-tools-google-auth-parent</artifactId>
+        <artifactId>qlawkus-tools-google-calendar-parent</artifactId>
         <version>0.2.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>qlawkus-tools-google-auth</artifactId>
-    <name>Qlawkus Tools - Google Auth - Runtime</name>
+    <artifactId>qlawkus-tools-google-calendar</artifactId>
+    <name>Qlawkus Tools - Google Calendar - Runtime</name>
 
     <dependencies>
         <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-rest-client-jackson</artifactId>
+            <groupId>dev.omatheusmesmo</groupId>
+            <artifactId>qlawkus-tools-google-auth</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.omatheusmesmo</groupId>
+            <artifactId>qlawkus-client</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-core</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -23,30 +35,8 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-hibernate-orm-panache</artifactId>
-            <optional>true</optional>
+            <artifactId>quarkus-rest-client-jackson</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-jdbc-postgresql</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-flyway</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-scheduler</artifactId>
-            <optional>true</optional>
-        </dependency>
-    <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk18on</artifactId>
-      <version>1.84</version>
-      <optional>true</optional>
-    </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -84,18 +74,18 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
-    <plugin>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <configuration combine.self="override">
-                <systemPropertyVariables>
-                    <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                    <maven.home>${maven.home}</maven.home>
-                </systemPropertyVariables>
-            </configuration>
-        </plugin>
-        <plugin>
-            <groupId>io.smallrye</groupId>
-            <artifactId>jandex-maven-plugin</artifactId>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration combine.self="override">
+                    <systemPropertyVariables>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <maven.home>${maven.home}</maven.home>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>io.smallrye</groupId>
+                <artifactId>jandex-maven-plugin</artifactId>
                 <version>3.2.7</version>
                 <executions>
                     <execution>
