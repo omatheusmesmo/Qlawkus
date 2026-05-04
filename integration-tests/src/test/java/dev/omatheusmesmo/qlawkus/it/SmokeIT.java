@@ -4,6 +4,7 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.common.http.TestHTTPResource;
 import jakarta.ws.rs.core.MediaType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -11,6 +12,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,8 +23,10 @@ class SmokeIT {
     URI baseUri;
 
     @Test
+    @Timeout(value = 60, unit = TimeUnit.SECONDS)
     void nativeImage_startsAndRespondsOnApiChat() throws Exception {
-        String auth = Base64.getEncoder().encodeToString("qlawkus:qlawkus-test".getBytes());
+        String password = System.getProperty("test.qlawkus.password", "qlawkus");
+        String auth = Base64.getEncoder().encodeToString(("qlawkus:" + password).getBytes());
 
         HttpClient client = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))

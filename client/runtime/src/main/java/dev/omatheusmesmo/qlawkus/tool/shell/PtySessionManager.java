@@ -26,6 +26,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @ApplicationScoped
 public class PtySessionManager {
 
+    static final String NATIVE_IMAGE_UNAVAILABLE = "PTY sessions are not available in native image mode (JNA/pty4j requires JVM). Use ShellTool.runCommand instead.";
+
+    private final boolean nativeImageMode;
+
     @ConfigProperty(name = "qlawkus.shell.pty.max-sessions", defaultValue = "10")
     int maxSessions;
 
@@ -49,7 +53,32 @@ public class PtySessionManager {
     @Inject
     WorkspaceConfinement workspaceConfinement;
 
+    PtySessionManager() {
+        nativeImageMode = "true".equals(System.getProperty("io.quarkus.native.image", "false"))
+                || "native".equals(System.getProperty("quarkus.native.image.type"))
+                || isSubstrateVM();
+        if (nativeImageMode) {
+            Log.infof("PTY sessions disabled: running in native image mode (JNA/pty4j not supported)");
+        }
+    }
+
+    static boolean isSubstrateVM() {
+        try {
+            Class.forName("com.oracle.svm.core.VM");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
+    public boolean isNativeImageMode() {
+        return nativeImageMode;
+    }
+
     public String startSession(String command, String workdir) throws IOException {
+        if (nativeImageMode) {
+            throw new UnsupportedOperationException(NATIVE_IMAGE_UNAVAILABLE);
+        }
         if (sessions.size() >= maxSessions) {
             throw new IllegalStateException("PTY session limit reached (" + maxSessions + "). Close a session first.");
         }
@@ -98,6 +127,9 @@ public class PtySessionManager {
     }
 
     public SessionOutput readSession(String sessionId, int offset) {
+        if (nativeImageMode) {
+            return new SessionOutput(List.of("ERROR: " + NATIVE_IMAGE_UNAVAILABLE), false, 0);
+        }
         PtySession session = requireSession(sessionId);
         session.updateStatus();
         session.touchActivity();
@@ -109,11 +141,17 @@ public class PtySessionManager {
     }
 
     public void sendInput(String sessionId, String input) throws IOException {
+        if (nativeImageMode) {
+            throw new UnsupportedOperationException(NATIVE_IMAGE_UNAVAILABLE);
+        }
         PtySession session = requireSession(sessionId);
         session.sendInput(input);
     }
 
     public void closeSession(String sessionId) {
+        if (nativeImageMode) {
+            throw new UnsupportedOperationException(NATIVE_IMAGE_UNAVAILABLE);
+        }
         PtySession session = sessions.remove(sessionId);
         if (session == null) {
             throw new IllegalArgumentException("No PTY session with id: " + sessionId);
