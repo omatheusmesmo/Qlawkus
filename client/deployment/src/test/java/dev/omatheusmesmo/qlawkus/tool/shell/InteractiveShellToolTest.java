@@ -26,7 +26,7 @@ class InteractiveShellToolTest {
     @Test
     @DisabledOnOs(OS.WINDOWS)
     void startSession_returnsSessionId() {
-        String sessionId = interactiveShellTool.startSession("bash", null);
+        String sessionId =         interactiveShellTool.startSession("bash", null, null);
 
         assertNotNull(sessionId, "Session ID should not be null");
         assertFalse(sessionId.isEmpty(), "Session ID should not be empty");
@@ -37,7 +37,7 @@ class InteractiveShellToolTest {
     @Test
     @DisabledOnOs(OS.WINDOWS)
     void sendInput_andReadSession_returnsOutput() throws Exception {
-        String sessionId = interactiveShellTool.startSession("bash", null);
+        String sessionId =         interactiveShellTool.startSession("bash", null, null);
 
         interactiveShellTool.sendInput(sessionId, "echo pty_test_output");
         Thread.sleep(1000);
@@ -54,7 +54,7 @@ class InteractiveShellToolTest {
     @Test
     @DisabledOnOs(OS.WINDOWS)
     void readSession_withOffset_returnsOnlyNewLines() throws Exception {
-        String sessionId = interactiveShellTool.startSession("bash", null);
+        String sessionId =         interactiveShellTool.startSession("bash", null, null);
 
         interactiveShellTool.sendInput(sessionId, "echo line1");
         Thread.sleep(800);
@@ -74,7 +74,7 @@ class InteractiveShellToolTest {
     @Test
     @DisabledOnOs(OS.WINDOWS)
     void closeSession_terminatesProcess() {
-        String sessionId = interactiveShellTool.startSession("bash", null);
+        String sessionId =         interactiveShellTool.startSession("bash", null, null);
 
         String result = interactiveShellTool.closeSession(sessionId);
         assertTrue(result.contains("closed"), "Close result should mention 'closed'");
@@ -87,7 +87,7 @@ class InteractiveShellToolTest {
     @Test
     @DisabledOnOs(OS.WINDOWS)
     void listSessions_showsActiveSession() {
-        String sessionId = interactiveShellTool.startSession("bash", null);
+        String sessionId =         interactiveShellTool.startSession("bash", null, null);
 
         List<SessionInfo> sessions = interactiveShellTool.listSessions();
         assertTrue(sessions.stream().anyMatch(s -> s.sessionId().equals(sessionId)),
@@ -112,7 +112,7 @@ class InteractiveShellToolTest {
     @Test
     @DisabledOnOs(OS.WINDOWS)
     void sendInput_preservesStateBetweenCommands() throws Exception {
-        String sessionId = interactiveShellTool.startSession("bash", null);
+        String sessionId = interactiveShellTool.startSession("bash", null, null);
 
         interactiveShellTool.sendInput(sessionId, "export PTY_VAR=hello_from_pty");
         Thread.sleep(800);
@@ -124,5 +124,49 @@ class InteractiveShellToolTest {
                 "PTY session should preserve env vars between commands, got: " + output.lines());
 
         interactiveShellTool.closeSession(sessionId);
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void startSession_withPrompts_detectsPromptInOutput() throws Exception {
+        String sessionId = interactiveShellTool.startSession("bash", null, "[#$>] ");
+
+        interactiveShellTool.sendInput(sessionId, "echo hello_prompt");
+        Thread.sleep(1000);
+
+        SessionOutput output = interactiveShellTool.readSession(sessionId, 0);
+        assertTrue(output.lines().stream().anyMatch(l -> l.contains("hello_prompt")),
+                "Output should contain echo output, got: " + output.lines());
+
+        interactiveShellTool.closeSession(sessionId);
+    }
+
+    @Test
+    void startSession_defaultShell_resolvedFromConfig() {
+        String shell = sessionManager.getDefaultShell();
+        assertNotNull(shell, "Default shell should not be null");
+        assertFalse(shell.isBlank(), "Default shell should not be blank");
+    }
+
+    @Test
+    void resolveCommand_bareShellName_appliesCleanProfile() {
+        String resolved = sessionManager.resolveCommand("bash");
+        if (!ShellTool.IS_WINDOWS && sessionManager.cleanProfile) {
+            assertTrue(resolved.contains("--norc"), "Bare 'bash' should get --norc with clean-profile=true, got: " + resolved);
+            assertTrue(resolved.contains("--noprofile"), "Bare 'bash' should get --noprofile with clean-profile=true, got: " + resolved);
+        }
+    }
+
+    @Test
+    void resolveCommand_nonShellCommand_unchanged() {
+        String resolved = sessionManager.resolveCommand("python3");
+        assertEquals("python3", resolved, "Non-shell command should pass through unchanged");
+    }
+
+    @Test
+    void resolveCommand_nullOrBlank_usesDefaultShell() {
+        String resolved = sessionManager.resolveCommand(null);
+        assertNotNull(resolved, "Null command should resolve to default shell");
+        assertFalse(resolved.isBlank(), "Default shell should not be blank");
     }
 }
