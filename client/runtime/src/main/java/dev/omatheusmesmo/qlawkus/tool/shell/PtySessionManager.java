@@ -91,7 +91,7 @@ public class PtySessionManager {
 
     @PostConstruct
     void init() {
-        this.workspaceRoot = shellConfig.workspaceRoot();
+        this.workspaceRoot = workspaceConfinement.getWorkspacePath().toString();
         this.defaultShellConfig = shellConfig.defaultShell();
         this.cleanProfile = shellConfig.cleanProfile();
         this.defaultPromptPatterns = shellConfig.prompts().orElse(List.of());
