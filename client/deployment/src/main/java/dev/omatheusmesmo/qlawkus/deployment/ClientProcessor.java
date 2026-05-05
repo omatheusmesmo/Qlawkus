@@ -10,6 +10,7 @@ import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
+import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ class ClientProcessor {
 
     private static final String FEATURE = "qlawkus-client";
     private static final DotName CLAW_TOOL_ANNOTATION = DotName.createSimple(ClawTool.class.getName());
+    private static final DotName DTO_PACKAGE = DotName.createSimple("dev.omatheusmesmo.qlawkus.dto");
 
     @BuildStep
     FeatureBuildItem feature() {
@@ -60,6 +62,24 @@ class ClientProcessor {
                 continue;
             }
             classNames.add(annotation.target().asClass().name().toString());
+        }
+
+        return ReflectiveClassBuildItem.builder(classNames)
+                .methods()
+                .fields()
+                .build();
+    }
+
+    @BuildStep
+    ReflectiveClassBuildItem registerDtosForReflection(CombinedIndexBuildItem combinedIndex) {
+        Collection<ClassInfo> dtoClasses = combinedIndex.getIndex()
+                .getKnownDirectSubclasses(DotName.createSimple("java.lang.Record"));
+
+        List<String> classNames = new ArrayList<>();
+        for (ClassInfo classInfo : dtoClasses) {
+            if (classInfo.name().packagePrefix().equals(DTO_PACKAGE.toString())) {
+                classNames.add(classInfo.name().toString());
+            }
         }
 
         return ReflectiveClassBuildItem.builder(classNames)
