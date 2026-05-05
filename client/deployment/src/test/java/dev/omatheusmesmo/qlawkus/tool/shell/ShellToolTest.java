@@ -342,6 +342,37 @@ class ShellToolTest {
     }
 
     @Test
+    void workspaceConfinement_restrictToWorkspace_defaultIsTrue() {
+        assertTrue(workspaceConfinement.isRestrictToWorkspace(), "restrictToWorkspace should default to true");
+    }
+
+    @Test
+    void workspaceConfinement_whenDisabled_allowsOutsidePath() {
+        boolean original = workspaceConfinement.isRestrictToWorkspace();
+        workspaceConfinement.setRestrictToWorkspace(false);
+        try {
+            SecurityResult result = workspaceConfinement.check("/etc/passwd");
+            assertFalse(result.blocked(), "When restrictToWorkspace=false, outside path should be allowed");
+        } finally {
+            workspaceConfinement.setRestrictToWorkspace(original);
+        }
+    }
+
+    @Test
+    void workspaceConfinement_whenDisabled_allowsPathTraversal() {
+        boolean original = workspaceConfinement.isRestrictToWorkspace();
+        workspaceConfinement.setRestrictToWorkspace(false);
+        try {
+            String workspace = workspaceConfinement.getWorkspacePath().toString();
+            String traversalPath = workspace + "/../../../etc/passwd";
+            SecurityResult result = workspaceConfinement.check(traversalPath);
+            assertFalse(result.blocked(), "When restrictToWorkspace=false, path traversal should be allowed");
+        } finally {
+            workspaceConfinement.setRestrictToWorkspace(original);
+        }
+    }
+
+    @Test
     void runCommand_denylistBlocksSudo() {
         CommandResult result = shellTool.runCommand("sudo apt install something", null, null);
 
