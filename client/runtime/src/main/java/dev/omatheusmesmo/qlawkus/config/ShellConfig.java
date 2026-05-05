@@ -13,16 +13,16 @@ import java.util.Optional;
 public interface ShellConfig {
 
     /**
-     * Workspace root directory for shell command execution.
-     */
-    @WithDefault(".")
-    String workspaceRoot();
-
-    /**
      * Maximum number of simultaneously running processes.
      */
     @WithDefault("10")
     int maxConcurrent();
+
+    /**
+     * Default command timeout in seconds. Used when runCommand is called without explicit timeout.
+     */
+    @WithDefault("30")
+    int defaultTimeout();
 
     /**
      * Maximum bytes captured per stream (stdout/stderr).

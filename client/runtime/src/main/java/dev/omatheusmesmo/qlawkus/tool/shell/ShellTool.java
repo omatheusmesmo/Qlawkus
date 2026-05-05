@@ -39,7 +39,8 @@ public class ShellTool {
     ShellConfig shellConfig;
 
     /**
-     * Workspace root directory for shell command execution. Default: {@code .} (current directory).
+     * Workspace root directory for shell command execution.
+     * Default: {@code .} (current working directory where the Quarkus service runs).
      */
     String workspaceRoot;
 
@@ -61,6 +62,12 @@ public class ShellTool {
      */
     int maxOutputLines;
 
+    /**
+     * Default command timeout in seconds. Used when runCommand is called without explicit timeout.
+     * Default: 30.
+     */
+    int defaultTimeout;
+
     @Inject
     CommandFilter commandFilter;
 
@@ -74,10 +81,11 @@ public class ShellTool {
 
     @PostConstruct
     void init() {
-        this.workspaceRoot = shellConfig.workspaceRoot();
+        this.workspaceRoot = workspaceConfinement.getWorkspacePath().toString();
         this.maxConcurrent = shellConfig.maxConcurrent();
         this.maxOutputBytes = shellConfig.maxOutputBytes();
         this.maxOutputLines = shellConfig.maxOutputLines();
+        this.defaultTimeout = shellConfig.defaultTimeout();
         cachedPathCommands = scanPath();
         Log.infof("ShellTool: PATH scan found %d available commands", cachedPathCommands.size());
     }
@@ -124,6 +132,7 @@ public class ShellTool {
                 .command(shellCommand(command))
                 .directory(dir.toFile())
                 .redirectErrorStream(false);
+        pb.environment().putAll(workspaceConfinement.getWorkspaceEnv());
 
         Process process;
         try {
