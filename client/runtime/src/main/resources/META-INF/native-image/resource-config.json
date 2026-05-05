@@ -1,0 +1,39 @@
+{
+  "resources": {
+    "includes": [
+      {
+        "pattern": "os/linux/x86-64/libpty\\.so$"
+      },
+      {
+        "pattern": "os/linux/x86-64/libpty\\.so\\.1$"
+      },
+      {
+        "pattern": "os/linux/aarch64/libpty\\.so$"
+      },
+      {
+        "pattern": "os/linux/aarch64/libpty\\.so\\.1$"
+      },
+      {
+        "pattern": "os/freebsd/x86-64/libpty\\.so$"
+      },
+      {
+        "pattern": "os/mac/x86-64/libpty\\.dylib$"
+      },
+      {
+        "pattern": "os/mac/aarch64/libpty\\.dylib$"
+      },
+      {
+        "pattern": "os/win/x86-64/winpty\\.dll$"
+      },
+      {
+        "pattern": "os/win/x86-64/winpty-agent\\.exe$"
+      },
+      {
+        "pattern": "com/pty4j/.*\\.properties$"
+      },
+      {
+        "pattern": "com/sun/jna/.*$"
+      }
+    ]
+  }
+}
