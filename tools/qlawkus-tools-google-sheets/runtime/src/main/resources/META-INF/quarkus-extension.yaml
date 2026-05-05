@@ -1,0 +1,9 @@
+name: "Google Sheets"
+metadata:
+  keywords:
+    - "google"
+    - "sheets"
+    - "productivity"
+  categories:
+    - "productivity"
+  status: "experimental"
