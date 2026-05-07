@@ -16,7 +16,7 @@ import io.quarkus.runtime.configuration.ConfigurationException;
 class GoogleSheetsProcessor {
 
     private static final String FEATURE = "google-sheets";
-    private static final String REST_CLIENT_CAPABILITY = "io.quarkus.rest-client.jackson";
+    private static final String REST_CLIENT_CAPABILITY = "io.quarkus.rest.client.reactive.json.jackson";
 
     @BuildStep
     FeatureBuildItem feature() {
