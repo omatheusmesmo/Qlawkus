@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.tools.brag.deployment;
 
+import dev.omatheusmesmo.qlawkus.tools.brag.AchievementProcessor;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragConfig;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragEntry;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
@@ -29,6 +30,7 @@ class BragProcessor {
         return AdditionalBeanBuildItem.builder()
                 .addBeanClass(BragEntry.class)
                 .addBeanClass(BragConfig.class)
+                .addBeanClass(AchievementProcessor.class)
                 .setRemovable()
                 .build();
     }
@@ -36,6 +38,7 @@ class BragProcessor {
     @BuildStep(onlyIf = IsBragEnabled.class)
     ReflectiveClassBuildItem registerBragReflection() {
         return ReflectiveClassBuildItem.builder(
+                AchievementProcessor.class.getName(),
                 BragEntry.class.getName(),
                 BragConfig.class.getName()
         ).methods().fields().build();
