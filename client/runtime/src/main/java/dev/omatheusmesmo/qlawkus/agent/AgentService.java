@@ -18,5 +18,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 @Logged
 public interface AgentService {
 
-  Multi<String> chat(@UserMessage String message);
+    Multi<String> chat(@UserMessage String message);
+
+    String chatSync(@UserMessage String message);
 }

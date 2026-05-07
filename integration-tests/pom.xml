@@ -12,11 +12,45 @@
   <packaging>quarkus</packaging>
 
   <dependencies>
-    <dependency>
-      <groupId>dev.omatheusmesmo</groupId>
-      <artifactId>qlawkus-client</artifactId>
-      <version>${project.version}</version>
-    </dependency>
+        <dependency>
+            <groupId>dev.omatheusmesmo</groupId>
+            <artifactId>qlawkus-client</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.omatheusmesmo</groupId>
+            <artifactId>qlawkus-tools-google-auth</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-client-jackson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.omatheusmesmo</groupId>
+            <artifactId>qlawkus-tools-google-calendar</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.omatheusmesmo</groupId>
+            <artifactId>qlawkus-tools-google-gmail</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.omatheusmesmo</groupId>
+            <artifactId>qlawkus-tools-google-drive</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.omatheusmesmo</groupId>
+            <artifactId>qlawkus-tools-google-sheets</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.omatheusmesmo</groupId>
+            <artifactId>qlawkus-tools-google-storage</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit</artifactId>

@@ -78,13 +78,16 @@ public class CalendarTool {
     @Tool("Create a Google Calendar event. Provide summary, start time and end time. Optionally provide location and attendee email addresses.")
     public String createEvent(
             @P("Event title or summary") String summary,
-            @P("Start time, e.g. 2026-05-10T14:00:00-03:00") OffsetDateTime startTime,
-            @P("End time, e.g. 2026-05-10T15:00:00-03:00") OffsetDateTime endTime,
+            @P("Start time in ISO-8601 format, e.g. 2026-05-10T14:00:00-03:00") String startTime,
+            @P("End time in ISO-8601 format, e.g. 2026-05-10T15:00:00-03:00") String endTime,
             @P(value = "Location of the event", required = false) String location,
             @P(value = "List of attendee email addresses", required = false) List<String> attendeeEmails) {
 
-        EventDateTime start = new EventDateTime(startTime.format(RFC3339), null, null);
-        EventDateTime end = new EventDateTime(endTime.format(RFC3339), null, null);
+        OffsetDateTime start = OffsetDateTime.parse(startTime);
+        OffsetDateTime end = OffsetDateTime.parse(endTime);
+
+        EventDateTime startDto = new EventDateTime(start.format(RFC3339), null, null);
+        EventDateTime endDto = new EventDateTime(end.format(RFC3339), null, null);
 
         List<CalendarEventAttendee> attendees = List.of();
         if (attendeeEmails != null && !attendeeEmails.isEmpty()) {
@@ -94,7 +97,7 @@ public class CalendarTool {
         }
 
         CalendarEvent event = new CalendarEvent(
-                null, summary, null, location, start, end, null, attendees);
+                null, summary, null, location, startDto, endDto, null, attendees);
 
         try {
             CalendarEvent created = calendarClient.createEvent(config.calendarId(), event);
@@ -107,10 +110,12 @@ public class CalendarTool {
 
     @Tool("Check calendar availability for a given date. Returns busy time ranges so you can find free slots.")
     public String checkAvailability(
-            @P("Date to check, e.g. 2026-05-10") LocalDate date) {
+            @P("Date to check in ISO-8601 format, e.g. 2026-05-10") String date) {
 
-        String timeMin = date.atTime(OffsetTime.of(0, 0, 0, 0, ZoneOffset.UTC)).format(RFC3339);
-        String timeMax = date.atTime(OffsetTime.of(23, 59, 59, 0, ZoneOffset.UTC)).format(RFC3339);
+        LocalDate parsedDate = LocalDate.parse(date);
+
+        String timeMin = parsedDate.atTime(OffsetTime.of(0, 0, 0, 0, ZoneOffset.UTC)).format(RFC3339);
+        String timeMax = parsedDate.atTime(OffsetTime.of(23, 59, 59, 0, ZoneOffset.UTC)).format(RFC3339);
 
         FreeBusyRequest request = new FreeBusyRequest(
                 timeMin, timeMax,
@@ -121,10 +126,10 @@ public class CalendarTool {
             FreeBusyResponse.FreeBusyCalendar calendar = response.calendars().get(config.calendarId());
 
             if (calendar == null || calendar.busy().isEmpty()) {
-                return "No busy slots on " + date + ". Full day available.";
+                return "No busy slots on " + parsedDate + ". Full day available.";
             }
 
-            StringBuilder sb = new StringBuilder("Busy slots on " + date + ":\n");
+            StringBuilder sb = new StringBuilder("Busy slots on " + parsedDate + ":\n");
             for (FreeBusyResponse.TimeRange range : calendar.busy()) {
                 sb.append("- ").append(timezoneNormalizer.displayLocal(range.start()))
                         .append(" to ").append(timezoneNormalizer.displayLocal(range.end())).append("\n");
@@ -138,10 +143,12 @@ public class CalendarTool {
 
     @Tool("Find available focus time slots of at least 2 hours on a given date. Uses freeBusy data and working hours to suggest gaps.")
     public String suggestFocusTime(
-            @P("Date to check, e.g. 2026-05-10") LocalDate date) {
+            @P("Date to check in ISO-8601 format, e.g. 2026-05-10") String date) {
 
-        OffsetDateTime dayStart = date.atTime(config.workDayStart(), 0, 0).atOffset(ZoneOffset.UTC);
-        OffsetDateTime dayEnd = date.atTime(config.workDayEnd(), 0, 0).atOffset(ZoneOffset.UTC);
+        LocalDate parsedDate = LocalDate.parse(date);
+
+        OffsetDateTime dayStart = parsedDate.atTime(config.workDayStart(), 0, 0).atOffset(ZoneOffset.UTC);
+        OffsetDateTime dayEnd = parsedDate.atTime(config.workDayEnd(), 0, 0).atOffset(ZoneOffset.UTC);
         Duration minSlot = Duration.ofHours(config.focusTimeHours());
 
         FreeBusyRequest request = new FreeBusyRequest(
@@ -167,7 +174,7 @@ public class CalendarTool {
             boundaries.sort(OffsetDateTime::compareTo);
 
             List<String> focusSlots = new ArrayList<>();
-            for (int i = 1; i < boundaries.size(); i += 2) {
+            for (int i = 0; i < boundaries.size() - 1; i += 2) {
                 OffsetDateTime slotStart = boundaries.get(i);
                 OffsetDateTime slotEnd = boundaries.get(i + 1);
                 Duration gap = Duration.between(slotStart, slotEnd);
@@ -181,11 +188,11 @@ public class CalendarTool {
             }
 
             if (focusSlots.isEmpty()) {
-                return "No focus time slots of " + config.focusTimeHours() + "h+ available on " + date
-                        + " within working hours (" + config.workDayStart() + ":00-" + config.workDayEnd() + ":00).";
-            }
+            return "No focus time slots of " + config.focusTimeHours() + "h+ available on " + parsedDate
+                    + " within working hours (" + config.workDayStart() + ":00-" + config.workDayEnd() + ":00).";
+        }
 
-            return "Focus time slots on " + date + ":\n" + String.join("\n", focusSlots);
+        return "Focus time slots on " + parsedDate + ":\n" + String.join("\n", focusSlots);
         } catch (Exception e) {
             Log.errorf(e, "Failed to suggest focus time");
             return "Error suggesting focus time: " + e.getMessage();
