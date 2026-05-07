@@ -17,7 +17,7 @@ import io.quarkus.runtime.configuration.ConfigurationException;
 class GoogleStorageProcessor {
 
     private static final String FEATURE = "google-storage";
-    private static final String REST_CLIENT_CAPABILITY = "io.quarkus.rest-client.jackson";
+    private static final String REST_CLIENT_CAPABILITY = "io.quarkus.rest.client.reactive.json.jackson";
 
     @BuildStep
     FeatureBuildItem feature() {

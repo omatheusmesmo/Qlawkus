@@ -7,6 +7,7 @@ import dev.langchain4j.service.tool.DefaultToolExecutor;
 import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.ToolProviderRequest;
 import dev.langchain4j.service.tool.ToolProviderResult;
+import io.quarkus.arc.ClientProxy;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
@@ -31,7 +32,8 @@ public class ClawToolProvider implements ToolProvider {
         }
 
         ToolProviderResult.Builder builder = ToolProviderResult.builder();
-        for (Object tool : extensionTools) {
+        for (Object proxy : extensionTools) {
+            Object tool = ClientProxy.unwrap(proxy);
             List<ToolSpecification> specs = ToolSpecifications.toolSpecificationsFrom(tool);
             for (ToolSpecification spec : specs) {
                 Method toolMethod = findToolMethod(tool, spec);
