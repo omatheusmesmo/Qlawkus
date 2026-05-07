@@ -19,5 +19,6 @@
         <module>qlawkus-tools-google-drive</module>
         <module>qlawkus-tools-google-sheets</module>
         <module>qlawkus-tools-google-storage</module>
+        <module>qlawkus-tools-brag</module>
     </modules>
 </project>
