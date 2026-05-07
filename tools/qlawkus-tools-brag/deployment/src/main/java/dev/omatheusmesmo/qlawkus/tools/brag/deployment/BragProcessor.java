@@ -3,6 +3,8 @@ package dev.omatheusmesmo.qlawkus.tools.brag.deployment;
 import dev.omatheusmesmo.qlawkus.tools.brag.AchievementProcessor;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragConfig;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragEntry;
+import dev.omatheusmesmo.qlawkus.tools.brag.BragTool;
+import dev.omatheusmesmo.qlawkus.tools.brag.ImpactTranslator;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.Capabilities;
 import io.quarkus.deployment.annotations.BuildStep;
@@ -25,12 +27,14 @@ class BragProcessor {
         if (capabilities.isMissing(HIBERNATE_PANACHE_CAPABILITY)) {
             throw new ConfigurationException(
                     "Brag tool requires quarkus-hibernate-orm-panache. "
-                            + "Add the extension or disable the brag tool with qlawkus.brag.enabled=false");
+                    + "Add the extension or disable the brag tool with qlawkus.brag.enabled=false");
         }
         return AdditionalBeanBuildItem.builder()
-                .addBeanClass(BragEntry.class)
-                .addBeanClass(BragConfig.class)
                 .addBeanClass(AchievementProcessor.class)
+                .addBeanClass(BragConfig.class)
+                .addBeanClass(BragEntry.class)
+                .addBeanClass(BragTool.class)
+                .addBeanClass(ImpactTranslator.class)
                 .setRemovable()
                 .build();
     }
@@ -39,8 +43,10 @@ class BragProcessor {
     ReflectiveClassBuildItem registerBragReflection() {
         return ReflectiveClassBuildItem.builder(
                 AchievementProcessor.class.getName(),
+                BragConfig.class.getName(),
                 BragEntry.class.getName(),
-                BragConfig.class.getName()
+                BragTool.class.getName(),
+                ImpactTranslator.class.getName()
         ).methods().fields().build();
     }
 }
