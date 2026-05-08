@@ -27,4 +27,11 @@ public interface BragConfig {
      */
     @WithDefault("7")
     int cleanupAgeDays();
+
+    /**
+     * Cron expression for the cleanup job schedule.
+     * Defaults to daily at 03:00 UTC.
+     */
+    @WithDefault("0 3 * * *")
+    String cleanupCron();
 }
