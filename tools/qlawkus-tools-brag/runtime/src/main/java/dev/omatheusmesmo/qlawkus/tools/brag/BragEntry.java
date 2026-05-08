@@ -50,4 +50,9 @@ public class BragEntry extends PanacheEntityBase {
     public static List<BragEntry> findActiveByDateRange(LocalDate from, LocalDate to) {
         return find("date >= ?1 and date <= ?2 and deleted = false order by date desc", from, to).list();
     }
+
+    @SuppressWarnings("unchecked")
+    public static List<BragEntry> listAllActiveByDateAsc() {
+        return find("deleted = false order by date asc, createdAt asc").list();
+    }
 }
