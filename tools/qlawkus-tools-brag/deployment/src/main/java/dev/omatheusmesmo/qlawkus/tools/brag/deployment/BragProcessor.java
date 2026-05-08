@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.tools.brag.deployment;
 import dev.omatheusmesmo.qlawkus.tools.brag.AchievementProcessor;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragConfig;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragEntry;
+import dev.omatheusmesmo.qlawkus.tools.brag.BragExportResource;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragTool;
 import dev.omatheusmesmo.qlawkus.tools.brag.ImpactTranslator;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
@@ -16,6 +17,7 @@ class BragProcessor {
 
     private static final String FEATURE = "brag";
     private static final String HIBERNATE_PANACHE_CAPABILITY = "io.quarkus.hibernate-orm-panache";
+    private static final String REST_CAPABILITY = "io.quarkus.rest";
 
     @BuildStep
     FeatureBuildItem feature() {
@@ -40,11 +42,23 @@ class BragProcessor {
     }
 
     @BuildStep(onlyIf = IsBragEnabled.class)
+    AdditionalBeanBuildItem registerBragExportResource(Capabilities capabilities) {
+        if (capabilities.isMissing(REST_CAPABILITY)) {
+            return null;
+        }
+        return AdditionalBeanBuildItem.builder()
+                .addBeanClass(BragExportResource.class)
+                .setRemovable()
+                .build();
+    }
+
+    @BuildStep(onlyIf = IsBragEnabled.class)
     ReflectiveClassBuildItem registerBragReflection() {
         return ReflectiveClassBuildItem.builder(
                 AchievementProcessor.class.getName(),
                 BragConfig.class.getName(),
                 BragEntry.class.getName(),
+                BragExportResource.class.getName(),
                 BragTool.class.getName(),
                 ImpactTranslator.class.getName()
         ).methods().fields().build();
