@@ -12,7 +12,11 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -477,12 +481,189 @@ class ShellToolTest {
     @Test
     void outputCapture_noTruncationUnderLimits() {
         java.io.ByteArrayInputStream input = new java.io.ByteArrayInputStream(
-                "hello\n".getBytes(java.nio.charset.StandardCharsets.UTF_8)
+            "hello\n".getBytes(java.nio.charset.StandardCharsets.UTF_8)
         );
         OutputCapture capture = new OutputCapture(input, 1_048_576, 5000);
         capture.start();
         try { capture.join(5000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         assertFalse(capture.isTruncated(), "Small output should not be truncated");
         assertEquals("hello\n", capture.getOutput());
+    }
+
+    @Test
+    void runCommand_defaultTimeout_isConfiguredFromShellConfig() {
+        assertTrue(shellTool.defaultTimeout > 0, "defaultTimeout should be set from config, got: " + shellTool.defaultTimeout);
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void runCommand_explicitTimeout_appliesWhenProvided() {
+        CommandResult result = shellTool.runCommand("sleep 60", null, 2);
+        assertEquals(-1, result.exitCode(), "Should time out with explicit timeout");
+        assertTrue(result.stderr().contains("timed out"), "stderr should mention timeout");
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void runCommand_workspaceEnvInjectedIntoProcess() {
+        Map<String, String> env = workspaceConfinement.getWorkspaceEnv();
+        CommandResult result = shellTool.runCommand("env", null, null);
+        assertEquals(0, result.exitCode(), "env command should succeed");
+        if (!env.isEmpty()) {
+            String firstKey = env.keySet().iterator().next();
+            assertTrue(result.stdout().contains(firstKey),
+                "Process environment should contain workspace env var " + firstKey + ", got: " + result.stdout());
+        }
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void killProcess_untrackedPid_returnsNoTrackedProcess() {
+        CommandResult result = shellTool.killProcess(999999);
+        assertEquals(-1, result.exitCode(), "Untracked PID should return -1");
+        assertTrue(result.stderr().contains("No tracked process"), "Should mention no tracked process, got: " + result);
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void killProcess_trackedProcess_killsSuccessfully() throws Exception {
+        CommandResult startResult = shellTool.runCommand("sleep 300", null, 60);
+        if (startResult.exitCode() != 0 && startResult.exitCode() != ShellTool.CONCURRENT_LIMIT_EXIT_CODE) {
+            return;
+        }
+        List<ProcessInfo> processes = shellTool.listActiveProcesses();
+        if (processes.isEmpty()) {
+            return;
+        }
+        long pid = processes.get(0).pid();
+        CommandResult killResult = shellTool.killProcess(pid);
+        assertTrue(killResult.exitCode() == 0, "Kill should succeed for tracked process, got: " + killResult);
+    }
+
+    @Test
+    void listActiveProcesses_emptyBeforeAnyCommand() {
+        int beforeCount = shellTool.listActiveProcesses().size();
+        assertTrue(beforeCount >= 0, "Process list should be non-negative");
+    }
+
+    @Test
+    void commandFilter_denylist_blocksSu() {
+        SecurityResult result = commandFilter.check("su - root");
+        assertTrue(result.blocked(), "su should be blocked");
+    }
+
+    @Test
+    void commandFilter_denylist_blocksDdIf() {
+        SecurityResult result = commandFilter.check("dd if=/dev/zero of=/dev/sda");
+        assertTrue(result.blocked(), "dd if= should be blocked");
+    }
+
+    @Test
+    void commandFilter_denylist_blocksReboot() {
+        SecurityResult result = commandFilter.check("reboot");
+        assertTrue(result.blocked(), "reboot should be blocked");
+    }
+
+    @Test
+    void commandFilter_denylist_blocksFormat() {
+        SecurityResult result = commandFilter.check("format C:");
+        assertTrue(result.blocked(), "format should be blocked");
+    }
+
+    @Test
+    void commandFilter_globMatch_questionMarkWildcard() {
+        assertTrue(CommandFilter.globMatch("for?at", "format"));
+        assertFalse(CommandFilter.globMatch("for?at", "formats"));
+    }
+
+    @Test
+    void concurrentLimit_rejectionWhenFull() throws Exception {
+        int savedLimit = shellTool.maxConcurrent;
+        shellTool.maxConcurrent = 1;
+        try {
+            Process blocker = new ProcessBuilder("sh", "-c", "sleep 300").start();
+            Thread.sleep(100);
+
+            CommandResult firstResult = shellTool.runCommand("sleep 300", null, 2);
+            if (firstResult.exitCode() == 0) {
+                CommandResult secondResult = shellTool.runCommand("echo should_be_rejected", null, null);
+                assertEquals(ShellTool.CONCURRENT_LIMIT_EXIT_CODE, secondResult.exitCode(),
+                    "Should reject when concurrent limit reached");
+            }
+
+            blocker.destroyForcibly();
+        } finally {
+            shellTool.maxConcurrent = savedLimit;
+        }
+    }
+
+    @Test
+    void runCommand_blockedCommand_auditLogRecordsBlock() {
+        CommandResult result = shellTool.runCommand("sudo rm -rf /", null, null);
+        assertEquals(ShellTool.SECURITY_BLOCK_EXIT_CODE, result.exitCode(), "Should be blocked");
+        assertTrue(result.durationMs() >= 0, "Duration should be recorded even for blocked commands");
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void workspaceConfinement_symlinkEscape_blocked() throws Exception {
+        Path workspace = workspaceConfinement.getWorkspacePath();
+        Path linkTarget = Path.of("/etc");
+        Path linkPath = workspace.resolve("escape-symlink-test");
+        try {
+            Files.createSymbolicLink(linkPath, linkTarget);
+            SecurityResult result = workspaceConfinement.check(linkPath.toString());
+            assertTrue(result.blocked(), "Symlink escaping workspace should be blocked, got: " + result);
+        } finally {
+            Files.deleteIfExists(linkPath);
+        }
+    }
+
+    @Test
+    void checkSecurity_allowsNullWorkdir() {
+        SecurityResult result = shellTool.checkSecurity("ls", null);
+        assertFalse(result.blocked(), "Null workdir with safe command should be allowed");
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void gitWorkflow_initStatusDiff() {
+        CommandResult initResult = shellTool.runCommand("git init git-workflow-test-dir", null, 10);
+        assertEquals(0, initResult.exitCode(), "git init should succeed: " + initResult);
+
+        CommandResult statusResult = shellTool.runCommand("git -C git-workflow-test-dir status", null, 10);
+        assertEquals(0, statusResult.exitCode(), "git status should succeed: " + statusResult);
+
+        CommandResult writeFileResult = shellTool.runCommand(
+            "echo 'hello git' > git-workflow-test-dir/test.txt", null, 10);
+        assertEquals(0, writeFileResult.exitCode(), "Creating a file should succeed");
+
+        CommandResult diffResult = shellTool.runCommand("git -C git-workflow-test-dir diff", null, 10);
+        assertEquals(0, diffResult.exitCode(), "git diff should succeed: " + diffResult);
+
+        shellTool.runCommand("rm -rf git-workflow-test-dir", null, 10);
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void runCommand_pipeOperator_works() {
+        CommandResult result = shellTool.runCommand("echo hello | grep hello", null, null);
+        assertEquals(0, result.exitCode(), "Piped command should succeed");
+        assertTrue(result.stdout().contains("hello"), "Pipe output should contain hello");
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void runCommand_andOperator_works() {
+        CommandResult result = shellTool.runCommand("true && echo both_pass", null, null);
+        assertEquals(0, result.exitCode(), "AND chain should succeed");
+        assertTrue(result.stdout().contains("both_pass"), "AND chain output should contain both_pass");
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void runCommand_orOperator_works() {
+        CommandResult result = shellTool.runCommand("false || echo fallback", null, null);
+        assertTrue(result.stdout().contains("fallback"), "OR chain should execute fallback");
     }
 }

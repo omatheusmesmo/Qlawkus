@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.tool.shell;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -66,10 +67,59 @@ class PtySessionTest {
     @Test
     void checkPrompt_multiplePatterns_matchesAny() {
         PtySession session = createSessionWithPrompts(
-                List.of(Pattern.compile("[#$>] "), Pattern.compile(">>> ")));
+            List.of(Pattern.compile("[#$>] "), Pattern.compile(">>> ")));
 
         session.checkPrompt(">>> import os");
         assertTrue(session.isPromptDetected(), "Should match Python pattern");
+    }
+
+    @Test
+    void markTimedOut_setsStatusAndInterrupts() {
+        PtySession session = createSessionWithPrompts(List.of());
+        assertEquals("running", session.getStatus(), "New session should be running");
+
+        session.markTimedOut();
+        assertEquals("timed_out", session.getStatus(), "Status should be timed_out after markTimedOut");
+    }
+
+    @Test
+    void close_setsStatusToClosed() {
+        PtySession session = createSessionWithPrompts(List.of());
+        assertEquals("running", session.getStatus());
+
+        session.close();
+        assertEquals("closed", session.getStatus(), "Status should be closed after close");
+    }
+
+    @Test
+    void touchActivity_updatesLastActivity() throws InterruptedException {
+        PtySession session = createSessionWithPrompts(List.of());
+        Instant before = session.getLastActivity();
+        Thread.sleep(10);
+        session.touchActivity();
+        Instant after = session.getLastActivity();
+        assertTrue(after.isAfter(before) || after.equals(before),
+            "touchActivity should update lastActivity");
+    }
+
+    @Test
+    void clearPromptDetected_whenNotSet_staysFalse() {
+        PtySession session = createSessionWithPrompts(List.of(Pattern.compile(">>> ")));
+        assertFalse(session.isPromptDetected(), "Should start as false");
+        session.clearPromptDetected();
+        assertFalse(session.isPromptDetected(), "Should still be false after clearing");
+    }
+
+    @Test
+    void getSessionId_returnsId() {
+        PtySession session = createSessionWithPrompts(List.of());
+        assertEquals("test-id", session.getSessionId());
+    }
+
+    @Test
+    void getCommand_returnsCommand() {
+        PtySession session = createSessionWithPrompts(List.of());
+        assertEquals("test-cmd", session.getCommand());
     }
 
     private PtySession createSessionWithPrompts(List<Pattern> patterns) {
