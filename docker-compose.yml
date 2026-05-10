@@ -11,9 +11,14 @@ services:
       - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-qlawkus}
       - QUARKUS_DATASOURCE_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
+      - OLLAMA_FALLBACK_BASE_URL=http://ollama:11434
+      - OLLAMA_FALLBACK_MODEL=${OLLAMA_FALLBACK_MODEL:-gemma4:e2b}
+      - OLLAMA_FALLBACK_EMBEDDING_MODEL=${OLLAMA_FALLBACK_EMBEDDING_MODEL:-mxbai-embed-large}
     depends_on:
       postgres:
         condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
     ports:
       - "8080:8080"
 
@@ -31,9 +36,14 @@ services:
       - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-qlawkus}
       - QUARKUS_DATASOURCE_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
+      - OLLAMA_FALLBACK_BASE_URL=http://ollama:11434
+      - OLLAMA_FALLBACK_MODEL=${OLLAMA_FALLBACK_MODEL:-gemma4:e2b}
+      - OLLAMA_FALLBACK_EMBEDDING_MODEL=${OLLAMA_FALLBACK_EMBEDDING_MODEL:-mxbai-embed-large}
     depends_on:
       postgres:
         condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
     ports:
       - "8080:8080"
 
@@ -53,5 +63,28 @@ services:
       timeout: 5s
       retries: 12
 
-volumes:
-  pgdata:
+  ollama:
+    image: ollama/ollama
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  ollama-init:
+    image: ollama/ollama
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["sh", "-c", "ollama pull ${OLLAMA_FALLBACK_MODEL:-gemma4:e2b} && ollama pull ${OLLAMA_FALLBACK_EMBEDDING_MODEL:-mxbai-embed-large}"]
+    environment:
+      OLLAMA_HOST: "http://ollama:11434"
+
+  volumes:
+    pgdata:
+    ollama-data:
