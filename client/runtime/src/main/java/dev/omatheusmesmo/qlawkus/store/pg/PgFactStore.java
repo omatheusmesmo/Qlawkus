@@ -65,10 +65,10 @@ public class PgFactStore implements FactStore {
         .build()
     );
 
-    return results.matches().stream()
-      .map(EmbeddingMatch::embedded)
-      .map(TextSegment::text)
-      .toList();
+        return results.matches().stream()
+                .map(EmbeddingMatch::embedded)
+                .map(TextSegment::text)
+                .toList();
   }
 
   @Override

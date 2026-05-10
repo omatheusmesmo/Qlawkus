@@ -71,10 +71,12 @@ docker compose --profile native up --build
 ### Profiles
 
 | Profile | LLM | Database | When |
+
 |:--------|:----|:---------|:-----|
-| **default** | Ollama (Dev Services) | PostgreSQL (Dev Services) | `quarkus dev` |
+
 | **dev** | Ollama (Dev Services) | PostgreSQL (Dev Services) | `quarkus dev` |
-| **prod** | NVIDIA NIM (OpenAI-compatible) | External PostgreSQL | Docker / VM deployment |
+
+| **prod** | NVIDIA NIM (primary) + Ollama (fallback) | External PostgreSQL | Docker / VM deployment |
 
 ### Environment Variables
 
@@ -83,15 +85,30 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 | Variable | Default | Purpose |
 |:---------|:--------|:--------|
 | `NVIDIA_AI_API_KEY` | — | Required for prod. Get yours at [build.nvidia.com](https://build.nvidia.com/) |
-| `NVIDIA_CHAT_MODEL` | `z-ai/glm-5.1` | Chat model on NVIDIA NIM |
+| `NVIDIA_CHAT_MODEL` | — | Chat model ID on NVIDIA NIM (e.g. `z-ai/glm-5.1`) |
 | `NVIDIA_EMBEDDING_MODEL` | `nvidia/nv-embedqa-e5-v5` | Embedding model (1024 dims) |
 | `EMBEDDING_DIMENSION` | `1024` | Must match embedding model output |
-| `OLLAMA_MODEL` | `gemma4:e2b` | Ollama chat model (local only) |
-| `OLLAMA_EMBEDDING_MODEL` | `mxbai-embed-large` | Ollama embedding model (local only) |
+| `OLLAMA_MODEL` | `gemma4:e2b` | Ollama fallback chat model |
+| `OLLAMA_EMBEDDING_MODEL` | `mxbai-embed-large` | Ollama fallback embedding model |
 | `API_USER_PASSWORD` | `qlawkus` | Basic auth password for `qlawkus` user |
 | `POSTGRES_DB` | `qlawkus` | Database name (Docker Compose) |
 | `POSTGRES_USER` | `quarkus` | Database user (Docker Compose) |
 | `POSTGRES_PASSWORD` | `quarkus` | Database password (Docker Compose) |
+
+### Model Fallback & Circuit Breaker
+
+The production setup uses NVIDIA NIM as the primary LLM with a local Ollama sidecar as automatic fallback:
+
+- **Retry with backoff**: on transient errors (rate limits, timeouts), retries up to 3 times with configurable delays (default: 30s, 60s, 120s)
+- **Circuit breaker**: after all retries fail, the circuit opens and all subsequent calls go directly to Ollama for a configurable period (default: 300s), then a half-open probe tests NVIDIA again
+- **Applies to**: ChatModel, StreamingChatModel, and EmbeddingModel
+- **Named models**: uses `@ModelName("nvidia")` for the primary and `@ModelName("ollama-fallback")` for the fallback, following quarkus-langchain4j named model pattern
+
+| Config | Default | Purpose |
+|:------|:--------|:--------|
+| `qlawkus.model.fallback-enabled` | `true` | Enable fallback system |
+| `qlawkus.model.retry-delays` | `30,60,120` | Retry delays in seconds |
+| `qlawkus.model.circuit-breaker-timeout` | `300` | Seconds before half-open probe |
 
 ---
 
@@ -296,7 +313,7 @@ curl -X POST http://localhost:8080/api/chat \
 | **M2** | Cognition (Memory Engine) | Done |
 | **M2.5** | Modular Architecture & Docker Distribution | Done |
 | **M3** | Google Productivity Integration (Calendar, Mail, Drive, Sheets, Storage) | Done |
-| **M4** | Engineering Integration (GitHub & Git) | Pending |
+| **M4** | Terminal Capabilities (ShellTool, InteractiveShellTool, FileTool) | Done |
 | **M5** | Career Engine (Brag Document) | Pending |
 | **M6** | Sandbox & Code Review | Pending |
 | **M7** | Self-Improvement Engine (Groovy) | Pending |

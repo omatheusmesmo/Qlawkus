@@ -108,23 +108,23 @@ public class PtySession {
     }
 
     public boolean isAlive() {
-        return process.isAlive();
+        return process != null && process.isAlive();
     }
 
     public void close() {
         status = "closed";
-        process.destroyForcibly();
-        readerThread.interrupt();
+        if (process != null) process.destroyForcibly();
+        if (readerThread != null) readerThread.interrupt();
     }
 
     void markTimedOut() {
         status = "timed_out";
-        process.destroyForcibly();
-        readerThread.interrupt();
+        if (process != null) process.destroyForcibly();
+        if (readerThread != null) readerThread.interrupt();
     }
 
     void updateStatus() {
-        if ("running".equals(status) && !process.isAlive()) {
+        if ("running".equals(status) && process != null && !process.isAlive()) {
             status = "exited";
         }
     }
