@@ -35,7 +35,7 @@ public class DriveTool {
     GoogleDriveDownloadClient downloadClient;
 
     @Tool("List files in Google Drive. Optionally filter by query (e.g. \"name contains 'report'\", \"mimeType='application/pdf'\").")
-    public String listFiles(
+    public String listDriveFiles(
             @P(value = "Drive query filter, e.g. \"name contains 'report'\"", required = false) String query,
             @P(value = "Maximum number of files to return", required = false) Integer maxResults) {
 
