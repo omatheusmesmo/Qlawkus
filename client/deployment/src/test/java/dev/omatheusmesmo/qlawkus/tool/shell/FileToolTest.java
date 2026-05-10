@@ -180,6 +180,105 @@ class FileToolTest {
         assertFalse(FileTool.isBinary(textFile), "Plain text file should not be detected as binary");
     }
 
+    @Test
+    void readFile_binaryFile_returnsError() throws IOException {
+        String binaryPath = "filetool-binary-test.bin";
+        Path resolved = workspaceConfinement.getWorkspacePath().resolve(binaryPath);
+        try {
+            Files.write(resolved, new byte[]{0x00, 0x01, 0x02, (byte) 0xFF, (byte) 0xFE});
+            FileResult result = fileTool.readFile(binaryPath);
+            assertFalse(result.success(), "Binary file read should fail");
+            assertTrue(result.error().contains("Binary") || result.error().contains("binary"),
+                "Error should mention binary, got: " + result.error());
+        } finally {
+            cleanup(binaryPath);
+        }
+    }
+
+    @Test
+    void readFile_largeFile_isTruncated() {
+        long savedMaxRead = fileTool.maxReadSize;
+        fileTool.maxReadSize = 100;
+        try {
+            String largeContent = "A".repeat(200);
+            String largePath = "filetool-large-read-test.txt";
+            fileTool.writeFile(largePath, largeContent);
+
+            FileResult result = fileTool.readFile(largePath);
+            assertTrue(result.success(), "Large file read should succeed (with truncation)");
+            assertTrue(result.content().contains("TRUNCATED"), "Large file should be truncated, got: " + result.content());
+
+            cleanup(largePath);
+        } finally {
+            fileTool.maxReadSize = savedMaxRead;
+        }
+    }
+
+    @Test
+    void writeFile_overwriteExistingFile_succeeds() {
+        String path = "filetool-overwrite-test.txt";
+        try {
+            fileTool.writeFile(path, "original content");
+            FileResult overwriteResult = fileTool.writeFile(path, "updated content");
+            assertTrue(overwriteResult.success(), "Overwrite should succeed: " + overwriteResult.error());
+
+            FileResult readResult = fileTool.readFile(path);
+            assertTrue(readResult.content().contains("updated content"),
+                "File should have updated content, got: " + readResult.content());
+        } finally {
+            cleanup(path);
+        }
+    }
+
+    @Test
+    void writeFile_existingLargeFile_refusesOverwrite() {
+        long savedMaxWrite = fileTool.maxWriteSize;
+        fileTool.maxWriteSize = 10;
+        try {
+            String path = "filetool-large-overwrite-test.txt";
+            fileTool.writeFile(path, "A".repeat(50));
+
+            FileResult result = fileTool.writeFile(path, "tiny");
+            assertFalse(result.success(), "Should refuse to overwrite file larger than maxWriteSize");
+            assertTrue(result.error().contains("write limit"), "Error should mention write limit, got: " + result.error());
+
+            cleanup(path);
+        } finally {
+            fileTool.maxWriteSize = savedMaxWrite;
+        }
+    }
+
+    @Test
+    void readFile_emptyFile_returnsEmptyContent() {
+        String path = "filetool-empty-test.txt";
+        try {
+            fileTool.writeFile(path, "");
+            FileResult result = fileTool.readFile(path);
+            assertTrue(result.success(), "Read of empty file should succeed: " + result.error());
+            assertEquals("", result.content(), "Empty file should return empty content");
+        } finally {
+            cleanup(path);
+        }
+    }
+
+    @Test
+    void listFiles_emptyDirectory_returnsEmptyList() {
+        String path = "filetool-empty-dir-test";
+        try {
+            fileTool.makeDirectory(path);
+            List<FileEntry> entries = fileTool.listFiles(path);
+            assertTrue(entries.isEmpty(), "Empty directory should return empty list");
+        } finally {
+            cleanup(path);
+        }
+    }
+
+    @Test
+    void fileConfig_encoding_defaultsToUtf8() {
+        assertNotNull(fileTool.encoding, "Encoding should not be null");
+        assertEquals("UTF-8", fileTool.encoding, "Default encoding should be UTF-8");
+    }
+
     private void cleanup(String path) {
         Path resolved = workspaceConfinement.getWorkspacePath().resolve(path);
         try {
