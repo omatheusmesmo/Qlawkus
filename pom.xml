@@ -7,12 +7,13 @@
   <version>0.4.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <modules>
-    <module>client</module>
-    <module>tools</module>
-    <module>app</module>
-    <module>integration-tests</module>
-  </modules>
+    <modules>
+        <module>client</module>
+        <module>tools</module>
+        <module>app</module>
+        <module>testing-internal</module>
+        <module>integration-tests</module>
+    </modules>
 
   <properties>
     <compiler-plugin.version>3.15.0</compiler-plugin.version>
@@ -21,7 +22,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>3.34.5</quarkus.platform.version>
+    <quarkus.platform.version>3.35.2</quarkus.platform.version>
     <quarkus-wiremock.version>1.6.1</quarkus-wiremock.version>
     <skipITs>true</skipITs>
     <surefire-plugin.version>3.5.4</surefire-plugin.version>
