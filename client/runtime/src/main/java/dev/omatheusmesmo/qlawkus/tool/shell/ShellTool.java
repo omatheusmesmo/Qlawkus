@@ -31,9 +31,9 @@ public class ShellTool {
 
     static final Set<String> WINDOWS_EXTENSIONS = Set.of(".exe", ".bat", ".cmd", ".ps1");
 
-    static final int SECURITY_BLOCK_EXIT_CODE = -2;
+    public static final int SECURITY_BLOCK_EXIT_CODE = -2;
 
-    static final int CONCURRENT_LIMIT_EXIT_CODE = -3;
+    public static final int CONCURRENT_LIMIT_EXIT_CODE = -3;
 
     @Inject
     ShellConfig shellConfig;
@@ -66,7 +66,7 @@ public class ShellTool {
      * Default command timeout in seconds. Used when runCommand is called without explicit timeout.
      * Default: 30.
      */
-    int defaultTimeout;
+    public int defaultTimeout;
 
     @Inject
     CommandFilter commandFilter;

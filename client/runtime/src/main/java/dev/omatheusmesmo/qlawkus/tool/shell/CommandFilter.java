@@ -103,7 +103,7 @@ public class CommandFilter {
      * Without wildcards, matches exact text or text starting with the pattern followed by a space.
      */
     public static boolean globMatch(String pattern, String text) {
-        if (!pattern.contains("*")) {
+        if (!pattern.contains("*") && !pattern.contains("?")) {
             return text.equals(pattern) || text.startsWith(pattern + " ");
         }
 

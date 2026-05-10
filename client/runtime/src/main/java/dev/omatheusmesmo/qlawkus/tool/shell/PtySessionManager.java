@@ -36,7 +36,7 @@ public class PtySessionManager {
     private final boolean nativeImageMode;
 
     @Inject
-    ShellConfig shellConfig;
+    public ShellConfig shellConfig;
 
     @Inject
     WorkspaceConfinement workspaceConfinement;
@@ -44,12 +44,9 @@ public class PtySessionManager {
     /**
      * Maximum number of concurrent PTY sessions. Default: 10.
      */
-    int maxSessions;
+    public int maxSessions;
 
-    /**
-     * Idle timeout in minutes before session cleanup. Default: 30.
-     */
-    int idleTimeoutMinutes;
+    public int idleTimeoutMinutes;
 
     /**
      * Maximum lines retained in session output buffer. Default: 50000.
@@ -103,6 +100,11 @@ public class PtySessionManager {
             this.defaultCols = pty.defaultCols();
             this.defaultRows = pty.defaultRows();
         }
+        if (this.maxSessions <= 0) this.maxSessions = 10;
+        if (this.idleTimeoutMinutes <= 0) this.idleTimeoutMinutes = 30;
+        if (this.bufferLines <= 0) this.bufferLines = 50000;
+        if (this.defaultCols <= 0) this.defaultCols = 120;
+        if (this.defaultRows <= 0) this.defaultRows = 40;
         detectedDefaultShell = detectDefaultShell();
         if (!"auto".equals(defaultShellConfig)) {
             detectedDefaultShell = defaultShellConfig;
@@ -338,7 +340,7 @@ public class PtySessionManager {
         return shellCommand;
     }
 
-    List<Pattern> compilePromptPatterns(List<String> prompts) {
+    public List<Pattern> compilePromptPatterns(List<String> prompts) {
         List<String> effective = (prompts != null && !prompts.isEmpty()) ? prompts : defaultPromptPatterns;
         if (effective == null || effective.isEmpty()) {
             return List.of();

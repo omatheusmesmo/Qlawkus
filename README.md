@@ -4,7 +4,7 @@
 
 [![Status: Work in Progress](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow?style=for-the-badge)](https://github.com/omatheusmesmo/Qlawkus/issues)
 
-A single-user, production-ready autonomous agent with dynamic cognition, triple memory, and self-improvement capabilities.
+A single-user, production-ready autonomous agent with dynamic cognition, triple memory, Google Workspace integration, and self-improvement capabilities.
 
 ---
 
@@ -71,10 +71,12 @@ docker compose --profile native up --build
 ### Profiles
 
 | Profile | LLM | Database | When |
+
 |:--------|:----|:---------|:-----|
-| **default** | Ollama (Dev Services) | PostgreSQL (Dev Services) | `quarkus dev` |
+
 | **dev** | Ollama (Dev Services) | PostgreSQL (Dev Services) | `quarkus dev` |
-| **prod** | NVIDIA NIM (OpenAI-compatible) | External PostgreSQL | Docker / VM deployment |
+
+| **prod** | NVIDIA NIM (primary) + Ollama (fallback) | External PostgreSQL | Docker / VM deployment |
 
 ### Environment Variables
 
@@ -83,15 +85,30 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 | Variable | Default | Purpose |
 |:---------|:--------|:--------|
 | `NVIDIA_AI_API_KEY` | — | Required for prod. Get yours at [build.nvidia.com](https://build.nvidia.com/) |
-| `NVIDIA_CHAT_MODEL` | `z-ai/glm-5.1` | Chat model on NVIDIA NIM |
+| `NVIDIA_CHAT_MODEL` | — | Chat model ID on NVIDIA NIM (e.g. `z-ai/glm-5.1`) |
 | `NVIDIA_EMBEDDING_MODEL` | `nvidia/nv-embedqa-e5-v5` | Embedding model (1024 dims) |
 | `EMBEDDING_DIMENSION` | `1024` | Must match embedding model output |
-| `OLLAMA_MODEL` | `gemma4:e2b` | Ollama chat model (local only) |
-| `OLLAMA_EMBEDDING_MODEL` | `mxbai-embed-large` | Ollama embedding model (local only) |
+| `OLLAMA_MODEL` | `gemma4:e2b` | Ollama fallback chat model |
+| `OLLAMA_EMBEDDING_MODEL` | `mxbai-embed-large` | Ollama fallback embedding model |
 | `API_USER_PASSWORD` | `qlawkus` | Basic auth password for `qlawkus` user |
 | `POSTGRES_DB` | `qlawkus` | Database name (Docker Compose) |
 | `POSTGRES_USER` | `quarkus` | Database user (Docker Compose) |
 | `POSTGRES_PASSWORD` | `quarkus` | Database password (Docker Compose) |
+
+### Model Fallback & Circuit Breaker
+
+The production setup uses NVIDIA NIM as the primary LLM with a local Ollama sidecar as automatic fallback:
+
+- **Retry with backoff**: on transient errors (rate limits, timeouts), retries up to 3 times with configurable delays (default: 30s, 60s, 120s)
+- **Circuit breaker**: after all retries fail, the circuit opens and all subsequent calls go directly to Ollama for a configurable period (default: 300s), then a half-open probe tests NVIDIA again
+- **Applies to**: ChatModel, StreamingChatModel, and EmbeddingModel
+- **Named models**: uses `@ModelName("nvidia")` for the primary and `@ModelName("ollama-fallback")` for the fallback, following quarkus-langchain4j named model pattern
+
+| Config | Default | Purpose |
+|:------|:--------|:--------|
+| `qlawkus.model.fallback-enabled` | `true` | Enable fallback system |
+| `qlawkus.model.retry-delays` | `30,60,120` | Retry delays in seconds |
+| `qlawkus.model.circuit-breaker-timeout` | `300` | Seconds before half-open probe |
 
 ---
 
@@ -104,6 +121,7 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 - **Safe Self-Improvement**: The agent writes, validates (AST), and compiles Groovy scripts at runtime to create new skills, gated by strict Quarkus Security policies
 - **Lightweight**: Native compilation via GraalVM for ultra-fast startup, designed to run cheaply on small instances
 - **Extensible**: Add tools by implementing `@ClawTool` beans — discovered automatically via CDI
+- **Google Workspace**: 6 optional extensions (Auth, Calendar, Gmail, Drive, Sheets, Storage) with 17 AI tools, OAuth2 Device Flow, and encrypted credential vault
 
 ---
 
@@ -122,7 +140,7 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
              │                            │
 ┌────────────▼──────────────┐  ┌──────────▼───────────────┐
 │ Cognition & Memory        │  │ ToolRegistry (CDI)       │
-│ Working: PG (Session)     │  │ Life: Google Calendar    │
+│ Working: PG (Session)     │  │ Life: Google Workspace │
 │ Episodic: Daily Job       │  │ Career: Brag Docs        │
 │ Semantic: pgvector        │  │ Engineering: Git / CLI   │
 └───────────────────────────┘  │ Dynamic: Groovy Engine   │
@@ -134,7 +152,7 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 │ Integrations    │  │ Execution                      │  │ Self-Improvement    │
 │ OAuth2          │  │ Sandbox                        │  │ CodeGenerator       │
 │ GitHub SDK      │  │ Test Runner                    │  │ Groovy Compiler     │
-│ Google SDK      │  │ ProcessManager                 │  │ AST Validator       │
+│ Google Workspace │  │ ProcessManager                 │  │ AST Validator       │
 └─────────────────┘  └───────────────────────────────┘  └─────────────────────┘
                                           │
 ┌────────────────────────▼────────────────────────────────┐
@@ -148,7 +166,14 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 
 ```
 qlawkus/                          # Parent POM (semantic versioning)
-├── client/                       # Quarkus extension (library)
+├── tools/ # Quarkus extension modules (optional tool integrations)
+│ ├── qlawkus-tools-google-auth/ # OAuth2 Device Flow + CredentialVault (Argon2id + AES-256-GCM)
+│ ├── qlawkus-tools-google-calendar/ # listEvents, createEvent, checkAvailability, suggestFocusTime
+│ ├── qlawkus-tools-google-gmail/ # listEmails, sendEmail, searchEmails
+│ ├── qlawkus-tools-google-drive/ # listFiles, uploadFile, downloadFile, shareFile
+│ ├── qlawkus-tools-google-sheets/ # readSheet, writeSheet, updateCell
+│ └── qlawkus-tools-google-storage/ # listBuckets, uploadObject, downloadObject
+├── client/ # Quarkus extension (library)
 │   ├── deployment/               # Build-time processor (BuildSteps, tool registration)
 │   │   └── src/test/             # Extension build-time tests (mocked LLM via WireMock)
 │   └── runtime/                  # Runtime module
@@ -165,7 +190,7 @@ qlawkus/                          # Parent POM (semantic versioning)
 │   └── src/main/
 │       ├── docker/               # Dockerfiles (JVM + native) + entrypoint.sh
 │       └── resources/            # application.properties (profile overrides)
-├── integration-tests/            # Consumer experience tests (real LLM via Ollama Dev Services)
+├── integration-tests/ # Consumer experience tests (WireMock + real LLM via NVIDIA/Ollama)
 ├── docker-compose.yml            # Prod: NVIDIA NIM + PostgreSQL
 ├── docker-compose.local.yml      # Local: Ollama + PostgreSQL
 └── .env.example                  # Environment template
@@ -199,6 +224,12 @@ public class MyTool {
 | **Migrations** | `quarkus-flyway` | Schema evolution |
 | **Security** | `elytron-security-properties-file`, `hibernate-validator` | Basic Auth, input validation |
 | **Resilience** | `smallrye-fault-tolerance` | LLM call retry / timeout |
+| **Google Auth** | `qlawkus-tools-google-auth` | OAuth2 Device Flow + CredentialVault |
+| **Google Calendar** | `qlawkus-tools-google-calendar` | listEvents, createEvent, checkAvailability, suggestFocusTime |
+| **Google Gmail** | `qlawkus-tools-google-gmail` | listEmails, sendEmail, searchEmails |
+| **Google Drive** | `qlawkus-tools-google-drive` | listFiles, uploadFile, downloadFile, shareFile |
+| **Google Sheets** | `qlawkus-tools-google-sheets` | readSheet, writeSheet, updateCell |
+| **Google Storage** | `qlawkus-tools-google-storage` | listBuckets, uploadObject, downloadObject |
 
 ---
 
@@ -281,8 +312,8 @@ curl -X POST http://localhost:8080/api/chat \
 | **M1** | Foundation, SOUL & Single-User Security | Done |
 | **M2** | Cognition (Memory Engine) | Done |
 | **M2.5** | Modular Architecture & Docker Distribution | Done |
-| **M3** | Productivity Integration (Google Calendar) | Pending |
-| **M4** | Engineering Integration (GitHub & Git) | Pending |
+| **M3** | Google Productivity Integration (Calendar, Mail, Drive, Sheets, Storage) | Done |
+| **M4** | Terminal Capabilities (ShellTool, InteractiveShellTool, FileTool) | Done |
 | **M5** | Career Engine (Brag Document) | Pending |
 | **M6** | Sandbox & Code Review | Pending |
 | **M7** | Self-Improvement Engine (Groovy) | Pending |

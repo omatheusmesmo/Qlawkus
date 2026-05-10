@@ -5,9 +5,19 @@
   <parent>
     <groupId>dev.omatheusmesmo</groupId>
     <artifactId>qlawkus</artifactId>
+    <relativePath>../pom.xml</relativePath>
     <version>0.4.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>qlawkus-tools-parent</artifactId>
-  <packaging>pom</packaging>
+    <artifactId>qlawkus-tools-parent</artifactId>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>qlawkus-tools-google-auth</module>
+        <module>qlawkus-tools-google-calendar</module>
+        <module>qlawkus-tools-google-gmail</module>
+        <module>qlawkus-tools-google-drive</module>
+        <module>qlawkus-tools-google-sheets</module>
+        <module>qlawkus-tools-google-storage</module>
+    </modules>
 </project>
