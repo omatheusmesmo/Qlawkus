@@ -33,6 +33,14 @@ public class ApiResource {
     Event<ChatCompletedEvent> eventEmitter;
 
     @POST
+    @Path("/chat/sync")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
+    public String chatSync(@Valid ChatRequest request) {
+        return agentService.chatSync(request.message());
+    }
+
+    @POST
     @Path("/chat")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.SERVER_SENT_EVENTS)
