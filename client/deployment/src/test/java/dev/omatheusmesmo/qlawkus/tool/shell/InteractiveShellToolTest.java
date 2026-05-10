@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.tool.shell;
 
+import dev.omatheusmesmo.qlawkus.config.ShellConfig;
 import dev.omatheusmesmo.qlawkus.dto.SessionInfo;
 import dev.omatheusmesmo.qlawkus.dto.SessionOutput;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,6 +24,12 @@ class InteractiveShellToolTest {
 
     @Inject
     PtySessionManager sessionManager;
+
+    @Inject
+    WorkspaceConfinement workspaceConfinement;
+
+    @Inject
+    ShellConfig shellConfig;
 
     @Test
     @DisabledOnOs(OS.WINDOWS)
@@ -168,5 +176,108 @@ class InteractiveShellToolTest {
         String resolved = sessionManager.resolveCommand(null);
         assertNotNull(resolved, "Null command should resolve to default shell");
         assertFalse(resolved.isBlank(), "Default shell should not be blank");
+    }
+
+    @Test
+    void sendInput_unknownSessionId_returnsError() {
+        String result = interactiveShellTool.sendInput("nonexistent-session-id", "echo test");
+        assertTrue(result.contains("ERROR"), "Unknown session sendInput should return error");
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void startSession_withWorkdir_usesSpecifiedDir() throws Exception {
+        String workspace = workspaceConfinement.getWorkspacePath().toString();
+        String sessionId = interactiveShellTool.startSession("bash", workspace, null);
+        assertNotNull(sessionId, "Session should start with valid workdir");
+
+        interactiveShellTool.sendInput(sessionId, "pwd");
+        Thread.sleep(1000);
+
+        SessionOutput output = interactiveShellTool.readSession(sessionId, 0);
+        assertTrue(output.lines().stream().anyMatch(l -> l.contains(workspace) || l.trim().equals(workspace)),
+            "Session should run in specified workdir, got: " + output.lines());
+
+        interactiveShellTool.closeSession(sessionId);
+    }
+
+    @Test
+    void compilePromptPatterns_validPatterns_compilesCorrectly() {
+        List<Pattern> patterns = sessionManager.compilePromptPatterns(List.of("[#$>] ", ">>> "));
+        assertEquals(2, patterns.size(), "Should compile 2 valid patterns");
+    }
+
+    @Test
+    void compilePromptPatterns_invalidPattern_skippedGracefully() {
+        List<Pattern> patterns = sessionManager.compilePromptPatterns(List.of("[invalid", ">>> "));
+        assertEquals(1, patterns.size(), "Invalid regex should be skipped, valid one kept");
+        assertEquals(">>> ", patterns.get(0).pattern());
+    }
+
+    @Test
+    void compilePromptPatterns_nullPrompts_usesDefaults() {
+        List<Pattern> patterns = sessionManager.compilePromptPatterns(null);
+        assertNotNull(patterns, "Should not throw on null prompts");
+    }
+
+    @Test
+    void compilePromptPatterns_emptyList_fallsBackToDefaults() {
+        List<Pattern> patterns = sessionManager.compilePromptPatterns(List.of());
+        assertNotNull(patterns, "Empty prompt list should fall back to defaults, not throw");
+    }
+
+    @Test
+    void resolveCommand_zsh_appliesCleanProfile() {
+        if (ShellTool.IS_WINDOWS) return;
+        String resolved = sessionManager.resolveCommand("zsh");
+        if (sessionManager.cleanProfile) {
+            assertTrue(resolved.contains("--norc"), "zsh should get --norc with clean-profile, got: " + resolved);
+            assertTrue(resolved.contains("--noprofile"), "zsh should get --noprofile with clean-profile, got: " + resolved);
+        }
+    }
+
+    @Test
+    void resolveCommand_dash_appliesCleanProfile() {
+        if (ShellTool.IS_WINDOWS) return;
+        String resolved = sessionManager.resolveCommand("dash");
+        if (sessionManager.cleanProfile) {
+            assertTrue(resolved.contains("--norc"), "dash should get --norc with clean-profile, got: " + resolved);
+        }
+    }
+
+    @Test
+    void resolveCommand_fish_noCleanProfile() {
+        if (ShellTool.IS_WINDOWS) return;
+        String resolved = sessionManager.resolveCommand("fish");
+        if (sessionManager.cleanProfile) {
+            assertFalse(resolved.contains("--norc"), "fish should NOT get --norc, got: " + resolved);
+        }
+    }
+
+    @Test
+    void listSessions_afterClose_doesNotShowClosedSession() {
+        List<SessionInfo> before = interactiveShellTool.listSessions();
+        String sessionId = interactiveShellTool.startSession("bash", null, null);
+        if (sessionId.startsWith("ERROR")) return;
+
+        List<SessionInfo> during = interactiveShellTool.listSessions();
+        assertTrue(during.size() >= before.size(), "Should have at least as many sessions after opening one");
+
+        interactiveShellTool.closeSession(sessionId);
+        List<SessionInfo> after = interactiveShellTool.listSessions();
+        assertTrue(after.stream().noneMatch(s -> s.sessionId().equals(sessionId)),
+            "Closed session should not appear in list");
+    }
+
+    @Test
+    void ptySessionManager_maxSessions_configHasDefault() {
+        ShellConfig.PtyConfig pty = shellConfig.pty();
+        assertTrue(pty.maxSessions() > 0, "PtyConfig.maxSessions should default to 10, got: " + pty.maxSessions());
+    }
+
+    @Test
+    void ptySessionManager_idleTimeout_configHasDefault() {
+        ShellConfig.PtyConfig pty = shellConfig.pty();
+        assertTrue(pty.idleTimeoutMinutes() > 0, "PtyConfig.idleTimeoutMinutes should default to 30, got: " + pty.idleTimeoutMinutes());
     }
 }

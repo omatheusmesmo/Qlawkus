@@ -88,4 +88,49 @@ class RollingBufferTest {
         assertEquals(0, buffer.getTotalLinesAdded());
         assertTrue(buffer.getLinesFrom(0).isEmpty());
     }
+
+    @Test
+    void getLinesFrom_offsetAtExactEnd_returnsEmpty() {
+        RollingBuffer buffer = new RollingBuffer(100);
+        buffer.addLine("a");
+        buffer.addLine("b");
+
+        List<String> lines = buffer.getLinesFrom(2);
+        assertTrue(lines.isEmpty(), "Offset at exact end should return empty");
+    }
+
+    @Test
+    void getTotalLinesAdded_tracksDiscardedLines() {
+        RollingBuffer buffer = new RollingBuffer(2);
+        buffer.addLine("a");
+        buffer.addLine("b");
+        buffer.addLine("c");
+
+        assertEquals(3, buffer.getTotalLinesAdded(), "Should count all lines including discarded");
+        assertEquals(2, buffer.size(), "Current size should respect maxLines");
+    }
+
+    @Test
+    void hasMoreAfter_withRollover() {
+        RollingBuffer buffer = new RollingBuffer(2);
+        buffer.addLine("a");
+        buffer.addLine("b");
+        buffer.addLine("c");
+
+        assertTrue(buffer.hasMoreAfter(0), "Should have more after offset 0");
+        assertTrue(buffer.hasMoreAfter(1), "Should have more after offset 1");
+        assertTrue(buffer.hasMoreAfter(2), "Should have more after offset 2 (3 lines added total)");
+        assertFalse(buffer.hasMoreAfter(3), "Should not have more after offset 3");
+    }
+
+    @Test
+    void singleLineBuffer() {
+        RollingBuffer buffer = new RollingBuffer(1);
+        buffer.addLine("first");
+        buffer.addLine("second");
+
+        assertEquals(1, buffer.size());
+        assertEquals(List.of("second"), buffer.getLinesFrom(0));
+        assertEquals(2, buffer.getTotalLinesAdded());
+    }
 }
