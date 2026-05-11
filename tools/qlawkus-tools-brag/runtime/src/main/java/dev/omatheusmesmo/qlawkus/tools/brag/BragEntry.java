@@ -37,11 +37,11 @@ public class BragEntry extends PanacheEntityBase {
     @Column(nullable = false)
     public Instant createdAt;
 
-    public static BragEntry findById(long id) {
-        return (BragEntry) PanacheEntityBase.findById(id);
-    }
-
     public static BragEntry findDuplicate(LocalDate date, String achievement, String repo) {
+        if (repo == null) {
+            return find("date = ?1 and achievement = ?2 and repo is null and deleted = false", date, achievement)
+                    .firstResult();
+        }
         return find("date = ?1 and achievement = ?2 and repo = ?3 and deleted = false", date, achievement, repo)
                 .firstResult();
     }
@@ -54,5 +54,12 @@ public class BragEntry extends PanacheEntityBase {
     @SuppressWarnings("unchecked")
     public static List<BragEntry> listAllActiveByDateAsc() {
         return find("deleted = false order by date asc, createdAt asc").list();
+    }
+
+    @PrePersist
+    void onCreate() {
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
     }
 }

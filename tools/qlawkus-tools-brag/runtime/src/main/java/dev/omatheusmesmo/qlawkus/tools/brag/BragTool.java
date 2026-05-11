@@ -97,7 +97,7 @@ public class BragTool {
     @Tool("Soft-delete a recorded achievement by its ID. The entry will be marked as deleted and excluded from reports.")
     @Transactional
     public String deleteAchievement(@P("ID of the achievement to delete") long id) {
-        BragEntry entry = BragEntry.findById(id);
+        BragEntry entry = BragEntry.find("id = ?1", id).firstResult();
         if (entry == null) {
             return "Achievement with ID " + id + " not found.";
         }

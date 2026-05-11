@@ -6,7 +6,7 @@ import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 
 @ConfigMapping(prefix = "qlawkus.brag")
-@ConfigRoot(phase = ConfigPhase.RUN_TIME)
+@ConfigRoot(phase = ConfigPhase.BUILD_AND_RUN_TIME_FIXED)
 public interface BragConfig {
 
     /**
@@ -32,6 +32,6 @@ public interface BragConfig {
      * Cron expression for the cleanup job schedule.
      * Defaults to daily at 03:00 UTC.
      */
-    @WithDefault("0 3 * * *")
+    @WithDefault("0 0 3 * * ?")
     String cleanupCron();
 }

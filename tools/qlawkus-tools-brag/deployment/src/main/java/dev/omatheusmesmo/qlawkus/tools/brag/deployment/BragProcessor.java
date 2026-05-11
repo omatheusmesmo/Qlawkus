@@ -12,12 +12,10 @@ import io.quarkus.deployment.Capabilities;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
-import io.quarkus.runtime.configuration.ConfigurationException;
 
 class BragProcessor {
 
     private static final String FEATURE = "brag";
-    private static final String HIBERNATE_PANACHE_CAPABILITY = "io.quarkus.hibernate-orm-panache";
     private static final String REST_CAPABILITY = "io.quarkus.rest";
 
     @BuildStep
@@ -26,12 +24,7 @@ class BragProcessor {
     }
 
     @BuildStep(onlyIf = IsBragEnabled.class)
-    AdditionalBeanBuildItem registerBragBeans(Capabilities capabilities) {
-        if (capabilities.isMissing(HIBERNATE_PANACHE_CAPABILITY)) {
-            throw new ConfigurationException(
-                    "Brag tool requires quarkus-hibernate-orm-panache. "
-                    + "Add the extension or disable the brag tool with qlawkus.brag.enabled=false");
-        }
+    AdditionalBeanBuildItem registerBragBeans() {
         return AdditionalBeanBuildItem.builder()
                 .addBeanClass(AchievementProcessor.class)
                 .addBeanClass(BragCleanupJob.class)

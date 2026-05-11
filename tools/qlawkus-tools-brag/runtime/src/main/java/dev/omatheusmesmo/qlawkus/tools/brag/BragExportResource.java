@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.tools.brag;
 
+import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -16,6 +17,7 @@ import java.util.List;
 public class BragExportResource {
 
     @Inject
+    @ClawTool
     BragTool bragTool;
 
     @GET

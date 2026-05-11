@@ -34,18 +34,27 @@ public class ClawToolProvider implements ToolProvider {
         ToolProviderResult.Builder builder = ToolProviderResult.builder();
         for (Object proxy : extensionTools) {
             Object tool = ClientProxy.unwrap(proxy);
-            List<ToolSpecification> specs = ToolSpecifications.toolSpecificationsFrom(tool);
+            Class<?> beanClass = resolveBeanClass(tool);
+            List<ToolSpecification> specs = ToolSpecifications.toolSpecificationsFrom(beanClass);
             for (ToolSpecification spec : specs) {
-                Method toolMethod = findToolMethod(tool, spec);
+                Method toolMethod = findToolMethod(beanClass, spec);
                 builder.add(spec, new DefaultToolExecutor(tool, toolMethod));
-                Log.debugf("Registered extension tool: %s from %s", spec.name(), tool.getClass().getSimpleName());
+                Log.debugf("Registered extension tool: %s from %s", spec.name(), beanClass.getSimpleName());
             }
         }
         return builder.build();
     }
 
-    private Method findToolMethod(Object tool, ToolSpecification spec) {
-        return Arrays.stream(tool.getClass().getDeclaredMethods())
+    private Class<?> resolveBeanClass(Object tool) {
+        Class<?> clazz = tool.getClass();
+        while (clazz.getName().contains("_Subclass")) {
+            clazz = clazz.getSuperclass();
+        }
+        return clazz;
+    }
+
+    private Method findToolMethod(Class<?> beanClass, ToolSpecification spec) {
+        return Arrays.stream(beanClass.getDeclaredMethods())
                 .filter(m -> m.isAnnotationPresent(Tool.class))
                 .filter(m -> {
                     Tool t = m.getAnnotation(Tool.class);
