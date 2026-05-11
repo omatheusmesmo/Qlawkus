@@ -27,14 +27,14 @@ public class AchievementProcessor {
         extractAndStore(event.messages());
     }
 
-    void extractAndStore(Iterable<ChatMessage> messages) {
+    public void extractAndStore(Iterable<ChatMessage> messages) {
         String achievement = detectAchievement(messages);
         if (achievement == null || achievement.isBlank()) return;
 
         persistAchievement(achievement);
     }
 
-    String detectAchievement(Iterable<ChatMessage> messages) {
+    public String detectAchievement(Iterable<ChatMessage> messages) {
         StringBuilder conversation = new StringBuilder();
         for (ChatMessage m : messages) {
             conversation.append(m.type().name()).append(": ").append(m).append("\n");
@@ -67,7 +67,7 @@ public class AchievementProcessor {
     }
 
     @Transactional
-    void persistAchievement(String achievement) {
+    public void persistAchievement(String achievement) {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         BragEntry existing = BragEntry.findDuplicate(today, achievement, null);
         if (existing != null) {
@@ -93,7 +93,7 @@ public class AchievementProcessor {
         Log.infof("Auto-detected achievement recorded: %s", achievement);
     }
 
-    String translateImpact(String achievement) {
+    public String translateImpact(String achievement) {
         String prompt = """
                 Convert this technical achievement into a concise business-impact statement. \
                 Focus on outcomes, value delivered, and relevance to stakeholders.

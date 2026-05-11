@@ -16,7 +16,7 @@ public class BragCleanupJob {
 
     @Scheduled(cron = "{qlawkus.brag.cleanup-cron}")
     @Transactional
-    void purgeExpiredEntries() {
+    public void purgeExpiredEntries() {
         Instant cutoff = Instant.now().minus(config.cleanupAgeDays(), ChronoUnit.DAYS);
 
         long deleted = BragEntry.delete("deleted = true and createdAt < ?1", cutoff);
