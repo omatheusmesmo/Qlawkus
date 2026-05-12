@@ -1,12 +1,11 @@
 package dev.omatheusmesmo.qlawkus.it.brag;
 
 import dev.langchain4j.model.chat.ChatModel;
+import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragEntry;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragTool;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -20,7 +19,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
-@TestProfile(BragTestProfile.class)
 @Execution(ExecutionMode.SAME_THREAD)
 class BragExportResourceTest {
 

@@ -4,7 +4,6 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.tools.brag.ImpactTranslator;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +13,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
-@TestProfile(BragTestProfile.class)
 class ImpactTranslatorTest {
 
     @InjectMock

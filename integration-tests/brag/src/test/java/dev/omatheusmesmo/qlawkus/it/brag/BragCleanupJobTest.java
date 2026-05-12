@@ -5,7 +5,6 @@ import dev.omatheusmesmo.qlawkus.tools.brag.BragCleanupJob;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragEntry;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.AfterEach;
@@ -21,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
-@TestProfile(BragTestProfile.class)
 @Execution(ExecutionMode.SAME_THREAD)
 class BragCleanupJobTest {
 
