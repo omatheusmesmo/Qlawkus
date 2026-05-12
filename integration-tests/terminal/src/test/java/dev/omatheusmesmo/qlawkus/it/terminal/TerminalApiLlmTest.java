@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.it.terminal;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.common.http.TestHTTPResource;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -89,5 +92,13 @@ class TerminalApiLlmTest {
         String body = chatViaApi("Run the command 'sudo whoami'. Tell me what happened.");
         assertTrue(body.contains("block") || body.contains("denied") || body.contains("deni") || body.contains("restrict") || body.contains("not allowed") || body.contains("security"),
                 "LLM via API should report sudo is blocked. Got: " + body);
+    }
+
+    @AfterAll
+    static void cleanupMarkerFiles() {
+        try {
+            Files.deleteIfExists(Path.of("api-llm-marker.txt"));
+        } catch (Exception ignored) {
+        }
     }
 }
