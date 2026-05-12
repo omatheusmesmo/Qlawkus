@@ -6,7 +6,6 @@ import dev.omatheusmesmo.qlawkus.tools.brag.BragEntry;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragTool;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.AfterEach;
@@ -24,7 +23,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
-@TestProfile(BragTestProfile.class)
 @Execution(ExecutionMode.SAME_THREAD)
 class BragToolTest {
 
