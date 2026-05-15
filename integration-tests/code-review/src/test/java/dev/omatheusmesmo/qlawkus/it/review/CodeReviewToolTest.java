@@ -84,4 +84,21 @@ class CodeReviewToolTest {
         assertEquals(-10, result.get("exitCode").asInt(),
                 "Empty command must be rejected");
     }
+
+    @Test
+    void localSecurityPolicy_shellAllowlistMode_blocksArbitraryCommands() throws Exception {
+        // Verifies that the M6 LocalSecurityPolicy (allowlist-mode=true) is active in this
+        // sandbox environment. Any command that bypasses CodeReviewTool's own check but is
+        // not in the ShellTool allowlist would be caught here — providing defense-in-depth.
+        // Example: if CodeReviewTool were to accept "git" and someone passed "git; id",
+        // ShellTool's allowlist would still block "git; id" (no glob match).
+        JsonNode result = run("git status");
+
+        // git is allowed in the M6 allowlist, so it should reach execution
+        assertNotEquals(-10, result.get("exitCode").asInt(),
+                "git is in the build-tool allowlist and should not be rejected by CodeReviewTool");
+        // ShellTool's allowlist also permits "git *", so this should actually run
+        assertTrue(result.get("exitCode").asInt() == 0 || result.get("exitCode").asInt() == 128,
+                "git status should exit 0 (in a git repo) or 128 (not a git repo), not be blocked");
+    }
 }

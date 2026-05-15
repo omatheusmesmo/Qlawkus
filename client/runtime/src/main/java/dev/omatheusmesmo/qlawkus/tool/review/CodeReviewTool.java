@@ -40,7 +40,8 @@ public class CodeReviewTool {
             "./gradlew",
             "npm",
             "yarn",
-            "pnpm"
+            "pnpm",
+            "git"
     );
 
     public static final int INVALID_BUILD_TOOL_EXIT_CODE = -10;
