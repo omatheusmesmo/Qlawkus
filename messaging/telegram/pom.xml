@@ -4,18 +4,17 @@
 
     <parent>
         <groupId>dev.omatheusmesmo</groupId>
-        <artifactId>qlawkus</artifactId>
+        <artifactId>qlawkus-messaging-parent</artifactId>
         <version>0.7.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>qlawkus-messaging-parent</artifactId>
-    <name>Qlawkus Messaging - Parent</name>
+    <artifactId>qlawkus-messaging-telegram-parent</artifactId>
+    <name>Qlawkus Messaging - Telegram - Parent</name>
     <packaging>pom</packaging>
 
     <modules>
         <module>runtime</module>
         <module>deployment</module>
-        <module>telegram</module>
     </modules>
 </project>
