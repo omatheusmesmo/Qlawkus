@@ -666,4 +666,33 @@ class ShellToolTest {
         CommandResult result = shellTool.runCommand("false || echo fallback", null, null);
         assertTrue(result.stdout().contains("fallback"), "OR chain should execute fallback");
     }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void runCommand_stdoutAndStderr_doNotCrossContaminate() {
+        CommandResult result = shellTool.runCommand(
+                "sh -c 'echo STDOUT_TOKEN; echo STDERR_TOKEN >&2'", null, 10);
+
+        assertTrue(result.stdout().contains("STDOUT_TOKEN"),
+                "stdout must contain STDOUT_TOKEN");
+        assertFalse(result.stdout().contains("STDERR_TOKEN"),
+                "stdout must NOT contain STDERR_TOKEN — streams crossed: " + result.stdout());
+
+        assertTrue(result.stderr().contains("STDERR_TOKEN"),
+                "stderr must contain STDERR_TOKEN");
+        assertFalse(result.stderr().contains("STDOUT_TOKEN"),
+                "stderr must NOT contain STDOUT_TOKEN — streams crossed: " + result.stderr());
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void runCommand_largeStderr_doesNotCorruptStdout() {
+        String command = "sh -c 'echo CLEAN_STDOUT; yes ERROR_LINE 2>&1 1>/dev/null | head -200 >&2'";
+        CommandResult result = shellTool.runCommand(command, null, 10);
+
+        assertTrue(result.stdout().contains("CLEAN_STDOUT"),
+                "stdout must still contain CLEAN_STDOUT even under heavy stderr: " + result.stdout());
+        assertFalse(result.stdout().contains("ERROR_LINE"),
+                "stdout must not contain stderr content even when stderr is large");
+    }
 }
