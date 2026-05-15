@@ -18,5 +18,6 @@
     <module>smoke</module>
     <module>brag</module>
     <module>code-review</module>
+    <module>messaging</module>
   </modules>
 </project>
