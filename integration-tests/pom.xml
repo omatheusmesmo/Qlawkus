@@ -17,5 +17,6 @@
     <module>terminal</module>
     <module>smoke</module>
     <module>brag</module>
+    <module>code-review</module>
   </modules>
 </project>
