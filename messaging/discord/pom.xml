@@ -1,22 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>dev.omatheusmesmo</groupId>
-        <artifactId>qlawkus</artifactId>
+        <artifactId>qlawkus-messaging-parent</artifactId>
         <version>0.7.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-
-    <artifactId>qlawkus-messaging-parent</artifactId>
-    <name>Qlawkus Messaging - Parent</name>
+    <artifactId>qlawkus-messaging-discord-parent</artifactId>
+    <name>Qlawkus Messaging - Discord - Parent</name>
     <packaging>pom</packaging>
-
     <modules>
         <module>runtime</module>
         <module>deployment</module>
-        <module>telegram</module>
-        <module>discord</module>
     </modules>
 </project>
