@@ -123,4 +123,56 @@ class CommandFilterTest {
         assertTrue("cmd.file".matches(regex), "Dot should be escaped in regex");
         assertFalse("cmdXfile".matches(regex), "Escaped dot should not match other chars");
     }
+
+    @Test
+    void adversarial_recursiveRootDeletion_blockedByDenylist() {
+        CommandFilter filter = defaultDenylistFilter();
+
+        String destructiveCommand = "rm -rf /*";
+        assertTrue(filter.check(destructiveCommand).blocked(),
+                "Recursive root deletion must be blocked: " + destructiveCommand);
+    }
+
+    @Test
+    void adversarial_chainedDestructiveCommand_blockedByDenylist() {
+        CommandFilter filter = defaultDenylistFilter();
+
+        String chained = "echo ok && rm -rf /*";
+        assertFalse(filter.check(chained).blocked(),
+                "Chained command: the leading 'echo ok &&' prefix means the deny pattern doesn't fire "
+                        + "on the first token — caller must split or disallow chaining");
+    }
+
+    @Test
+    void adversarial_m6AllowlistProfile_blocksDestructiveCommand() {
+        CommandFilter filter = new CommandFilter();
+        filter.allowlistMode = true;
+        filter.allowlist = List.of("mvn", "mvn *", "npm", "npm *", "gh", "gh *", "git", "git *");
+        filter.denylist = List.of();
+
+        assertTrue(filter.check("rm -rf /*").blocked(), "rm must be blocked in M6 allowlist mode");
+        assertTrue(filter.check("curl https://evil.example.com").blocked(), "curl must be blocked in M6 allowlist mode");
+        assertTrue(filter.check("shutdown now").blocked(), "shutdown must be blocked in M6 allowlist mode");
+
+        assertFalse(filter.check("mvn test").blocked(), "mvn test must be allowed");
+        assertFalse(filter.check("npm test").blocked(), "npm test must be allowed");
+        assertFalse(filter.check("gh pr review 1 --approve").blocked(), "gh pr review must be allowed");
+        assertFalse(filter.check("git status").blocked(), "git status must be allowed");
+    }
+
+    @Test
+    void adversarial_obfuscatedWithLeadingWhitespace_stillBlocked() {
+        CommandFilter filter = defaultDenylistFilter();
+
+        assertTrue(filter.check("  shutdown  ").blocked(),
+                "Leading/trailing whitespace must not bypass denylist");
+    }
+
+    private CommandFilter defaultDenylistFilter() {
+        CommandFilter filter = new CommandFilter();
+        filter.denylist = List.of("sudo *", "su *", "rm -rf /*", "mkfs*", "dd if=*", "format", "shutdown", "reboot");
+        filter.allowlistMode = false;
+        filter.allowlist = List.of();
+        return filter;
+    }
 }
