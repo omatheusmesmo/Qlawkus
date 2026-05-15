@@ -4,23 +4,18 @@
 
     <parent>
         <groupId>dev.omatheusmesmo</groupId>
-        <artifactId>qlawkus-tools-google-calendar-parent</artifactId>
+        <artifactId>qlawkus-messaging-parent</artifactId>
         <version>0.7.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>qlawkus-tools-google-calendar-deployment</artifactId>
-    <name>Qlawkus Tools - Google Calendar - Deployment</name>
+    <artifactId>qlawkus-messaging-deployment</artifactId>
+    <name>Qlawkus Messaging - Deployment</name>
 
     <dependencies>
         <dependency>
             <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-tools-google-calendar</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-tools-google-auth-deployment</artifactId>
+            <artifactId>qlawkus-messaging</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -29,21 +24,17 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-rest-client-jackson-deployment</artifactId>
+            <artifactId>quarkus-rest</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-deployment</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-junit-mockito</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

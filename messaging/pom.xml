@@ -4,17 +4,17 @@
 
     <parent>
         <groupId>dev.omatheusmesmo</groupId>
-        <artifactId>qlawkus-tools-parent</artifactId>
+        <artifactId>qlawkus</artifactId>
         <version>0.7.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>qlawkus-tools-google-storage-parent</artifactId>
-    <name>Qlawkus Tools - Google Storage - Parent</name>
+    <artifactId>qlawkus-messaging-parent</artifactId>
+    <name>Qlawkus Messaging - Parent</name>
     <packaging>pom</packaging>
 
     <modules>
-        <module>deployment</module>
         <module>runtime</module>
+        <module>deployment</module>
     </modules>
 </project>
