@@ -26,4 +26,15 @@ public interface DiscordConfig {
      */
     @WithDefault("true")
     boolean respondToAllMessages();
+
+    /**
+     * Channel ID where the bot posts a greeting message once Gateway connects. Useful for confirming the bot is online and reachable. Leave unset to disable.
+     */
+    Optional<String> startupChannelId();
+
+    /**
+     * Greeting text posted to the startup channel on Gateway connection.
+     */
+    @WithDefault("👋 Qlawkus online and listening")
+    String startupGreeting();
 }
