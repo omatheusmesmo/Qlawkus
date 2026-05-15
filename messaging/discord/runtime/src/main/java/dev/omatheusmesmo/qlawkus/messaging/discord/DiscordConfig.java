@@ -3,18 +3,27 @@ package dev.omatheusmesmo.qlawkus.messaging.discord;
 import io.quarkus.runtime.annotations.ConfigPhase;
 import io.quarkus.runtime.annotations.ConfigRoot;
 import io.smallrye.config.ConfigMapping;
+import io.smallrye.config.WithDefault;
+
+import java.util.Optional;
 
 @ConfigRoot(phase = ConfigPhase.RUN_TIME)
 @ConfigMapping(prefix = "qlawkus.messaging.discord")
 public interface DiscordConfig {
 
     /**
-     * Discord Bot Token obtained from the Discord Developer Portal.
+     * Discord Bot Token from the Developer Portal. Leave unset to disable Discord provider.
      */
-    String botToken();
+    Optional<String> botToken();
 
     /**
-     * Discord Application ID.
+     * Discord Application ID, used for slash command registration.
      */
-    String applicationId();
+    Optional<String> applicationId();
+
+    /**
+     * Whether the bot responds to all messages in channels it is in. When false, the bot only responds to DMs and slash commands.
+     */
+    @WithDefault("true")
+    boolean respondToAllMessages();
 }
