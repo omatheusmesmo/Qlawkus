@@ -62,9 +62,20 @@ public class DiscordProviderAdapter implements MessagingProvider {
                             gatewayClient = gateway;
                             setupListeners(gateway);
                             slashCommandRegistrar.register(gateway, config.applicationId().orElse(""));
+                            postStartupGreeting(gateway);
                             Log.info("Discord: Gateway connected");
                         },
                         err -> Log.errorf(err, "Discord: Gateway login failed"));
+    }
+
+    private void postStartupGreeting(GatewayDiscordClient gateway) {
+        config.startupChannelId().ifPresent(channelId ->
+                gateway.getChannelById(Snowflake.of(channelId))
+                        .ofType(MessageChannel.class)
+                        .flatMap(channel -> channel.createMessage(config.startupGreeting()))
+                        .subscribe(
+                                m -> Log.infof("Discord: startup greeting posted to channel=%s", channelId),
+                                err -> Log.errorf(err, "Discord: failed to post startup greeting channel=%s", channelId)));
     }
 
     void onStop(@Observes ShutdownEvent event) {
