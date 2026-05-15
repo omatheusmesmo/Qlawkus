@@ -5,7 +5,7 @@
   <parent>
     <groupId>dev.omatheusmesmo</groupId>
     <artifactId>qlawkus</artifactId>
-    <version>0.5.0</version>
+    <version>0.6.0</version>
   </parent>
 
   <artifactId>qlawkus-client-parent</artifactId>
