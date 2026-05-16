@@ -13,12 +13,17 @@ public class MessagingAuthService {
     @Inject
     MessagingAuthConfig config;
 
+    public static final String WILDCARD = "*";
+
     public boolean isAuthorized(MessagingMessage message) {
         List<String> allowed = config.allowedUsers().get(message.providerId());
         if (allowed == null || allowed.isEmpty()) {
             Log.warnf("MessagingAuth: no allowlist configured for provider=%s, denying user=%s",
                     message.providerId(), message.userId());
             return false;
+        }
+        if (allowed.contains(WILDCARD)) {
+            return true;
         }
         boolean authorized = allowed.contains(message.userId());
         if (!authorized) {
