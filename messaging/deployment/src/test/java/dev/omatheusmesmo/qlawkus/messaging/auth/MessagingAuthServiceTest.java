@@ -65,4 +65,12 @@ class MessagingAuthServiceTest {
 
         assertFalse(authService.isAuthorized(msg));
     }
+
+    @Test
+    void isAuthorized_wildcardEntry_allowsAnyUser() {
+        when(config.allowedUsers()).thenReturn(Map.of("discord", List.of("*")));
+        MessagingMessage anyUser = MessagingMessage.text("discord", "ch", "random-user-id", "hi");
+
+        assertTrue(authService.isAuthorized(anyUser));
+    }
 }
