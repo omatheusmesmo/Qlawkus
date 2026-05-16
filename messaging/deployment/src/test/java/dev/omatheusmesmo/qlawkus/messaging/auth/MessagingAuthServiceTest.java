@@ -40,11 +40,11 @@ class MessagingAuthServiceTest {
     }
 
     @Test
-    void isAuthorized_noAllowlistForProvider_returnsFalse() {
+    void isAuthorized_noAllowlistForProvider_allowsAnyUser() {
         when(config.allowedUsers()).thenReturn(Map.of());
         MessagingMessage msg = MessagingMessage.text("telegram", "chat-1", "123456", "hello");
 
-        assertFalse(authService.isAuthorized(msg));
+        assertTrue(authService.isAuthorized(msg));
     }
 
     @Test
@@ -59,11 +59,11 @@ class MessagingAuthServiceTest {
     }
 
     @Test
-    void isAuthorized_providerNotConfigured_deniesEvenIfUserIdMatches() {
+    void isAuthorized_providerNotConfigured_allowsAnyUser() {
         when(config.allowedUsers()).thenReturn(Map.of("telegram", List.of("123456")));
         MessagingMessage msg = MessagingMessage.text("slack", "ch", "123456", "hi");
 
-        assertFalse(authService.isAuthorized(msg));
+        assertTrue(authService.isAuthorized(msg));
     }
 
     @Test
