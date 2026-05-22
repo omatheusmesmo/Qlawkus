@@ -5,6 +5,7 @@ import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -34,6 +35,12 @@ public class PgWorkingMemoryStore implements WorkingMemoryStore, ChatMemoryStore
   @Transactional
   public void deleteMessages(String memoryId) {
     ChatMessageEntity.deleteByMemoryId(memoryId);
+  }
+
+  @Override
+  @Transactional
+  public Instant lastActivity(String memoryId) {
+    return ChatMessageEntity.findLatestTimestamp(memoryId);
   }
 
   @Override
