@@ -1,8 +1,8 @@
 package dev.omatheusmesmo.qlawkus.messaging.telegram;
 
-import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
@@ -23,10 +23,9 @@ public class TelegramWebhookResource {
             return Uni.createFrom().item(Response.ok().build());
         }
 
-        MessagingMessage message = adapter.mapUpdate(update);
-        Log.debugf("Telegram webhook: updateId=%d userId=%s", update.updateId(), message.userId());
-
-        adapter.receive(message)
+        Uni.createFrom().item(() -> adapter.mapUpdate(update))
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+                .flatMap(adapter::receive)
                 .subscribe().with(
                         r -> {},
                         err -> Log.errorf(err, "Telegram processing error updateId=%d", update.updateId()));
