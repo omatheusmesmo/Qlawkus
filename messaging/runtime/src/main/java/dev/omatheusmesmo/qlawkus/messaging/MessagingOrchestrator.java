@@ -1,7 +1,10 @@
 package dev.omatheusmesmo.qlawkus.messaging;
 
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
+import dev.omatheusmesmo.qlawkus.agent.ConversationId;
+import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
+import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
 import dev.omatheusmesmo.qlawkus.messaging.transcription.VoiceTranscriptionService;
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsRouter;
@@ -12,6 +15,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.text.Normalizer;
 import java.util.Locale;
@@ -40,7 +44,16 @@ public class MessagingOrchestrator {
     VoiceResponsePreference voicePreference;
 
     @Inject
+    ConversationControl conversationControl;
+
+    @Inject
+    WorkingMemoryStore workingMemoryStore;
+
+    @Inject
     TtsRouter ttsRouter;
+
+    @ConfigProperty(name = "qlawkus.agent.shared-context.enabled", defaultValue = "true")
+    boolean sharedContextEnabled;
 
     public Uni<Void> process(MessagingMessage message) {
         Log.infof("MessagingOrchestrator: received provider=%s userId=%s chatId=%s textLen=%d hasAudio=%s",
@@ -60,7 +73,7 @@ public class MessagingOrchestrator {
                 .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
                 .invoke(text -> Log.infof("MessagingOrchestrator: invoking agent userId=%s textLen=%d",
                         message.userId(), text != null ? text.length() : 0))
-                .map(this::runAgentWithContext)
+                .map(text -> runAgentWithContext(memoryId(message), text))
                 .invoke(result -> Log.infof(
                         "MessagingOrchestrator: agent done userId=%s elapsedMs=%d responseLen=%d voice=%s",
                         message.userId(), System.currentTimeMillis() - startMs,
@@ -141,21 +154,35 @@ public class MessagingOrchestrator {
         return type + ": " + trimmed;
     }
 
-    private AgentResult runAgentWithContext(String text) {
+    private String memoryId(MessagingMessage message) {
+        return sharedContextEnabled
+                ? ConversationId.SHARED
+                : message.providerId() + ":" + message.chatId();
+    }
+
+    private AgentResult runAgentWithContext(String conversationId, String text) {
         ManagedContext requestContext = Arc.container().requestContext();
         boolean activated = false;
         if (!requestContext.isActive()) {
             requestContext.activate();
             activated = true;
         }
+        AgentResult result;
+        boolean clearRequested;
         try {
-            String response = agentService.chatSync(text);
-            return new AgentResult(response, voicePreference.isRequested(), voicePreference.language());
+            String response = agentService.chatSync(conversationId, text);
+            clearRequested = conversationControl.isClearRequested();
+            result = new AgentResult(response, voicePreference.isRequested(), voicePreference.language());
         } finally {
             if (activated) {
                 requestContext.terminate();
             }
         }
+        if (clearRequested) {
+            workingMemoryStore.deleteMessages(conversationId);
+            Log.infof("MessagingOrchestrator: cleared conversation memory id=%s", conversationId);
+        }
+        return result;
     }
 
     private record AgentResult(String text, boolean voiceRequested, String language) {

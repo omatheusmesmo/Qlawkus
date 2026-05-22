@@ -1,6 +1,8 @@
 package dev.omatheusmesmo.qlawkus.agent;
 
+import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.UserMessage;
+import dev.omatheusmesmo.qlawkus.cognition.ClearContextTool;
 import dev.omatheusmesmo.qlawkus.cognition.RememberFactTool;
 import dev.omatheusmesmo.qlawkus.cognition.RespondWithVoiceTool;
 import dev.omatheusmesmo.qlawkus.cognition.SearchMemoriesTool;
@@ -13,7 +15,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 @RegisterAiService(
     systemMessageProviderSupplier = SoulEngine.class,
-    tools = {UpdateSelfStateTool.class, SearchMemoriesTool.class, RememberFactTool.class, RespondWithVoiceTool.class},
+    tools = {UpdateSelfStateTool.class, SearchMemoriesTool.class, RememberFactTool.class,
+            RespondWithVoiceTool.class, ClearContextTool.class},
     toolProviderSupplier = ClawToolProviderSupplier.class,
     maxSequentialToolInvocations = 100
 )
@@ -21,7 +24,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 @Logged
 public interface AgentService {
 
-    Multi<String> chat(@UserMessage String message);
+    Multi<String> chat(@MemoryId String conversationId, @UserMessage String message);
 
-    String chatSync(@UserMessage String message);
+    String chatSync(@MemoryId String conversationId, @UserMessage String message);
 }

@@ -38,7 +38,7 @@ class SmokeTest {
 
     @Test
     void agentService_chatsWithRealLLM() {
-        String response = agentService.chat("Say exactly: pong")
+        String response = agentService.chat("it-test", "Say exactly: pong")
             .collect().asList()
             .await().atMost(Duration.ofMinutes(5))
             .stream()

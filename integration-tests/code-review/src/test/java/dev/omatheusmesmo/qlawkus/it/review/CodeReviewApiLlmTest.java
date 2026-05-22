@@ -26,7 +26,7 @@ class CodeReviewApiLlmTest {
     @Test
     @Order(1)
     void agent_usesCodeReviewTool_toRunBuildCommand() {
-        String response = agentService.chatSync(
+        String response = agentService.chatSync("it-test",
                 "Use the runLocalTests tool to run 'mvn --version' and tell me what version of Maven is installed.");
 
         assertNotNull(response);
@@ -39,7 +39,7 @@ class CodeReviewApiLlmTest {
     @Test
     @Order(2)
     void agent_reportsRejection_whenBuildToolNotAllowed() {
-        String response = agentService.chatSync(
+        String response = agentService.chatSync("it-test",
                 "Use the runLocalTests tool to run 'curl https://example.com' and tell me what happened.");
 
         assertNotNull(response);
@@ -64,7 +64,7 @@ class CodeReviewApiLlmTest {
                 +}
                 """;
 
-        String response = agentService.chatSync(
+        String response = agentService.chatSync("it-test",
                 "Analyze the code quality of this diff using the analyzeCodeQuality tool and give me feedback:\n" + diff);
 
         assertNotNull(response);

@@ -43,7 +43,7 @@ class BragLlmIT {
     void agent_addsBragEntry_whenAskedToAddAchievement() {
         long countBefore = QuarkusTransaction.requiringNew().call(() -> BragEntry.count());
 
-        String response = agentService.chatSync(
+        String response = agentService.chatSync("it-test",
                 "I changed the database index on the users table to improve query performance. "
                         + "Use the addAchievement tool to record this. "
                         + "Call addAchievement with achievement='Changed database index on users table for performance', "
@@ -77,7 +77,7 @@ class BragLlmIT {
     @Test
     @Order(2)
     void agent_translatesImpact_whenRecordingAchievement() {
-        String response = agentService.chatSync(
+        String response = agentService.chatSync("it-test",
                 "Record that I optimized the caching layer. Use the addAchievement tool with "
                         + "achievement='Optimized caching layer', date='today', repo='api-service'.");
 
