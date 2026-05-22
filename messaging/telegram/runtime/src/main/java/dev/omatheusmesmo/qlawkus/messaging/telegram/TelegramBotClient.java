@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.messaging.telegram;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -27,6 +28,18 @@ public interface TelegramBotClient {
     @Produces(MediaType.APPLICATION_JSON)
     GetFileResponse getFile(@PathParam("token") String token, @QueryParam("file_id") String fileId);
 
+    @GET
+    @Path("/getUpdates")
+    @Produces(MediaType.APPLICATION_JSON)
+    GetUpdatesResponse getUpdates(@PathParam("token") String token,
+                                  @QueryParam("offset") long offset,
+                                  @QueryParam("timeout") int timeout);
+
+    @GET
+    @Path("/deleteWebhook")
+    @Produces(MediaType.APPLICATION_JSON)
+    void deleteWebhook(@PathParam("token") String token);
+
     record SendMessageRequest(
             @JsonProperty("chat_id") String chatId,
             String text,
@@ -38,4 +51,7 @@ public interface TelegramBotClient {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record FileResult(@JsonProperty("file_path") String filePath) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record GetUpdatesResponse(boolean ok, List<TelegramUpdate> result) {}
 }
