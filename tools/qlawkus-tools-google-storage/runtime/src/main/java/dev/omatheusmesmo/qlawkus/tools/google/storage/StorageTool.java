@@ -2,7 +2,9 @@ package dev.omatheusmesmo.qlawkus.tools.google.storage;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.omatheusmesmo.qlawkus.agent.Logged;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiDiagnostics;
 import dev.omatheusmesmo.qlawkus.tools.google.storage.model.StorageBucket;
 import dev.omatheusmesmo.qlawkus.tools.google.storage.model.StorageBucketList;
 import dev.omatheusmesmo.qlawkus.tools.google.storage.model.StorageObject;
@@ -16,6 +18,7 @@ import java.util.stream.Collectors;
 
 @ClawTool
 @ApplicationScoped
+@Logged
 public class StorageTool {
 
     @Inject
@@ -51,7 +54,7 @@ public class StorageTool {
                     .collect(Collectors.joining("\n---\n"));
         } catch (Exception e) {
             Log.errorf(e, "Failed to list GCS buckets for project %s", project);
-            return "Error listing buckets: " + e.getMessage();
+            return GoogleApiDiagnostics.diagnose("list GCS buckets", e);
         }
     }
 
@@ -72,7 +75,7 @@ public class StorageTool {
                     + " (" + uploaded.size() + " bytes)";
         } catch (Exception e) {
             Log.errorf(e, "Failed to upload object %s to bucket %s", objectName, bucketName);
-            return "Error uploading object: " + e.getMessage();
+            return GoogleApiDiagnostics.diagnose("upload GCS object", e);
         }
     }
 
@@ -93,7 +96,7 @@ public class StorageTool {
                     + " | Size: " + metadata.size() + " bytes\n---\n" + content;
         } catch (Exception e) {
             Log.errorf(e, "Failed to download object %s from bucket %s", objectName, bucketName);
-            return "Error downloading object: " + e.getMessage();
+            return GoogleApiDiagnostics.diagnose("download GCS object", e);
         }
     }
 

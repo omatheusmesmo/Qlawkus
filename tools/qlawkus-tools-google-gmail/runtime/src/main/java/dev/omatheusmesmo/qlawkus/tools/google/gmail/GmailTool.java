@@ -2,7 +2,9 @@ package dev.omatheusmesmo.qlawkus.tools.google.gmail;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.omatheusmesmo.qlawkus.agent.Logged;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiDiagnostics;
 import dev.omatheusmesmo.qlawkus.tools.google.gmail.model.GmailMessage;
 import dev.omatheusmesmo.qlawkus.tools.google.gmail.model.GmailMessageList;
 import dev.omatheusmesmo.qlawkus.tools.google.gmail.model.GmailSendRequest;
@@ -16,6 +18,7 @@ import java.util.stream.Collectors;
 
 @ClawTool
 @ApplicationScoped
+@Logged
 public class GmailTool {
 
     @Inject
@@ -51,7 +54,7 @@ public class GmailTool {
                     .collect(Collectors.joining("\n---\n"));
         } catch (Exception e) {
             Log.errorf(e, "Failed to list Gmail messages");
-            return "Error listing emails: " + e.getMessage();
+            return GoogleApiDiagnostics.diagnose("list Gmail messages", e);
         }
     }
 
@@ -69,7 +72,7 @@ public class GmailTool {
             return "Email sent to " + to + ": " + subject;
         } catch (Exception e) {
             Log.errorf(e, "Failed to send Gmail message");
-            return "Error sending email: " + e.getMessage();
+            return GoogleApiDiagnostics.diagnose("send Gmail message", e);
         }
     }
 
