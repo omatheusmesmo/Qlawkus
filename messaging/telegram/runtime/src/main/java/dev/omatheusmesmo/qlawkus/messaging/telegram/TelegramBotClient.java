@@ -40,10 +40,21 @@ public interface TelegramBotClient {
     @Produces(MediaType.APPLICATION_JSON)
     void deleteWebhook(@PathParam("token") String token);
 
+    @POST
+    @Path("/sendChatAction")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    void sendChatAction(@PathParam("token") String token, SendChatActionRequest request);
+
     record SendMessageRequest(
             @JsonProperty("chat_id") String chatId,
             String text,
             @JsonProperty("parse_mode") String parseMode
+    ) {}
+
+    record SendChatActionRequest(
+            @JsonProperty("chat_id") String chatId,
+            String action
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
