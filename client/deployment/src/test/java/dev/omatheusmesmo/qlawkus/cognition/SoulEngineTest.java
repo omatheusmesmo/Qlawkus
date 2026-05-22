@@ -116,4 +116,13 @@ class SoulEngineTest {
     assertTrue(message.isPresent());
     assertTrue(message.get().contains("searchMemories"));
   }
+
+  @Test
+  @Transactional
+  void getSystemMessage_containsCurrentDateTime() {
+    Optional<String> message = soulEngine.getSystemMessage(null);
+    assertTrue(message.isPresent());
+    assertTrue(message.get().contains("## Current Date & Time"));
+    assertTrue(message.get().contains(String.valueOf(java.time.Year.now().getValue())));
+  }
 }

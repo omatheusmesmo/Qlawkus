@@ -1,6 +1,8 @@
 package dev.omatheusmesmo.qlawkus.agent;
 
 import dev.langchain4j.service.UserMessage;
+import dev.omatheusmesmo.qlawkus.cognition.RememberFactTool;
+import dev.omatheusmesmo.qlawkus.cognition.RespondWithVoiceTool;
 import dev.omatheusmesmo.qlawkus.cognition.SearchMemoriesTool;
 import dev.omatheusmesmo.qlawkus.cognition.SoulEngine;
 import dev.omatheusmesmo.qlawkus.cognition.UpdateSelfStateTool;
@@ -11,8 +13,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 @RegisterAiService(
     systemMessageProviderSupplier = SoulEngine.class,
-    tools = {UpdateSelfStateTool.class, SearchMemoriesTool.class},
-    toolProviderSupplier = ClawToolProviderSupplier.class
+    tools = {UpdateSelfStateTool.class, SearchMemoriesTool.class, RememberFactTool.class, RespondWithVoiceTool.class},
+    toolProviderSupplier = ClawToolProviderSupplier.class,
+    maxSequentialToolInvocations = 100
 )
 @ApplicationScoped
 @Logged
