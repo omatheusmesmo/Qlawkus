@@ -33,6 +33,11 @@ public interface DiscordConfig {
     Optional<String> startupChannelId();
 
     /**
+     * Guild (server) ID where slash commands should be registered. When set, commands are registered guild-specific (instant availability). When unset, commands are registered globally (up to 1 hour propagation).
+     */
+    Optional<String> guildId();
+
+    /**
      * Greeting text posted to the startup channel on Gateway connection.
      */
     @WithDefault("👋 Qlawkus online and listening")
