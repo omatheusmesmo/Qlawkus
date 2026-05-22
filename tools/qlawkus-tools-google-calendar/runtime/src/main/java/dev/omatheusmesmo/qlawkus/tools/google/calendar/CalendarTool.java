@@ -2,7 +2,9 @@ package dev.omatheusmesmo.qlawkus.tools.google.calendar;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.omatheusmesmo.qlawkus.agent.Logged;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiDiagnostics;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEvent;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventAttendee;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventList;
@@ -26,9 +28,10 @@ import java.util.stream.Collectors;
 
 @ClawTool
 @ApplicationScoped
+@Logged
 public class CalendarTool {
 
-    private static final DateTimeFormatter RFC3339 = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
+    private static final DateTimeFormatter RFC3339 = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     @Inject
     GoogleCalendarConfig config;
@@ -71,7 +74,7 @@ public class CalendarTool {
                     .collect(Collectors.joining("\n---\n"));
         } catch (Exception e) {
             Log.errorf(e, "Failed to list Google Calendar events");
-            return "Error listing calendar events: " + e.getMessage();
+            return diagnoseFailure("list calendar events", e);
         }
     }
 
@@ -83,8 +86,8 @@ public class CalendarTool {
             @P(value = "Location of the event", required = false) String location,
             @P(value = "List of attendee email addresses", required = false) List<String> attendeeEmails) {
 
-        OffsetDateTime start = OffsetDateTime.parse(startTime);
-        OffsetDateTime end = OffsetDateTime.parse(endTime);
+        OffsetDateTime start = OffsetDateTime.parse(startTime).withOffsetSameInstant(ZoneOffset.UTC);
+        OffsetDateTime end = OffsetDateTime.parse(endTime).withOffsetSameInstant(ZoneOffset.UTC);
 
         EventDateTime startDto = new EventDateTime(start.format(RFC3339), null, null);
         EventDateTime endDto = new EventDateTime(end.format(RFC3339), null, null);
@@ -97,14 +100,14 @@ public class CalendarTool {
         }
 
         CalendarEvent event = new CalendarEvent(
-                null, summary, null, location, startDto, endDto, null, attendees);
+                null, summary, null, location, startDto, endDto, null, attendees, null);
 
         try {
             CalendarEvent created = calendarClient.createEvent(config.calendarId(), event);
             return "Event created: " + formatEvent(created);
         } catch (Exception e) {
             Log.errorf(e, "Failed to create Google Calendar event");
-            return "Error creating calendar event: " + e.getMessage();
+            return diagnoseFailure("create calendar event", e);
         }
     }
 
@@ -137,7 +140,7 @@ public class CalendarTool {
             return sb.toString().trim();
         } catch (Exception e) {
             Log.errorf(e, "Failed to check calendar availability");
-            return "Error checking availability: " + e.getMessage();
+            return diagnoseFailure("check calendar availability", e);
         }
     }
 
@@ -195,8 +198,12 @@ public class CalendarTool {
         return "Focus time slots on " + parsedDate + ":\n" + String.join("\n", focusSlots);
         } catch (Exception e) {
             Log.errorf(e, "Failed to suggest focus time");
-            return "Error suggesting focus time: " + e.getMessage();
+            return diagnoseFailure("suggest focus time", e);
         }
+    }
+
+    private String diagnoseFailure(String operation, Exception e) {
+        return GoogleApiDiagnostics.diagnose(operation, e);
     }
 
     private String formatEvent(CalendarEvent event) {
@@ -223,6 +230,9 @@ public class CalendarTool {
             sb.append(event.attendees().stream()
                     .map(a -> a.displayName() != null ? a.displayName() : a.email())
                     .collect(Collectors.joining(", ")));
+        }
+        if (event.htmlLink() != null) {
+            sb.append(" | Link: ").append(event.htmlLink());
         }
         return sb.toString();
     }
