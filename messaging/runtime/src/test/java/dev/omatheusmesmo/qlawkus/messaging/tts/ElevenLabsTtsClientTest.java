@@ -69,6 +69,7 @@ class ElevenLabsTtsClientTest {
             @Override public String model() { return model; }
             @Override public String voice() { return voice; }
             @Override public String responseFormat() { return "mp3"; }
+            @Override public Optional<String> fallback() { return Optional.empty(); }
         };
     }
 }

@@ -66,6 +66,7 @@ class HttpTtsClientTest {
             @Override public String model() { return "tts-1"; }
             @Override public String voice() { return "pt_br"; }
             @Override public String responseFormat() { return "mp3"; }
+            @Override public Optional<String> fallback() { return Optional.empty(); }
         };
     }
 }

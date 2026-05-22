@@ -19,6 +19,11 @@ import java.util.Locale;
 @ApplicationScoped
 public class MessagingOrchestrator {
 
+    private static final String EMOJI_REGEX =
+            "[\\x{1F000}-\\x{1FAFF}\\x{2600}-\\x{27BF}\\x{2190}-\\x{21FF}"
+            + "\\x{2B00}-\\x{2BFF}\\x{FE00}-\\x{FE0F}\\x{1F1E6}-\\x{1F1FF}"
+            + "\\x{200D}\\x{2122}\\x{2139}\\x{20E3}]";
+
     @Inject
     AgentService agentService;
 
@@ -115,6 +120,8 @@ public class MessagingOrchestrator {
                 .replaceAll("`([^`]*)`", "$1")
                 .replaceAll("\\[([^\\]]*)\\]\\([^)]*\\)", "$1")
                 .replaceAll("[*_#>]", "")
+                .replaceAll(EMOJI_REGEX, "")
+                .replaceAll("\\s{2,}", " ")
                 .trim();
         int cap = 2000;
         return cleaned.length() > cap ? cleaned.substring(0, cap) : cleaned;
