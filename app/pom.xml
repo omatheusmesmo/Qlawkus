@@ -64,6 +64,11 @@
             <artifactId>qlawkus-messaging-discord</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>dev.omatheusmesmo</groupId>
+            <artifactId>qlawkus-messaging-telegram</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk18on</artifactId>

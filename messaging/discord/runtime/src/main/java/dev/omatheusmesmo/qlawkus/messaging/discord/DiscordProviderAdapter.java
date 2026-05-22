@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.messaging.discord;
 
+import dev.omatheusmesmo.qlawkus.messaging.MediaDownloader;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingFormat;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
@@ -29,11 +30,6 @@ import jakarta.inject.Inject;
 import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayInputStream;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.Optional;
 
 @ApplicationScoped
@@ -41,6 +37,9 @@ public class DiscordProviderAdapter implements MessagingProvider {
 
     @Inject
     DiscordConfig config;
+
+    @Inject
+    MediaDownloader mediaDownloader;
 
     @Inject
     MessagingOrchestrator orchestrator;
@@ -114,8 +113,16 @@ public class DiscordProviderAdapter implements MessagingProvider {
     }
 
     private void handleMessage(MessageCreateEvent event) {
-        MessagingMessage mapped = mapMessage(event.getMessage());
+        Message msg = event.getMessage();
+        MessagingMessage mapped = mapMessage(msg);
         if (mapped.text().isBlank() && mapped.audio().isEmpty()) {
+            if (hasAudioAttachment(msg)) {
+                send(msg.getChannelId().asString(),
+                        "⚠️ Não consegui processar seu áudio agora (falha ao baixar do Discord). Pode tentar enviar de novo?")
+                        .subscribe().with(
+                                ignored -> {},
+                                err -> Log.errorf(err, "Discord: failed to notify audio download error"));
+            }
             return;
         }
 
@@ -198,34 +205,28 @@ public class DiscordProviderAdapter implements MessagingProvider {
 
     private Optional<byte[]> extractAudioAttachment(Message msg) {
         return msg.getAttachments().stream()
-                .filter(att -> att.getContentType()
-                        .map(ct -> ct.startsWith("audio/"))
-                        .orElse(false))
+                .filter(this::isAudio)
                 .findFirst()
                 .flatMap(this::downloadAttachment);
     }
 
+    private boolean hasAudioAttachment(Message msg) {
+        return msg.getAttachments().stream().anyMatch(this::isAudio);
+    }
+
+    private boolean isAudio(Attachment att) {
+        return att.getContentType().map(ct -> ct.startsWith("audio/")).orElse(false);
+    }
+
     private Optional<byte[]> downloadAttachment(Attachment att) {
         try {
-            HttpClient client = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofSeconds(10))
-                    .build();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(att.getUrl()))
-                    .timeout(Duration.ofSeconds(60))
-                    .build();
-            HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-            if (response.statusCode() == 200) {
-                Log.infof("Discord: downloaded audio attachment %s (%d bytes, %s)",
-                        att.getFilename(), response.body().length,
-                        att.getContentType().orElse("unknown"));
-                return Optional.of(response.body());
-            }
-            Log.warnf("Discord: failed to download attachment %s, status=%d",
-                    att.getFilename(), response.statusCode());
-            return Optional.empty();
+            byte[] data = mediaDownloader.download(att.getUrl());
+            Log.infof("Discord: downloaded audio attachment %s (%d bytes, %s)",
+                    att.getFilename(), data.length, att.getContentType().orElse("unknown"));
+            return Optional.of(data);
         } catch (Exception e) {
-            Log.errorf(e, "Discord: error downloading attachment %s", att.getFilename());
+            Log.errorf("Discord: failed to download attachment %s after retries: %s",
+                    att.getFilename(), e.getMessage());
             return Optional.empty();
         }
     }

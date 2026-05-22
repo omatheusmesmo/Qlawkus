@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.messaging.telegram;
 
+import dev.omatheusmesmo.qlawkus.messaging.MediaDownloader;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingFormat;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
@@ -32,7 +33,7 @@ class TelegramProviderAdapterTest {
         adapter.config = config;
         adapter.orchestrator = orchestrator;
 
-        when(config.botToken()).thenReturn("123:token");
+        when(config.botToken()).thenReturn(Optional.of("123:token"));
         when(orchestrator.process(any())).thenReturn(Uni.createFrom().voidItem());
     }
 
@@ -77,6 +78,30 @@ class TelegramProviderAdapterTest {
 
         MessagingMessage msg = adapter.mapUpdate(update);
         assertEquals("", msg.text());
+    }
+
+    @Test
+    void mapUpdate_voiceNote_downloadsAndSetsAudio() {
+        MediaDownloader downloader = Mockito.mock(MediaDownloader.class);
+        adapter.mediaDownloader = downloader;
+        when(config.apiBaseUrl()).thenReturn("https://api.telegram.org");
+        when(botClient.getFile("123:token", "file-id")).thenReturn(
+                new TelegramBotClient.GetFileResponse(true,
+                        new TelegramBotClient.FileResult("voice/file_1.oga")));
+        when(downloader.download("https://api.telegram.org/file/bot123:token/voice/file_1.oga"))
+                .thenReturn(new byte[]{9, 8, 7});
+
+        TelegramUpdate update = new TelegramUpdate(1L, new TelegramUpdate.TelegramMessage(
+                10L,
+                new TelegramUpdate.TelegramUser(42L, "Alice", "alice"),
+                new TelegramUpdate.TelegramChat(42L, "private"),
+                null,
+                new TelegramUpdate.TelegramVoice("file-id", 5)));
+
+        MessagingMessage msg = adapter.mapUpdate(update);
+
+        assertTrue(msg.audio().isPresent());
+        assertArrayEquals(new byte[]{9, 8, 7}, msg.audio().get());
     }
 
     @Test

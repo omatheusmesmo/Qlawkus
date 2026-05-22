@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.messaging.telegram;
 
+import dev.omatheusmesmo.qlawkus.messaging.MediaDownloader;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingFormat;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
@@ -36,6 +37,9 @@ public class TelegramProviderAdapter implements MessagingProvider {
     @Inject
     MessagingOrchestrator orchestrator;
 
+    @Inject
+    MediaDownloader mediaDownloader;
+
     @Override
     public String providerId() {
         return "telegram";
@@ -54,10 +58,15 @@ public class TelegramProviderAdapter implements MessagingProvider {
 
     @Override
     public Uni<Void> send(String chatId, String text) {
+        Optional<String> token = botToken();
+        if (token.isEmpty()) {
+            Log.warnf("Telegram: bot-token not configured, dropping message to chatId=%s", chatId);
+            return Uni.createFrom().voidItem();
+        }
         return Uni.createFrom()
                 .item(() -> {
                     botClient.sendMessage(
-                            config.botToken(),
+                            token.get(),
                             new TelegramBotClient.SendMessageRequest(chatId, text, "MarkdownV2"));
                     return null;
                 })
@@ -69,6 +78,9 @@ public class TelegramProviderAdapter implements MessagingProvider {
 
     @Override
     public Uni<Void> sendVoice(String chatId, byte[] audio, String filename, String fallbackText) {
+        if (botToken().isEmpty()) {
+            return send(chatId, fallbackText);
+        }
         return Uni.createFrom()
                 .item(() -> {
                     sendAudioMultipart(chatId, audio, filename);
@@ -86,7 +98,7 @@ public class TelegramProviderAdapter implements MessagingProvider {
         byte[] body = buildAudioMultipart(boundary, chatId, audio, filename);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(config.apiBaseUrl() + "/bot" + config.botToken() + "/sendAudio"))
+                .uri(URI.create(config.apiBaseUrl() + "/bot" + botToken().orElseThrow() + "/sendAudio"))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(body))
                 .timeout(Duration.ofSeconds(60))
@@ -124,12 +136,38 @@ public class TelegramProviderAdapter implements MessagingProvider {
         return out.toByteArray();
     }
 
+    private Optional<String> botToken() {
+        return config.botToken().filter(token -> !token.isBlank());
+    }
+
     public MessagingMessage mapUpdate(TelegramUpdate update) {
         TelegramUpdate.TelegramMessage msg = update.message();
         String userId = String.valueOf(msg.from().id());
         String chatId = String.valueOf(msg.chat().id());
         String text = msg.text() != null ? msg.text() : "";
-        Optional<byte[]> audio = Optional.empty();
-        return new MessagingMessage("telegram", chatId, userId, text, audio);
+        return new MessagingMessage("telegram", chatId, userId, text, extractVoice(msg));
+    }
+
+    private Optional<byte[]> extractVoice(TelegramUpdate.TelegramMessage msg) {
+        if (msg.voice() == null) {
+            return Optional.empty();
+        }
+        Optional<String> token = botToken();
+        if (token.isEmpty()) {
+            Log.warnf("Telegram: voice note received but bot-token not configured");
+            return Optional.empty();
+        }
+        try {
+            TelegramBotClient.GetFileResponse file = botClient.getFile(token.get(), msg.voice().fileId());
+            if (file == null || file.result() == null || file.result().filePath() == null) {
+                Log.warnf("Telegram: getFile returned no file_path for voice note");
+                return Optional.empty();
+            }
+            String url = config.apiBaseUrl() + "/file/bot" + token.get() + "/" + file.result().filePath();
+            return Optional.of(mediaDownloader.download(url));
+        } catch (Exception e) {
+            Log.errorf("Telegram: failed to fetch voice note: %s", e.getMessage());
+            return Optional.empty();
+        }
     }
 }

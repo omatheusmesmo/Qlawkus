@@ -1,11 +1,14 @@
 package dev.omatheusmesmo.qlawkus.messaging.telegram;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
@@ -19,9 +22,20 @@ public interface TelegramBotClient {
     @Produces(MediaType.APPLICATION_JSON)
     void sendMessage(@PathParam("token") String token, SendMessageRequest request);
 
+    @GET
+    @Path("/getFile")
+    @Produces(MediaType.APPLICATION_JSON)
+    GetFileResponse getFile(@PathParam("token") String token, @QueryParam("file_id") String fileId);
+
     record SendMessageRequest(
             @JsonProperty("chat_id") String chatId,
             String text,
             @JsonProperty("parse_mode") String parseMode
     ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record GetFileResponse(boolean ok, FileResult result) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record FileResult(@JsonProperty("file_path") String filePath) {}
 }
