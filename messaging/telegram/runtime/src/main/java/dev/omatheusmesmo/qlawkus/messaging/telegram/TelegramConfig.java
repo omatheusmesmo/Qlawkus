@@ -23,4 +23,11 @@ public interface TelegramConfig {
      */
     @WithDefault("https://api.telegram.org")
     String apiBaseUrl();
+
+    /**
+     * Ingestion mode: "polling" (getUpdates loop, works behind NAT, default) or
+     * "webhook" (Telegram posts to /api/webhook/telegram, needs a public URL).
+     */
+    @WithDefault("polling")
+    String mode();
 }
