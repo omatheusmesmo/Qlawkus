@@ -1,0 +1,11 @@
+tts-1:
+  pt_br:
+    model: voices/pt_BR-faber-medium.onnx
+    speaker:
+  troy:
+    model: voices/en_US-libritts_r-medium.onnx
+    speaker: 0
+tts-1-hd:
+  pt_br:
+    model: voices/pt_BR-faber-medium.onnx
+    speaker:
