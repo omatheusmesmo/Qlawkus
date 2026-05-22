@@ -5,6 +5,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.Capability;
+import dev.langchain4j.model.ollama.OllamaChatRequestParameters;
 import io.quarkus.logging.Log;
 import io.quarkiverse.langchain4j.ModelName;
 import jakarta.annotation.Priority;
@@ -133,12 +134,7 @@ public class FallbackChatModel implements ChatModel {
     }
 
     private ChatRequest sanitizeForOllama(ChatRequest request) {
-        if (request.frequencyPenalty() == null && request.presencePenalty() == null) {
-            return request;
-        }
-        Log.debug("Stripping frequencyPenalty/presencePenalty for Ollama compatibility");
-        return ChatRequest.builder()
-                .messages(request.messages())
+        OllamaChatRequestParameters ollamaParams = OllamaChatRequestParameters.builder()
                 .modelName(request.modelName())
                 .temperature(request.temperature())
                 .topP(request.topP())
@@ -148,6 +144,10 @@ public class FallbackChatModel implements ChatModel {
                 .toolSpecifications(request.toolSpecifications())
                 .toolChoice(request.toolChoice())
                 .responseFormat(request.responseFormat())
+                .build();
+        return ChatRequest.builder()
+                .messages(request.messages())
+                .parameters(ollamaParams)
                 .build();
     }
 }
