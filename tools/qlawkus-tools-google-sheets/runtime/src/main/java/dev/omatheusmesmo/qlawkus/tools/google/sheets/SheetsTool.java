@@ -2,7 +2,9 @@ package dev.omatheusmesmo.qlawkus.tools.google.sheets;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.omatheusmesmo.qlawkus.agent.Logged;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiDiagnostics;
 import dev.omatheusmesmo.qlawkus.tools.google.sheets.model.SheetValues;
 import dev.omatheusmesmo.qlawkus.tools.google.sheets.model.UpdateValuesRequest;
 import dev.omatheusmesmo.qlawkus.tools.google.sheets.model.UpdateValuesResponse;
@@ -18,6 +20,7 @@ import java.util.stream.Collectors;
 
 @ClawTool
 @ApplicationScoped
+@Logged
 public class SheetsTool {
 
     @Inject
@@ -50,7 +53,7 @@ public class SheetsTool {
             return output.toString().trim();
         } catch (Exception e) {
             Log.errorf(e, "Failed to read sheet %s range %s", spreadsheetId, range);
-            return "Error reading sheet: " + e.getMessage();
+            return GoogleApiDiagnostics.diagnose("read Google Sheet", e);
         }
     }
 
@@ -71,7 +74,7 @@ public class SheetsTool {
                     response.updatedCells(), response.updatedRows(), response.updatedColumns());
         } catch (Exception e) {
             Log.errorf(e, "Failed to write sheet %s range %s", spreadsheetId, range);
-            return "Error writing sheet: " + e.getMessage();
+            return GoogleApiDiagnostics.diagnose("write Google Sheet", e);
         }
     }
 
@@ -91,7 +94,7 @@ public class SheetsTool {
             return String.format("Cell %s updated. %d cell changed.", cell, response.updatedCells());
         } catch (Exception e) {
             Log.errorf(e, "Failed to update cell %s in sheet %s", cell, spreadsheetId);
-            return "Error updating cell: " + e.getMessage();
+            return GoogleApiDiagnostics.diagnose("update Google Sheet cell", e);
         }
     }
 

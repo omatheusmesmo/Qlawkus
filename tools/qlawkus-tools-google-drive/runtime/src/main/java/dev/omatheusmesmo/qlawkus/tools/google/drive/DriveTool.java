@@ -2,7 +2,9 @@ package dev.omatheusmesmo.qlawkus.tools.google.drive;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.omatheusmesmo.qlawkus.agent.Logged;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiDiagnostics;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DriveFile;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DriveFileList;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DrivePermission;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 
 @ClawTool
 @ApplicationScoped
+@Logged
 public class DriveTool {
 
     @Inject
@@ -54,7 +57,7 @@ public class DriveTool {
                     .collect(Collectors.joining("\n---\n"));
         } catch (Exception e) {
             Log.errorf(e, "Failed to list Drive files");
-            return "Error listing files: " + e.getMessage();
+            return GoogleApiDiagnostics.diagnose("list Drive files", e);
         }
     }
 
@@ -79,7 +82,7 @@ public class DriveTool {
             return "File uploaded: " + uploaded.name() + " (ID: " + uploaded.id() + ")\nLink: " + uploaded.webViewLink();
         } catch (Exception e) {
             Log.errorf(e, "Failed to upload file to Drive");
-            return "Error uploading file: " + e.getMessage();
+            return GoogleApiDiagnostics.diagnose("upload file to Drive", e);
         }
     }
 
@@ -98,7 +101,7 @@ public class DriveTool {
             return "File: " + metadata.name() + "\n---\n" + content;
         } catch (Exception e) {
             Log.errorf(e, "Failed to download Drive file %s", fileId);
-            return "Error downloading file: " + e.getMessage();
+            return GoogleApiDiagnostics.diagnose("download Drive file", e);
         }
     }
 
@@ -118,7 +121,7 @@ public class DriveTool {
             return "File shared with " + permission.emailAddress() + " as " + permission.role();
         } catch (Exception e) {
             Log.errorf(e, "Failed to share Drive file %s", fileId);
-            return "Error sharing file: " + e.getMessage();
+            return GoogleApiDiagnostics.diagnose("share Drive file", e);
         }
     }
 
