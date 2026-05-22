@@ -12,9 +12,9 @@ import io.smallrye.config.WithDefault;
 public interface GoogleVaultConfig {
 
     /**
-     * Whether the Google credential vault is enabled.
+     * Whether the persistent (encrypted) Google credential vault is enabled. When true and an encryption passphrase is provided, refresh tokens are persisted to postgres encrypted with AES-256. When false, or when no passphrase is provided, the service falls back to an in-memory ephemeral store that loses tokens on restart.
      */
-    @WithDefault("false")
+    @WithDefault("true")
     boolean enabled();
 
     /**

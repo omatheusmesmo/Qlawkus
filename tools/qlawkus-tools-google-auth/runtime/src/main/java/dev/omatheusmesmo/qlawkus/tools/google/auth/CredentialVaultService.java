@@ -1,6 +1,5 @@
 package dev.omatheusmesmo.qlawkus.tools.google.auth;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduler;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -28,13 +27,27 @@ public class CredentialVaultService {
     Scheduler scheduler;
 
     private volatile AesEncryptor encryptor;
+    private volatile MemoryCredential memoryStore;
+    private volatile boolean renewalScheduled;
+
+    /**
+     * Returns true when persistent encrypted vault should be used.
+     * Returns false when running in ephemeral in-memory mode (vault disabled or no passphrase).
+     */
+    private boolean useVault() {
+        return vaultConfig.enabled() && vaultConfig.encryptionPassphrase().isPresent()
+                && !vaultConfig.encryptionPassphrase().get().isBlank();
+    }
 
     void onRefreshTokenCaptured(@ObservesAsync RefreshTokenCapturedEvent event) {
-        if (!vaultConfig.enabled()) {
-            Log.info("Google vault disabled, skipping refresh token persistence");
-            return;
+        if (useVault()) {
+            persistRefreshToken(event.refreshToken());
+        } else {
+            memoryStore = new MemoryCredential(event.refreshToken(), null, null);
+            Log.warn("⚠️ Refresh token captured in MEMORY ONLY (vault disabled or no encryption-passphrase). "
+                    + "Token will be LOST on container restart. To persist, set qlawkus.google.vault.enabled=true "
+                    + "and qlawkus.google.vault.encryption-passphrase.");
         }
-        persistRefreshToken(event.refreshToken());
         scheduleRenewal();
     }
 
@@ -54,10 +67,16 @@ public class CredentialVaultService {
         Log.info("Google refresh token persisted (encrypted)");
     }
 
-    @Transactional
     public void renewAccessToken() {
-        if (!vaultConfig.enabled()) return;
+        if (useVault()) {
+            renewVaultAccessToken();
+        } else {
+            renewMemoryAccessToken();
+        }
+    }
 
+    @Transactional
+    void renewVaultAccessToken() {
         GoogleCredential credential = GoogleCredential.findByProvider("google");
         if (credential == null) {
             Log.debug("No Google credential stored, skipping renewal");
@@ -68,7 +87,7 @@ public class CredentialVaultService {
         String refreshToken = enc.decrypt(credential.encryptedRefreshToken);
 
         try {
-            TokenResponse response = deviceFlowClient.retrieveToken(
+            TokenResponse response = deviceFlowClient.refreshAccessToken(
                     authConfig.clientId(),
                     authConfig.clientSecret(),
                     refreshToken,
@@ -94,9 +113,45 @@ public class CredentialVaultService {
         }
     }
 
-    public String getAccessToken() {
-        if (!vaultConfig.enabled()) return null;
+    void renewMemoryAccessToken() {
+        MemoryCredential current = memoryStore;
+        if (current == null || current.refreshToken() == null) {
+            Log.debug("No in-memory Google credential, skipping renewal");
+            return;
+        }
 
+        try {
+            TokenResponse response = deviceFlowClient.refreshAccessToken(
+                    authConfig.clientId(),
+                    authConfig.clientSecret(),
+                    current.refreshToken(),
+                    "refresh_token");
+
+            if (response.error() != null) {
+                Log.errorf("In-memory token renewal error: %s - %s", response.error(), response.errorDescription());
+                return;
+            }
+
+            String newRefresh = response.refreshToken() != null ? response.refreshToken() : current.refreshToken();
+            memoryStore = new MemoryCredential(
+                    newRefresh,
+                    response.accessToken(),
+                    Instant.now().plusSeconds(response.expiresIn()));
+
+            Log.infof("In-memory Google access token renewed, expires in %ds", response.expiresIn());
+        } catch (Exception e) {
+            Log.errorf(e, "Failed to renew in-memory Google access token");
+        }
+    }
+
+    public String getAccessToken() {
+        if (useVault()) {
+            return getVaultAccessToken();
+        }
+        return getMemoryAccessToken();
+    }
+
+    private String getVaultAccessToken() {
         GoogleCredential credential = GoogleCredential.findByProvider("google");
         if (credential == null) return null;
 
@@ -104,36 +159,55 @@ public class CredentialVaultService {
             return credential.accessToken;
         }
 
-        renewAccessToken();
+        renewVaultAccessToken();
 
         credential = GoogleCredential.findByProvider("google");
         return credential != null ? credential.accessToken : null;
     }
 
+    private String getMemoryAccessToken() {
+        MemoryCredential current = memoryStore;
+        if (current == null) return null;
+
+        if (current.expiresAt() != null && current.expiresAt().isAfter(Instant.now().plusSeconds(60))) {
+            return current.accessToken();
+        }
+
+        renewMemoryAccessToken();
+        MemoryCredential refreshed = memoryStore;
+        return refreshed != null ? refreshed.accessToken() : null;
+    }
+
     public String getDecryptedRefreshToken() {
-        if (!vaultConfig.enabled()) return null;
-
-        GoogleCredential credential = GoogleCredential.findByProvider("google");
-        if (credential == null) return null;
-
-        return getEncryptor().decrypt(credential.encryptedRefreshToken);
+        if (useVault()) {
+            GoogleCredential credential = GoogleCredential.findByProvider("google");
+            return credential != null ? getEncryptor().decrypt(credential.encryptedRefreshToken) : null;
+        }
+        MemoryCredential current = memoryStore;
+        return current != null ? current.refreshToken() : null;
     }
 
     private AesEncryptor getEncryptor() {
         if (encryptor == null) {
             String passphrase = vaultConfig.encryptionPassphrase()
-                    .orElseThrow(() -> new IllegalStateException("qlawkus.google.vault.encryption-passphrase is required when vault is enabled"));
+                    .orElseThrow(() -> new IllegalStateException(
+                            "qlawkus.google.vault.encryption-passphrase is required when vault is enabled"));
             encryptor = new AesEncryptor(passphrase);
         }
         return encryptor;
     }
 
-    private void scheduleRenewal() {
+    private synchronized void scheduleRenewal() {
+        if (renewalScheduled) return;
         String interval = vaultConfig.renewalIntervalSeconds() + "s";
         scheduler.newJob("google-token-renewal")
                 .setInterval(interval)
                 .setTask(ctx -> renewAccessToken())
                 .schedule();
-        Log.infof("Scheduled Google token renewal every %s", interval);
+        renewalScheduled = true;
+        Log.infof("Scheduled Google token renewal every %s (mode: %s)",
+                interval, useVault() ? "vault" : "memory");
     }
+
+    private record MemoryCredential(String refreshToken, String accessToken, Instant expiresAt) {}
 }

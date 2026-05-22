@@ -5,22 +5,27 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.FormParam;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
-@Path("/oauth2")
+/**
+ * REST client for Google's OAuth 2.0 token endpoint. The name is legacy (formerly Device Flow only)
+ * but now supports the Loopback/Web Authorization Code flow.
+ */
 @RegisterRestClient(baseUri = "https://oauth2.googleapis.com")
 public interface GoogleDeviceFlowClient {
 
     @POST
-    @Path("/device/code")
-    DeviceCodeResponse requestDeviceCode(
+    @Path("/token")
+    TokenResponse refreshAccessToken(
             @FormParam("client_id") String clientId,
             @FormParam("client_secret") String clientSecret,
-            @FormParam("scope") String scope);
+            @FormParam("refresh_token") String refreshToken,
+            @FormParam("grant_type") String grantType);
 
     @POST
     @Path("/token")
-    TokenResponse retrieveToken(
+    TokenResponse exchangeAuthorizationCode(
             @FormParam("client_id") String clientId,
             @FormParam("client_secret") String clientSecret,
-            @FormParam("device_code") String deviceCode,
+            @FormParam("code") String code,
+            @FormParam("redirect_uri") String redirectUri,
             @FormParam("grant_type") String grantType);
 }
