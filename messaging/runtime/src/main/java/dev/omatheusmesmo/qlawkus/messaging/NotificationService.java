@@ -38,6 +38,16 @@ public class NotificationService {
                 });
     }
 
+    public Uni<Void> sendVoice(String providerId, String chatId, byte[] audio, String filename, String fallbackText) {
+        return providerRegistry.getProvider(providerId)
+                .map(provider -> provider.sendVoice(chatId, audio, filename, fallbackText))
+                .orElseGet(() -> {
+                    Log.warnf("NotificationService: no active provider=%s, dropping voice message to chatId=%s",
+                            providerId, chatId);
+                    return Uni.createFrom().voidItem();
+                });
+    }
+
     public Uni<Void> broadcast(String text) {
         return Multi.createFrom().iterable(providerRegistry.activeProviders())
                 .onItem().transformToUniAndConcatenate(provider ->
