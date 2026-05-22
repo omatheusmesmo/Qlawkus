@@ -46,6 +46,11 @@ public class ChatMessageEntity extends PanacheEntityBase {
     return delete("memoryId = ?1", memoryId);
   }
 
+  public static Instant findLatestTimestamp(String memoryId) {
+    ChatMessageEntity latest = find("memoryId = ?1 order by createdAt desc", memoryId).firstResult();
+    return latest != null ? latest.createdAt : null;
+  }
+
     public static String findLatestMemoryId() {
         ChatMessageEntity latest = find("id is not null order by id desc").firstResult();
         return latest != null ? latest.memoryId : null;

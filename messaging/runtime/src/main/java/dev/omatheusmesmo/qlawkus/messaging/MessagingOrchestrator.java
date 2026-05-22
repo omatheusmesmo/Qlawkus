@@ -18,6 +18,8 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.text.Normalizer;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Locale;
 
 @ApplicationScoped
@@ -54,6 +56,9 @@ public class MessagingOrchestrator {
 
     @ConfigProperty(name = "qlawkus.agent.shared-context.enabled", defaultValue = "true")
     boolean sharedContextEnabled;
+
+    @ConfigProperty(name = "qlawkus.agent.context-ttl-minutes", defaultValue = "60")
+    long contextTtlMinutes;
 
     public Uni<Void> process(MessagingMessage message) {
         Log.infof("MessagingOrchestrator: received provider=%s userId=%s chatId=%s textLen=%d hasAudio=%s",
@@ -154,6 +159,18 @@ public class MessagingOrchestrator {
         return type + ": " + trimmed;
     }
 
+    private void expireIdleConversation(String conversationId) {
+        if (contextTtlMinutes <= 0) {
+            return;
+        }
+        Instant last = workingMemoryStore.lastActivity(conversationId);
+        if (last != null && Duration.between(last, Instant.now()).toMinutes() >= contextTtlMinutes) {
+            workingMemoryStore.deleteMessages(conversationId);
+            Log.infof("MessagingOrchestrator: conversation id=%s idle >= %d min, resetting context",
+                    conversationId, contextTtlMinutes);
+        }
+    }
+
     private String memoryId(MessagingMessage message) {
         return sharedContextEnabled
                 ? ConversationId.SHARED
@@ -170,6 +187,7 @@ public class MessagingOrchestrator {
         AgentResult result;
         boolean clearRequested;
         try {
+            expireIdleConversation(conversationId);
             String response = agentService.chatSync(conversationId, text);
             clearRequested = conversationControl.isClearRequested();
             result = new AgentResult(response, voicePreference.isRequested(), voicePreference.language());
