@@ -20,6 +20,8 @@ services:
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID:-}
       - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-*}
       - DISCORD_RESPOND_ALL=${DISCORD_RESPOND_ALL:-true}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-*}
       - WHISPER_API_KEY=${GROQ_API_KEY:-}
       - WHISPER_BASE_URL=${WHISPER_BASE_URL:-https://api.groq.com/openai}
       - WHISPER_MODEL=${WHISPER_MODEL:-whisper-large-v3-turbo}
@@ -43,8 +45,12 @@ services:
       - TTS_PT_MODEL=${TTS_PT_MODEL:-tts-1}
       - TTS_PT_VOICE=${TTS_PT_VOICE:-pt_br}
       - TTS_EN_BASE_URL=${TTS_EN_BASE_URL:-https://api.groq.com/openai}
+      - TTS_EN_API_KEY=${GROQ_API_KEY:-}
       - TTS_EN_MODEL=${TTS_EN_MODEL:-canopylabs/orpheus-v1-english}
       - TTS_EN_VOICE=${TTS_EN_VOICE:-troy}
+      - TTS_EN_LOCAL_BASE_URL=${TTS_EN_LOCAL_BASE_URL:-http://tts:8000}
+      - TTS_EN_LOCAL_MODEL=${TTS_EN_LOCAL_MODEL:-tts-1}
+      - TTS_EN_LOCAL_VOICE=${TTS_EN_LOCAL_VOICE:-en_ryan}
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,6 +80,8 @@ services:
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID:-}
       - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-*}
       - DISCORD_RESPOND_ALL=${DISCORD_RESPOND_ALL:-true}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-*}
       - WHISPER_API_KEY=${GROQ_API_KEY:-}
       - WHISPER_BASE_URL=${WHISPER_BASE_URL:-https://api.groq.com/openai}
       - WHISPER_MODEL=${WHISPER_MODEL:-whisper-large-v3-turbo}
@@ -144,13 +152,18 @@ services:
       - -c
       - |
         set -e
-        base="https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/pt/pt_BR/faber/medium"
-        if [ ! -f /voices/pt_BR-faber-medium.onnx ]; then
-          echo "Downloading pt_BR-faber-medium voice..."
-          curl -fsSL -o /voices/pt_BR-faber-medium.onnx "$$base/pt_BR-faber-medium.onnx"
-          curl -fsSL -o /voices/pt_BR-faber-medium.onnx.json "$$base/pt_BR-faber-medium.onnx.json"
+        rh="https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0"
+        if [ ! -f /voices/pt_BR-cadu-medium.onnx ]; then
+          echo "Downloading pt_BR-cadu-medium voice..."
+          curl -fsSL -o /voices/pt_BR-cadu-medium.onnx "$$rh/pt/pt_BR/cadu/medium/pt_BR-cadu-medium.onnx"
+          curl -fsSL -o /voices/pt_BR-cadu-medium.onnx.json "$$rh/pt/pt_BR/cadu/medium/pt_BR-cadu-medium.onnx.json"
         fi
-        echo "pt-BR voice ready."
+        if [ ! -f /voices/en_US-ryan-high.onnx ]; then
+          echo "Downloading en_US-ryan-high voice..."
+          curl -fsSL -o /voices/en_US-ryan-high.onnx "$$rh/en/en_US/ryan/high/en_US-ryan-high.onnx"
+          curl -fsSL -o /voices/en_US-ryan-high.onnx.json "$$rh/en/en_US/ryan/high/en_US-ryan-high.onnx.json"
+        fi
+        echo "TTS voices ready."
 
   tts:
     image: ghcr.io/matatonic/openedai-speech-min
