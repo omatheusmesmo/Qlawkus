@@ -53,5 +53,8 @@ public interface TtsConfig {
         /** Audio response format requested from the provider. */
         @WithDefault("mp3")
         String responseFormat();
+
+        /** Optional provider key to try if this provider fails (e.g. a local fallback). */
+        Optional<String> fallback();
     }
 }

@@ -78,14 +78,54 @@ class TtsRouterTest {
     }
 
     private TtsConfig.TtsProvider provider(String model) {
+        return providerWith("openai", model, null);
+    }
+
+    private TtsConfig.TtsProvider providerWith(String kind, String model, String fallback) {
         return new TtsConfig.TtsProvider() {
-            @Override public String kind() { return "openai"; }
+            @Override public String kind() { return kind; }
             @Override public String baseUrl() { return "http://tts"; }
             @Override public Optional<String> apiKey() { return Optional.empty(); }
             @Override public String model() { return model; }
             @Override public String voice() { return "v"; }
             @Override public String responseFormat() { return "mp3"; }
+            @Override public Optional<String> fallback() { return Optional.ofNullable(fallback); }
         };
+    }
+
+    @Test
+    void usesFallbackProviderWhenPrimaryFails() {
+        RecordingClient ok = new RecordingClient();
+        TtsRouter router = new TtsRouter();
+        router.clients = List.of(new FailingClient(), ok);
+        router.config = config(true, "en", Map.of(
+                "en", providerWith("failing", "primary-model", "en_local"),
+                "en_local", providerWith("openai", "fallback-model", null)));
+
+        router.synthesize("hi", "en");
+
+        assertEquals("fallback-model", ok.usedProvider.model());
+    }
+
+    @Test
+    void rethrowsWhenPrimaryFailsAndNoFallback() {
+        TtsRouter router = new TtsRouter();
+        router.clients = List.of(new FailingClient());
+        router.config = config(true, "en", Map.of("en", providerWith("failing", "m", null)));
+
+        assertThrows(RuntimeException.class, () -> router.synthesize("hi", "en"));
+    }
+
+    private static class FailingClient implements TtsClient {
+        @Override
+        public String kind() {
+            return "failing";
+        }
+
+        @Override
+        public byte[] synthesize(TtsConfig.TtsProvider provider, String text) {
+            throw new RuntimeException("primary down");
+        }
     }
 
     private static class RecordingClient implements TtsClient {

@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.messaging.tts;
 
 import io.quarkus.arc.All;
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -28,7 +29,20 @@ public class TtsRouter {
      */
     public byte[] synthesize(String text, String language) {
         TtsConfig.TtsProvider provider = resolveProvider(language);
-        return clientFor(provider.kind()).synthesize(provider, text);
+        try {
+            return clientFor(provider.kind()).synthesize(provider, text);
+        } catch (RuntimeException primaryFailure) {
+            TtsConfig.TtsProvider fallback = provider.fallback()
+                    .filter(key -> !key.isBlank())
+                    .map(key -> config.providers().get(key))
+                    .orElse(null);
+            if (fallback == null) {
+                throw primaryFailure;
+            }
+            Log.warnf("TTS provider for language='%s' failed (%s); using fallback '%s'",
+                    language, primaryFailure.getMessage(), provider.fallback().orElse(""));
+            return clientFor(fallback.kind()).synthesize(fallback, text);
+        }
     }
 
     private TtsClient clientFor(String kind) {
