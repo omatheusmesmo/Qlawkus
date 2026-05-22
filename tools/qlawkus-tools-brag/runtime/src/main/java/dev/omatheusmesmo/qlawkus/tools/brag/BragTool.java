@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.tools.brag;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.omatheusmesmo.qlawkus.agent.Logged;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 
 @ClawTool
 @ApplicationScoped
+@Logged
 public class BragTool {
 
     @Inject
