@@ -7,8 +7,10 @@ import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingProvider;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingResponse;
 import io.quarkus.logging.Log;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
+import io.smallrye.mutiny.subscription.Cancellable;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -52,8 +54,30 @@ public class TelegramProviderAdapter implements MessagingProvider {
 
     @Override
     public Uni<MessagingResponse> receive(MessagingMessage message) {
+        Cancellable typing = startTypingIndicator(message.chatId());
         return orchestrator.process(message)
+                .onTermination().invoke(typing::cancel)
                 .replaceWith(new MessagingResponse(message.chatId(), ""));
+    }
+
+    private Cancellable startTypingIndicator(String chatId) {
+        Optional<String> token = botToken();
+        if (token.isEmpty()) {
+            return () -> { };
+        }
+        sendChatAction(token.get(), chatId);
+        return Multi.createFrom().ticks().every(Duration.ofSeconds(4))
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+                .onItem().invoke(tick -> sendChatAction(token.get(), chatId))
+                .subscribe().with(ignored -> { }, error -> { });
+    }
+
+    private void sendChatAction(String token, String chatId) {
+        try {
+            botClient.sendChatAction(token, new TelegramBotClient.SendChatActionRequest(chatId, "typing"));
+        } catch (Exception e) {
+            Log.debugf("Telegram: sendChatAction failed chatId=%s: %s", chatId, e.getMessage());
+        }
     }
 
     @Override
