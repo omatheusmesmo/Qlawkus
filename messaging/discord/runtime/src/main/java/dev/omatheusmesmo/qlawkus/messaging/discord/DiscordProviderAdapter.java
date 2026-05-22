@@ -10,11 +10,13 @@ import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
+import discord4j.core.object.entity.Attachment;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.spec.MessageCreateSpec;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
 import io.quarkus.logging.Log;
@@ -24,7 +26,14 @@ import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import reactor.core.publisher.Mono;
 
+import java.io.ByteArrayInputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Optional;
 
 @ApplicationScoped
@@ -61,7 +70,7 @@ public class DiscordProviderAdapter implements MessagingProvider {
                         gateway -> {
                             gatewayClient = gateway;
                             setupListeners(gateway);
-                            slashCommandRegistrar.register(gateway, config.applicationId().orElse(""));
+                            slashCommandRegistrar.register(gateway, config.applicationId().orElse(""), config.guildId());
                             postStartupGreeting(gateway);
                             Log.info("Discord: Gateway connected");
                         },
@@ -106,13 +115,22 @@ public class DiscordProviderAdapter implements MessagingProvider {
 
     private void handleMessage(MessageCreateEvent event) {
         MessagingMessage mapped = mapMessage(event.getMessage());
-        if (mapped.text().isBlank()) {
+        if (mapped.text().isBlank() && mapped.audio().isEmpty()) {
             return;
         }
-        orchestrator.process(mapped)
-                .subscribe().with(
-                        r -> {},
-                        err -> Log.errorf(err, "Discord: orchestrator failed userId=%s", mapped.userId()));
+
+        var processingStage = orchestrator.process(mapped)
+                .onFailure().invoke(err -> Log.errorf(err,
+                        "Discord: orchestrator failed userId=%s", mapped.userId()))
+                .onFailure().recoverWithNull()
+                .subscribeAsCompletionStage();
+
+        event.getMessage().getChannel()
+                .ofType(MessageChannel.class)
+                .flatMapMany(channel -> channel.typeUntil(Mono.fromCompletionStage(processingStage)))
+                .subscribe(
+                        __ -> {},
+                        err -> Log.errorf(err, "Discord: typing indicator failed userId=%s", mapped.userId()));
     }
 
     private void handleSlashCommand(ChatInputInteractionEvent event) {
@@ -174,7 +192,42 @@ public class DiscordProviderAdapter implements MessagingProvider {
         String userId = msg.getAuthor().map(User::getId).map(Snowflake::asString).orElse("unknown");
         String channelId = msg.getChannelId().asString();
         String text = msg.getContent();
-        return new MessagingMessage("discord", channelId, userId, text, Optional.empty());
+        Optional<byte[]> audio = extractAudioAttachment(msg);
+        return new MessagingMessage("discord", channelId, userId, text, audio);
+    }
+
+    private Optional<byte[]> extractAudioAttachment(Message msg) {
+        return msg.getAttachments().stream()
+                .filter(att -> att.getContentType()
+                        .map(ct -> ct.startsWith("audio/"))
+                        .orElse(false))
+                .findFirst()
+                .flatMap(this::downloadAttachment);
+    }
+
+    private Optional<byte[]> downloadAttachment(Attachment att) {
+        try {
+            HttpClient client = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .build();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(att.getUrl()))
+                    .timeout(Duration.ofSeconds(60))
+                    .build();
+            HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            if (response.statusCode() == 200) {
+                Log.infof("Discord: downloaded audio attachment %s (%d bytes, %s)",
+                        att.getFilename(), response.body().length,
+                        att.getContentType().orElse("unknown"));
+                return Optional.of(response.body());
+            }
+            Log.warnf("Discord: failed to download attachment %s, status=%d",
+                    att.getFilename(), response.statusCode());
+            return Optional.empty();
+        } catch (Exception e) {
+            Log.errorf(e, "Discord: error downloading attachment %s", att.getFilename());
+            return Optional.empty();
+        }
     }
 
     @Override
@@ -208,5 +261,25 @@ public class DiscordProviderAdapter implements MessagingProvider {
                 .onFailure().invoke(err -> Log.errorf(err, "Discord: send failed channel=%s", channelId))
                 .onFailure().recoverWithNull()
                 .replaceWithVoid();
+    }
+
+    @Override
+    public Uni<Void> sendVoice(String channelId, byte[] audio, String filename, String fallbackText) {
+        if (gatewayClient == null) {
+            Log.warnf("Discord: sendVoice called but Gateway not connected channel=%s", channelId);
+            return Uni.createFrom().voidItem();
+        }
+
+        return Uni.createFrom().completionStage(
+                gatewayClient.getChannelById(Snowflake.of(channelId))
+                        .ofType(MessageChannel.class)
+                        .flatMap(channel -> channel.createMessage(MessageCreateSpec.builder()
+                                .addFile(filename, new ByteArrayInputStream(audio))
+                                .build()))
+                        .toFuture())
+                .replaceWithVoid()
+                .onFailure().invoke(err -> Log.errorf(err,
+                        "Discord: sendVoice failed channel=%s, falling back to text", channelId))
+                .onFailure().recoverWithUni(() -> send(channelId, fallbackText));
     }
 }
