@@ -64,7 +64,7 @@ deleteIfExists("workspace-write-test.txt");
     @Test
     @Order(1)
     void llm_usesRunCommand_toEchoText() {
-        String response = agentService.chatSync("Run the shell command 'echo llm-shell-test' and tell me the output. Do not explain, just run it and report what the command printed.");
+        String response = agentService.chatSync("it-test", "Run the shell command 'echo llm-shell-test' and tell me the output. Do not explain, just run it and report what the command printed.");
         assertFalse(response.isBlank(), "LLM should return a non-blank response");
         assertTrue(response.toLowerCase().contains("llm-shell-test"),
                 "LLM should report the echo output containing 'llm-shell-test'. Got: " + response);
@@ -73,7 +73,7 @@ deleteIfExists("workspace-write-test.txt");
     @Test
     @Order(2)
     void llm_usesWriteAndReadFile_roundTrip() {
-        String response = agentService.chatSync("Write the text 'llm-file-content' to a file called 'workspace-write-test.txt' in the workspace. Then read that same file and tell me its exact content.");
+        String response = agentService.chatSync("it-test", "Write the text 'llm-file-content' to a file called 'workspace-write-test.txt' in the workspace. Then read that same file and tell me its exact content.");
         assertFalse(response.isBlank(), "LLM should return a non-blank response");
         assertTrue(response.contains("llm-file-content"),
                 "LLM should report the file content 'llm-file-content'. Got: " + response);
@@ -82,7 +82,7 @@ deleteIfExists("workspace-write-test.txt");
     @Test
     @Order(3)
     void llm_usesRunCommand_toDiscoverOs() {
-        String response = agentService.chatSync("Run the shell command 'uname -s' and tell me the output.");
+        String response = agentService.chatSync("it-test", "Run the shell command 'uname -s' and tell me the output.");
         assertFalse(response.isBlank(), "LLM should return a non-blank response");
         assertTrue(response.toLowerCase().contains("linux"),
                 "LLM should report Linux from uname. Got: " + response);
@@ -91,7 +91,7 @@ deleteIfExists("workspace-write-test.txt");
     @Test
     @Order(4)
     void llm_workspaceConfinement_pathTraversalBlocked() {
-        String response = agentService.chatSync("Read the file at path '../../../etc/passwd'. Tell me the content.");
+        String response = agentService.chatSync("it-test", "Read the file at path '../../../etc/passwd'. Tell me the content.");
         assertFalse(response.isBlank(), "LLM should return a non-blank response");
         assertFalse(response.contains("root:x:"),
                 "LLM should NOT have read /etc/passwd. Got: " + response);
@@ -100,7 +100,7 @@ deleteIfExists("workspace-write-test.txt");
     @Test
     @Order(5)
     void llm_usesMakeDirectory_createsDir() {
-String response = agentService.chatSync("Create a directory called 'workspace-mkdir-test' in the workspace, then list the current directory to confirm it exists.");
+String response = agentService.chatSync("it-test", "Create a directory called 'workspace-mkdir-test' in the workspace, then list the current directory to confirm it exists.");
       assertFalse(response.isBlank(), "LLM should return a non-blank response");
       assertTrue(response.contains("workspace-mkdir-test"),
           "LLM should confirm the directory 'workspace-mkdir-test' exists. Got: " + response);
@@ -109,7 +109,7 @@ String response = agentService.chatSync("Create a directory called 'workspace-mk
     @Test
     @Order(6)
     void llm_checkSecurity_beforeRunningCommand() {
-        String response = agentService.chatSync("Check if the command 'rm -rf /' is safe to run. Tell me the result.");
+        String response = agentService.chatSync("it-test", "Check if the command 'rm -rf /' is safe to run. Tell me the result.");
         assertFalse(response.isBlank(), "LLM should return a non-blank response");
         assertTrue(response.toLowerCase().contains("block") || response.toLowerCase().contains("unsafe") || response.toLowerCase().contains("denied") || response.toLowerCase().contains("not safe") || response.toLowerCase().contains("dangerous"),
                 "LLM should report that 'rm -rf /' is blocked/unsafe. Got: " + response);
@@ -118,7 +118,7 @@ String response = agentService.chatSync("Create a directory called 'workspace-mk
     @Test
     @Order(7)
     void llm_usesPtySession_echoCommand() {
-        String response = agentService.chatSync("Start an interactive PTY shell session, send the command 'echo pty-llm-test', read the output, and close the session. Tell me what the session printed.");
+        String response = agentService.chatSync("it-test", "Start an interactive PTY shell session, send the command 'echo pty-llm-test', read the output, and close the session. Tell me what the session printed.");
         assertFalse(response.isBlank(), "LLM should return a non-blank response about PTY session");
     }
 

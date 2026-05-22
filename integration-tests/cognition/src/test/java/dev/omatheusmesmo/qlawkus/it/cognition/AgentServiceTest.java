@@ -61,7 +61,7 @@ class AgentServiceTest {
     void chat_returnsResponseWithSoulIdentity() {
         assertEquals("Qlawkus", currentName());
 
-        String response = agentService.chat("What is your name? Reply with just your name, nothing else. Do not use any tools.")
+        String response = agentService.chat("it-test", "What is your name? Reply with just your name, nothing else. Do not use any tools.")
                 .collect()
                 .in(StringBuilder::new, StringBuilder::append)
                 .await()
@@ -76,7 +76,7 @@ class AgentServiceTest {
     @Test
     @Order(3)
     void chat_usesToolToChangeOwnName() {
-        String response = agentService.chat("Change your name to Nova. Use your available tools to do it.")
+        String response = agentService.chat("it-test", "Change your name to Nova. Use your available tools to do it.")
                 .collect()
                 .in(StringBuilder::new, StringBuilder::append)
                 .await()
@@ -92,7 +92,7 @@ class AgentServiceTest {
     @Test
     @Order(4)
     void chat_usesToolToChangeMood() {
-        String response = agentService.chat("Change your mood to CURIOUS. Use your available tools to do it.")
+        String response = agentService.chat("it-test", "Change your mood to CURIOUS. Use your available tools to do it.")
                 .collect()
                 .in(StringBuilder::new, StringBuilder::append)
                 .await()
@@ -108,7 +108,7 @@ class AgentServiceTest {
     @Test
     @Order(5)
     void chat_usesToolToUpdateState() {
-        String response = agentService.chat("Update your current state to 'Testing LLM tool integration'. Use your available tools to do it.")
+        String response = agentService.chat("it-test", "Update your current state to 'Testing LLM tool integration'. Use your available tools to do it.")
                 .collect()
                 .in(StringBuilder::new, StringBuilder::append)
                 .await()
@@ -124,7 +124,7 @@ class AgentServiceTest {
     @Test
     @Order(6)
     void chat_usesToolToChangeCoreIdentity() {
-        String response = agentService.chat("Rewrite your core identity to include 'I am a test agent for integration testing.' Use your available tools to do it.")
+        String response = agentService.chat("it-test", "Rewrite your core identity to include 'I am a test agent for integration testing.' Use your available tools to do it.")
                 .collect()
                 .in(StringBuilder::new, StringBuilder::append)
                 .await()

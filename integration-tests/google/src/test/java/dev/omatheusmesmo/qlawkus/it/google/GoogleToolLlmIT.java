@@ -104,7 +104,7 @@ class GoogleToolLlmIT {
 
     @Test
     void llm_invokesListEventsTool() {
-        String response = agentService.chatSync(
+        String response = agentService.chatSync("it-test",
             "List my calendar events for the next 7 days. Use the listEvents tool.");
 
         assertNotNull(response);
@@ -113,7 +113,7 @@ class GoogleToolLlmIT {
 
     @Test
     void llm_invokesListEmailsTool() {
-        String response = agentService.chatSync(
+        String response = agentService.chatSync("it-test",
             "Check my recent emails. Use the listEmails tool.");
 
         assertNotNull(response);
@@ -122,7 +122,7 @@ class GoogleToolLlmIT {
 
   @Test
   void llm_invokesListFilesTool() {
-    String response = agentService.chatSync(
+    String response = agentService.chatSync("it-test",
         "List my Google Drive files. Use the listDriveFiles tool.");
 
     assertNotNull(response);
@@ -131,7 +131,7 @@ class GoogleToolLlmIT {
 
   @Test
   void llm_streaming_invokesListEventsTool() {
-    String response = agentService.chat("List my calendar events. Use the listEvents tool.")
+    String response = agentService.chat("it-test", "List my calendar events. Use the listEvents tool.")
         .collect()
         .asList()
         .await()

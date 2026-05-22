@@ -46,6 +46,7 @@ public class StartupThoughtObserver {
     void generateStartupThought() {
         try {
             String thought = agentService.chat(
+                    ConversationId.SYSTEM,
                     "You just initialized. Briefly reflect on your current state in one sentence."
             )
                     .collect()
