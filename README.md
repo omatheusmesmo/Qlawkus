@@ -4,7 +4,7 @@
 
 [![Status: Work in Progress](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow?style=for-the-badge)](https://github.com/omatheusmesmo/Qlawkus/issues)
 
-A single-user, production-ready autonomous agent with dynamic cognition, triple memory, Google Workspace integration, and self-improvement capabilities.
+A single-user, production-ready autonomous agent with dynamic cognition, triple memory, Google Workspace integration, multi-provider messaging (Discord, Telegram) with voice in/out, and self-improvement capabilities.
 
 ---
 
@@ -71,11 +71,8 @@ docker compose --profile native up --build
 ### Profiles
 
 | Profile | LLM | Database | When |
-
 |:--------|:----|:---------|:-----|
-
 | **dev** | Ollama (Dev Services) | PostgreSQL (Dev Services) | `quarkus dev` |
-
 | **prod** | NVIDIA NIM (primary) + Ollama (fallback) | External PostgreSQL | Docker / VM deployment |
 
 ### Environment Variables
@@ -88,12 +85,14 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 | `NVIDIA_CHAT_MODEL` | — | Chat model ID on NVIDIA NIM (e.g. `z-ai/glm-5.1`) |
 | `NVIDIA_EMBEDDING_MODEL` | `nvidia/nv-embedqa-e5-v5` | Embedding model (1024 dims) |
 | `EMBEDDING_DIMENSION` | `1024` | Must match embedding model output |
-| `OLLAMA_MODEL` | `gemma4:e2b` | Ollama fallback chat model |
-| `OLLAMA_EMBEDDING_MODEL` | `mxbai-embed-large` | Ollama fallback embedding model |
+| `OLLAMA_FALLBACK_MODEL` | `gemma4:e2b` | Ollama fallback chat model |
+| `OLLAMA_FALLBACK_EMBEDDING_MODEL` | `mxbai-embed-large` | Ollama fallback embedding model |
 | `API_USER_PASSWORD` | `qlawkus` | Basic auth password for `qlawkus` user |
 | `POSTGRES_DB` | `qlawkus` | Database name (Docker Compose) |
-| `POSTGRES_USER` | `quarkus` | Database user (Docker Compose) |
-| `POSTGRES_PASSWORD` | `quarkus` | Database password (Docker Compose) |
+| `POSTGRES_USER` | `qlawkus` | Database user (Docker Compose) |
+| `POSTGRES_PASSWORD` | `qlawkus` | Database password (Docker Compose) |
+
+> Messaging (`DISCORD_*`, `TELEGRAM_*`), voice (`GROQ_API_KEY`, `WHISPER_*`, `TTS_*`), Google OAuth (`GOOGLE_*`), the credential vault (`QLAWKUS_VAULT_*`), and agent memory (`AGENT_*`) are documented in [`.env.example`](.env.example).
 
 ### Model Fallback & Circuit Breaker
 
@@ -121,7 +120,9 @@ The production setup uses NVIDIA NIM as the primary LLM with a local Ollama side
 - **Safe Self-Improvement**: The agent writes, validates (AST), and compiles Groovy scripts at runtime to create new skills, gated by strict Quarkus Security policies
 - **Lightweight**: Native compilation via GraalVM for ultra-fast startup, designed to run cheaply on small instances
 - **Extensible**: Add tools by implementing `@ClawTool` beans — discovered automatically via CDI
-- **Google Workspace**: 6 optional extensions (Auth, Calendar, Gmail, Drive, Sheets, Storage) with 17 AI tools, OAuth2 Device Flow, and encrypted credential vault
+- **Google Workspace**: 6 optional extensions (Auth, Calendar, Gmail, Drive, Sheets, Storage) with 17 AI tools, Web/Loopback OAuth2, and encrypted credential vault
+- **Multi-Provider Messaging**: Provider-agnostic interface (Discord Gateway, Telegram polling/webhook; Slack & WhatsApp adapters) with per-provider formatting, chunking, auth allowlists, and a shared conversation memory across interfaces
+- **Voice In/Out**: Agnostic speech-to-text (Whisper) and text-to-speech (local Piper, Groq Orpheus, ElevenLabs) with a per-language provider/fallback router
 
 ---
 
@@ -167,12 +168,17 @@ The production setup uses NVIDIA NIM as the primary LLM with a local Ollama side
 ```
 qlawkus/                          # Parent POM (semantic versioning)
 ├── tools/ # Quarkus extension modules (optional tool integrations)
-│ ├── qlawkus-tools-google-auth/ # OAuth2 Device Flow + CredentialVault (Argon2id + AES-256-GCM)
+│ ├── qlawkus-tools-google-auth/ # Web/Loopback OAuth2 + CredentialVault (Argon2id + AES-256-GCM)
 │ ├── qlawkus-tools-google-calendar/ # listEvents, createEvent, checkAvailability, suggestFocusTime
 │ ├── qlawkus-tools-google-gmail/ # listEmails, sendEmail, searchEmails
 │ ├── qlawkus-tools-google-drive/ # listFiles, uploadFile, downloadFile, shareFile
 │ ├── qlawkus-tools-google-sheets/ # readSheet, writeSheet, updateCell
 │ └── qlawkus-tools-google-storage/ # listBuckets, uploadObject, downloadObject
+├── messaging/ # Provider-agnostic messaging (core + tts/transcription)
+│ ├── discord/ # Discord Gateway adapter (Discord4J) + slash commands
+│ ├── telegram/ # Telegram adapter (long-polling / webhook) + voice
+│ ├── slack/ # Slack adapter (Event Subscriptions)
+│ └── whatsapp/ # WhatsApp adapter (Cloud API webhook)
 ├── client/ # Quarkus extension (library)
 │   ├── deployment/               # Build-time processor (BuildSteps, tool registration)
 │   │   └── src/test/             # Extension build-time tests (mocked LLM via WireMock)
@@ -224,7 +230,9 @@ public class MyTool {
 | **Migrations** | `quarkus-flyway` | Schema evolution |
 | **Security** | `elytron-security-properties-file`, `hibernate-validator` | Basic Auth, input validation |
 | **Resilience** | `smallrye-fault-tolerance` | LLM call retry / timeout |
-| **Google Auth** | `qlawkus-tools-google-auth` | OAuth2 Device Flow + CredentialVault |
+| **Messaging** | `qlawkus-messaging` (+ discord/telegram/slack/whatsapp) | Multi-provider chat, voice, formatting, chunking |
+| **Voice** | `whisper` (STT) + OpenAI-compatible / ElevenLabs (TTS) | Speech in/out, agnostic router |
+| **Google Auth** | `qlawkus-tools-google-auth` | Web/Loopback OAuth2 + CredentialVault |
 | **Google Calendar** | `qlawkus-tools-google-calendar` | listEvents, createEvent, checkAvailability, suggestFocusTime |
 | **Google Gmail** | `qlawkus-tools-google-gmail` | listEmails, sendEmail, searchEmails |
 | **Google Drive** | `qlawkus-tools-google-drive` | listFiles, uploadFile, downloadFile, shareFile |
@@ -239,8 +247,10 @@ public class MyTool {
 
 - **Qlawkus** — JVM container (or native with `--profile native`)
 - **PostgreSQL 17 + pgvector** — persistent storage
+- **Ollama** (+ `ollama-init`) — local LLM fallback
+- **tts** (+ `tts-init`) — openedai-speech (Piper) for local text-to-speech, opt-in via `TTS_ENABLED`
 
-Requires `NVIDIA_AI_API_KEY`. Exposes port `8080`.
+Requires `NVIDIA_AI_API_KEY`. Exposes host port `8742` → container `8080` (the Google OAuth redirect URI must match this host port).
 
 ### Local (`docker-compose.local.yml`)
 
@@ -314,10 +324,10 @@ curl -X POST http://localhost:8080/api/chat \
 | **M2.5** | Modular Architecture & Docker Distribution | Done |
 | **M3** | Google Productivity Integration (Calendar, Mail, Drive, Sheets, Storage) | Done |
 | **M4** | Terminal Capabilities (ShellTool, InteractiveShellTool, FileTool) | Done |
-| **M5** | Career Engine (Brag Document) | Pending |
-| **M6** | Sandbox & Code Review | Pending |
-| **M7** | Self-Improvement Engine (Groovy) | Pending |
-| **M8** | Messaging Interface (Telegram) | Pending |
+| **M5** | Career Engine (Brag Document) | Done |
+| **M6** | Sandbox & Code Review | Done |
+| **M7** | Messaging Interface (Multi-Provider: Discord, Telegram, Slack, WhatsApp) + Voice | Done |
+| **M8** | Self-Improvement Engine (Groovy) | Pending |
 | **M9** | Observability & Native Build | Pending |
 | **M10** | Autonomy & Job Orchestration | Pending |
 
