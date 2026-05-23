@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.omatheusmesmo</groupId>
         <artifactId>qlawkus-messaging-whatsapp-parent</artifactId>
-        <version>0.7.0-SNAPSHOT</version>
+        <version>0.7.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>qlawkus-messaging-whatsapp-deployment</artifactId>
