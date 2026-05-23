@@ -1,7 +1,11 @@
 package dev.omatheusmesmo.qlawkus.messaging;
 
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
+import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
+import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
 import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
+import dev.omatheusmesmo.qlawkus.messaging.tts.TtsRouter;
+import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,23 +28,33 @@ class MessagingOrchestratorTest {
         agentService = Mockito.mock(AgentService.class);
         authService = Mockito.mock(MessagingAuthService.class);
         notificationService = Mockito.mock(NotificationService.class);
+        VoiceResponsePreference voicePreference = Mockito.mock(VoiceResponsePreference.class);
+        ConversationControl conversationControl = Mockito.mock(ConversationControl.class);
+        WorkingMemoryStore workingMemoryStore = Mockito.mock(WorkingMemoryStore.class);
+        TtsRouter ttsRouter = Mockito.mock(TtsRouter.class);
 
         orchestrator.agentService = agentService;
         orchestrator.authService = authService;
         orchestrator.notificationService = notificationService;
+        orchestrator.voicePreference = voicePreference;
+        orchestrator.conversationControl = conversationControl;
+        orchestrator.workingMemoryStore = workingMemoryStore;
+        orchestrator.ttsRouter = ttsRouter;
 
         when(notificationService.send(any(), any(), any())).thenReturn(Uni.createFrom().voidItem());
+        when(voicePreference.isRequested()).thenReturn(false);
+        when(conversationControl.isClearRequested()).thenReturn(false);
     }
 
     @Test
     void process_authorizedUser_invokesAgentAndSendsResponse() {
         when(authService.isAuthorized(any())).thenReturn(true);
-        when(agentService.chatSync("hello")).thenReturn("Hi there!");
+        when(agentService.chatSync(anyString(), eq("hello"))).thenReturn("Hi there!");
 
         MessagingMessage msg = MessagingMessage.text("telegram", "chat-1", "user-1", "hello");
         orchestrator.process(msg).await().indefinitely();
 
-        verify(agentService).chatSync("hello");
+        verify(agentService).chatSync(any(), eq("hello"));
         verify(notificationService).send("telegram", "chat-1", "Hi there!");
     }
 
@@ -51,25 +65,25 @@ class MessagingOrchestratorTest {
         MessagingMessage msg = MessagingMessage.text("telegram", "chat-1", "intruder", "hello");
         orchestrator.process(msg).await().indefinitely();
 
-        verify(agentService, never()).chatSync(any());
+        verify(agentService, never()).chatSync(any(), any());
         verify(notificationService, never()).send(any(), any(), any());
     }
 
     @Test
     void process_agentThrows_recoversSendsErrorMessage() {
         when(authService.isAuthorized(any())).thenReturn(true);
-        when(agentService.chatSync(any())).thenThrow(new RuntimeException("model unavailable"));
+        when(agentService.chatSync(any(), any())).thenThrow(new RuntimeException("model unavailable"));
 
         MessagingMessage msg = MessagingMessage.text("telegram", "chat-1", "user-1", "hello");
         assertDoesNotThrow(() -> orchestrator.process(msg).await().indefinitely());
 
-        verify(notificationService).send(eq("telegram"), eq("chat-1"), contains("sorry"));
+        verify(notificationService).send(eq("telegram"), eq("chat-1"), contains("Failed"));
     }
 
     @Test
     void process_returnsUniThatCompletesWithoutValue() {
         when(authService.isAuthorized(any())).thenReturn(true);
-        when(agentService.chatSync(any())).thenReturn("ok");
+        when(agentService.chatSync(any(), any())).thenReturn("ok");
 
         MessagingMessage msg = MessagingMessage.text("telegram", "chat-1", "user-1", "ping");
         Void result = orchestrator.process(msg).await().indefinitely();
