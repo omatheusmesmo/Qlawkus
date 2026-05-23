@@ -178,9 +178,11 @@ public class MessagingOrchestrator {
     }
 
     private AgentResult runAgentWithContext(String conversationId, String text) {
-        ManagedContext requestContext = Arc.container().requestContext();
+        ManagedContext requestContext = Arc.container() != null
+                ? Arc.container().requestContext()
+                : null;
         boolean activated = false;
-        if (!requestContext.isActive()) {
+        if (requestContext != null && !requestContext.isActive()) {
             requestContext.activate();
             activated = true;
         }
