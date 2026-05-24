@@ -3,10 +3,12 @@ package dev.omatheusmesmo.qlawkus.tools.google.gmail;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleAuthHeadersFilter;
 import dev.omatheusmesmo.qlawkus.tools.google.gmail.model.GmailMessage;
 import dev.omatheusmesmo.qlawkus.tools.google.gmail.model.GmailMessageList;
+import dev.omatheusmesmo.qlawkus.tools.google.gmail.model.GmailModifyRequest;
 import dev.omatheusmesmo.qlawkus.tools.google.gmail.model.GmailSendRequest;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -21,20 +23,39 @@ public interface GoogleGmailRestClient {
     @GET
     @Path("/{userId}/messages")
     GmailMessageList listMessages(
-            @PathParam("userId") String userId,
-            @QueryParam("maxResults") Integer maxResults,
-            @QueryParam("q") String query);
+        @PathParam("userId") String userId,
+        @QueryParam("maxResults") Integer maxResults,
+        @QueryParam("q") String query);
 
     @GET
     @Path("/{userId}/messages/{messageId}")
     GmailMessage getMessage(
-            @PathParam("userId") String userId,
-            @PathParam("messageId") String messageId,
-            @QueryParam("format") String format);
+        @PathParam("userId") String userId,
+        @PathParam("messageId") String messageId,
+        @QueryParam("format") String format);
 
     @POST
     @Path("/{userId}/messages/send")
     GmailMessage sendMessage(
-            @PathParam("userId") String userId,
-            GmailSendRequest request);
+        @PathParam("userId") String userId,
+        GmailSendRequest request);
+
+    @POST
+    @Path("/{userId}/messages/{messageId}/trash")
+    void trashMessage(
+        @PathParam("userId") String userId,
+        @PathParam("messageId") String messageId);
+
+    @DELETE
+    @Path("/{userId}/messages/{messageId}/trash")
+    void untrashMessage(
+        @PathParam("userId") String userId,
+        @PathParam("messageId") String messageId);
+
+    @POST
+    @Path("/{userId}/messages/{messageId}/modify")
+    void modifyMessage(
+        @PathParam("userId") String userId,
+        @PathParam("messageId") String messageId,
+        GmailModifyRequest request);
 }

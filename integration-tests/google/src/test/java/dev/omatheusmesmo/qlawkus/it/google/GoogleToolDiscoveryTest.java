@@ -31,20 +31,24 @@ class GoogleToolDiscoveryTest {
     void googleTools_areDiscoveredAsClawToolBeans() {
         Instance<Object> clawToolBeans = Arc.container().select(Object.class, new ClawToolLiteral());
 
-        Set<String> toolClassNames = clawToolBeans.stream()
-                .map(proxy -> ClientProxy.unwrap(proxy).getClass().getName())
-                .collect(Collectors.toSet());
+    Set<String> toolClassNames = clawToolBeans.stream()
+            .map(proxy -> ClientProxy.unwrap(proxy).getClass().getName())
+            .collect(Collectors.toSet());
 
-        assertTrue(toolClassNames.contains("dev.omatheusmesmo.qlawkus.tools.google.calendar.CalendarTool"),
-                "CalendarTool should be discovered via @ClawTool. Got: " + toolClassNames);
-        assertTrue(toolClassNames.contains("dev.omatheusmesmo.qlawkus.tools.google.gmail.GmailTool"),
-                "GmailTool should be discovered via @ClawTool. Got: " + toolClassNames);
-        assertTrue(toolClassNames.contains("dev.omatheusmesmo.qlawkus.tools.google.drive.DriveTool"),
-                "DriveTool should be discovered via @ClawTool. Got: " + toolClassNames);
-        assertTrue(toolClassNames.contains("dev.omatheusmesmo.qlawkus.tools.google.sheets.SheetsTool"),
-                "SheetsTool should be discovered via @ClawTool. Got: " + toolClassNames);
-        assertTrue(toolClassNames.contains("dev.omatheusmesmo.qlawkus.tools.google.storage.StorageTool"),
-                "StorageTool should be discovered via @ClawTool. Got: " + toolClassNames);
+    Set<String> simpleNames = toolClassNames.stream()
+            .map(name -> name.replace("_Subclass", ""))
+            .collect(Collectors.toSet());
+
+    assertTrue(simpleNames.contains("dev.omatheusmesmo.qlawkus.tools.google.calendar.CalendarTool"),
+            "CalendarTool should be discovered via @ClawTool. Got: " + toolClassNames);
+    assertTrue(simpleNames.contains("dev.omatheusmesmo.qlawkus.tools.google.gmail.GmailTool"),
+            "GmailTool should be discovered via @ClawTool. Got: " + toolClassNames);
+    assertTrue(simpleNames.contains("dev.omatheusmesmo.qlawkus.tools.google.drive.DriveTool"),
+            "DriveTool should be discovered via @ClawTool. Got: " + toolClassNames);
+    assertTrue(simpleNames.contains("dev.omatheusmesmo.qlawkus.tools.google.sheets.SheetsTool"),
+            "SheetsTool should be discovered via @ClawTool. Got: " + toolClassNames);
+    assertTrue(simpleNames.contains("dev.omatheusmesmo.qlawkus.tools.google.storage.StorageTool"),
+            "StorageTool should be discovered via @ClawTool. Got: " + toolClassNames);
     }
 
     @Test
@@ -65,6 +69,11 @@ class GoogleToolDiscoveryTest {
         assertTrue(toolNames.contains("listEmails"), "Should provide listEmails tool. Got: " + toolNames);
         assertTrue(toolNames.contains("sendEmail"), "Should provide sendEmail tool. Got: " + toolNames);
         assertTrue(toolNames.contains("searchEmails"), "Should provide searchEmails tool. Got: " + toolNames);
+        assertTrue(toolNames.contains("getEmail"), "Should provide getEmail tool. Got: " + toolNames);
+        assertTrue(toolNames.contains("replyToEmail"), "Should provide replyToEmail tool. Got: " + toolNames);
+        assertTrue(toolNames.contains("trashEmail"), "Should provide trashEmail tool. Got: " + toolNames);
+        assertTrue(toolNames.contains("untrashEmail"), "Should provide untrashEmail tool. Got: " + toolNames);
+        assertTrue(toolNames.contains("modifyEmailLabels"), "Should provide modifyEmailLabels tool. Got: " + toolNames);
         assertTrue(toolNames.contains("listDriveFiles"), "Should provide listDriveFiles tool. Got: " + toolNames);
         assertTrue(toolNames.contains("uploadFile"), "Should provide uploadFile tool. Got: " + toolNames);
         assertTrue(toolNames.contains("downloadFile"), "Should provide downloadFile tool. Got: " + toolNames);

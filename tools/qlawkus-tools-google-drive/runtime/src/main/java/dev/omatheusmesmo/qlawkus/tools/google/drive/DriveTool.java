@@ -5,6 +5,7 @@ import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.Logged;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiDiagnostics;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiExecutor;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DriveFile;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DriveFileList;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DrivePermission;
@@ -37,6 +38,9 @@ public class DriveTool {
     @RestClient
     GoogleDriveDownloadClient downloadClient;
 
+    @Inject
+    GoogleApiExecutor apiExecutor;
+
     @Tool("List files in Google Drive. Optionally filter by query (e.g. \"name contains 'report'\", \"mimeType='application/pdf'\").")
     public String listDriveFiles(
             @P(value = "Drive query filter, e.g. \"name contains 'report'\"", required = false) String query,
@@ -46,7 +50,8 @@ public class DriveTool {
         String fieldsParam = "files(" + config.fields() + ")";
 
         try {
-            DriveFileList result = driveClient.listFiles(limit, query, fieldsParam);
+            DriveFileList result = apiExecutor.executeWithAuthRetry(() ->
+                    driveClient.listFiles(limit, query, fieldsParam));
 
             if (result.files() == null || result.files().isEmpty()) {
                 return "No files found.";
@@ -73,11 +78,8 @@ public class DriveTool {
             String base64Content = Base64.getUrlEncoder().withoutPadding()
                     .encodeToString(content.getBytes());
 
-            DriveFile uploaded = uploadClient.uploadSimple(
-                    "media",
-                    fileName,
-                    type,
-                    base64Content);
+            DriveFile uploaded = apiExecutor.executeWithAuthRetry(() ->
+                    uploadClient.uploadSimple("media", fileName, type, base64Content));
 
             return "File uploaded: " + uploaded.name() + " (ID: " + uploaded.id() + ")\nLink: " + uploaded.webViewLink();
         } catch (Exception e) {
@@ -91,8 +93,10 @@ public class DriveTool {
             @P("Google Drive file ID") String fileId) {
 
         try {
-            DriveFile metadata = driveClient.getFile(fileId, config.fields());
-            String content = downloadClient.downloadFile(fileId, "media");
+            DriveFile metadata = apiExecutor.executeWithAuthRetry(() ->
+                    driveClient.getFile(fileId, config.fields()));
+            String content = apiExecutor.executeWithAuthRetry(() ->
+                    downloadClient.downloadFile(fileId, "media"));
 
             if (content == null || content.isBlank()) {
                 return "File '" + metadata.name() + "' appears to be empty or binary (cannot display as text).";
@@ -114,10 +118,8 @@ public class DriveTool {
         String permissionRole = role != null && !role.isBlank() ? role : "reader";
 
         try {
-            DrivePermission permission = driveClient.createPermission(
-                    fileId,
-                    new DrivePermissionRequest("user", permissionRole, email),
-                    "id,emailAddress,role");
+            DrivePermission permission = apiExecutor.executeWithAuthRetry(() ->
+                    driveClient.createPermission(fileId, new DrivePermissionRequest("user", permissionRole, email), "id,emailAddress,role"));
             return "File shared with " + permission.emailAddress() + " as " + permission.role();
         } catch (Exception e) {
             Log.errorf(e, "Failed to share Drive file %s", fileId);

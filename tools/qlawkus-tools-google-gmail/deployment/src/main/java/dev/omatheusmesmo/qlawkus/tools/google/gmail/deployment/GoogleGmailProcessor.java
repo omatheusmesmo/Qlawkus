@@ -6,6 +6,7 @@ import dev.omatheusmesmo.qlawkus.tools.google.gmail.GoogleGmailRestClient;
 import dev.omatheusmesmo.qlawkus.tools.google.gmail.model.GmailMessage;
 import dev.omatheusmesmo.qlawkus.tools.google.gmail.model.GmailMessageList;
 import dev.omatheusmesmo.qlawkus.tools.google.gmail.model.GmailMessageRef;
+import dev.omatheusmesmo.qlawkus.tools.google.gmail.model.GmailModifyRequest;
 import dev.omatheusmesmo.qlawkus.tools.google.gmail.model.GmailSendRequest;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.Capabilities;
@@ -47,8 +48,12 @@ class GoogleGmailProcessor {
                 GmailMessageList.class.getName(),
                 GmailMessageRef.class.getName(),
                 GmailMessage.class.getName(),
+                GmailMessage.Payload.class.getName(),
+                GmailMessage.GmailMessagePart.class.getName(),
+                GmailMessage.GmailMessageBody.class.getName(),
                 GmailMessage.GmailMessagePartHeader.class.getName(),
-                GmailSendRequest.class.getName()
+                GmailSendRequest.class.getName(),
+        GmailModifyRequest.class.getName()
         ).methods().fields().build();
     }
 }
