@@ -25,7 +25,7 @@ public class GoogleCredential extends PanacheEntityBase {
     public String encryptedRefreshToken;
 
     @Column(columnDefinition = "TEXT")
-    public String accessToken;
+    public String encryptedAccessToken;
 
     @Column(length = 32)
     public String tokenType;
