@@ -21,6 +21,7 @@ import java.text.Normalizer;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 @ApplicationScoped
 public class MessagingOrchestrator {
@@ -53,6 +54,9 @@ public class MessagingOrchestrator {
 
     @Inject
     TtsRouter ttsRouter;
+
+    @ConfigProperty(name = "qlawkus.messaging.tts.default-language", defaultValue = "en")
+    String defaultTtsLanguage;
 
     @ConfigProperty(name = "qlawkus.agent.shared-context.enabled", defaultValue = "true")
     boolean sharedContextEnabled;
@@ -94,18 +98,22 @@ public class MessagingOrchestrator {
     }
 
     private Uni<Void> deliver(MessagingMessage message, AgentResult result) {
-        if (result.voiceRequested() && ttsRouter.enabled()) {
-            return Uni.createFrom()
+        if (result.voiceRequested()) {
+            if (!ttsRouter.enabled()) {
+                Log.warnf("MessagingOrchestrator: voice requested but TTS is disabled (qlawkus.messaging.tts.enabled=false), falling back to text for userId=%s", message.userId());
+            } else {
+                return Uni.createFrom()
                     .item(() -> ttsRouter.synthesize(stripForSpeech(result.text()), result.language()))
                     .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
                     .flatMap(audio -> notificationService.sendVoice(
-                            message.providerId(), message.chatId(), audio,
-                            voiceFilename(result.text()), result.text()))
+                        message.providerId(), message.chatId(), audio,
+                        voiceFilename(result.text()), result.text()))
                     .onFailure().invoke(err -> Log.errorf(err,
-                            "MessagingOrchestrator: voice synthesis/send failed userId=%s, falling back to text",
-                            message.userId()))
+                        "MessagingOrchestrator: voice synthesis/send failed userId=%s, falling back to text",
+                        message.userId()))
                     .onFailure().recoverWithUni(() -> notificationService.send(
-                            message.providerId(), message.chatId(), result.text()));
+                        message.providerId(), message.chatId(), result.text()));
+            }
         }
         return notificationService.send(message.providerId(), message.chatId(), result.text());
     }
@@ -179,12 +187,15 @@ public class MessagingOrchestrator {
 
     private AgentResult runAgentWithContext(String conversationId, String text) {
         ManagedContext requestContext = Arc.container() != null
-                ? Arc.container().requestContext()
-                : null;
+            ? Arc.container().requestContext() : null;
         boolean activated = false;
         if (requestContext != null && !requestContext.isActive()) {
             requestContext.activate();
             activated = true;
+        }
+        if (detectVoiceIntent(text) && ttsRouter.enabled()) {
+            voicePreference.request(defaultTtsLanguage);
+            Log.infof("MessagingOrchestrator: auto-detected voice intent from user message, default language=%s (LLM may override)", defaultTtsLanguage);
         }
         AgentResult result;
         boolean clearRequested;
@@ -203,6 +214,18 @@ public class MessagingOrchestrator {
             Log.infof("MessagingOrchestrator: cleared conversation memory id=%s", conversationId);
         }
         return result;
+    }
+
+    private static final Pattern VOICE_INTENT_PATTERN = Pattern.compile(
+        "(?i)\\b(?:audio|voice|áudio|voz)\\b"
+        + "|voice\\s*(?:message|note|reply|response)"
+        + "|(?:mensagem|nota|resposta)\\s*(?:de|por)?\\s*(?:voz|áudio)"
+        + "|\\b(?:send|give|reply|respond|record|speak).{0,10}(?:audio|voice)\\b"
+        + "|\\b(?:manda|envia|grava|fala|responde|responda|enviar|mandar|gravar|falar).{0,10}(?:áudio|audio|voz|voice)\\b"
+    );
+
+    private boolean detectVoiceIntent(String text) {
+        return text != null && VOICE_INTENT_PATTERN.matcher(text).find();
     }
 
     private record AgentResult(String text, boolean voiceRequested, String language) {

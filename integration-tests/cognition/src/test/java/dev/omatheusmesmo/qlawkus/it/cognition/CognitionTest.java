@@ -88,7 +88,7 @@ class CognitionTest {
         memoryStore.deleteMessages("default");
 
         String response = agentService
-                .chat("Based on my preferences, write a simple Java method that adds two integers and returns the result.")
+                .chat("default", "Based on my preferences, write a simple Java method that adds two integers and returns the result.")
                 .collect()
                 .in(StringBuilder::new, StringBuilder::append)
                 .await()
@@ -134,7 +134,7 @@ class CognitionTest {
         memoryStore.deleteMessages("default");
 
         String response = agentService
-                .chat("Search your memories for my favorite programming language. What is it? Use the searchMemories tool.")
+                .chat("default", "Search your memories for my favorite programming language. What is it? Use the searchMemories tool.")
                 .collect()
                 .in(StringBuilder::new, StringBuilder::append)
                 .await()
