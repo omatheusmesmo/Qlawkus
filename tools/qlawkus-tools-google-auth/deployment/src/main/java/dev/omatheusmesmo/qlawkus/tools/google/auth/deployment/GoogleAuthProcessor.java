@@ -1,10 +1,12 @@
 package dev.omatheusmesmo.qlawkus.tools.google.auth.deployment;
 
 import dev.omatheusmesmo.qlawkus.tools.google.auth.CredentialVaultService;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiExecutor;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleAuthHeadersFilter;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleAuthTool;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleCredential;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleOAuthCallbackResource;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleOAuthState;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleOAuthStateStore;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleVaultConfig;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.TokenResponse;
@@ -33,8 +35,9 @@ class GoogleAuthProcessor {
         return AdditionalBeanBuildItem.builder()
             .addBeanClass(GoogleAuthTool.class)
             .addBeanClass(GoogleOAuthCallbackResource.class)
-            .addBeanClass(GoogleOAuthStateStore.class)
-            .addBeanClass(GoogleCredential.class)
+        .addBeanClass(GoogleOAuthStateStore.class)
+        .addBeanClass(GoogleOAuthState.class)
+        .addBeanClass(GoogleCredential.class)
             .setUnremovable()
             .build();
     }
@@ -42,10 +45,11 @@ class GoogleAuthProcessor {
     @BuildStep
     ReflectiveClassBuildItem registerAuthReflection() {
         return ReflectiveClassBuildItem.builder(
-            TokenResponse.class.getName(),
-            RefreshTokenCapturedEvent.class.getName(),
-            GoogleAuthConfig.class.getName(),
-            GoogleCredential.class.getName()
+        TokenResponse.class.getName(),
+        RefreshTokenCapturedEvent.class.getName(),
+        GoogleAuthConfig.class.getName(),
+        GoogleCredential.class.getName(),
+        GoogleOAuthState.class.getName()
         ).methods().fields().build();
     }
 
@@ -53,6 +57,7 @@ class GoogleAuthProcessor {
     AdditionalBeanBuildItem registerAuthHeadersFilter() {
         return AdditionalBeanBuildItem.builder()
                 .addBeanClass(GoogleAuthHeadersFilter.class)
+                .addBeanClass(GoogleApiExecutor.class)
                 .setRemovable()
                 .build();
     }
