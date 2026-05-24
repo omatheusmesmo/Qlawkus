@@ -5,6 +5,7 @@ import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.Logged;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiDiagnostics;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiExecutor;
 import dev.omatheusmesmo.qlawkus.tools.google.sheets.model.SheetValues;
 import dev.omatheusmesmo.qlawkus.tools.google.sheets.model.UpdateValuesRequest;
 import dev.omatheusmesmo.qlawkus.tools.google.sheets.model.UpdateValuesResponse;
@@ -30,13 +31,17 @@ public class SheetsTool {
     @RestClient
     GoogleSheetsRestClient sheetsClient;
 
+    @Inject
+    GoogleApiExecutor apiExecutor;
+
     @Tool("Read data from a Google Sheets range. Provide spreadsheet ID and A1 notation range (e.g. 'Sheet1!A1:D10').")
     public String readSheet(
             @P("Spreadsheet ID from the Google Sheets URL") String spreadsheetId,
             @P("Cell range in A1 notation, e.g. 'Sheet1!A1:D10'") String range) {
 
         try {
-            SheetValues result = sheetsClient.getValues(spreadsheetId, range);
+            SheetValues result = apiExecutor.executeWithAuthRetry(() ->
+                    sheetsClient.getValues(spreadsheetId, range));
 
             if (result.values() == null || result.values().isEmpty()) {
                 return "No data found in range " + range + ".";
@@ -67,8 +72,8 @@ public class SheetsTool {
             List<List<String>> rows = parseValues(values);
             UpdateValuesRequest request = new UpdateValuesRequest(rows);
 
-            UpdateValuesResponse response = sheetsClient.updateValues(
-                    spreadsheetId, range, config.valueInputOption(), request);
+            UpdateValuesResponse response = apiExecutor.executeWithAuthRetry(() ->
+                    sheetsClient.updateValues(spreadsheetId, range, config.valueInputOption(), request));
 
             return String.format("Updated %d cells across %d rows, %d columns.",
                     response.updatedCells(), response.updatedRows(), response.updatedColumns());
@@ -88,8 +93,8 @@ public class SheetsTool {
             UpdateValuesRequest request = new UpdateValuesRequest(
                     Collections.singletonList(Collections.singletonList(value)));
 
-            UpdateValuesResponse response = sheetsClient.updateValues(
-                    spreadsheetId, cell, config.valueInputOption(), request);
+            UpdateValuesResponse response = apiExecutor.executeWithAuthRetry(() ->
+                    sheetsClient.updateValues(spreadsheetId, cell, config.valueInputOption(), request));
 
             return String.format("Cell %s updated. %d cell changed.", cell, response.updatedCells());
         } catch (Exception e) {

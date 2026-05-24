@@ -5,6 +5,7 @@ import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.Logged;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiDiagnostics;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiExecutor;
 import dev.omatheusmesmo.qlawkus.tools.google.storage.model.StorageBucket;
 import dev.omatheusmesmo.qlawkus.tools.google.storage.model.StorageBucketList;
 import dev.omatheusmesmo.qlawkus.tools.google.storage.model.StorageObject;
@@ -32,6 +33,9 @@ public class StorageTool {
     @RestClient
     GoogleStorageDownloadClient downloadClient;
 
+    @Inject
+    GoogleApiExecutor apiExecutor;
+
     @Tool("List Google Cloud Storage buckets for a project. Requires project ID.")
     public String listBuckets(
             @P(value = "Google Cloud project ID", required = false) String projectId) {
@@ -43,7 +47,8 @@ public class StorageTool {
         }
 
         try {
-            StorageBucketList result = storageClient.listBuckets(project);
+            StorageBucketList result = apiExecutor.executeWithAuthRetry(() ->
+                    storageClient.listBuckets(project));
 
             if (result.items() == null || result.items().isEmpty()) {
                 return "No buckets found for project " + project + ".";
@@ -68,8 +73,8 @@ public class StorageTool {
             String base64Content = Base64.getUrlEncoder().withoutPadding()
                     .encodeToString(content.getBytes());
 
-            StorageObject uploaded = storageClient.uploadObject(
-                    bucketName, "media", objectName, base64Content);
+            StorageObject uploaded = apiExecutor.executeWithAuthRetry(() ->
+                    storageClient.uploadObject(bucketName, "media", objectName, base64Content));
 
             return "Object uploaded: " + uploaded.name() + " to bucket " + uploaded.bucket()
                     + " (" + uploaded.size() + " bytes)";
@@ -85,8 +90,10 @@ public class StorageTool {
             @P("Object name (key) to download") String objectName) {
 
         try {
-            StorageObject metadata = storageClient.getObjectMetadata(bucketName, objectName);
-            String content = downloadClient.downloadObject(bucketName, objectName, "media");
+            StorageObject metadata = apiExecutor.executeWithAuthRetry(() ->
+                    storageClient.getObjectMetadata(bucketName, objectName));
+            String content = apiExecutor.executeWithAuthRetry(() ->
+                    downloadClient.downloadObject(bucketName, objectName, "media"));
 
             if (content == null || content.isBlank()) {
                 return "Object '" + objectName + "' appears to be empty or binary (cannot display as text).";

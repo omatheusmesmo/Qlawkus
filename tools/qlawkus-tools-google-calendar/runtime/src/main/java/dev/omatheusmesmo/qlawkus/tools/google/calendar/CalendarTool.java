@@ -5,6 +5,7 @@ import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.Logged;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiDiagnostics;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiExecutor;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEvent;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventAttendee;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventList;
@@ -43,6 +44,9 @@ public class CalendarTool {
     @Inject
     TimezoneNormalizer timezoneNormalizer;
 
+    @Inject
+    GoogleApiExecutor apiExecutor;
+
     @Tool("List upcoming Google Calendar events for the next N days. Returns event summary, time, location and attendees.")
     public String listEvents(int days) {
         if (days <= 0) {
@@ -57,13 +61,14 @@ public class CalendarTool {
                 .format(RFC3339);
 
         try {
-            CalendarEventList result = calendarClient.listEvents(
-                    config.calendarId(),
-                    timeMin,
-                    timeMax,
-                    config.maxResults(),
-                    "startTime",
-                    true);
+            CalendarEventList result = apiExecutor.executeWithAuthRetry(() ->
+                    calendarClient.listEvents(
+                            config.calendarId(),
+                            timeMin,
+                            timeMax,
+                            config.maxResults(),
+                            "startTime",
+                            true));
 
             if (result.items().isEmpty()) {
                 return "No upcoming events found in the next " + days + " days.";
@@ -103,7 +108,8 @@ public class CalendarTool {
                 null, summary, null, location, startDto, endDto, null, attendees, null);
 
         try {
-            CalendarEvent created = calendarClient.createEvent(config.calendarId(), event);
+            CalendarEvent created = apiExecutor.executeWithAuthRetry(() ->
+                    calendarClient.createEvent(config.calendarId(), event));
             return "Event created: " + formatEvent(created);
         } catch (Exception e) {
             Log.errorf(e, "Failed to create Google Calendar event");
@@ -125,7 +131,8 @@ public class CalendarTool {
                 List.of(new FreeBusyRequest.FreeBusyItem(config.calendarId())));
 
         try {
-            FreeBusyResponse response = calendarClient.queryFreeBusy(request);
+            FreeBusyResponse response = apiExecutor.executeWithAuthRetry(() ->
+                    calendarClient.queryFreeBusy(request));
             FreeBusyResponse.FreeBusyCalendar calendar = response.calendars().get(config.calendarId());
 
             if (calendar == null || calendar.busy().isEmpty()) {
@@ -160,7 +167,8 @@ public class CalendarTool {
                 List.of(new FreeBusyRequest.FreeBusyItem(config.calendarId())));
 
         try {
-            FreeBusyResponse response = calendarClient.queryFreeBusy(request);
+            FreeBusyResponse response = apiExecutor.executeWithAuthRetry(() ->
+                    calendarClient.queryFreeBusy(request));
             FreeBusyResponse.FreeBusyCalendar calendar = response.calendars().get(config.calendarId());
 
             List<OffsetDateTime> boundaries = new ArrayList<>();
