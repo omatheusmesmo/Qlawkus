@@ -22,6 +22,15 @@ public class GoogleOAuthState extends PanacheEntityBase {
     @Column(nullable = false)
     public Instant expiresAt;
 
+    @Column(name = "memory_id")
+    public String memoryId;
+
+    @Column(name = "provider_id")
+    public String providerId;
+
+    @Column(name = "chat_id")
+    public String chatId;
+
     public static GoogleOAuthState findByToken(String token) {
         return find("token = ?1", token).firstResult();
     }

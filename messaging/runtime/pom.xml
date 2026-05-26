@@ -60,9 +60,12 @@
                         <goals>
                             <goal>extension-descriptor</goal>
                         </goals>
-                        <configuration>
-                            <deployment>${project.groupId}:${project.artifactId}-deployment:${project.version}</deployment>
-                        </configuration>
+      <configuration>
+          <deployment>${project.groupId}:${project.artifactId}-deployment:${project.version}</deployment>
+          <capabilities>
+            <requires>dev.omatheusmesmo.qlawkus.agent</requires>
+          </capabilities>
+        </configuration>
                     </execution>
                 </executions>
             </plugin>

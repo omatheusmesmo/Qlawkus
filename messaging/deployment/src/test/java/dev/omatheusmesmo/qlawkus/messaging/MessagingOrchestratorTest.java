@@ -1,12 +1,15 @@
 package dev.omatheusmesmo.qlawkus.messaging;
 
+import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
+import dev.omatheusmesmo.qlawkus.agent.QlawkusAgentWorkflow;
 import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
 import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsRouter;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import io.smallrye.mutiny.Uni;
+import jakarta.enterprise.inject.Instance;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -40,6 +43,16 @@ class MessagingOrchestratorTest {
         orchestrator.conversationControl = conversationControl;
         orchestrator.workingMemoryStore = workingMemoryStore;
         orchestrator.ttsRouter = ttsRouter;
+
+        @SuppressWarnings("unchecked")
+        Instance<AgentDeliveryContext> deliveryContextInstance = Mockito.mock(Instance.class);
+        when(deliveryContextInstance.isUnsatisfied()).thenReturn(true);
+        orchestrator.deliveryContextInstance = deliveryContextInstance;
+
+        @SuppressWarnings("unchecked")
+        Instance<QlawkusAgentWorkflow> workflowInstance = Mockito.mock(Instance.class);
+        when(workflowInstance.isUnsatisfied()).thenReturn(true);
+        orchestrator.workflowInstance = workflowInstance;
 
         when(notificationService.send(any(), any(), any())).thenReturn(Uni.createFrom().voidItem());
         when(voicePreference.isRequested()).thenReturn(false);
