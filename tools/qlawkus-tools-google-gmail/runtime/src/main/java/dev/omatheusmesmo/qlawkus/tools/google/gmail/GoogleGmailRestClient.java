@@ -46,11 +46,11 @@ public interface GoogleGmailRestClient {
         @PathParam("userId") String userId,
         @PathParam("messageId") String messageId);
 
-    @DELETE
-    @Path("/{userId}/messages/{messageId}/trash")
+    @POST
+    @Path("/{userId}/messages/{messageId}/untrash")
     void untrashMessage(
-        @PathParam("userId") String userId,
-        @PathParam("messageId") String messageId);
+            @PathParam("userId") String userId,
+            @PathParam("messageId") String messageId);
 
     @POST
     @Path("/{userId}/messages/{messageId}/modify")

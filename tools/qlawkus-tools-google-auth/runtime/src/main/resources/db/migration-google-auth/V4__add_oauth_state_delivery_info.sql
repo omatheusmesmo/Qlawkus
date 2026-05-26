@@ -1,0 +1,3 @@
+ALTER TABLE googleoauth_state ADD COLUMN IF NOT EXISTS memory_id VARCHAR(255);
+ALTER TABLE googleoauth_state ADD COLUMN IF NOT EXISTS provider_id VARCHAR(255);
+ALTER TABLE googleoauth_state ADD COLUMN IF NOT EXISTS chat_id VARCHAR(255);

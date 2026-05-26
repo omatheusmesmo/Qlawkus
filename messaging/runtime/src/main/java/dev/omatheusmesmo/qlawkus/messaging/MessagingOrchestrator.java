@@ -1,7 +1,9 @@
 package dev.omatheusmesmo.qlawkus.messaging;
 
+import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;
+import dev.omatheusmesmo.qlawkus.agent.QlawkusAgentWorkflow;
 import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
@@ -14,6 +16,7 @@ import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -33,6 +36,12 @@ public class MessagingOrchestrator {
 
     @Inject
     AgentService agentService;
+
+    @Inject
+    Instance<QlawkusAgentWorkflow> workflowInstance;
+
+    @Inject
+    Instance<AgentDeliveryContext> deliveryContextInstance;
 
     @Inject
     MessagingAuthService authService;
@@ -64,6 +73,9 @@ public class MessagingOrchestrator {
     @ConfigProperty(name = "qlawkus.agent.context-ttl-minutes", defaultValue = "60")
     long contextTtlMinutes;
 
+    @ConfigProperty(name = "qlawkus.agent.agentic-workflow.enabled", defaultValue = "true")
+    boolean agenticWorkflowEnabled;
+
     public Uni<Void> process(MessagingMessage message) {
         Log.infof("MessagingOrchestrator: received provider=%s userId=%s chatId=%s textLen=%d hasAudio=%s",
                 message.providerId(), message.userId(), message.chatId(),
@@ -82,7 +94,10 @@ public class MessagingOrchestrator {
                 .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
                 .invoke(text -> Log.infof("MessagingOrchestrator: invoking agent userId=%s textLen=%d",
                         message.userId(), text != null ? text.length() : 0))
-                .map(text -> runAgentWithContext(memoryId(message), text))
+                .map(text -> {
+                    setDeliveryContext(memoryId(message), message.providerId(), message.chatId());
+                    return runAgentWithContext(memoryId(message), text);
+                })
                 .invoke(result -> Log.infof(
                         "MessagingOrchestrator: agent done userId=%s elapsedMs=%d responseLen=%d voice=%s",
                         message.userId(), System.currentTimeMillis() - startMs,
@@ -187,7 +202,7 @@ public class MessagingOrchestrator {
 
     private AgentResult runAgentWithContext(String conversationId, String text) {
         ManagedContext requestContext = Arc.container() != null
-            ? Arc.container().requestContext() : null;
+                ? Arc.container().requestContext() : null;
         boolean activated = false;
         if (requestContext != null && !requestContext.isActive()) {
             requestContext.activate();
@@ -201,7 +216,7 @@ public class MessagingOrchestrator {
         boolean clearRequested;
         try {
             expireIdleConversation(conversationId);
-            String response = agentService.chatSync(conversationId, text);
+            String response = invokeAgent(conversationId, text);
             clearRequested = conversationControl.isClearRequested();
             result = new AgentResult(response, voicePreference.isRequested(), voicePreference.language());
         } finally {
@@ -214,6 +229,25 @@ public class MessagingOrchestrator {
             Log.infof("MessagingOrchestrator: cleared conversation memory id=%s", conversationId);
         }
         return result;
+    }
+
+    private String invokeAgent(String conversationId, String text) {
+        if (agenticWorkflowEnabled && !workflowInstance.isUnsatisfied()) {
+            try {
+                String response = workflowInstance.get().invoke(conversationId, text);
+                Log.debugf("MessagingOrchestrator: agentic workflow completed for conversationId=%s", conversationId);
+                return response;
+            } catch (Exception e) {
+                Log.warnf(e, "MessagingOrchestrator: agentic workflow failed, falling back to AgentService");
+            }
+        }
+        return agentService.chatSync(conversationId, text);
+    }
+
+    private void setDeliveryContext(String memoryId, String providerId, String chatId) {
+        if (!deliveryContextInstance.isUnsatisfied()) {
+            deliveryContextInstance.get().set(memoryId, providerId, chatId);
+        }
     }
 
     private static final Pattern VOICE_INTENT_PATTERN = Pattern.compile(

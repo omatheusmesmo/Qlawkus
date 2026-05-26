@@ -16,6 +16,11 @@ public class GoogleOAuthStateStore {
 
     @Transactional
     public String issue() {
+        return issue(null, null, null);
+    }
+
+    @Transactional
+    public String issue(String memoryId, String providerId, String chatId) {
         GoogleOAuthState.deleteExpired();
         byte[] bytes = new byte[24];
         RANDOM.nextBytes(bytes);
@@ -24,27 +29,37 @@ public class GoogleOAuthStateStore {
         GoogleOAuthState entity = new GoogleOAuthState();
         entity.token = token;
         entity.expiresAt = Instant.now().plusSeconds(EXPIRY_SECONDS);
+        entity.memoryId = memoryId;
+        entity.providerId = providerId;
+        entity.chatId = chatId;
         entity.persist();
 
-        Log.debugf("GoogleOAuthStateStore: issued state token");
+        Log.debugf("GoogleOAuthStateStore: issued state token (memoryId=%s provider=%s chatId=%s)",
+                memoryId, providerId, chatId);
         return token;
     }
 
     @Transactional
-    public boolean validateAndConsume(String token) {
+    public GoogleOAuthState consume(String token) {
         if (token == null || token.isBlank()) {
-            return false;
+            return null;
         }
         GoogleOAuthState entity = GoogleOAuthState.findByToken(token);
         if (entity == null) {
             Log.warn("GoogleOAuthStateStore: unknown state token");
-            return false;
+            return null;
         }
         entity.delete();
         if (entity.expiresAt.isBefore(Instant.now())) {
             Log.warn("GoogleOAuthStateStore: expired state token");
-            return false;
+            return null;
         }
-        return true;
+        return entity;
+    }
+
+    @Transactional
+    public boolean validateAndConsume(String token) {
+        GoogleOAuthState entity = consume(token);
+        return entity != null;
     }
 }

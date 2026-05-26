@@ -1,5 +1,9 @@
 package dev.omatheusmesmo.qlawkus.deployment;
 
+import dev.omatheusmesmo.qlawkus.agent.scope.AgenticScopeEntity;
+import dev.omatheusmesmo.qlawkus.cognition.Soul;
+import dev.omatheusmesmo.qlawkus.store.pg.ChatMessageEntity;
+import dev.omatheusmesmo.qlawkus.store.pg.Journal;
 import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import dev.omatheusmesmo.qlawkus.tool.ClawToolProvider;
 import dev.omatheusmesmo.qlawkus.tool.ClawToolProviderSupplier;
@@ -8,6 +12,7 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
+import io.quarkus.hibernate.orm.deployment.AdditionalJpaModelBuildItem;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.ClassInfo;
@@ -65,6 +70,24 @@ class ClientProcessor {
         }
 
         return ReflectiveClassBuildItem.builder(classNames)
+                .methods()
+                .fields()
+                .build();
+    }
+
+    @BuildStep
+    List<AdditionalJpaModelBuildItem> registerJpaEntities() {
+        return List.of(
+            new AdditionalJpaModelBuildItem(Soul.class.getName()),
+            new AdditionalJpaModelBuildItem(ChatMessageEntity.class.getName()),
+            new AdditionalJpaModelBuildItem(Journal.class.getName()),
+            new AdditionalJpaModelBuildItem(AgenticScopeEntity.class.getName())
+        );
+    }
+
+    @BuildStep
+    ReflectiveClassBuildItem registerAgenticScopeIdClass() {
+        return ReflectiveClassBuildItem.builder(AgenticScopeEntity.Key.class.getName())
                 .methods()
                 .fields()
                 .build();

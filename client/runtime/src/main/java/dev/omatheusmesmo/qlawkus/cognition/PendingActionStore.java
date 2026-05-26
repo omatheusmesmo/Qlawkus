@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 @ApplicationScoped
+@Deprecated(forRemoval = true)
 public class PendingActionStore {
 
     private final ConcurrentHashMap<String, Entry> pending = new ConcurrentHashMap<>();
