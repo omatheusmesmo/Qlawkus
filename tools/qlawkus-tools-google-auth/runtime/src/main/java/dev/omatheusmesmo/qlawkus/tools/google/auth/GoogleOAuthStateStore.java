@@ -57,9 +57,4 @@ public class GoogleOAuthStateStore {
         return entity;
     }
 
-    @Transactional
-    public boolean validateAndConsume(String token) {
-        GoogleOAuthState entity = consume(token);
-        return entity != null;
-    }
 }

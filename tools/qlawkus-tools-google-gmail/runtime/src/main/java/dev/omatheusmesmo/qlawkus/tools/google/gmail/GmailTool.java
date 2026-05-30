@@ -15,8 +15,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -97,7 +101,7 @@ public class GmailTool {
         }
 
         String rawEmail = buildRawEmail(to, subject, body);
-        String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(rawEmail.getBytes());
+        String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(rawEmail.getBytes(StandardCharsets.UTF_8));
 
         try {
             apiExecutor.executeWithAuthRetry(() -> {
@@ -132,7 +136,7 @@ public class GmailTool {
             String replyTo = original.replyTo();
             String subject = original.subject();
             String threadId = original.threadId();
-            String messageIdHeader = original.id();
+            String messageIdHeader = original.messageIdHeader();
 
             if (!subject.toLowerCase().startsWith("re:")) {
                 subject = "Re: " + subject;
@@ -146,11 +150,11 @@ public class GmailTool {
             boolean allRecipients = replyAll != null ? replyAll : false;
             String recipients = resolveReplyRecipients(from, to, cc, replyTo, allRecipients);
 
-            String rawEmail = buildReplyEmail(recipients, subject, body, messageIdHeader);
-            String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(rawEmail.getBytes());
+            String rawEmail = buildReplyEmail(recipients, subject, body, messageIdHeader, messageIdHeader);
+        String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(rawEmail.getBytes(StandardCharsets.UTF_8));
 
-            apiExecutor.executeWithAuthRetry(() -> {
-                gmailClient.sendMessage(config.userId(), new GmailSendRequest(encoded, threadId));
+        apiExecutor.executeWithAuthRetry(() -> {
+            gmailClient.sendMessage(config.userId(), new GmailSendRequest(encoded, threadId));
                 return null;
             });
             markSent(dedupKey);
@@ -263,20 +267,22 @@ public class GmailTool {
 
     private String buildRawEmail(String to, String subject, String body) {
         return "To: " + to + "\r\n" +
-            "Subject: =?UTF-8?B?" + Base64.getEncoder().encodeToString(subject.getBytes()) + "?=\r\n" +
+            "Subject: =?UTF-8?B?" + Base64.getEncoder().encodeToString(subject.getBytes(StandardCharsets.UTF_8)) + "?=\r\n" +
             "Content-Type: text/plain; charset=UTF-8\r\n" +
             "Content-Transfer-Encoding: base64\r\n\r\n" +
-            Base64.getEncoder().encodeToString(body.getBytes());
+            Base64.getEncoder().encodeToString(body.getBytes(StandardCharsets.UTF_8));
     }
 
-    private String buildReplyEmail(String to, String subject, String body, String inReplyTo) {
+    private String buildReplyEmail(String to, String subject, String body, String inReplyTo, String references) {
+        String replyHeader = inReplyTo != null ? "In-Reply-To: " + inReplyTo + "\r\n" : "";
+        String referencesHeader = references != null ? "References: " + references + "\r\n" : "";
         return "To: " + to + "\r\n" +
-            "Subject: =?UTF-8?B?" + Base64.getEncoder().encodeToString(subject.getBytes()) + "?=\r\n" +
-            "In-Reply-To: <" + inReplyTo + "@mail.gmail.com>\r\n" +
-            "References: <" + inReplyTo + "@mail.gmail.com>\r\n" +
+            "Subject: =?UTF-8?B?" + Base64.getEncoder().encodeToString(subject.getBytes(StandardCharsets.UTF_8)) + "?=\r\n" +
+            replyHeader +
+            referencesHeader +
             "Content-Type: text/plain; charset=UTF-8\r\n" +
             "Content-Transfer-Encoding: base64\r\n\r\n" +
-            Base64.getEncoder().encodeToString(body.getBytes());
+            Base64.getEncoder().encodeToString(body.getBytes(StandardCharsets.UTF_8));
     }
 
     private String resolveReplyRecipients(String from, String to, String cc, String replyTo, boolean replyAll) {
@@ -286,30 +292,34 @@ public class GmailTool {
             return sender;
         }
 
-        StringBuilder recipients = new StringBuilder(sender);
+        Set<String> seen = new HashSet<>();
+        seen.add(sender.toLowerCase());
+        String userEmail = config.userId().toLowerCase();
+        seen.add(userEmail);
+
+        List<String> result = new ArrayList<>();
+        result.add(sender);
 
         if (to != null && !to.isBlank()) {
-            String[] toAddrs = to.split(",");
-            for (String addr : toAddrs) {
+            for (String addr : to.split(",")) {
                 String trimmed = addr.trim();
-                if (!trimmed.equalsIgnoreCase(sender) && !recipients.toString().toLowerCase().contains(trimmed.toLowerCase())) {
-                    if (recipients.length() > 0) recipients.append(", ");
-                    recipients.append(trimmed);
+                if (!seen.contains(trimmed.toLowerCase())) {
+                    seen.add(trimmed.toLowerCase());
+                    result.add(trimmed);
                 }
             }
         }
 
         if (cc != null && !cc.isBlank()) {
-            String[] ccAddrs = cc.split(",");
-            for (String addr : ccAddrs) {
+            for (String addr : cc.split(",")) {
                 String trimmed = addr.trim();
-                if (!trimmed.equalsIgnoreCase(sender) && !recipients.toString().toLowerCase().contains(trimmed.toLowerCase())) {
-                    if (recipients.length() > 0) recipients.append(", ");
-                    recipients.append(trimmed);
+                if (!seen.contains(trimmed.toLowerCase())) {
+                    seen.add(trimmed.toLowerCase());
+                    result.add(trimmed);
                 }
             }
         }
 
-        return recipients.toString();
+        return String.join(", ", result);
     }
 }
