@@ -23,25 +23,22 @@ public class GoogleApiExecutor {
             int status = e.getResponse().getStatus();
             if (status == 401 && !vaultInstance.isUnsatisfied()) {
                 Log.infof("Google API returned 401, forcing token refresh and retrying");
-                markAuthNeeded();
-                vaultInstance.get().forceRenewAccessToken();
-                return call.execute();
-            }
-            if (status == 403 && !vaultInstance.isUnsatisfied()) {
-                Log.infof("Google API returned 403, attempting token refresh before giving up");
-                markAuthNeeded();
                 vaultInstance.get().forceRenewAccessToken();
                 try {
                     return call.execute();
                 } catch (WebApplicationException retryEx) {
-                    if (retryEx.getResponse().getStatus() == 403) {
-                        Log.warnf("Google API still 403 after token refresh — likely insufficient scope");
+                    if (retryEx.getResponse().getStatus() == 401 || retryEx.getResponse().getStatus() == 403) {
+                        Log.warnf("Google API still auth error after token refresh, arming HITL gate");
+                        markAuthNeeded();
                     }
                     throw retryEx;
                 }
             }
-            throw e;
-        } catch (Exception e) {
+            if (status == 403 && !vaultInstance.isUnsatisfied()) {
+                Log.warnf("Google API returned 403 — likely insufficient scope, arming HITL gate");
+                markAuthNeeded();
+                throw e;
+            }
             throw e;
         }
     }

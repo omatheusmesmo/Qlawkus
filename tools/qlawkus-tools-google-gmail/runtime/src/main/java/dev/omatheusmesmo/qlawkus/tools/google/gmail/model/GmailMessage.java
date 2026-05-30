@@ -63,6 +63,14 @@ public record GmailMessage(
             .orElse("");
     }
 
+    public String messageIdHeader() {
+        return payload.headers().stream()
+            .filter(h -> "Message-ID".equalsIgnoreCase(h.name()))
+            .map(GmailMessagePartHeader::value)
+            .findFirst()
+            .orElse(null);
+    }
+
     public String body() {
         if (payload.parts() != null) {
             for (GmailMessagePart part : payload.parts()) {

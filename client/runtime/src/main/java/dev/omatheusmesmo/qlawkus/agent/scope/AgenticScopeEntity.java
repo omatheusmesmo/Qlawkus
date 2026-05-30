@@ -9,6 +9,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
+import jakarta.persistence.Table;
 import jakarta.transaction.Transactional;
 
 import java.time.Instant;
@@ -16,6 +17,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Entity
+@Table(name = "agentic_scope")
 @IdClass(AgenticScopeEntity.Key.class)
 public class AgenticScopeEntity extends PanacheEntityBase {
 

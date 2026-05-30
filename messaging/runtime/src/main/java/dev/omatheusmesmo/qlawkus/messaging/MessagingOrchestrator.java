@@ -220,6 +220,9 @@ public class MessagingOrchestrator {
             clearRequested = conversationControl.isClearRequested();
             result = new AgentResult(response, voicePreference.isRequested(), voicePreference.language());
         } finally {
+            if (deliveryContextInstance.isResolvable()) {
+                deliveryContextInstance.get().clear();
+            }
             if (activated) {
                 requestContext.terminate();
             }

@@ -1,13 +1,13 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE soul (
-  id              BIGINT        PRIMARY KEY,
-  name            VARCHAR(255)  NOT NULL,
-  core_identity   TEXT          NOT NULL,
-  current_state   TEXT          NOT NULL,
-  mood            VARCHAR(255)  NOT NULL,
-  created_at      TIMESTAMP     DEFAULT now(),
-  updated_at      TIMESTAMP     DEFAULT now()
+    id BIGINT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    core_identity TEXT NOT NULL,
+    current_state TEXT NOT NULL,
+    mood VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now()
 );
 
 INSERT INTO soul (id, name, core_identity, current_state, mood, created_at, updated_at)
