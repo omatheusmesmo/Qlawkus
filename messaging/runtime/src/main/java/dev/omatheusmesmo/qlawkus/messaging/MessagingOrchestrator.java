@@ -1,9 +1,9 @@
 package dev.omatheusmesmo.qlawkus.messaging;
 
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
+import dev.omatheusmesmo.qlawkus.agent.AgentRunner;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;
-import dev.omatheusmesmo.qlawkus.agent.QlawkusAgentWorkflow;
 import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
@@ -38,7 +38,7 @@ public class MessagingOrchestrator {
     AgentService agentService;
 
     @Inject
-    Instance<QlawkusAgentWorkflow> workflowInstance;
+    Instance<AgentRunner> agentRunnerInstance;
 
     @Inject
     Instance<AgentDeliveryContext> deliveryContextInstance;
@@ -72,9 +72,6 @@ public class MessagingOrchestrator {
 
     @ConfigProperty(name = "qlawkus.agent.context-ttl-minutes", defaultValue = "60")
     long contextTtlMinutes;
-
-    @ConfigProperty(name = "qlawkus.agent.agentic-workflow.enabled", defaultValue = "true")
-    boolean agenticWorkflowEnabled;
 
     public Uni<Void> process(MessagingMessage message) {
         Log.infof("MessagingOrchestrator: received provider=%s userId=%s chatId=%s textLen=%d hasAudio=%s",
@@ -235,13 +232,13 @@ public class MessagingOrchestrator {
     }
 
     private String invokeAgent(String conversationId, String text) {
-        if (agenticWorkflowEnabled && !workflowInstance.isUnsatisfied()) {
+        if (!agentRunnerInstance.isUnsatisfied()) {
             try {
-                String response = workflowInstance.get().invoke(conversationId, text);
-                Log.debugf("MessagingOrchestrator: agentic workflow completed for conversationId=%s", conversationId);
+                String response = agentRunnerInstance.get().chat(conversationId, text);
+                Log.debugf("MessagingOrchestrator: agent completed for conversationId=%s", conversationId);
                 return response;
             } catch (Exception e) {
-                Log.warnf(e, "MessagingOrchestrator: agentic workflow failed, falling back to AgentService");
+                Log.warnf(e, "MessagingOrchestrator: agent failed, falling back to AgentService");
             }
         }
         return agentService.chatSync(conversationId, text);

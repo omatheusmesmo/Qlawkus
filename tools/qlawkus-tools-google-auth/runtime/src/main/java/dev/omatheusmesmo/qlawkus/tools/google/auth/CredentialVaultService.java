@@ -93,6 +93,7 @@ public class CredentialVaultService {
         }
     }
 
+    @Transactional
     public void forceRenewAccessToken() {
         Log.info("Forcing Google access token renewal");
         renewAccessToken();
@@ -181,6 +182,7 @@ public class CredentialVaultService {
         }
     }
 
+    @Transactional
     public String getAccessToken() {
         if (useVault()) {
             return getVaultAccessToken();
