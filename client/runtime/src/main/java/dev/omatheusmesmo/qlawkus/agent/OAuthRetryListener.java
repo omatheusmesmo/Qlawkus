@@ -7,24 +7,30 @@ import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.enterprise.event.ObservesAsync;
-import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
+/**
+ * After a Google OAuth callback completes, re-invokes the agent for the same conversation so it
+ * retries the original request and delivers the result back to the chat. Relies on the agent's
+ * persistent chat memory (keyed by memoryId) to recall what the user was doing.
+ */
 @ApplicationScoped
-public class OAuthWorkflowResumer {
+public class OAuthRetryListener {
+
+    private static final String RETRY_PROMPT =
+            "Google authorization is now complete. Please continue and complete the request "
+            + "I was making before authorization was needed.";
 
     @Inject
-    Instance<QlawkusAgentWorkflow> workflowInstance;
+    AgentRunner agentRunner;
+
+    @Inject
+    AgentDeliveryContext deliveryContext;
 
     @Inject
     Event<WorkflowResultReadyEvent> resultEvent;
 
     void onOAuthCallbackCompleted(@ObservesAsync OAuthCallbackCompletedEvent event) {
-        if (workflowInstance.isUnsatisfied()) {
-            Log.debug("OAuthWorkflowResumer: workflow not available, skipping resume");
-            return;
-        }
-
         Infrastructure.getDefaultWorkerPool().execute(() -> {
             ManagedContext requestContext = Arc.container().requestContext();
             boolean activated = false;
@@ -33,7 +39,7 @@ public class OAuthWorkflowResumer {
                 activated = true;
             }
             try {
-                resumeWorkflow(event);
+                resume(event);
             } finally {
                 if (activated) {
                     requestContext.terminate();
@@ -42,37 +48,31 @@ public class OAuthWorkflowResumer {
         });
     }
 
-    private void resumeWorkflow(OAuthCallbackCompletedEvent event) {
-        QlawkusAgentWorkflow workflow = workflowInstance.get();
+    private void resume(OAuthCallbackCompletedEvent event) {
         String memoryId = event.memoryId();
-
-        Log.infof("OAuthWorkflowResumer: resuming workflow for memoryId=%s", memoryId);
-
-        boolean completed = workflow.completeOAuthApproval(memoryId, "approved");
-        if (!completed) {
-            Log.warnf("OAuthWorkflowResumer: no pending OAuth HITL to complete for memoryId=%s", memoryId);
-            return;
-        }
+        Log.infof("OAuthRetryListener: resuming agent for memoryId=%s", memoryId);
 
         if (event.providerId() == null || event.chatId() == null) {
-            Log.infof("OAuthWorkflowResumer: no delivery info, workflow will resume on next user message");
+            Log.infof("OAuthRetryListener: no delivery info, agent will resume on next user message");
             return;
         }
 
+        deliveryContext.set(memoryId, event.providerId(), event.chatId());
         try {
-            String response = workflow.invoke(memoryId,
-                    "Now that Google authorization is complete, please retry the last Google API request that failed.");
-            Log.infof("OAuthWorkflowResumer: workflow resumed and completed for memoryId=%s, responseLen=%d",
+            String response = agentRunner.chat(memoryId, RETRY_PROMPT);
+            Log.infof("OAuthRetryListener: agent resumed for memoryId=%s, responseLen=%d",
                     memoryId, response != null ? response.length() : 0);
 
             if (response != null && !response.isBlank()) {
                 resultEvent.fireAsync(new WorkflowResultReadyEvent(
                         event.providerId(), event.chatId(), response));
-                Log.infof("OAuthWorkflowResumer: fired WorkflowResultReadyEvent for provider=%s chatId=%s",
+                Log.infof("OAuthRetryListener: fired WorkflowResultReadyEvent for provider=%s chatId=%s",
                         event.providerId(), event.chatId());
             }
         } catch (Exception e) {
-            Log.errorf(e, "OAuthWorkflowResumer: failed to resume workflow for memoryId=%s", memoryId);
+            Log.errorf(e, "OAuthRetryListener: failed to resume agent for memoryId=%s", memoryId);
+        } finally {
+            deliveryContext.clear();
         }
     }
 }

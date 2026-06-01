@@ -1,8 +1,8 @@
 package dev.omatheusmesmo.qlawkus.messaging;
 
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
+import dev.omatheusmesmo.qlawkus.agent.AgentRunner;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
-import dev.omatheusmesmo.qlawkus.agent.QlawkusAgentWorkflow;
 import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
 import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
@@ -50,9 +50,9 @@ class MessagingOrchestratorTest {
         orchestrator.deliveryContextInstance = deliveryContextInstance;
 
         @SuppressWarnings("unchecked")
-        Instance<QlawkusAgentWorkflow> workflowInstance = Mockito.mock(Instance.class);
-        when(workflowInstance.isUnsatisfied()).thenReturn(true);
-        orchestrator.workflowInstance = workflowInstance;
+        Instance<AgentRunner> agentRunnerInstance = Mockito.mock(Instance.class);
+        when(agentRunnerInstance.isUnsatisfied()).thenReturn(true);
+        orchestrator.agentRunnerInstance = agentRunnerInstance;
 
         when(notificationService.send(any(), any(), any())).thenReturn(Uni.createFrom().voidItem());
         when(voicePreference.isRequested()).thenReturn(false);
