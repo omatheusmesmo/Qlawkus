@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.omatheusmesmo</groupId>
         <artifactId>qlawkus-messaging-slack-parent</artifactId>
-        <version>0.7.1</version>
+        <version>0.7.2-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>qlawkus-messaging-slack</artifactId>
