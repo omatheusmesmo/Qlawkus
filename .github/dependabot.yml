@@ -1,0 +1,20 @@
+version: 2
+updates:
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 5
+  labels:
+  - ci
+  - dependencies
+
+- package-ecosystem: maven
+  directory: /
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 5
+  labels:
+  - dependencies
+  ignore:
+  - dependency-name: io.quarkus:*

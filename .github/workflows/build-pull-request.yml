@@ -1,0 +1,177 @@
+name: Build (on pull request)
+
+on:
+  pull_request:
+    paths-ignore:
+      - '.gitignore'
+      - 'CODEOWNERS'
+      - 'LICENSE'
+      - '*.md'
+      - '*.adoc'
+      - '*.txt'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  quick-build:
+    name: Quick Build
+    runs-on: ubuntu-latest
+    outputs:
+      all_modules: ${{ steps.matrices.outputs.all_modules }}
+      it_modules: ${{ steps.matrices.outputs.it_modules }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reclaim Disk Space
+        run: .github/ci-prerequisites.sh
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+
+      - name: Build with Maven
+        run: ./mvnw -B clean install -DskipTests -Dno-format -ntp
+
+      - name: Zip the Maven repo
+        run: |
+          tar -czf ${{ runner.temp }}/maven-repo.tgz -C ~ .m2/repository
+          rm -Rf ~/.m2/repository/dev/omatheusmesmo
+
+      - name: Persist the Maven repo
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-repo
+          path: ${{ runner.temp }}/maven-repo.tgz
+          retention-days: 5
+
+      - name: Compute matrices
+        id: matrices
+        run: |
+          ALL_MODULES=$(find . -mindepth 2 -maxdepth 2 -type f -name 'pom.xml' -exec dirname {} \; \
+            | sed 's|^\./||' \
+            | sort -u \
+            | jq -R -s -c 'split("\n")[:-1]')
+
+          cd integration-tests
+          IT_MODULES=$(find . -mindepth 1 -maxdepth 1 -type d \
+            | sed 's|^\./||' \
+            | sort -u \
+            | jq -R -s -c 'split("\n")[:-1]')
+
+          echo "all_modules=${ALL_MODULES}" >> $GITHUB_OUTPUT
+          echo "it_modules=${IT_MODULES}" >> $GITHUB_OUTPUT
+
+  jvm-tests:
+    needs: quick-build
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.quick-build.outputs.all_modules) }}
+    name: JVM tests - ${{ matrix.module }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+
+      - name: Download the Maven repo
+        uses: actions/download-artifact@v4
+        with:
+          name: maven-repo
+          path: ..
+
+      - name: Unzip the Maven Repo
+        run: tar -xzf ../maven-repo.tgz -C ~
+
+      - name: Run tests of ${{ matrix.module }}
+        run: cd ${{ matrix.module }} && ../mvnw -B verify -Dci=true -Dno-format -ntp
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports-${{ matrix.module }}
+          path: '**/target/*-reports/TEST-*.xml'
+          retention-days: 7
+
+  native-tests:
+    needs: quick-build
+    name: Native tests - ${{ matrix.module }}
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.quick-build.outputs.it_modules) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+
+      - name: Download the Maven repo
+        uses: actions/download-artifact@v4
+        with:
+          name: maven-repo
+          path: ..
+
+      - name: Unzip the Maven Repo
+        run: tar -xzf ../maven-repo.tgz -C ~
+
+      - name: Run native integration tests ${{ matrix.module }}
+        run: |
+          cd integration-tests/${{ matrix.module }}
+          ../../mvnw -B verify -Pnative -Dci=true -Dquarkus.native.container-build -Dnative.surefire.skip -Dno-format -ntp
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-test-reports-${{ matrix.module }}
+          path: '**/target/*-reports/TEST-*.xml'
+          retention-days: 7
+
+  build-report:
+    needs:
+      - jvm-tests
+      - native-tests
+    if: always()
+    name: Build Report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*test-reports*'
+          path: all-reports
+
+      - name: Report summary
+        run: |
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Module | JVM | Native |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          for dir in all-reports/test-reports-*/; do
+            module=$(basename "$dir" | sed 's/test-reports-//')
+            jvm_status=":white_check_mark:"
+            native_status=""
+            if [ -d "all-reports/native-test-reports-${module}" ]; then
+              native_status=":white_check_mark:"
+            fi
+            echo "| ${module} | ${jvm_status} | ${native_status} |" >> $GITHUB_STEP_SUMMARY
+          done
