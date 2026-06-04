@@ -6,7 +6,7 @@
     <groupId>dev.omatheusmesmo</groupId>
     <artifactId>qlawkus</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>0.7.1-SNAPSHOT</version>
+    <version>0.7.1</version>
   </parent>
 
   <artifactId>qlawkus-app</artifactId>
