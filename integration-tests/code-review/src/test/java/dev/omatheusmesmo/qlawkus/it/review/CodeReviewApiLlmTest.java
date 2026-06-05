@@ -1,8 +1,13 @@
 package dev.omatheusmesmo.qlawkus.it.review;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
+import dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils;
+import dev.omatheusmesmo.qlawkus.testing.QlawkusWireMockStubs;
+import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -12,16 +17,25 @@ import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
+@ConnectWireMock
 @DisabledOnOs(OS.WINDOWS)
 @Execution(ExecutionMode.SAME_THREAD)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class CodeReviewApiLlmTest {
 
+    WireMock wiremock;
+
     @Inject
     AgentService agentService;
+
+    @BeforeEach
+    void setupStubs() {
+        QlawkusWireMockStubs.registerOpenAiStubs(wiremock);
+    }
 
     @Test
     @Order(1)
@@ -30,10 +44,7 @@ class CodeReviewApiLlmTest {
                 "Use the runLocalTests tool to run 'mvn --version' and tell me what version of Maven is installed.");
 
         assertNotNull(response);
-        assertFalse(response.isBlank(), "Agent should respond");
-        assertTrue(
-                response.toLowerCase().contains("maven") || response.toLowerCase().contains("apache"),
-                "LLM should report Maven version from runLocalTests output. Got: " + response);
+        assertThat(response, QlawkusTestUtils.containsStringOrMock("maven", "apache"));
     }
 
     @Test
@@ -43,11 +54,7 @@ class CodeReviewApiLlmTest {
                 "Use the runLocalTests tool to run 'curl https://example.com' and tell me what happened.");
 
         assertNotNull(response);
-        assertTrue(
-                response.toLowerCase().contains("not") || response.toLowerCase().contains("block")
-                        || response.toLowerCase().contains("allow") || response.toLowerCase().contains("reject")
-                        || response.toLowerCase().contains("cannot") || response.toLowerCase().contains("not allowed"),
-                "LLM should report that curl was rejected by the allowlist. Got: " + response);
+        assertThat(response, QlawkusTestUtils.containsStringOrMock("not", "block", "allow", "reject", "cannot"));
     }
 
     @Test
@@ -59,8 +66,8 @@ class CodeReviewApiLlmTest {
                 +++ b/Foo.java
                 @@ -1,3 +1,5 @@
                 +public void doEverythingAndAlsoMore() {
-                +    int x = 42;
-                +    processData(); updateUI(); sendEmail();
+                + int x = 42;
+                + processData(); updateUI(); sendEmail();
                 +}
                 """;
 
@@ -69,7 +76,9 @@ class CodeReviewApiLlmTest {
 
         assertNotNull(response);
         assertFalse(response.isBlank(), "Agent should respond");
-        assertTrue(response.length() > 50,
-                "LLM should provide meaningful feedback on the diff. Got: " + response);
+        if (QlawkusTestUtils.usesLLM()) {
+            assertTrue(response.length() > 50,
+                    "LLM should provide meaningful feedback on the diff. Got: " + response);
+        }
     }
 }

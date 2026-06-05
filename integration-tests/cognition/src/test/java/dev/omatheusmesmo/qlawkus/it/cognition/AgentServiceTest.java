@@ -1,10 +1,14 @@
 package dev.omatheusmesmo.qlawkus.it.cognition;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.cognition.Mood;
 import dev.omatheusmesmo.qlawkus.cognition.Soul;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
+import dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils;
+import dev.omatheusmesmo.qlawkus.testing.QlawkusWireMockStubs;
 import dev.omatheusmesmo.qlawkus.testing.SoulResetHelper;
+import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -19,15 +23,17 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.time.Duration;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
+@ConnectWireMock
 @Execution(ExecutionMode.SAME_THREAD)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class AgentServiceTest {
+
+    WireMock wiremock;
 
     @Inject
     AgentService agentService;
@@ -36,7 +42,8 @@ class AgentServiceTest {
     WorkingMemoryStore memoryStore;
 
     @BeforeEach
-    void rateLimitPause() {
+    void setupStubs() {
+        QlawkusWireMockStubs.registerOpenAiStubs(wiremock);
     }
 
     @AfterEach
@@ -68,9 +75,7 @@ class AgentServiceTest {
                 .atMost(Duration.ofSeconds(300))
                 .toString();
         assertNotNull(response);
-        assertFalse(response.isBlank(), "LLM should return a non-blank response");
-        assertTrue(response.toLowerCase().contains("qlawkus"),
-                "Response should contain the soul name 'Qlawkus'. Got: " + response);
+        assertThat(response, QlawkusTestUtils.containsStringOrMock("qlawkus"));
     }
 
     @Test
@@ -83,10 +88,10 @@ class AgentServiceTest {
                 .atMost(Duration.ofSeconds(300))
                 .toString();
         assertNotNull(response);
-        assertFalse(response.isBlank(), "LLM should return a non-blank response");
 
-        assertEquals("Nova", currentName(),
-                "LLM should have used the updateName tool to change the soul name to 'Nova'.");
+        QlawkusTestUtils.assertConditionOrMock(
+                "Nova".equals(currentName()),
+                "LLM should have used the updateName tool to change the soul name to 'Nova'. Got: " + currentName());
     }
 
     @Test
@@ -99,9 +104,9 @@ class AgentServiceTest {
                 .atMost(Duration.ofSeconds(300))
                 .toString();
         assertNotNull(response);
-        assertFalse(response.isBlank(), "LLM should return a non-blank response");
 
-        assertEquals(Mood.CURIOUS, currentMood(),
+        QlawkusTestUtils.assertConditionOrMock(
+                Mood.CURIOUS.equals(currentMood()),
                 "LLM should have used the updateMood tool. Got: " + currentMood());
     }
 
@@ -115,9 +120,10 @@ class AgentServiceTest {
                 .atMost(Duration.ofSeconds(300))
                 .toString();
         assertNotNull(response);
-        assertFalse(response.isBlank(), "LLM should return a non-blank response");
 
-        assertTrue(currentState().toLowerCase().contains("testing") || currentState().toLowerCase().contains("llm") || currentState().toLowerCase().contains("tool"),
+        String state = currentState().toLowerCase();
+        QlawkusTestUtils.assertConditionOrMock(
+                state.contains("testing") || state.contains("llm") || state.contains("tool"),
                 "LLM should have used the updateCurrentState tool. Got: " + currentState());
     }
 
@@ -131,10 +137,12 @@ class AgentServiceTest {
                 .atMost(Duration.ofSeconds(300))
                 .toString();
         assertNotNull(response);
-        assertFalse(response.isBlank(), "LLM should return a non-blank response");
 
-        assertTrue(currentCoreIdentity().toLowerCase().contains("test agent") || currentCoreIdentity().toLowerCase().contains("integration test"),
-                "LLM should have used the updateCoreIdentity tool. Got identity containing: " + currentCoreIdentity().substring(0, Math.min(200, currentCoreIdentity().length())));
+        String identity = currentCoreIdentity().toLowerCase();
+        QlawkusTestUtils.assertConditionOrMock(
+                identity.contains("test agent") || identity.contains("integration test"),
+                "LLM should have used the updateCoreIdentity tool. Got identity containing: "
+                        + currentCoreIdentity().substring(0, Math.min(200, currentCoreIdentity().length())));
     }
 
     @Transactional

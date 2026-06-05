@@ -1,7 +1,11 @@
 package dev.omatheusmesmo.qlawkus.it.brag;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
+import dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils;
+import dev.omatheusmesmo.qlawkus.testing.QlawkusWireMockStubs;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragEntry;
+import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -18,18 +22,23 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.time.Duration;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
+@ConnectWireMock
 @Execution(ExecutionMode.SAME_THREAD)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class BragLlmIT {
+
+    WireMock wiremock;
 
     @Inject
     AgentService agentService;
 
     @BeforeEach
-    void rateLimitPause() {
+    void setupStubs() {
+        QlawkusWireMockStubs.registerOpenAiStubs(wiremock);
     }
 
     @AfterEach
@@ -52,26 +61,28 @@ class BragLlmIT {
         assertTrue(response != null && !response.isBlank(),
                 "LLM should return a non-blank response. Got: '" + response + "'");
 
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(60))
-                .pollInterval(Duration.ofSeconds(2))
-                .untilAsserted(() -> {
-                    long countAfter = QuarkusTransaction.requiringNew().call(() -> BragEntry.count());
-                    assertTrue(countAfter > countBefore,
-                            "Expected at least one new BragEntry after agent chat. Response was: " + response);
+        if (QlawkusTestUtils.usesLLM()) {
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(60))
+                    .pollInterval(Duration.ofSeconds(2))
+                    .untilAsserted(() -> {
+                        long countAfter = QuarkusTransaction.requiringNew().call(() -> BragEntry.count());
+                        assertTrue(countAfter > countBefore,
+                                "Expected at least one new BragEntry after agent chat. Response was: " + response);
 
-                    Boolean found = QuarkusTransaction.requiringNew().call(() -> {
-                        @SuppressWarnings("unchecked")
-                        var entries = BragEntry.listAll();
-                        return entries.stream().anyMatch(e -> {
-                            BragEntry entry = (BragEntry) e;
-                            String achievement = entry.achievement.toLowerCase();
-                            return (achievement.contains("index") || achievement.contains("database"))
-                                    && !entry.deleted;
+                        Boolean found = QuarkusTransaction.requiringNew().call(() -> {
+                            @SuppressWarnings("unchecked")
+                            var entries = BragEntry.listAll();
+                            return entries.stream().anyMatch(e -> {
+                                BragEntry entry = (BragEntry) e;
+                                String achievement = entry.achievement.toLowerCase();
+                                return (achievement.contains("index") || achievement.contains("database"))
+                                        && !entry.deleted;
+                            });
                         });
+                        assertTrue(found, "Expected achievement mentioning 'index' or 'database'");
                     });
-                    assertTrue(found, "Expected achievement mentioning 'index' or 'database'");
-                });
+        }
     }
 
     @Test
@@ -84,18 +95,20 @@ class BragLlmIT {
         assertTrue(response != null && !response.isBlank(),
                 "LLM should return a non-blank response. Got: '" + response + "'");
 
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(60))
-                .pollInterval(Duration.ofSeconds(2))
-                .untilAsserted(() -> {
-                    Boolean hasImpact = QuarkusTransaction.requiringNew().call(() -> {
-                        @SuppressWarnings("unchecked")
-                        var entries = BragEntry.listAll();
-                        if (entries.isEmpty()) return false;
-                        BragEntry entry = (BragEntry) entries.get(0);
-                        return entry.impact != null && !entry.impact.isBlank();
+        if (QlawkusTestUtils.usesLLM()) {
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(60))
+                    .pollInterval(Duration.ofSeconds(2))
+                    .untilAsserted(() -> {
+                        Boolean hasImpact = QuarkusTransaction.requiringNew().call(() -> {
+                            @SuppressWarnings("unchecked")
+                            var entries = BragEntry.listAll();
+                            if (entries.isEmpty()) return false;
+                            BragEntry entry = (BragEntry) entries.get(0);
+                            return entry.impact != null && !entry.impact.isBlank();
+                        });
+                        assertTrue(hasImpact, "Impact should be translated by LLM");
                     });
-                    assertTrue(hasImpact, "Impact should be translated by LLM");
-                });
+        }
     }
 }

@@ -28,11 +28,11 @@ Multi-module Maven monorepo with a Quarkus extension pattern (`client/deployment
 # Unit tests for a single module (uses WireMock, no LLM needed)
 mvn test -pl client/deployment
 
-# Integration tests require Dev Services (auto-provisions Ollama + PostgreSQL via Testcontainers)
+# Integration tests (LLM-dependent tests auto-skip if no API key)
 mvn test -pl integration-tests/smoke
 
-# Integration tests with real LLM (slow, costs money)
-mvn test -pl integration-tests/smoke -Pintegration
+# Integration tests with real LLM (requires NVIDIA_AI_API_KEY env var)
+NVIDIA_AI_API_KEY=your-key mvn test -pl integration-tests/smoke
 
 # Full build (skip ITs by default - skipITs=true in parent pom)
 mvn verify
@@ -42,8 +42,9 @@ mvn verify -Pnative
 ```
 
 - `client/deployment/src/test/` - Extension build-time tests with WireMock-mocked LLM
-- `integration-tests/*/src/test/` - QuarkusTest integration tests; some call real LLMs, some use Dev Services
-- Smoke tests (`integration-tests/smoke/`) hit real LLM via Dev Services: can take 5+ minutes per test
+- `integration-tests/*/src/test/` - QuarkusTest integration tests; some call real LLMs, some use `@InjectMock`
+- LLM-dependent tests use `@EnabledIf("dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils#usesLLM")` - auto-skip when `NVIDIA_AI_API_KEY` is absent or "dummy"
+- Smoke tests (`integration-tests/smoke/`) hit real LLM: can take 5+ minutes per test
 
 ## Adding Tools
 
@@ -82,9 +83,9 @@ Embedding dimension is hardcoded to 1024 via `EMBEDDING_DIMENSION` - must match 
 
 6 GitHub Actions workflows:
 
-- **`build-pull-request.yml`** - On PR: quick build → JVM test matrix (per module) → native IT matrix (per IT module) → build report
-- **`build-push.yml`** - On push to main: full `mvn clean install`
-- **`build-nightly.yml`** - Cron seg-sex 02:00 UTC + dispatch: JVM + native build
+- **`build-pull-request.yml`** - On PR: quick build → JVM test matrix (per module) → native IT matrix (per IT module) → build report. No API key passed → LLM tests auto-skip
+- **`build-push.yml`** - On push to main: full `mvn clean install` with `NVIDIA_AI_API_KEY` → all tests run
+- **`build-nightly.yml`** - Cron seg-sex 02:00 UTC + dispatch: JVM + native build with `NVIDIA_AI_API_KEY` → all tests run
 - **`pre-release.yml`** - On PR that changes `.github/project.yml`: validates version is not SNAPSHOT, blocks forks
 - **`release-prepare.yml`** - On PR merge that changes `.github/project.yml`: sets POM version, tags (no `v` prefix), pushes tag, bumps to next SNAPSHOT
 - **`release-perform.yml`** - On tag push: builds artifacts, creates draft GitHub Release with PR-based changelog

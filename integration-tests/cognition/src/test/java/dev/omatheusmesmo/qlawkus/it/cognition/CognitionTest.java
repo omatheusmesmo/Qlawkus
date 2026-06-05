@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.it.cognition;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -8,6 +9,9 @@ import dev.omatheusmesmo.qlawkus.cognition.SemanticExtractorObserver;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import dev.omatheusmesmo.qlawkus.store.pg.ChatMessageEntity;
 import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
+import dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils;
+import dev.omatheusmesmo.qlawkus.testing.QlawkusWireMockStubs;
+import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -21,13 +25,16 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import java.time.Duration;
 
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @QuarkusTest
+@ConnectWireMock
 @Execution(ExecutionMode.SAME_THREAD)
 class CognitionTest {
+
+    WireMock wiremock;
 
     @Inject
     AgentService agentService;
@@ -42,7 +49,8 @@ class CognitionTest {
     SemanticExtractorObserver observer;
 
     @BeforeEach
-    void rateLimitPause() {
+    void setupStubs() {
+        QlawkusWireMockStubs.registerOpenAiStubs(wiremock);
     }
 
     @AfterEach
@@ -62,7 +70,7 @@ class CognitionTest {
         observer.extractAndStore(messages);
 
         await("semantic fact extracted via CDI event")
-            .atMost(300, SECONDS)
+                .atMost(300, SECONDS)
                 .pollDelay(3, SECONDS)
                 .pollInterval(2, SECONDS)
                 .until(() -> embeddingCountBySource("semantic-extractor") > 0);
@@ -81,9 +89,9 @@ class CognitionTest {
         observer.extractAndStore(session1Messages);
 
         await("semantic fact stored")
-            .atMost(120, SECONDS)
-            .pollInterval(2, SECONDS)
-            .until(() -> embeddingCountBySource("semantic-extractor") > 0);
+                .atMost(120, SECONDS)
+                .pollInterval(2, SECONDS)
+                .until(() -> embeddingCountBySource("semantic-extractor") > 0);
 
         memoryStore.deleteMessages("default");
 
@@ -95,9 +103,7 @@ class CognitionTest {
                 .atMost(Duration.ofSeconds(300))
                 .toString();
 
-        assertFalse(response.isBlank());
-        assertTrue(response.contains("int"),
-                "Agent should use explicit 'int' type. Response: " + response);
+        assertThat(response, QlawkusTestUtils.containsStringOrMock("int"));
     }
 
     @Test
@@ -109,9 +115,9 @@ class CognitionTest {
         observer.extractAndStore(messages);
 
         await("semantic fact stored")
-            .atMost(120, SECONDS)
-            .pollInterval(2, SECONDS)
-            .until(() -> embeddingCountBySource("semantic-extractor") > 0);
+                .atMost(120, SECONDS)
+                .pollInterval(2, SECONDS)
+                .until(() -> embeddingCountBySource("semantic-extractor") > 0);
 
         long count = embeddingCountBySource("semantic-extractor");
         assertTrue(count > 0, "Should have stored at least one fact about var preference");
@@ -127,7 +133,7 @@ class CognitionTest {
         observer.extractAndStore(seedMessages);
 
         await("semantic fact stored for search test")
-            .atMost(120, SECONDS)
+                .atMost(120, SECONDS)
                 .pollInterval(2, SECONDS)
                 .until(() -> embeddingCountBySource("semantic-extractor") > 0);
 
@@ -141,9 +147,7 @@ class CognitionTest {
                 .atMost(Duration.ofSeconds(300))
                 .toString();
 
-        assertFalse(response.isBlank());
-        assertTrue(response.toLowerCase().contains("rust"),
-                "Agent should recall 'Rust' from memories via searchMemories tool. Got: " + response);
+        assertThat(response, QlawkusTestUtils.containsStringOrMock("rust"));
     }
 
     @Transactional
