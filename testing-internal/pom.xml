@@ -13,11 +13,22 @@
     <artifactId>qlawkus-testing-internal</artifactId>
     <name>Qlawkus Testing Internal</name>
 
-    <dependencies>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-client</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-    </dependencies>
+  <dependencies>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkiverse.wiremock</groupId>
+      <artifactId>quarkus-wiremock-test</artifactId>
+      <version>${quarkus-wiremock.version}</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
 </project>
