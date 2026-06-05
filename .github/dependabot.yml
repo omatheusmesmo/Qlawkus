@@ -18,3 +18,4 @@ updates:
   - dependencies
   ignore:
   - dependency-name: io.quarkus:*
+  - dependency-name: dev.langchain4j:*
