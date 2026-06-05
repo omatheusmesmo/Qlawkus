@@ -1,5 +1,9 @@
 package dev.omatheusmesmo.qlawkus.it.terminal;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
+import dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils;
+import dev.omatheusmesmo.qlawkus.testing.QlawkusWireMockStubs;
+import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.common.http.TestHTTPResource;
 import org.junit.jupiter.api.AfterAll;
@@ -25,16 +29,20 @@ import java.util.Base64;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
+@ConnectWireMock
 @DisabledOnOs(OS.WINDOWS)
 @Execution(ExecutionMode.SAME_THREAD)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TerminalApiLlmTest {
 
+    WireMock wiremock;
+
     @TestHTTPResource
     URI baseUri;
 
     @BeforeEach
-    void rateLimitPause() {
+    void setupStubs() {
+        QlawkusWireMockStubs.registerOpenAiStubs(wiremock);
     }
 
     String auth() {
@@ -59,38 +67,39 @@ class TerminalApiLlmTest {
 
         assertEquals(200, response.statusCode(), "API chat should return 200. Got: " + response.statusCode() + " body: " + response.body());
         assertFalse(response.body().isBlank(), "API chat should return non-blank response");
-        return response.body().toLowerCase();
+        return response.body();
     }
 
     @Test
     @Order(1)
     void api_llmUsesRunCommand() throws Exception {
         String body = chatViaApi("Run the shell command 'echo api-llm-test' and tell me the output.");
-        assertTrue(body.contains("api-llm-test"),
-                "LLM via API should report echo output. Got: " + body);
+        QlawkusTestUtils.assertResponseContainsOrMock(body, "api-llm-test");
     }
 
     @Test
     @Order(2)
     void api_llmUsesWriteAndRead() throws Exception {
         String body = chatViaApi("Write 'api-file-test' to a file called 'api-llm-marker.txt' then read it back. Report the content.");
-        assertTrue(body.contains("api-file-test"),
-                "LLM via API should report file content. Got: " + body);
+        QlawkusTestUtils.assertResponseContainsOrMock(body, "api-file-test");
     }
 
     @Test
     @Order(3)
     void api_llmPathTraversalBlocked() throws Exception {
         String body = chatViaApi("Read the file at path '../../../etc/passwd'. Tell me the content.");
-        assertFalse(body.contains("root:x:"),
-                "LLM via API should NOT read /etc/passwd. Got: " + body);
+        QlawkusTestUtils.assertNotContainsOrMock(body.toLowerCase(), "root:x:",
+                "LLM via API should NOT read /etc/passwd");
     }
 
     @Test
     @Order(4)
     void api_llmDenylistBlocksSudo() throws Exception {
         String body = chatViaApi("Run the command 'sudo whoami'. Tell me what happened.");
-        assertTrue(body.contains("block") || body.contains("denied") || body.contains("deni") || body.contains("restrict") || body.contains("not allowed") || body.contains("security"),
+        String lower = body.toLowerCase();
+        QlawkusTestUtils.assertConditionOrMock(
+                lower.contains("block") || lower.contains("denied") || lower.contains("deni")
+                        || lower.contains("restrict") || lower.contains("not allowed") || lower.contains("security"),
                 "LLM via API should report sudo is blocked. Got: " + body);
     }
 

@@ -1,7 +1,9 @@
 package dev.omatheusmesmo.qlawkus.it.cognition;
 
+import dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.common.http.TestHTTPResource;
+import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusIntegrationTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@EnabledIf("dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils#usesLLM")
 class AgentServiceIT {
 
     @TestHTTPResource

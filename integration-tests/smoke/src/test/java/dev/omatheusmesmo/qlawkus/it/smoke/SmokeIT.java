@@ -1,7 +1,9 @@
 package dev.omatheusmesmo.qlawkus.it.smoke;
 
+import dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.common.http.TestHTTPResource;
+import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -16,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusIntegrationTest
+@EnabledIf("dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils#usesLLM")
 class SmokeIT {
 
     @TestHTTPResource
