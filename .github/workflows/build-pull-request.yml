@@ -89,7 +89,7 @@ jobs:
           cache: maven
 
       - name: Download the Maven repo
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: maven-repo
           path: ..
@@ -127,7 +127,7 @@ jobs:
           cache: maven
 
       - name: Download the Maven repo
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: maven-repo
           path: ..
@@ -156,7 +156,7 @@ jobs:
     name: Build Report
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: '*test-reports*'
           path: all-reports
