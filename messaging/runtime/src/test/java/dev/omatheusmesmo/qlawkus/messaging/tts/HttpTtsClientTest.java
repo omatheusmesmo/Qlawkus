@@ -4,6 +4,8 @@ import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -26,6 +28,8 @@ class HttpTtsClientTest {
         try {
             int port = server.getAddress().getPort();
             HttpTtsClient client = new HttpTtsClient();
+            client.setHttpClient(HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(15)).build());
 
             byte[] result = client.synthesize(provider("http://localhost:" + port, ""), "olá mundo");
 
@@ -49,6 +53,8 @@ class HttpTtsClientTest {
         try {
             int port = server.getAddress().getPort();
             HttpTtsClient client = new HttpTtsClient();
+            client.setHttpClient(HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(15)).build());
 
             RuntimeException ex = assertThrows(RuntimeException.class,
                     () -> client.synthesize(provider("http://localhost:" + port, ""), "hi"));

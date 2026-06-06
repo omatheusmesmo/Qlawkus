@@ -4,6 +4,8 @@ import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
+import java.net.http.HttpClient;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,7 +25,10 @@ class MediaDownloaderTest {
         server.start();
         try {
             int port = server.getAddress().getPort();
-            byte[] result = new MediaDownloader().download("http://localhost:" + port + "/file");
+            MediaDownloader downloader = new MediaDownloader();
+            downloader.setClient(HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10)).build());
+            byte[] result = downloader.download("http://localhost:" + port + "/file");
             assertArrayEquals(payload, result);
         } finally {
             server.stop(0);
@@ -41,6 +46,8 @@ class MediaDownloaderTest {
         try {
             int port = server.getAddress().getPort();
             MediaDownloader downloader = new MediaDownloader();
+            downloader.setClient(HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10)).build());
             assertThrows(MediaDownloader.MediaDownloadException.class,
                     () -> downloader.download("http://localhost:" + port + "/file"));
         } finally {

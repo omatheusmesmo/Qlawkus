@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.messaging.transcription;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -20,20 +21,24 @@ import java.util.UUID;
 public class WhisperTranscriptionService implements VoiceTranscriptionService {
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     private final VoiceTranscriptionConfig config;
-    private final HttpClient httpClient;
+    private HttpClient httpClient;
 
     @Inject
     public WhisperTranscriptionService(VoiceTranscriptionConfig config) {
-        this(config, HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(15))
-                .build());
+        this.config = config;
     }
 
-    WhisperTranscriptionService(VoiceTranscriptionConfig config, HttpClient httpClient) {
-        this.config = config;
+    @PostConstruct
+    void init() {
+        this.httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(15))
+            .build();
+    }
+
+    void setHttpClient(HttpClient httpClient) {
         this.httpClient = httpClient;
     }
 

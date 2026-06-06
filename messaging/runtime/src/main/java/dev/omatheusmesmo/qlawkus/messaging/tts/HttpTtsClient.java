@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.messaging.tts;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.io.IOException;
@@ -17,15 +18,16 @@ public class HttpTtsClient implements TtsClient {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final HttpClient httpClient;
+    private HttpClient httpClient;
 
-    public HttpTtsClient() {
-        this(HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(15))
-                .build());
+    @PostConstruct
+    void init() {
+        this.httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(15))
+            .build();
     }
 
-    HttpTtsClient(HttpClient httpClient) {
+    void setHttpClient(HttpClient httpClient) {
         this.httpClient = httpClient;
     }
 
