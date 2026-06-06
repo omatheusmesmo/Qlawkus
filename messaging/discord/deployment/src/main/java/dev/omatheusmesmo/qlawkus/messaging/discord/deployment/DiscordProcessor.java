@@ -34,6 +34,11 @@ class DiscordProcessor {
     }
 
     @BuildStep
+    RuntimeInitializedClassBuildItem initReactorNettyTcpClientSecureAtRuntime() {
+        return new RuntimeInitializedClassBuildItem("reactor.netty.tcp.TcpClientSecure");
+    }
+
+    @BuildStep
     RuntimeInitializedClassBuildItem initJdkSslClientContextAtRuntime() {
         return new RuntimeInitializedClassBuildItem("io.netty.handler.ssl.JdkSslClientContext");
     }
