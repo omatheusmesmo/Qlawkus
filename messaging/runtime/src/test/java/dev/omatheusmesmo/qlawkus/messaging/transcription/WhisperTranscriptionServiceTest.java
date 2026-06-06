@@ -4,7 +4,9 @@ import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,7 +17,8 @@ class WhisperTranscriptionServiceTest {
     @Test
     void transcribe_throwsWhenApiKeyIsBlank() {
         WhisperTranscriptionService service = new WhisperTranscriptionService(
-                config("", "whisper-1", "https://api.openai.com"));
+            config("", "whisper-1", "https://api.openai.com"));
+        service.setHttpClient(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build());
 
         IllegalStateException ex = assertThrows(IllegalStateException.class,
                 () -> service.transcribe(new byte[]{1, 2, 3}));
@@ -36,7 +39,8 @@ class WhisperTranscriptionServiceTest {
         try {
             int port = server.getAddress().getPort();
             WhisperTranscriptionService service = new WhisperTranscriptionService(
-                    config("sk-test", "whisper-1", "http://localhost:" + port));
+                config("sk-test", "whisper-1", "http://localhost:" + port));
+            service.setHttpClient(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build());
 
             String result = service.transcribe(new byte[]{1, 2, 3});
 
@@ -60,7 +64,8 @@ class WhisperTranscriptionServiceTest {
         try {
             int port = server.getAddress().getPort();
             WhisperTranscriptionService service = new WhisperTranscriptionService(
-                    config("bad-key", "whisper-1", "http://localhost:" + port));
+                config("bad-key", "whisper-1", "http://localhost:" + port));
+            service.setHttpClient(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build());
 
             RuntimeException ex = assertThrows(RuntimeException.class,
                     () -> service.transcribe(new byte[]{1, 2, 3}));

@@ -4,7 +4,9 @@ import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -17,7 +19,10 @@ class ElevenLabsTtsClientTest {
 
     @Test
     void kindIsElevenlabs() {
-        assertEquals("elevenlabs", new ElevenLabsTtsClient().kind());
+        ElevenLabsTtsClient client = new ElevenLabsTtsClient();
+        client.setHttpClient(HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(15)).build());
+        assertEquals("elevenlabs", client.kind());
     }
 
     @Test
@@ -40,7 +45,10 @@ class ElevenLabsTtsClientTest {
         server.start();
         try {
             int port = server.getAddress().getPort();
-            byte[] result = new ElevenLabsTtsClient()
+            ElevenLabsTtsClient client = new ElevenLabsTtsClient();
+            client.setHttpClient(HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(15)).build());
+            byte[] result = client
                     .synthesize(provider("http://localhost:" + port, "secret-key", "voice123", "eleven_multilingual_v2"),
                             "olá mundo");
 
@@ -56,8 +64,11 @@ class ElevenLabsTtsClientTest {
 
     @Test
     void synthesize_throwsWhenApiKeyMissing() {
+        ElevenLabsTtsClient client = new ElevenLabsTtsClient();
+        client.setHttpClient(HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(15)).build());
         assertThrows(IllegalStateException.class,
-                () -> new ElevenLabsTtsClient().synthesize(
+            () -> client.synthesize(
                         provider("http://localhost", null, "v", "m"), "hi"));
     }
 

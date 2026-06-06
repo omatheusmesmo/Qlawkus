@@ -11,6 +11,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.mutiny.subscription.Cancellable;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -41,6 +42,15 @@ public class TelegramProviderAdapter implements MessagingProvider {
 
     @Inject
     MediaDownloader mediaDownloader;
+
+    private HttpClient httpClient;
+
+    @PostConstruct
+    void init() {
+        this.httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(15))
+            .build();
+    }
 
     @Override
     public String providerId() {
@@ -129,8 +139,8 @@ public class TelegramProviderAdapter implements MessagingProvider {
                 .build();
 
         try {
-            HttpResponse<String> response = HttpClient.newHttpClient()
-                    .send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = httpClient
+                .send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 throw new RuntimeException(
                         "Telegram sendAudio error %d: %s".formatted(response.statusCode(), response.body()));

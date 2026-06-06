@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.google.auth;
 
 import io.quarkus.logging.Log;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
@@ -12,7 +13,12 @@ import java.util.Base64;
 public class GoogleOAuthStateStore {
 
     private static final long EXPIRY_SECONDS = 600;
-    private static final SecureRandom RANDOM = new SecureRandom();
+    private SecureRandom random;
+
+    @PostConstruct
+    void init() {
+        this.random = new SecureRandom();
+    }
 
     @Transactional
     public String issue() {
@@ -23,7 +29,7 @@ public class GoogleOAuthStateStore {
     public String issue(String memoryId, String providerId, String chatId) {
         GoogleOAuthState.deleteExpired();
         byte[] bytes = new byte[24];
-        RANDOM.nextBytes(bytes);
+        random.nextBytes(bytes);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 
         GoogleOAuthState entity = new GoogleOAuthState();

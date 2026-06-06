@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.messaging;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
@@ -13,16 +14,25 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 
 /**
- * Provider-agnostic downloader for inbound media (voice notes, attachments).
- * Retries transient network failures via MicroProfile Fault Tolerance so each
- * messaging adapter only needs to resolve the media URL, not the fetch logic.
- */
+* Provider-agnostic downloader for inbound media (voice notes, attachments).
+* Retries transient network failures via MicroProfile Fault Tolerance so each
+* messaging adapter only needs to resolve the media URL, not the fetch logic.
+*/
 @ApplicationScoped
 public class MediaDownloader {
 
-    private final HttpClient client = HttpClient.newBuilder()
+    private HttpClient client;
+
+    @PostConstruct
+    void init() {
+        this.client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
+    }
+
+    void setClient(HttpClient client) {
+        this.client = client;
+    }
 
     @Retry(maxRetries = 2, delay = 500, delayUnit = ChronoUnit.MILLIS,
             jitter = 200, jitterDelayUnit = ChronoUnit.MILLIS)
