@@ -19,6 +19,11 @@ class DiscordProcessor {
     }
 
     @BuildStep
+    RuntimeInitializedClassBuildItem initReactorNettyAtRuntime() {
+        return new RuntimeInitializedClassBuildItem("reactor.netty.ReactorNetty");
+    }
+
+    @BuildStep
     RuntimeInitializedClassBuildItem initReactorNettyHttpClientAtRuntime() {
         return new RuntimeInitializedClassBuildItem("reactor.netty.http.client.HttpClient");
     }
