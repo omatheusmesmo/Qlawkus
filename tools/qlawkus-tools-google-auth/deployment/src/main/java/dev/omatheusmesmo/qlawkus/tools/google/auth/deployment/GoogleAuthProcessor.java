@@ -18,6 +18,7 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageSecurityProviderBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedClassBuildItem;
 import io.quarkus.runtime.configuration.ConfigurationException;
 
 class GoogleAuthProcessor {
@@ -94,5 +95,16 @@ class GoogleAuthProcessor {
     @BuildStep(onlyIf = IsVaultEnabled.class)
     NativeImageSecurityProviderBuildItem registerBouncyCastleProvider() {
         return new NativeImageSecurityProviderBuildItem("org.bouncycastle.jce.provider.BouncyCastleProvider");
+    }
+
+    @BuildStep(onlyIf = IsVaultEnabled.class)
+    RuntimeInitializedClassBuildItem initBouncyCastleAtRuntime() {
+        return new RuntimeInitializedClassBuildItem("org.bouncycastle.jcajce.provider.drbg.DRBG");
+    }
+
+    @BuildStep(onlyIf = IsVaultEnabled.class)
+    RuntimeInitializedClassBuildItem initBouncyCastleAsymmetricAtRuntime() {
+        return new RuntimeInitializedClassBuildItem(
+            "org.bouncycastle.jcajce.provider.util.AsymmetricKeyInfoConverter");
     }
 }

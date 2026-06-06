@@ -26,9 +26,14 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>dev.omatheusmesmo</groupId>
-      <artifactId>qlawkus-tools-google-auth</artifactId>
-      <version>${project.version}</version>
+        <groupId>dev.omatheusmesmo</groupId>
+        <artifactId>qlawkus-tools-google-auth</artifactId>
+        <version>${project.version}</version>
+    </dependency>
+    <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
+        <version>1.84</version>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
