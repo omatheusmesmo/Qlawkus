@@ -6,6 +6,7 @@ import dev.omatheusmesmo.qlawkus.cognition.ClearContextTool;
 import dev.omatheusmesmo.qlawkus.cognition.RememberFactTool;
 import dev.omatheusmesmo.qlawkus.cognition.RespondWithVoiceTool;
 import dev.omatheusmesmo.qlawkus.cognition.SearchMemoriesTool;
+import dev.omatheusmesmo.qlawkus.cognition.SearchTranscriptsTool;
 import dev.omatheusmesmo.qlawkus.cognition.ActiveMemoryAugmentor;
 import dev.omatheusmesmo.qlawkus.cognition.SoulEngine;
 import dev.omatheusmesmo.qlawkus.cognition.UpdateSelfStateTool;
@@ -18,7 +19,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 @RegisterAiService(
     systemMessageProviderSupplier = SoulEngine.class,
     tools = {UpdateSelfStateTool.class, UpdateUserProfileTool.class, SearchMemoriesTool.class,
-            RememberFactTool.class, RespondWithVoiceTool.class, ClearContextTool.class},
+            SearchTranscriptsTool.class, RememberFactTool.class, RespondWithVoiceTool.class,
+            ClearContextTool.class},
     toolProviderSupplier = ClawToolProviderSupplier.class,
     retrievalAugmentor = ActiveMemoryAugmentor.class,
     maxSequentialToolInvocations = 100

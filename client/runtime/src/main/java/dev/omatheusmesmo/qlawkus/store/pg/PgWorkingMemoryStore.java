@@ -3,16 +3,24 @@ package dev.omatheusmesmo.qlawkus.store.pg;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageSerializer;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
+import dev.omatheusmesmo.qlawkus.store.MessagesAppendedEvent;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class PgWorkingMemoryStore implements WorkingMemoryStore, ChatMemoryStore {
+
+  @Inject
+  Event<MessagesAppendedEvent> messagesAppended;
 
   @Override
   @Transactional
@@ -27,15 +35,24 @@ public class PgWorkingMemoryStore implements WorkingMemoryStore, ChatMemoryStore
   @Transactional
   public void updateMessages(String memoryId, List<ChatMessage> messages) {
     List<ChatMessageEntity> existing = ChatMessageEntity.findByMemoryIdOrdered(memoryId);
+    Set<String> existingJson = existing.stream().map(e -> e.content).collect(Collectors.toSet());
+
     if (isAppendOf(existing, messages)) {
       for (ChatMessage message : messages.subList(existing.size(), messages.size())) {
         ChatMessageEntity.fromChatMessage(memoryId, message).persist();
       }
-      return;
+    } else {
+      ChatMessageEntity.deleteByMemoryId(memoryId);
+      for (ChatMessage message : messages) {
+        ChatMessageEntity.fromChatMessage(memoryId, message).persist();
+      }
     }
-    ChatMessageEntity.deleteByMemoryId(memoryId);
-    for (ChatMessage message : messages) {
-      ChatMessageEntity.fromChatMessage(memoryId, message).persist();
+
+    List<ChatMessage> appended = messages.stream()
+        .filter(m -> !existingJson.contains(ChatMessageSerializer.messageToJson(m)))
+        .toList();
+    if (!appended.isEmpty()) {
+      messagesAppended.fireAsync(new MessagesAppendedEvent(memoryId, appended));
     }
   }
 

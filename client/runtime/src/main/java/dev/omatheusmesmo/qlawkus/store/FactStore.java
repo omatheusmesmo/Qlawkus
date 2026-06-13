@@ -14,6 +14,9 @@ public interface FactStore {
 
   List<String> search(String query, int maxResults, double minScore);
 
+  /** Like {@link #search} but restricted to embeddings whose {@code source} metadata matches. */
+  List<String> searchBySource(String query, String source, int maxResults, double minScore);
+
   List<String> listSources();
 
   long purgeBySource(String source);

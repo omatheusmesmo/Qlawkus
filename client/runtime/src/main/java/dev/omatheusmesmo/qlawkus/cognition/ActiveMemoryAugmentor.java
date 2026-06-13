@@ -7,6 +7,8 @@ import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
+import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import io.quarkus.arc.Arc;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -46,6 +48,7 @@ public class ActiveMemoryAugmentor implements Supplier<RetrievalAugmentor> {
           .embeddingModel(model)
           .maxResults(maxResults)
           .minScore(minScore)
+          .filter(metadataKey("source").isNotEqualTo(MemorySource.TRANSCRIPT.value()))
           .build();
     } else {
       retriever = query -> List.of();
