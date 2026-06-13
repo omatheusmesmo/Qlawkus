@@ -8,7 +8,8 @@ public enum MemorySource {
 
   REMEMBER_TOOL("remember-tool"),
   SEMANTIC_EXTRACTOR("semantic-extractor"),
-  EPISODIC_CONSOLIDATOR("episodic-consolidator");
+  EPISODIC_CONSOLIDATOR("episodic-consolidator"),
+  TRANSCRIPT("transcript");
 
   private final String value;
 

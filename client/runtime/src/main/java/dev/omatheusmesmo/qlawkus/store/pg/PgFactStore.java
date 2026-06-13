@@ -8,6 +8,7 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -65,6 +66,23 @@ public class PgFactStore implements FactStore {
                 .map(EmbeddingMatch::embedded)
                 .map(TextSegment::text)
                 .toList();
+  }
+
+  @Override
+  public List<String> searchBySource(String query, String source, int maxResults, double minScore) {
+    Embedding queryEmbedding = embeddingModel.embed(query).content();
+    EmbeddingSearchResult<TextSegment> results = embeddingStore.search(
+        EmbeddingSearchRequest.builder()
+            .queryEmbedding(queryEmbedding)
+            .maxResults(maxResults)
+            .minScore(minScore)
+            .filter(metadataKey("source").isEqualTo(source))
+            .build());
+
+    return results.matches().stream()
+        .map(EmbeddingMatch::embedded)
+        .map(TextSegment::text)
+        .toList();
   }
 
   @Override
