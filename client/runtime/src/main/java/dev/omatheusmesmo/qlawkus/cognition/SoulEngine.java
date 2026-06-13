@@ -27,7 +27,16 @@ public class SoulEngine implements SystemMessageProvider {
       return Optional.empty();
     }
 
-    return Optional.of(soul.toSystemMessage() + currentDateTimeContext() + voiceCapabilityContext());
+    return Optional.of(soul.toSystemMessage() + ownerContext()
+        + currentDateTimeContext() + voiceCapabilityContext());
+  }
+
+  private String ownerContext() {
+    UserProfile profile = UserProfile.findProfile();
+    if (profile == null) {
+      return "";
+    }
+    return "\n\n---\n\n" + profile.toContextBlock();
   }
 
   private String voiceCapabilityContext() {
