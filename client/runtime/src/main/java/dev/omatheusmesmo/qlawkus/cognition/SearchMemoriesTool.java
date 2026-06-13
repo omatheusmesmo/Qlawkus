@@ -17,7 +17,7 @@ public class SearchMemoriesTool {
   @ConfigProperty(name = "qlawkus.agent.memory.max-results", defaultValue = "10")
   int maxResults;
 
-  @ConfigProperty(name = "qlawkus.agent.memory.min-score", defaultValue = "0.9")
+  @ConfigProperty(name = "qlawkus.agent.memory.min-score", defaultValue = "0.7")
   double minScore;
 
   @Tool("Search your long-term memory for user preferences, past decisions, or personal context relevant to the conversation. Use this when the topic might relate to something the user told you before.")

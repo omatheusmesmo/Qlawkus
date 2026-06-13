@@ -1,9 +1,11 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
+import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import dev.omatheusmesmo.qlawkus.store.pg.ChatMessageEntity;
 import dev.omatheusmesmo.qlawkus.store.pg.Journal;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -13,6 +15,9 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @QuarkusTest
 class MemoryAdminServiceTest {
@@ -25,6 +30,9 @@ class MemoryAdminServiceTest {
 
   @Inject
   WorkingMemoryStore workingMemoryStore;
+
+  @InjectMock
+  FactStore factStore;
 
   @AfterEach
   @Transactional
@@ -69,5 +77,13 @@ class MemoryAdminServiceTest {
 
     assertEquals(0, episodicStore.count());
     assertEquals(0, workingMemoryStore.count());
+  }
+
+  @Test
+  void purgeAllMemory_purgesEveryFactSource() {
+    adminService.purgeAllMemory();
+
+    verify(factStore).purgeAll();
+    verify(factStore, never()).purgeBySource(anyString());
   }
 }

@@ -64,7 +64,9 @@ public class ChatMessageEntity extends PanacheEntityBase {
 
   @PrePersist
   void persistCreatedAt() {
-    createdAt = Instant.now();
+    if (createdAt == null) {
+      createdAt = Instant.now();
+    }
   }
 
   public static ChatMessageEntity fromChatMessage(String memoryId, ChatMessage message) {

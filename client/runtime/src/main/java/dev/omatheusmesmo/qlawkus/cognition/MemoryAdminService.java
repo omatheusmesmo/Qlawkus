@@ -4,6 +4,7 @@ import dev.omatheusmesmo.qlawkus.dto.JournalSummary;
 import dev.omatheusmesmo.qlawkus.dto.MemorySummary;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
+import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -45,7 +46,7 @@ public class MemoryAdminService {
 
   @Transactional
   public long purgeJournals() {
-    factStore.purgeBySource("episodic-consolidator");
+    factStore.purgeBySource(MemorySource.EPISODIC_CONSOLIDATOR.value());
     long deleted = episodicStore.purgeAll();
     Log.infof("Purged %d journals", deleted);
     return deleted;
@@ -53,9 +54,9 @@ public class MemoryAdminService {
 
   @Transactional
   public void purgeAllMemory() {
-    factStore.purgeBySource("semantic-extractor");
+    long embeddings = factStore.purgeAll();
     episodicStore.purgeAll();
     workingMemoryStore.purgeAll();
-    Log.info("Purged all memory: embeddings, journals, chat messages");
+    Log.infof("Purged all memory: %d embeddings, journals, chat messages", embeddings);
   }
 }
