@@ -26,7 +26,12 @@ public class RememberFactTool {
             \
             Phrase the fact as a complete statement in third person, e.g. "User's GitHub handle is \
             omatheusmesmo" instead of just "omatheusmesmo". This makes the fact retrievable later via \
-            semantic search.""")
+            semantic search. \
+            \
+            Only store durable facts that will still matter later. Do NOT store ephemeral details — \
+            task progress, PR/issue numbers, commit hashes, "fixed bug X", or anything that goes stale \
+            within a week. Write declarative facts ("User prefers dark mode"), not instructions to \
+            yourself ("Always use dark mode").""")
     public String rememberFact(@P("The fact to remember, as a complete third-person statement") String fact) {
         if (fact == null || fact.isBlank()) {
             return "Cannot store an empty fact.";

@@ -27,7 +27,7 @@ public class SoulEngine implements SystemMessageProvider {
       return Optional.empty();
     }
 
-    return Optional.of(soul.toSystemMessage() + ownerContext()
+    return Optional.of(soul.toSystemMessage() + ownerContext() + executionBias()
         + currentDateTimeContext() + voiceCapabilityContext());
   }
 
@@ -37,6 +37,15 @@ public class SoulEngine implements SystemMessageProvider {
       return "";
     }
     return "\n\n---\n\n" + profile.toContextBlock();
+  }
+
+  private String executionBias() {
+    return "\n\n---\n\n## Acting\n\n"
+        + "Act in-turn on actionable requests: don't describe what you would do, do it. When a tool "
+        + "can answer or accomplish something, call the tool — never narrate a tool action as if you "
+        + "already performed it without actually calling it. Continue until the task is done or you "
+        + "are genuinely blocked, then say what blocked you. If a tool result is weak or empty, try "
+        + "another approach before giving up.";
   }
 
   private String voiceCapabilityContext() {

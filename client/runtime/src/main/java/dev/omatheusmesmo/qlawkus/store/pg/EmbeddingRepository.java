@@ -45,6 +45,22 @@ public class EmbeddingRepository {
         .executeUpdate();
   }
 
+  /**
+   * Removes semantically near-duplicate embeddings, keeping one per cluster. The exact-hash dedup at
+   * write time misses reworded variants ("User's name is Matheus" vs "The user is named Matheus");
+   * this catches them by cosine distance. {@code maxCosineDistance} is {@code 1 - similarity}.
+   */
+  @Transactional
+  public long deleteNearDuplicates(double maxCosineDistance) {
+    return entityManager.createNativeQuery(
+        "DELETE FROM embeddings WHERE embedding_id IN ("
+            + "SELECT b.embedding_id FROM embeddings a "
+            + "JOIN embeddings b ON a.embedding_id < b.embedding_id "
+            + "WHERE (a.embedding <=> b.embedding) < ?1)")
+        .setParameter(1, maxCosineDistance)
+        .executeUpdate();
+  }
+
   @Transactional
   public boolean existsByContentHash(String hash) {
     Object result = entityManager.createNativeQuery(
