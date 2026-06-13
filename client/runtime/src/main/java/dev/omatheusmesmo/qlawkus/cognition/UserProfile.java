@@ -73,15 +73,21 @@ public class UserProfile extends PanacheEntityBase {
       sb.append("What you know about them (this is your durable profile of the owner):\n\n")
           .append(profile).append("\n\n");
     } else {
-      sb.append("You don't have a profile for them yet. As you learn durable facts about them — ")
-          .append("their name, role, location, stack, preferences, ongoing projects — call ")
-          .append("updateUserProfile to record them here so you never lose that context.\n\n");
+      sb.append("You don't have a profile for them yet. As you learn durable facts about them, call ")
+          .append("updateUserProfile to record them. A good profile covers:\n")
+          .append("- Preferences: communication style, language, timezone\n")
+          .append("- Personal info: name, location, occupation/role\n")
+          .append("- Work: stack, tools, conventions, ongoing projects\n")
+          .append("- Goals & interests: what they want from you\n\n");
     }
 
     sb.append("Before telling the owner you don't know or don't remember something about them, call ")
         .append("searchMemories first. When you learn a durable fact, record it: updateUserProfile ")
         .append("for profile-level facts, rememberFact for one-off facts. Write facts as declarative ")
-        .append("statements (\"Owner prefers constructor injection\"), not instructions to yourself.");
+        .append("statements (\"Owner prefers constructor injection\"), not instructions to yourself ")
+        .append("(\"Always use constructor injection\"). Only record facts that will still matter ")
+        .append("later — not ephemeral details like task progress, IDs, or what you fixed today. ")
+        .append("Prefer facts that stop the owner from having to tell you the same thing again.");
 
     return sb.toString();
   }

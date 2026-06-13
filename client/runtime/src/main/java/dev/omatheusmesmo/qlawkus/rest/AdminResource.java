@@ -1,12 +1,14 @@
 package dev.omatheusmesmo.qlawkus.rest;
 
 import dev.omatheusmesmo.qlawkus.cognition.MemoryAdminService;
+import dev.omatheusmesmo.qlawkus.cognition.MemoryReviewJob;
 import dev.omatheusmesmo.qlawkus.dto.JournalSummary;
 import dev.omatheusmesmo.qlawkus.dto.MemorySummary;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
@@ -19,6 +21,16 @@ public class AdminResource {
 
   @Inject
   MemoryAdminService adminService;
+
+  @Inject
+  MemoryReviewJob memoryReviewJob;
+
+  @POST
+  @Path("/review")
+  public Response review() {
+    long removed = memoryReviewJob.reviewNow();
+    return Response.ok(Map.of("removedDuplicates", removed)).build();
+  }
 
   @GET
   public MemorySummary list() {
