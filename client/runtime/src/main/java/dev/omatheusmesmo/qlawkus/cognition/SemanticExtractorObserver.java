@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.cognition;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
+import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
@@ -26,10 +27,7 @@ public class SemanticExtractorObserver {
 
   public void extractAndStore(Iterable<ChatMessage> messages) {
     try {
-      StringBuilder conversation = new StringBuilder();
-      for (ChatMessage m : messages) {
-        conversation.append(m.type().name()).append(": ").append(m).append("\n");
-      }
+      String conversation = ConversationFormatter.format(messages);
 
       String extractionPrompt = """
         Extract factual information and user preferences from this conversation.
@@ -51,8 +49,12 @@ public class SemanticExtractorObserver {
         String fact = line.trim().replaceAll("^-\\s*", "");
         if (fact.isEmpty()) continue;
 
-        factStore.store(fact, Map.of("source", "semantic-extractor"));
-        Log.infof("Semantic fact extracted: %s", fact);
+        try {
+          factStore.store(fact, Map.of("source", MemorySource.SEMANTIC_EXTRACTOR.value()));
+          Log.infof("Semantic fact extracted: %s", fact);
+        } catch (Exception e) {
+          Log.warnf(e, "Failed to store semantic fact: %s", fact);
+        }
       }
     } catch (Exception e) {
       Log.errorf(e, "Failed to extract semantic facts");

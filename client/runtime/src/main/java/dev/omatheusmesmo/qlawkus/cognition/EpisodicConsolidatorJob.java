@@ -4,6 +4,7 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
+import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
@@ -55,17 +56,14 @@ public class EpisodicConsolidatorJob {
 
   void embedSummary(LocalDate date, String summary) {
     try {
-      factStore.store(summary, Map.of("source", "episodic-consolidator", "date", date.toString()));
+      factStore.store(summary, Map.of("source", MemorySource.EPISODIC_CONSOLIDATOR.value(), "date", date.toString()));
     } catch (Exception e) {
       Log.warnf(e, "Failed to embed journal summary for %s", date);
     }
   }
 
   public String summarizeMessages(List<ChatMessage> messages, LocalDate date) {
-    StringBuilder conversation = new StringBuilder();
-    for (ChatMessage message : messages) {
-      conversation.append(message.type().name()).append(": ").append(message).append("\n");
-    }
+    String conversation = ConversationFormatter.format(messages);
 
     String prompt = """
       Summarize this day's conversation into a concise journal entry.

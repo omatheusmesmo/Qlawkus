@@ -4,9 +4,11 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
+import dev.omatheusmesmo.qlawkus.store.pg.ChatMessageEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -81,5 +83,36 @@ class PgWorkingMemoryStoreTest {
 
     assertEquals(1, store.getMessages("session-a").size());
     assertEquals(2, store.getMessages("session-b").size());
+  }
+
+  @Test
+  @Transactional
+  void updateMessages_appendingReusesExistingRowsAndPreservesTimestamp() {
+    String sessionId = "append-session";
+    store.updateMessages(sessionId, List.of(new UserMessage("first")));
+
+    ChatMessageEntity firstRow = ChatMessageEntity.findByMemoryIdOrdered(sessionId).get(0);
+    Long originalId = firstRow.id;
+    Instant originalCreatedAt = firstRow.createdAt;
+
+    store.updateMessages(sessionId, List.of(new UserMessage("first"), AiMessage.from("second")));
+
+    List<ChatMessageEntity> rows = ChatMessageEntity.findByMemoryIdOrdered(sessionId);
+    assertEquals(2, rows.size());
+    assertEquals(originalId, rows.get(0).id, "existing message must be reused, not deleted and recreated");
+    assertEquals(originalCreatedAt, rows.get(0).createdAt, "existing message timestamp must be preserved");
+  }
+
+  @Test
+  @Transactional
+  void updateMessages_divergingHistoryFallsBackToFullReplace() {
+    String sessionId = "diverge-session";
+    store.updateMessages(sessionId, List.of(new UserMessage("a"), AiMessage.from("b")));
+
+    store.updateMessages(sessionId, List.of(new UserMessage("changed"), AiMessage.from("b")));
+
+    List<ChatMessage> result = store.getMessages(sessionId);
+    assertEquals(2, result.size());
+    assertEquals("changed", ((UserMessage) result.get(0)).singleText());
   }
 }

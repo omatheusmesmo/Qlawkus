@@ -29,29 +29,25 @@ public class PgFactStore implements FactStore {
 
   @Override
   public void store(String content, Map<String, Object> metadata) {
-    try {
-      String hash = EmbeddingRepository.md5(content);
-      if (embeddingRepository.existsByContentHash(hash)) {
-        Log.debugf("Embedding already exists for text, skipping: %s", content);
-        return;
-      }
-      Metadata langchainMetadata = new Metadata();
-      metadata.forEach((key, value) -> {
-        switch (value) {
-          case String s -> langchainMetadata.put(key, s);
-          case Integer i -> langchainMetadata.put(key, i);
-          case Long l -> langchainMetadata.put(key, l);
-          case Double d -> langchainMetadata.put(key, d);
-          case Float f -> langchainMetadata.put(key, f);
-          default -> langchainMetadata.put(key, value.toString());
-        }
-      });
-      TextSegment segment = TextSegment.from(content, langchainMetadata);
-      Embedding embedding = embeddingModel.embed(content).content();
-      embeddingStore.add(embedding, segment);
-    } catch (Exception e) {
-      Log.warnf(e, "Failed to store embedding for text: %s", content);
+    String hash = EmbeddingRepository.md5(content);
+    if (embeddingRepository.existsByContentHash(hash)) {
+      Log.debugf("Embedding already exists for text, skipping: %s", content);
+      return;
     }
+    Metadata langchainMetadata = new Metadata();
+    metadata.forEach((key, value) -> {
+      switch (value) {
+        case String s -> langchainMetadata.put(key, s);
+        case Integer i -> langchainMetadata.put(key, i);
+        case Long l -> langchainMetadata.put(key, l);
+        case Double d -> langchainMetadata.put(key, d);
+        case Float f -> langchainMetadata.put(key, f);
+        default -> langchainMetadata.put(key, value.toString());
+      }
+    });
+    TextSegment segment = TextSegment.from(content, langchainMetadata);
+    Embedding embedding = embeddingModel.embed(content).content();
+    embeddingStore.add(embedding, segment);
   }
 
   @Override

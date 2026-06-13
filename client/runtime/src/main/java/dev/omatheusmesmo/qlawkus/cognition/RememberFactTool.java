@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.cognition;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
+import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -32,7 +33,7 @@ public class RememberFactTool {
         }
         try {
             factStore.store(fact, Map.of(
-                    "source", "remember-tool",
+                    "source", MemorySource.REMEMBER_TOOL.value(),
                     "stored_at", Instant.now().toString()));
             Log.infof("RememberFactTool: stored fact='%s'", fact);
             return "Stored in long-term memory: " + fact;
