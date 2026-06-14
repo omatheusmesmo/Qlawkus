@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.rest;
 
 import dev.omatheusmesmo.qlawkus.cognition.MemoryAdminService;
+import dev.omatheusmesmo.qlawkus.cognition.MemoryCurationJob;
 import dev.omatheusmesmo.qlawkus.cognition.MemoryReviewJob;
 import dev.omatheusmesmo.qlawkus.dto.JournalSummary;
 import dev.omatheusmesmo.qlawkus.dto.MemorySummary;
@@ -25,11 +26,21 @@ public class AdminResource {
   @Inject
   MemoryReviewJob memoryReviewJob;
 
+  @Inject
+  MemoryCurationJob memoryCurationJob;
+
   @POST
   @Path("/review")
   public Response review() {
     long removed = memoryReviewJob.reviewNow();
     return Response.ok(Map.of("removedDuplicates", removed)).build();
+  }
+
+  @POST
+  @Path("/curate")
+  public Response curate() {
+    boolean refreshed = memoryCurationJob.curateProfile();
+    return Response.ok(Map.of("profileRefreshed", refreshed)).build();
   }
 
   @GET
