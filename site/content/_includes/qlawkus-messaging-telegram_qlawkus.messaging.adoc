@@ -1,0 +1,74 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-messaging-telegram_qlawkus-messaging-telegram-bot-token]] [.property-path]##link:#qlawkus-messaging-telegram_qlawkus-messaging-telegram-bot-token[`+++qlawkus.messaging.telegram.bot-token+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.telegram.bot-token+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Telegram Bot API token obtained from BotFather. Format: ++{++bot_id++}++:++{++secret++}++. Absent disables outbound Telegram delivery.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TELEGRAM_BOT_TOKEN+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TELEGRAM_BOT_TOKEN+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-messaging-telegram_qlawkus-messaging-telegram-api-base-url]] [.property-path]##link:#qlawkus-messaging-telegram_qlawkus-messaging-telegram-api-base-url[`+++qlawkus.messaging.telegram.api-base-url+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.telegram.api-base-url+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Base URL of the Telegram Bot API. Used for multipart uploads (sendAudio) that bypass the REST client.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TELEGRAM_API_BASE_URL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TELEGRAM_API_BASE_URL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++https://api.telegram.org+++`
+
+a| [[qlawkus-messaging-telegram_qlawkus-messaging-telegram-mode]] [.property-path]##link:#qlawkus-messaging-telegram_qlawkus-messaging-telegram-mode[`+++qlawkus.messaging.telegram.mode+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.telegram.mode+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Ingestion mode: "polling" (getUpdates loop, works behind NAT, default) or "webhook" (Telegram posts to /api/webhook/telegram, needs a public URL).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TELEGRAM_MODE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TELEGRAM_MODE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++polling+++`
+
+|===
+

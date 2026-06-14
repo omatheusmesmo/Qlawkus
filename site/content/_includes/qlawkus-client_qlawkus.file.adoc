@@ -1,0 +1,74 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-file-max-read-size]] [.property-path]##link:#qlawkus-client_qlawkus-file-max-read-size[`+++qlawkus.file.max-read-size+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.file.max-read-size+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum file size in bytes allowed for read operations.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_FILE_MAX_READ_SIZE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_FILE_MAX_READ_SIZE+++`
+endif::add-copy-button-to-env-var[]
+--
+|long
+|`+++5242880+++`
+
+a| [[qlawkus-client_qlawkus-file-max-write-size]] [.property-path]##link:#qlawkus-client_qlawkus-file-max-write-size[`+++qlawkus.file.max-write-size+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.file.max-write-size+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum file size in bytes allowed for write operations.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_FILE_MAX_WRITE_SIZE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_FILE_MAX_WRITE_SIZE+++`
+endif::add-copy-button-to-env-var[]
+--
+|long
+|`+++10485760+++`
+
+a| [[qlawkus-client_qlawkus-file-encoding]] [.property-path]##link:#qlawkus-client_qlawkus-file-encoding[`+++qlawkus.file.encoding+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.file.encoding+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Character encoding for file read/write operations.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_FILE_ENCODING+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_FILE_ENCODING+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++UTF-8+++`
+
+|===
+
