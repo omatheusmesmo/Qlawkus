@@ -1,0 +1,64 @@
+name: Docs site (GitHub Pages)
+
+# Build and publish the Roq documentation site. Manual only, plus on each release.
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # Install the extension modules so the config-doc metadata (from @ConfigMapping JavaDoc)
+      # and the deployment artifacts are available in the local repository.
+      - name: Build extensions
+        run: mvn -B -ntp install -DskipTests
+
+      # Generate the AsciiDoc config reference for every module into site/content/_includes.
+      - name: Generate config reference
+        run: mvn -B -ntp -f docs/pom.xml package -DskipTests
+
+      # Generate the static Roq site into site/target/roq.
+      - name: Generate site
+        env:
+          QUARKUS_ROQ_GENERATOR_BATCH: 'true'
+          SITE_URL: https://${{ github.repository_owner }}.github.io
+          SITE_PATH_PREFIX: /${{ github.event.repository.name }}
+        run: mvn -B -ntp -f site/pom.xml package quarkus:run -DskipTests
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/target/roq
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
