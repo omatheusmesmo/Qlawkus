@@ -1,0 +1,99 @@
+# Configuration Reference
+
+All runtime configuration is environment-variable driven (mapped from `app/src/main/resources/application.properties`). Defaults shown are the values baked into the image; override any of them in your `.env` / shell or in the `docker-compose*.yml` `environment` block.
+
+## LLM models
+
+The agent uses a primary model with an Ollama fallback (circuit breaker on repeated failures).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NVIDIA_AI_API_KEY` | (required in prod) | API key for the primary OpenAI-compatible provider (NVIDIA NIM). |
+| `NVIDIA_CHAT_MODEL` | `z-ai/glm-5.1` | Primary chat model. |
+| `NVIDIA_EMBEDDING_MODEL` | `nvidia/nv-embedqa-e5-v5` | Embedding model (retrieval-tuned). |
+| `EMBEDDING_DIMENSION` | `1024` | Must match the embedding model output and the pgvector column. |
+| `OLLAMA_FALLBACK_BASE_URL` | `http://ollama:11434` | Fallback Ollama endpoint. |
+| `OLLAMA_FALLBACK_MODEL` | `gemma4:e2b` | Fallback chat model. |
+| `OLLAMA_FALLBACK_EMBEDDING_MODEL` | `mxbai-embed-large` | Fallback embedding model. |
+
+## Databases
+
+Three PostgreSQL databases (all Flyway-managed): `qlawkus` (main: soul, chat history, journals, embeddings), `qlawkus_google_auth`, `qlawkus_brag`.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTGRES_DB` | `qlawkus` | Main database name. |
+| `POSTGRES_USER` | `qlawkus` | Database user (shared across the three DBs). |
+| `POSTGRES_PASSWORD` | `qlawkus` | Database password. |
+
+In Docker, `docker/postgres-init/01-create-databases.sql` creates the auxiliary databases.
+
+## Agent memory
+
+The memory subsystem (see [Architecture](architecture.md)). Recall is injected into the prompt, so these mostly tune retrieval breadth and the background jobs.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AGENT_SHARED_CONTEXT` | `true` | One shared conversation across all channels (the owner is a single user). |
+| `AGENT_CONTEXT_TTL_MINUTES` | `60` | Shared-context idle TTL. |
+| `AGENT_MEMORY_MAX_MESSAGES` | `40` | Working-memory window size (messages kept verbatim). |
+| `AGENT_MEMORY_MIN_SCORE` | `0.7` | Min cosine score for the `searchMemories` tool. |
+| `AGENT_MEMORY_MAX_RESULTS` | `10` | Max results for `searchMemories`. |
+| `AGENT_ACTIVE_MEMORY` | `true` | Inject query-relevant facts before every reply (no tool call needed). |
+| `AGENT_ACTIVE_MEMORY_MAX_RESULTS` | `5` | Facts injected per turn. |
+| `AGENT_ACTIVE_MEMORY_MIN_SCORE` | `0.7` | Min cosine score for active-memory retrieval. |
+| `AGENT_TRANSCRIPT_ARCHIVE` | `true` | Archive each message as a searchable transcript embedding. |
+| `AGENT_TRANSCRIPT_MAX_RESULTS` | `5` | Max results for `searchTranscripts`. |
+| `AGENT_TRANSCRIPT_MIN_SCORE` | `0.7` | Min cosine score for transcript search. |
+| `AGENT_MEMORY_REVIEW_SIMILARITY` | `0.97` | Cosine similarity above which the nightly job treats two facts as duplicates. |
+| `AGENT_MEMORY_CURATION` | `true` | Nightly job that folds facts into the owner profile (uses the LLM). |
+
+> Note on `min-score`: the embedding model is retrieval-tuned, so relevant pairs score high; `0.7` is a deliberate safety margin, not a strict cutoff.
+
+## Messaging
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DISCORD_BOT_TOKEN` | (empty) | Enables the Discord bot when set. |
+| `DISCORD_APP_ID` | (empty) | Discord application id (for slash commands). |
+| `DISCORD_GUILD_ID` | (empty) | Optional: scope slash commands to one guild. |
+| `DISCORD_STARTUP_CHANNEL_ID` | (empty) | Optional: post a startup message here. |
+| `DISCORD_ALLOWED_USER_IDS` | `*` | Comma-separated allowlist; `*` or empty = everyone. |
+| `DISCORD_RESPOND_ALL` | `true` | If false, only respond to DMs and slash commands. |
+| `TELEGRAM_BOT_TOKEN` | (empty) | Enables the Telegram bot when set. |
+| `TELEGRAM_MODE` | `polling` | `polling` or `webhook`. |
+| `TELEGRAM_ALLOWED_USER_IDS` | `*` | Allowlist; `*` or empty = everyone. |
+
+The Discord adapter requires the **Message Content Intent** enabled in the developer portal, otherwise it connects but cannot read messages.
+
+## Voice (optional)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TTS_ENABLED` | `true` (prod) | Enable spoken replies. |
+| `TTS_DEFAULT_LANGUAGE` | `en` | Default TTS language. |
+| `WHISPER_API_KEY` / `GROQ_API_KEY` | (empty) | Speech-to-text key (transcription of voice notes). |
+| `WHISPER_BASE_URL` | `https://api.groq.com/openai` | STT endpoint. |
+| `WHISPER_MODEL` | `whisper-large-v3-turbo` | STT model. |
+
+Per-language TTS providers are configured via `TTS_PT_*` / `TTS_EN_*` (`kind`, `base-url`, `api-key`, `model`, `voice`).
+
+## Google Workspace (optional)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | (empty) | OAuth client for Gmail/Calendar/Drive/Sheets/Storage tools. |
+| `GOOGLE_REDIRECT_URI` | `http://localhost:8742/api/google/oauth/callback` | Must match the host port mapping (8742 in prod Docker). |
+
+## Credential vault
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `QLAWKUS_VAULT_ENABLED` | `true` | Encrypt stored credentials (e.g. Google tokens). |
+| `QLAWKUS_VAULT_PASSPHRASE` | (empty) | Passphrase for the vault. |
+
+## HTTP auth
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `API_USER_PASSWORD` | `qlawkus` | Password for the `qlawkus` Basic-auth user (role `admin`). |
