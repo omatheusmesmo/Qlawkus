@@ -61,6 +61,18 @@ public class EmbeddingRepository {
         .executeUpdate();
   }
 
+  /** Texts of curated user facts (remember-tool + semantic-extractor), for profile curation. */
+  @Transactional
+  @SuppressWarnings("unchecked")
+  public List<String> listFactTexts(int limit) {
+    return entityManager.createNativeQuery(
+        "SELECT text FROM embeddings "
+            + "WHERE metadata->>'source' IN ('remember-tool','semantic-extractor') "
+            + "ORDER BY embedding_id LIMIT ?1")
+        .setParameter(1, limit)
+        .getResultList();
+  }
+
   @Transactional
   public boolean existsByContentHash(String hash) {
     Object result = entityManager.createNativeQuery(
