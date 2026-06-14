@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {#insert head-meta}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  {#seo page site/}
+  {#favicon site/}
+  {#bundle /}
+  {/insert}
+  {#insert head /}
+</head>
+<body>
+  <input type="checkbox" id="nav-toggle" class="nav-toggle" hidden>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="brand" href="{site.url}">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="27" height="27">
+            <circle cx="16" cy="18.5" r="11" fill="#f5821f"/>
+            <ellipse cx="12" cy="14.5" rx="3.2" ry="2.1" fill="#ffffff" opacity="0.22"/>
+            <path d="M15.6 8.2 l-0.3 -3.5" stroke="#6b4a2b" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M16 7.4 c 0.5 -3 3.4 -4 5.4 -3.2 c -0.4 2.8 -2.9 3.9 -5.4 3.2 z" fill="#43a35f"/>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <span class="brand-name">Qlawkus</span>
+          <span class="brand-sub">docs</span>
+        </span>
+      </a>
+      <nav class="nav" aria-label="Documentation">
+        <a href="{site.url}"{#if page.title == 'Qlawkus'} aria-current="page"{/if}>Introduction</a>
+        <a href="{site.url.resolve('getting-started')}"{#if page.title == 'Getting Started'} aria-current="page"{/if}>Getting Started</a>
+        <a href="{site.url.resolve('configuration')}"{#if page.title == 'Configuration Reference'} aria-current="page"{/if}>Configuration</a>
+        <a href="{site.url.resolve('config-reference')}"{#if page.title == 'Configuration Reference (all modules)'} aria-current="page"{/if}>Config Reference</a>
+        <a href="{site.url.resolve('architecture')}"{#if page.title == 'Architecture'} aria-current="page"{/if}>Architecture</a>
+      </nav>
+      <div class="sidebar-foot">
+        Single-user, self-hosted autonomous agent.
+      </div>
+    </aside>
+    <label for="nav-toggle" class="nav-burger" aria-label="Toggle navigation">&#9776;</label>
+    <main class="content">
+      {#insert /}
+    </main>
+  </div>
+</body>
+</html>

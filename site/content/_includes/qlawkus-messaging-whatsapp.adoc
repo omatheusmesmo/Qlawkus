@@ -1,0 +1,74 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-messaging-whatsapp_qlawkus-messaging-whatsapp-access-token]] [.property-path]##link:#qlawkus-messaging-whatsapp_qlawkus-messaging-whatsapp-access-token[`+++qlawkus.messaging.whatsapp.access-token+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.whatsapp.access-token+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+WhatsApp Business API access token from Meta Business Suite.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_WHATSAPP_ACCESS_TOKEN+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_WHATSAPP_ACCESS_TOKEN+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|required icon:exclamation-circle[title=Configuration property is required]
+
+a| [[qlawkus-messaging-whatsapp_qlawkus-messaging-whatsapp-phone-number-id]] [.property-path]##link:#qlawkus-messaging-whatsapp_qlawkus-messaging-whatsapp-phone-number-id[`+++qlawkus.messaging.whatsapp.phone-number-id+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.whatsapp.phone-number-id+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+WhatsApp Business phone number ID.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_WHATSAPP_PHONE_NUMBER_ID+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_WHATSAPP_PHONE_NUMBER_ID+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|required icon:exclamation-circle[title=Configuration property is required]
+
+a| [[qlawkus-messaging-whatsapp_qlawkus-messaging-whatsapp-verify-token]] [.property-path]##link:#qlawkus-messaging-whatsapp_qlawkus-messaging-whatsapp-verify-token[`+++qlawkus.messaging.whatsapp.verify-token+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.whatsapp.verify-token+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Webhook verification token configured in Meta Developer Console.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_WHATSAPP_VERIFY_TOKEN+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_WHATSAPP_VERIFY_TOKEN+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|required icon:exclamation-circle[title=Configuration property is required]
+
+|===
+

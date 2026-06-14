@@ -1,0 +1,60 @@
+= Configuration Reference (all modules)
+
+This page is generated from each module's `@ConfigMapping` classes and their JavaDoc (the Quarkiverse way), so it always matches the code. For the operator-facing environment variables (models, memory tuning, messaging tokens, voice), see xref:configuration.adoc[Configuration].
+
+== Core agent (qlawkus-client)
+
+=== Shell
+include::_includes/qlawkus-client_qlawkus.shell.adoc[]
+
+=== Models
+include::_includes/qlawkus-client_qlawkus.model.adoc[]
+
+=== Files
+include::_includes/qlawkus-client_qlawkus.file.adoc[]
+
+=== Workspace
+include::_includes/qlawkus-client_qlawkus.workspace.adoc[]
+
+=== Startup thought
+include::_includes/qlawkus-client_qlawkus.startup-thought.adoc[]
+
+== Messaging
+
+=== Core
+include::_includes/qlawkus-messaging.adoc[]
+
+=== Discord
+include::_includes/qlawkus-messaging-discord.adoc[]
+
+=== Telegram
+include::_includes/qlawkus-messaging-telegram.adoc[]
+
+=== Slack
+include::_includes/qlawkus-messaging-slack.adoc[]
+
+=== WhatsApp
+include::_includes/qlawkus-messaging-whatsapp.adoc[]
+
+== Tools
+
+=== Brag
+include::_includes/qlawkus-tools-brag.adoc[]
+
+=== Google Auth
+include::_includes/qlawkus-tools-google-auth.adoc[]
+
+=== Google Calendar
+include::_includes/qlawkus-tools-google-calendar.adoc[]
+
+=== Google Drive
+include::_includes/qlawkus-tools-google-drive.adoc[]
+
+=== Google Gmail
+include::_includes/qlawkus-tools-google-gmail.adoc[]
+
+=== Google Sheets
+include::_includes/qlawkus-tools-google-sheets.adoc[]
+
+=== Google Storage
+include::_includes/qlawkus-tools-google-storage.adoc[]

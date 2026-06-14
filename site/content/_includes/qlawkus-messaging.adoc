@@ -1,0 +1,305 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-messaging_qlawkus-messaging-auth-allowed-users-allowed-users]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-auth-allowed-users-allowed-users[`+++qlawkus.messaging.auth.allowed-users."allowed-users"+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.auth.allowed-users."allowed-users"+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Allowed user identifiers per provider (e.g. chat_id for Telegram, user_id for Discord). Key is provider ID, value is the list of allowed identifiers. Example: qlawkus.messaging.auth.allowed-users.telegram=123456789,987654321
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS__ALLOWED_USERS_+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS__ALLOWED_USERS_+++`
+endif::add-copy-button-to-env-var[]
+--
+|Map<String,List<String>>
+|
+
+a| [[qlawkus-messaging_qlawkus-messaging-transcription-api-key]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-transcription-api-key[`+++qlawkus.messaging.transcription.api-key+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.transcription.api-key+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+OpenAI API key for Whisper audio transcription. Leave empty to disable transcription.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TRANSCRIPTION_API_KEY+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TRANSCRIPTION_API_KEY+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|required icon:exclamation-circle[title=Configuration property is required]
+
+a| [[qlawkus-messaging_qlawkus-messaging-transcription-model]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-transcription-model[`+++qlawkus.messaging.transcription.model+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.transcription.model+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whisper model to use for transcription.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TRANSCRIPTION_MODEL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TRANSCRIPTION_MODEL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++whisper-1+++`
+
+a| [[qlawkus-messaging_qlawkus-messaging-transcription-base-url]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-transcription-base-url[`+++qlawkus.messaging.transcription.base-url+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.transcription.base-url+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Base URL of the transcription API.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TRANSCRIPTION_BASE_URL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TRANSCRIPTION_BASE_URL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++https://api.openai.com+++`
+
+a| [[qlawkus-messaging_qlawkus-messaging-tts-enabled]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tts-enabled[`+++qlawkus.messaging.tts.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tts.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether text-to-speech responses are enabled. When false, the agent's request to respond with voice is ignored and a text reply is sent instead.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TTS_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TTS_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-messaging_qlawkus-messaging-tts-default-language]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tts-default-language[`+++qlawkus.messaging.tts.default-language+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tts.default-language+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Language used when the agent does not specify one, or when no provider matches the requested language.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TTS_DEFAULT_LANGUAGE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TTS_DEFAULT_LANGUAGE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++en+++`
+
+a| [[qlawkus-messaging_qlawkus-messaging-provider-provider-enabled]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-provider-provider-enabled[`+++qlawkus.messaging.provider."provider".enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.provider."provider".enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether this provider is active. Defaults to true.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_PROVIDER__PROVIDER__ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_PROVIDER__PROVIDER__ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-messaging_qlawkus-messaging-tts-providers-providers-kind]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tts-providers-providers-kind[`+++qlawkus.messaging.tts.providers."providers".kind+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tts.providers."providers".kind+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Provider protocol: "openai" (OpenAI-compatible /v1/audio/speech) or "elevenlabs".
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__KIND+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__KIND+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++openai+++`
+
+a| [[qlawkus-messaging_qlawkus-messaging-tts-providers-providers-base-url]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tts-providers-providers-base-url[`+++qlawkus.messaging.tts.providers."providers".base-url+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tts.providers."providers".base-url+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Base URL of the speech API (without the protocol-specific path).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__BASE_URL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__BASE_URL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|required icon:exclamation-circle[title=Configuration property is required]
+
+a| [[qlawkus-messaging_qlawkus-messaging-tts-providers-providers-api-key]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tts-providers-providers-api-key[`+++qlawkus.messaging.tts.providers."providers".api-key+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tts.providers."providers".api-key+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Bearer token for the provider. Absent for local servers that need no auth.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__API_KEY+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__API_KEY+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-messaging_qlawkus-messaging-tts-providers-providers-model]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tts-providers-providers-model[`+++qlawkus.messaging.tts.providers."providers".model+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tts.providers."providers".model+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Model identifier, e.g. "orpheus-v1-english" or a local Piper voice model.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__MODEL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__MODEL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|required icon:exclamation-circle[title=Configuration property is required]
+
+a| [[qlawkus-messaging_qlawkus-messaging-tts-providers-providers-voice]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tts-providers-providers-voice[`+++qlawkus.messaging.tts.providers."providers".voice+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tts.providers."providers".voice+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Voice identifier supported by the provider/model.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__VOICE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__VOICE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|required icon:exclamation-circle[title=Configuration property is required]
+
+a| [[qlawkus-messaging_qlawkus-messaging-tts-providers-providers-response-format]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tts-providers-providers-response-format[`+++qlawkus.messaging.tts.providers."providers".response-format+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tts.providers."providers".response-format+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Audio response format requested from the provider.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__RESPONSE_FORMAT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__RESPONSE_FORMAT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++mp3+++`
+
+a| [[qlawkus-messaging_qlawkus-messaging-tts-providers-providers-fallback]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tts-providers-providers-fallback[`+++qlawkus.messaging.tts.providers."providers".fallback+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tts.providers."providers".fallback+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Optional provider key to try if this provider fails (e.g. a local fallback).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__FALLBACK+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TTS_PROVIDERS__PROVIDERS__FALLBACK+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+|===
+

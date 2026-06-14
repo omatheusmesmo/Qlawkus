@@ -1,0 +1,74 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-workspace-root]] [.property-path]##link:#qlawkus-client_qlawkus-workspace-root[`+++qlawkus.workspace.root+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.workspace.root+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Workspace root directory for file and shell operations. Defaults to the current working directory (`.`) where the Quarkus service runs. Must be writable and must not be `/` or the user home directory.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WORKSPACE_ROOT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WORKSPACE_ROOT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++.+++`
+
+a| [[qlawkus-client_qlawkus-workspace-restrict-to-workspace]] [.property-path]##link:#qlawkus-client_qlawkus-workspace-restrict-to-workspace[`+++qlawkus.workspace.restrict-to-workspace+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.workspace.restrict-to-workspace+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+When `true`, all file and shell operations are confined to the workspace root and its subdirectories. Path traversal attempts are blocked. Set to `false` to allow operations outside the workspace (not recommended).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WORKSPACE_RESTRICT_TO_WORKSPACE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WORKSPACE_RESTRICT_TO_WORKSPACE+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-workspace-env-file]] [.property-path]##link:#qlawkus-client_qlawkus-workspace-env-file[`+++qlawkus.workspace.env-file+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.workspace.env-file+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Name of the dotenv file in the workspace root. Key-value pairs are loaded and injected as environment variables in all child processes spawned by ShellTool and PtySessionManager.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WORKSPACE_ENV_FILE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WORKSPACE_ENV_FILE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++.qlawkus.env+++`
+
+|===
+

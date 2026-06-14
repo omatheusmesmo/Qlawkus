@@ -1,0 +1,74 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-drive_qlawkus-google-drive-enabled]] [.property-path]##link:#qlawkus-tools-google-drive_qlawkus-google-drive-enabled[`+++qlawkus.google.drive.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.drive.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the Google Drive tool is enabled.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_DRIVE_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_DRIVE_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-drive_qlawkus-google-drive-max-results]] [.property-path]##link:#qlawkus-tools-google-drive_qlawkus-google-drive-max-results[`+++qlawkus.google.drive.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.drive.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Default maximum number of files returned per list request.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_DRIVE_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_DRIVE_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++10+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-drive_qlawkus-google-drive-fields]] [.property-path]##link:#qlawkus-tools-google-drive_qlawkus-google-drive-fields[`+++qlawkus.google.drive.fields+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.drive.fields+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Comma-separated list of Drive API fields to include in file responses. Defaults to id, name, mimeType, modifiedTime, size, webViewLink.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_DRIVE_FIELDS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_DRIVE_FIELDS+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++id,name,mimeType,modifiedTime,size,webViewLink+++`
+
+|===
+
