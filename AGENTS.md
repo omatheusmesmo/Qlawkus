@@ -22,9 +22,40 @@ Multi-module Maven monorepo with a Quarkus extension pattern (`client/deployment
 
 `app/` depends on `client`, all `tools/*`, and `messaging` (core + discord + telegram). Slack and WhatsApp adapters are built but not in `app/` pom.
 
+## Cognition & Memory
+
+The memory subsystem (`client/runtime/.../cognition` + `.../store`) is the core of the agent. Its guiding principle: **memory is injected into the prompt, not searched** - recall must not depend on the model choosing to call a tool. Understanding it means reading several files together:
+
+Three layers, all injected each turn via `SoulEngine` (the agent's `systemMessageProviderSupplier`) and the retrieval augmentor:
+
+- **Persona** - `Soul` (singleton entity) rendered into the system message by `SoulEngine`.
+- **Owner** - `UserProfile` (singleton; the single user this agent serves) injected every turn by `SoulEngine`. Maintained by `UpdateUserProfileTool`, refreshed by `MemoryCurationJob`.
+- **Facts** - `FactStore` / `PgFactStore` (pgvector). Every embedding is tagged with a `MemorySource` (`remember-tool`, `semantic-extractor`, `episodic-consolidator`, `transcript`) - the enum exists so producers and purges never drift.
+
+Stores & retrieval:
+
+- **Active Memory** - `ActiveMemoryAugmentor` is the AiService `retrievalAugmentor`; it runs an `EmbeddingStoreContentRetriever` before each reply and injects query-relevant facts. It filters OUT `source=transcript` so curated facts stay clean.
+- **Working memory** - `PgWorkingMemoryStore` (a langchain4j `ChatMemoryStore`), windowed to 40 messages. `updateMessages` is append-only (preserves `createdAt`; never reset it) and fires `MessagesAppendedEvent` for every new message on any channel.
+- **Transcripts (session_search)** - `TranscriptArchiveObserver` embeds each message as `source=transcript`; `SearchTranscriptsTool` searches only those.
+- **Episodic** - `EpisodicConsolidatorJob` (nightly) summarizes each day into journals (also embedded).
+
+Scheduled background jobs, each with a manual `POST /api/admin/memory/*` trigger:
+
+- `MemoryReviewJob` - semantic dedup of near-duplicate facts (`/review`).
+- `MemoryCurationJob` - folds facts into the owner profile, reconciling contradictions; leaves facts untouched (`/curate`).
+- `SemanticExtractorObserver` - extracts facts from a conversation on `ChatCompletedEvent`. **Only the REST SSE path fires this event; the messaging path does not** - so passive fact extraction does not happen over Discord/Telegram (explicit `rememberFact` and the profile tool still work).
+
+Config knobs: `qlawkus.agent.memory.*`, `qlawkus.agent.active-memory.*`, `qlawkus.agent.transcript-*`, `qlawkus.memory-review.*`, `qlawkus.memory-curation.*`. Admin REST: `GET/DELETE /api/admin/memory` (summary / purge), `POST /api/admin/memory/{review,curate}`. End-to-end check: `scripts/memory-benchmark.sh` (needs a running instance + real LLM).
+
+Gotcha when testing recall: working memory and the system prompt are both sources, so to prove a fact came from the vector store, `TRUNCATE chat_message_entity` first. The embedding model (`nvidia/nv-embedqa-e5-v5`) is retrieval-tuned and scores relevant pairs high, so a cosine `min-score` of 0.9 is not as strict as it looks - `0.7` is the default margin.
+
 ## Testing
 
 ```bash
+# Single test class (-am builds upstream modules; the failIfNoSpecifiedTests flag
+# stops sibling modules in the reactor from erroring when the class isn't theirs)
+mvn test -pl client/deployment -am -Dtest=UserProfileTest -Dsurefire.failIfNoSpecifiedTests=false
+
 # Unit tests for a single module (uses WireMock, no LLM needed)
 mvn test -pl client/deployment
 
@@ -74,9 +105,9 @@ Embedding dimension is hardcoded to 1024 via `EMBEDDING_DIMENSION` - must match 
 
 ## Key Entry Points
 
-- `client/runtime/.../agent/AgentService.java` - `@RegisterAiService` interface (ReAct agent, `maxSequentialToolInvocations=100`)
+- `client/runtime/.../agent/AgentService.java` - `@RegisterAiService` interface (ReAct agent, `maxSequentialToolInvocations=100`); wires `systemMessageProviderSupplier`, `retrievalAugmentor` (Active Memory), tools, and `toolProviderSupplier`
 - `client/runtime/.../rest/ApiResource.java` - `POST /api/chat` (SSE) and `POST /api/chat/sync`
-- `client/runtime/.../cognition/SoulEngine.java` - Builds dynamic system prompt from persisted `Soul` entity
+- `client/runtime/.../cognition/SoulEngine.java` - Builds the dynamic system prompt: `Soul` persona + `UserProfile` owner block + execution-bias section, injected every turn
 - `client/runtime/.../deployment/ClientProcessor.java` - Build step: discovers `@ClawTool` beans + DTOs for reflection
 
 ## CI / Release
