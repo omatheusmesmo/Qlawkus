@@ -240,15 +240,19 @@ table.tableblock tbody tr:hover { background: #fcfaf8; }
 /* Generated config reference: keep the 3-column table; stack ONLY the first cell's
    content (property path -> description -> environment variable) with separators. */
 table.configuration-reference { table-layout: fixed; }
+table.configuration-reference col:first-child { width: 72% !important; }
+table.configuration-reference col:nth-child(2),
+table.configuration-reference col:nth-child(3) { width: 14% !important; }
 table.configuration-reference td, table.configuration-reference th { overflow-wrap: anywhere; vertical-align: top; }
+table.configuration-reference td:nth-child(2), table.configuration-reference td:nth-child(3) { vertical-align: middle; }
 table.configuration-reference code { white-space: normal; word-break: break-word; }
-table.configuration-reference td > .content { margin: 0; }
+table.configuration-reference td .content { display: block; margin: 0; padding: 0; }
 table.configuration-reference td > p, table.configuration-reference th > p { margin: 0; }
 table.configuration-reference .property-path { font-weight: 600; }
 table.configuration-reference td .content > .paragraph { margin: 0; }
-table.configuration-reference .description { margin: 0; padding-top: 10px; border-top: 1px dashed var(--border); }
+table.configuration-reference .description { margin: 12px 0 0; }
 table.configuration-reference .description p { margin: 0; }
-table.configuration-reference .description .content > .paragraph + .paragraph { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+table.configuration-reference .description .content > .paragraph + .paragraph { margin-top: 12px; }
 table.configuration-reference .description .content > .paragraph:last-child { font-size: 12.5px; color: var(--muted); }
 .configuration-legend { font-size: 12.5px; color: var(--muted); margin: 1.2rem 0 0.5rem; }
 .configuration-legend i, .configuration-legend .icon { display: none; }
