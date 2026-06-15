@@ -3,6 +3,9 @@ services:
     build:
       context: app
       dockerfile: src/main/docker/Dockerfile.jvm
+    env_file:
+      - path: .env
+        required: false
     environment:
       - NVIDIA_AI_API_KEY=${NVIDIA_AI_API_KEY}
       - NVIDIA_CHAT_MODEL=${NVIDIA_CHAT_MODEL:-z-ai/glm-5.1}
@@ -38,22 +41,9 @@ services:
       - QUARKUS_DATASOURCE_BRAG_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_BRAG_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
       - QLAWKUS_WORKSPACE_ROOT=/tmp/qlawkus-workspace
-      - AGENT_SHARED_CONTEXT=${AGENT_SHARED_CONTEXT:-true}
-      - AGENT_CONTEXT_TTL_MINUTES=${AGENT_CONTEXT_TTL_MINUTES:-60}
-      - AGENT_MEMORY_MIN_SCORE=${AGENT_MEMORY_MIN_SCORE:-0.7}
-      - AGENT_MEMORY_MAX_RESULTS=${AGENT_MEMORY_MAX_RESULTS:-10}
-      - AGENT_MEMORY_MAX_MESSAGES=${AGENT_MEMORY_MAX_MESSAGES:-40}
-      # Active memory (query-relevant facts injected before each reply)
-      - AGENT_ACTIVE_MEMORY=${AGENT_ACTIVE_MEMORY:-true}
-      - AGENT_ACTIVE_MEMORY_MAX_RESULTS=${AGENT_ACTIVE_MEMORY_MAX_RESULTS:-5}
-      - AGENT_ACTIVE_MEMORY_MIN_SCORE=${AGENT_ACTIVE_MEMORY_MIN_SCORE:-0.7}
-      # Transcript archive + session search
-      - AGENT_TRANSCRIPT_ARCHIVE=${AGENT_TRANSCRIPT_ARCHIVE:-true}
-      - AGENT_TRANSCRIPT_MAX_RESULTS=${AGENT_TRANSCRIPT_MAX_RESULTS:-5}
-      - AGENT_TRANSCRIPT_MIN_SCORE=${AGENT_TRANSCRIPT_MIN_SCORE:-0.7}
-      # Background memory jobs (semantic dedup + profile curation)
-      - AGENT_MEMORY_REVIEW_SIMILARITY=${AGENT_MEMORY_REVIEW_SIMILARITY:-0.97}
-      - AGENT_MEMORY_CURATION=${AGENT_MEMORY_CURATION:-true}
+      # Memory tuning (AGENT_*, memory-review, memory-curation) is read from .env via env_file
+      # above; any key left unset falls back to the defaults baked into the extensions
+      # (see the config reference), so the defaults are not repeated here.
       - TTS_ENABLED=${TTS_ENABLED:-true}
       - TTS_DEFAULT_LANGUAGE=${TTS_DEFAULT_LANGUAGE:-en}
       - TTS_PT_KIND=${TTS_PT_KIND:-openai}
@@ -80,6 +70,9 @@ services:
       dockerfile: src/main/docker/Dockerfile.native-micro
     profiles:
       - native
+    env_file:
+      - path: .env
+        required: false
     environment:
       - NVIDIA_AI_API_KEY=${NVIDIA_AI_API_KEY}
       - NVIDIA_CHAT_MODEL=${NVIDIA_CHAT_MODEL:-z-ai/glm-5.1}

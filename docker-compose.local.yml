@@ -3,6 +3,9 @@ services:
     build:
       context: app
       dockerfile: src/main/docker/Dockerfile.jvm
+    env_file:
+      - path: .env
+        required: false
     environment:
       - QUARKUS_PROFILE=prod
       - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-qlawkus}
@@ -13,16 +16,8 @@ services:
       - QUARKUS_LANGCHAIN4J_OPENAI_CHAT_MODEL_MODEL_NAME=${OLLAMA_MODEL:-gemma4:e2b}
       - QUARKUS_LANGCHAIN4J_OPENAI_EMBEDDING_MODEL_MODEL_NAME=${OLLAMA_EMBEDDING_MODEL:-mxbai-embed-large}
       - QUARKUS_LANGCHAIN4J_OPENAI_TIMEOUT=120s
-      # Memory tuning (defaults match application.properties; override to experiment)
-      - AGENT_MEMORY_MIN_SCORE=${AGENT_MEMORY_MIN_SCORE:-0.7}
-      - AGENT_ACTIVE_MEMORY=${AGENT_ACTIVE_MEMORY:-true}
-      - AGENT_ACTIVE_MEMORY_MAX_RESULTS=${AGENT_ACTIVE_MEMORY_MAX_RESULTS:-5}
-      - AGENT_ACTIVE_MEMORY_MIN_SCORE=${AGENT_ACTIVE_MEMORY_MIN_SCORE:-0.7}
-      - AGENT_TRANSCRIPT_ARCHIVE=${AGENT_TRANSCRIPT_ARCHIVE:-true}
-      - AGENT_TRANSCRIPT_MAX_RESULTS=${AGENT_TRANSCRIPT_MAX_RESULTS:-5}
-      - AGENT_TRANSCRIPT_MIN_SCORE=${AGENT_TRANSCRIPT_MIN_SCORE:-0.7}
-      - AGENT_MEMORY_REVIEW_SIMILARITY=${AGENT_MEMORY_REVIEW_SIMILARITY:-0.97}
-      - AGENT_MEMORY_CURATION=${AGENT_MEMORY_CURATION:-true}
+      # Memory tuning (AGENT_*) is read from .env via env_file above; unset keys use the
+      # extension defaults, so they are not repeated here.
     ports:
       - "8080:8080"
     depends_on:
