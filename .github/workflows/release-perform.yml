@@ -98,7 +98,7 @@ jobs:
       - name: Build JVM artifacts
         run: |
           cd app
-          ../mvnw -B package -Dquarkus.package.type=jar -DskipTests -ntp
+          ../mvnw -B package -Dquarkus.package.type=fast-jar -DskipTests -ntp
 
       - name: Upload app artifact
         uses: actions/upload-artifact@v4
