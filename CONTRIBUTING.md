@@ -54,6 +54,39 @@ Please add meaningful tests (business logic, edge cases, integration points), no
 - **Commits**: Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, ...), small and atomic.
 - **Branches/merges**: feature branches; integrate by **rebase** (no merge commits).
 
+## Working on the extensions
+
+`client/`, `tools/*`, and `messaging/*` are full Quarkus extensions (a `runtime/` + `deployment/` pair each), not plain libraries. A few rules keep that pattern healthy:
+
+- `deployment/` may depend on `runtime/`; **`runtime/` must never depend on `deployment/`** (the build enforces this).
+- Build-time work (annotation scanning, bytecode generation) lives in `deployment/` `@BuildStep` processors and reads the Jandex index instead of loading classes. Keep runtime startup thin.
+- Anything reflective in native mode (DTOs, models) must be registered for reflection - `client`'s `ClientProcessor` already does this for `dev.omatheusmesmo.qlawkus.dto`; new reflective types follow the same path. Validate native builds with `mvn verify -Pnative`.
+- Before adding a custom build item, check whether one already exists: [all build items](https://quarkus.io/guides/all-builditems).
+
+If you only need to share CDI beans, typed `@ConfigMapping` config, or basic reflection and no build-time augmentation, a plain JAR with Jandex indexing may be enough - prefer that over a new full extension when it fits.
+
+`AGENTS.md` ("Extension Development") has the deeper rule set (bootstrap phases, recorders, build items, CDI registration).
+
+### Reference links
+
+Official Quarkus documentation:
+
+- [Writing Your Own Extension](https://quarkus.io/guides/writing-extensions) - canonical guide
+- [All build items reference](https://quarkus.io/guides/all-builditems) - the extension SPI
+- [Adding extensions to the Quarkus ecosystem / Quarkiverse](https://github.com/quarkusio/quarkus/wiki/Adding-extensions-to-the-Quarkus-ecosystem)
+
+Community tutorials and walkthroughs:
+
+- [Quarkus: Greener, Better, Faster, Stronger](https://jtama.github.io/posts/quarkus-greener-better-faster-stronger/) (Jérôme Tama) - Dev Services, annotation transform, recorders ([source](https://github.com/jtama/quarkus-extension-demo))
+- [How NOT to Create a Quarkus Extension](https://www.loicmathieu.fr/wordpress/informatique/quarkus-tip-comment-ne-pas-creer-une-extension-quarkus/) (Loïc Mathieu) - when a simple JAR + Jandex is enough instead
+- [Developing a Quarkus Extension](https://matheuscruz.dev/2024/01/12/developing-a-quarkus-extension/) (Matheus Cruz) - recorders, Gizmo, Jandex scanning ([source](https://github.com/mcruzdev/quarkus-useful))
+- [Creating a Quarkus Extension](https://blog.sebastian-daschner.com/entries/creating-a-quarkus-extension) (Sebastian Daschner) - video walkthrough ([source](https://github.com/sdaschner/blink-extension))
+- [How to Implement a Quarkus Extension](https://www.baeldung.com/quarkus-extension-java) (Baeldung) - Liquibase extension tutorial
+
+Resource collections:
+
+- [Quarkus Extensions Resources](https://hollycummins.com/quarkus-extensions-resources/) (Holly Cummins) - curated guides, talks, and posts
+
 ## Documentation
 
 User-facing docs live in `site/content/*.adoc`. The per-module configuration reference is generated from `@ConfigMapping` JavaDoc:
