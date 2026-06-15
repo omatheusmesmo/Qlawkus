@@ -1,26 +1,28 @@
 = Qlawkus
 
-Qlawkus is a single-user, self-hosted autonomous agent built as a set of Quarkus extensions (`client/`, `tools/`, `messaging/`) wired together by a deployable app (`app/`).
+Qlawkus is a set of Quarkus extensions that give you the foundations to build your own personal AI agent in Java. It is the kind of autonomous, always-on assistant that projects like https://github.com/openclaw/openclaw[OpenClaw] and https://github.com/NousResearch/hermes-agent[Hermes] pioneered, rebuilt on the Quarkus stack and strongly leaning on https://docs.quarkiverse.io/quarkus-langchain4j/dev/[Quarkus LangChain4j].
 
-It has dynamic cognition (a "soul"), a layered long-term memory, Google Workspace tools, multi-provider messaging (Discord, Telegram) with voice in and out, and a sandboxed shell.
+It ships the building blocks of an agent: a dynamic cognition layer (a "soul"), a layered long-term memory, multi-provider messaging (Discord, Telegram) with voice, Google Workspace tools, and a sandboxed shell.
 
-== Documentation
+== Nothing is mandatory
 
-[cols="1,3",options="header"]
-|===
-|Page |What it covers
+Qlawkus is modular. Every capability is a separate Quarkus extension, so you assemble an agent by depending on just the pieces you want and leaving the rest out. Want a Discord bot with long-term memory and a shell, but no Google integration? Add those modules, skip the others. The only hard dependency is the core (`qlawkus-client`) and, through it, Quarkus LangChain4j.
 
-|xref:getting-started.adoc[Getting Started]
-|Prerequisites and the three ways to run it: dev mode, local Docker (Ollama), and prod Docker (NVIDIA).
+== Two ways to use it
 
-|xref:configuration.adoc[Configuration]
-|Full environment-variable reference: models, databases, memory tuning, messaging, voice, Google, vault.
+Ready distribution::
+The `app` module wires the core, the tools, and the Discord/Telegram adapters into a deployable agent you can run as-is. Start here if you just want a working agent: xref:getting-started.adoc[Getting Started].
 
-|xref:architecture.adoc[Architecture]
-|Module layout and the cognition/memory subsystem at an operator level.
-|===
+Build your own::
+Depend on `qlawkus-client` plus whichever tool and messaging extensions you need, and assemble a focused agent of your own. The xref:architecture.adoc[Architecture] page shows how the modules fit together, and the xref:config-reference.adoc[Config Reference] documents every module's settings.
 
-For contributor and agent-facing detail (build internals, tool authoring, CI/release, gotchas), see the `AGENTS.md` file at the repository root.
+== What's inside
+
+* *Cognition* - a persistent `Soul` (identity, mood, focus) that shapes the agent's behavior.
+* *Memory* - layered long-term memory injected into the prompt every turn (owner profile, active retrieval, transcripts, episodic journals), so recall does not depend on the model deciding to search.
+* *Messaging* - Discord and Telegram adapters with voice in and out (Slack and WhatsApp adapters exist too).
+* *Tools* - Google Workspace (Gmail, Calendar, Drive, Sheets, Storage), a brag-document tool, and a sandboxed shell.
+* *Resilience* - a primary model with an Ollama fallback behind a circuit breaker.
 
 == Quick start
 

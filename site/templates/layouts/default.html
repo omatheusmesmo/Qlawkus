@@ -34,18 +34,55 @@
       <nav class="nav" aria-label="Documentation">
         <a href="{site.url}"{#if page.title == 'Qlawkus'} aria-current="page"{/if}>Introduction</a>
         <a href="{site.url.resolve('getting-started')}"{#if page.title == 'Getting Started'} aria-current="page"{/if}>Getting Started</a>
+        <a href="{site.url.resolve('architecture')}"{#if page.title == 'Architecture'} aria-current="page"{/if}>Architecture</a>
         <a href="{site.url.resolve('configuration')}"{#if page.title == 'Configuration Reference'} aria-current="page"{/if}>Configuration</a>
         <a href="{site.url.resolve('config-reference')}"{#if page.title == 'Configuration Reference (all modules)'} aria-current="page"{/if}>Config Reference</a>
-        <a href="{site.url.resolve('architecture')}"{#if page.title == 'Architecture'} aria-current="page"{/if}>Architecture</a>
       </nav>
       <div class="sidebar-foot">
-        Single-user, self-hosted autonomous agent.
+        Build your own agent on Quarkus.
       </div>
     </aside>
     <label for="nav-toggle" class="nav-burger" aria-label="Toggle navigation">&#9776;</label>
     <main class="content">
       {#insert /}
     </main>
+    <aside class="toc-rail">
+      <nav class="toc" id="toc" aria-label="On this page"></nav>
+    </aside>
   </div>
+  <script>
+    (function () {
+      var body = document.querySelector('.doc-body');
+      var toc = document.getElementById('toc');
+      if (!body || !toc) return;
+      var heads = body.querySelectorAll('h2, h3');
+      if (heads.length < 2) { document.body.classList.add('no-toc'); return; }
+      var title = document.createElement('div');
+      title.className = 'toc-title';
+      title.textContent = 'On this page';
+      toc.appendChild(title);
+      var map = {};
+      heads.forEach(function (h) {
+        if (!h.id) { h.id = h.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+        var a = document.createElement('a');
+        a.href = '#' + h.id;
+        a.textContent = h.textContent;
+        a.className = 'toc-' + h.tagName.toLowerCase();
+        toc.appendChild(a);
+        map[h.id] = a;
+      });
+      if ('IntersectionObserver' in window) {
+        var obs = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) {
+              Object.keys(map).forEach(function (k) { map[k].removeAttribute('data-active'); });
+              map[e.target.id].setAttribute('data-active', '');
+            }
+          });
+        }, { rootMargin: '0px 0px -78% 0px', threshold: 0 });
+        heads.forEach(function (h) { obs.observe(h); });
+      }
+    })();
+  </script>
 </body>
 </html>
