@@ -42,6 +42,12 @@ class ApiResourceSseTest {
             .withStatus(200)
             .withHeader("Content-Type", "application/json")
             .withBody(embedJsonResponse())));
+
+    wiremock.register(WireMock.post(WireMock.urlEqualTo("/v1/embeddings"))
+        .willReturn(WireMock.aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(openAiEmbeddingResponse())));
   }
 
   @Test
@@ -106,5 +112,16 @@ class ApiResourceSseTest {
     }
     embedding.append("]");
     return "{\"model\":\"nomic-embed-text\",\"embeddings\":[" + embedding + "],\"total_duration\":0}";
+  }
+
+  private static String openAiEmbeddingResponse() {
+    StringBuilder embedding = new StringBuilder("[");
+    for (int i = 0; i < 1024; i++) {
+      if (i > 0)
+        embedding.append(",");
+      embedding.append("0.01");
+    }
+    embedding.append("]");
+    return "{\"data\":[{\"embedding\":" + embedding + ",\"index\":0}],\"usage\":{\"prompt_tokens\":1,\"total_tokens\":1}}";
   }
 }
