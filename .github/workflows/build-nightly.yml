@@ -16,7 +16,7 @@ jobs:
     env:
       NVIDIA_AI_API_KEY: dummy
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Reclaim Disk Space
         run: .github/ci-prerequisites.sh
