@@ -42,8 +42,8 @@ jobs:
       - name: Generate site
         env:
           QUARKUS_ROQ_GENERATOR_BATCH: 'true'
-          SITE_URL: https://${{ github.repository_owner }}.github.io
-          SITE_PATH_PREFIX: /${{ github.event.repository.name }}
+          SITE_URL: https://qlawkus.omatheusmesmo.dev
+          SITE_PATH_PREFIX: ''
         run: mvn -B -ntp -f site/pom.xml package quarkus:run -DskipTests
 
       - uses: actions/configure-pages@v5
