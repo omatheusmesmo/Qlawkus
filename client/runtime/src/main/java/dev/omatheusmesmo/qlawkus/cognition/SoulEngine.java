@@ -1,6 +1,8 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
+import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import io.quarkiverse.langchain4j.runtime.aiservice.SystemMessageProvider;
+import io.quarkus.arc.Arc;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -16,8 +18,6 @@ public class SoulEngine implements SystemMessageProvider {
 
   private static final DateTimeFormatter NOW_FORMAT =
       DateTimeFormatter.ofPattern("EEEE, yyyy-MM-dd HH:mm:ss zzz (XXX)", Locale.ENGLISH);
-
-  private static final String DEFAULT_TIMEZONE = "America/Sao_Paulo";
 
   @Override
   @Transactional
@@ -64,9 +64,7 @@ public class SoulEngine implements SystemMessageProvider {
   }
 
   private String currentDateTimeContext() {
-    String timezone = ConfigProvider.getConfig()
-        .getOptionalValue("qlawkus.agent.timezone", String.class)
-        .orElse(DEFAULT_TIMEZONE);
+    String timezone = Arc.container().instance(AgentConfig.class).get().timezone();
     ZonedDateTime now = ZonedDateTime.now(ZoneId.of(timezone));
     return "\n\n## Current Date & Time\n\n"
         + "Right now it is **" + now.format(NOW_FORMAT) + "**.\n"

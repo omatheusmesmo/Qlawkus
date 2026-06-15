@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
+import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import dev.omatheusmesmo.qlawkus.store.MessagesAppendedEvent;
@@ -9,7 +10,6 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.List;
 import java.util.Map;
@@ -26,11 +26,11 @@ public class TranscriptArchiveObserver {
   @Inject
   FactStore factStore;
 
-  @ConfigProperty(name = "qlawkus.agent.transcript-archive.enabled", defaultValue = "true")
-  boolean enabled;
+  @Inject
+  AgentConfig agentConfig;
 
   void onMessagesAppended(@ObservesAsync MessagesAppendedEvent event) {
-    if (!enabled) {
+    if (!agentConfig.transcriptArchive().enabled()) {
       return;
     }
     for (ChatMessage message : event.messages()) {

@@ -6,9 +6,11 @@ import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;
 import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
+import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
 import dev.omatheusmesmo.qlawkus.messaging.transcription.VoiceTranscriptionService;
+import dev.omatheusmesmo.qlawkus.messaging.tts.TtsConfig;
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsRouter;
 import io.quarkus.arc.Arc;
 import io.quarkus.arc.ManagedContext;
@@ -18,7 +20,6 @@ import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.text.Normalizer;
 import java.time.Duration;
@@ -64,14 +65,11 @@ public class MessagingOrchestrator {
     @Inject
     TtsRouter ttsRouter;
 
-    @ConfigProperty(name = "qlawkus.messaging.tts.default-language", defaultValue = "en")
-    String defaultTtsLanguage;
+    @Inject
+    TtsConfig ttsConfig;
 
-    @ConfigProperty(name = "qlawkus.agent.shared-context.enabled", defaultValue = "true")
-    boolean sharedContextEnabled;
-
-    @ConfigProperty(name = "qlawkus.agent.context-ttl-minutes", defaultValue = "60")
-    long contextTtlMinutes;
+    @Inject
+    AgentConfig agentConfig;
 
     public Uni<Void> process(MessagingMessage message) {
         Log.infof("MessagingOrchestrator: received provider=%s userId=%s chatId=%s textLen=%d hasAudio=%s",
@@ -180,6 +178,7 @@ public class MessagingOrchestrator {
     }
 
     private void expireIdleConversation(String conversationId) {
+        long contextTtlMinutes = agentConfig.contextTtlMinutes();
         if (contextTtlMinutes <= 0) {
             return;
         }
@@ -192,7 +191,7 @@ public class MessagingOrchestrator {
     }
 
     private String memoryId(MessagingMessage message) {
-        return sharedContextEnabled
+        return agentConfig.sharedContext().enabled()
                 ? ConversationId.SHARED
                 : message.providerId() + ":" + message.chatId();
     }
@@ -206,6 +205,7 @@ public class MessagingOrchestrator {
             activated = true;
         }
         if (detectVoiceIntent(text) && ttsRouter.enabled()) {
+            String defaultTtsLanguage = ttsConfig.defaultLanguage();
             voicePreference.request(defaultTtsLanguage);
             Log.infof("MessagingOrchestrator: auto-detected voice intent from user message, default language=%s (LLM may override)", defaultTtsLanguage);
         }

@@ -4,6 +4,7 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;
 import dev.omatheusmesmo.qlawkus.cognition.ChatCompletedEvent;
+import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.dto.ChatRequest;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import io.quarkus.logging.Log;
@@ -11,7 +12,6 @@ import io.quarkus.security.Authenticated;
 import io.smallrye.mutiny.Multi;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -33,8 +33,8 @@ public class ApiResource {
     @Inject
     Event<ChatCompletedEvent> eventEmitter;
 
-    @ConfigProperty(name = "qlawkus.agent.shared-context.enabled", defaultValue = "true")
-    boolean sharedContextEnabled;
+    @Inject
+    AgentConfig agentConfig;
 
     @POST
     @Path("/chat/sync")
@@ -64,6 +64,6 @@ public class ApiResource {
     }
 
     private String conversationId() {
-        return sharedContextEnabled ? ConversationId.SHARED : ConversationId.REST;
+        return agentConfig.sharedContext().enabled() ? ConversationId.SHARED : ConversationId.REST;
     }
 }

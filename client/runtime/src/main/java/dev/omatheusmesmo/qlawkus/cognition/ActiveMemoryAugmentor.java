@@ -8,10 +8,10 @@ import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
+import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import io.quarkus.arc.Arc;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.eclipse.microprofile.config.ConfigProvider;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -30,13 +30,11 @@ public class ActiveMemoryAugmentor implements Supplier<RetrievalAugmentor> {
 
   @Override
   public RetrievalAugmentor get() {
-    var config = ConfigProvider.getConfig();
-    boolean enabled = config.getOptionalValue("qlawkus.agent.active-memory.enabled", Boolean.class)
-        .orElse(true);
-    int maxResults = config.getOptionalValue("qlawkus.agent.active-memory.max-results", Integer.class)
-        .orElse(5);
-    double minScore = config.getOptionalValue("qlawkus.agent.active-memory.min-score", Double.class)
-        .orElse(0.7);
+    AgentConfig.ActiveMemory activeMemory =
+        Arc.container().instance(AgentConfig.class).get().activeMemory();
+    boolean enabled = activeMemory.enabled();
+    int maxResults = activeMemory.maxResults();
+    double minScore = activeMemory.minScore();
 
     ContentRetriever retriever;
     if (enabled) {
