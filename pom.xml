@@ -15,6 +15,7 @@
         <module>testing-internal</module>
         <module>integration-tests</module>
         <module>docs</module>
+        <module>site</module>
     </modules>
 
   <properties>
