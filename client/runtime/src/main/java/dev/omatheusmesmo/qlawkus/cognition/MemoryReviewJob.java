@@ -1,12 +1,12 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
+import dev.omatheusmesmo.qlawkus.config.MemoryReviewConfig;
 import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
  * Background self-review of long-term memory (inspired by Hermes' self-improvement loop). The
@@ -20,8 +20,8 @@ public class MemoryReviewJob {
   @Inject
   EmbeddingRepository embeddingRepository;
 
-  @ConfigProperty(name = "qlawkus.memory-review.similarity-threshold", defaultValue = "0.97")
-  double similarityThreshold;
+  @Inject
+  MemoryReviewConfig config;
 
   @Scheduled(cron = "{qlawkus.memory-review.cron:0 30 3 * * ?}")
   void review() {
@@ -30,6 +30,7 @@ public class MemoryReviewJob {
 
   @Transactional
   public long reviewNow() {
+    double similarityThreshold = config.similarityThreshold();
     double maxCosineDistance = 1.0 - similarityThreshold;
     long removed = embeddingRepository.deleteNearDuplicates(maxCosineDistance);
     if (removed > 0) {

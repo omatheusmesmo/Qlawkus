@@ -1,0 +1,53 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-memory-review-similarity-threshold]] [.property-path]##link:#qlawkus-client_qlawkus-memory-review-similarity-threshold[`+++qlawkus.memory-review.similarity-threshold+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.memory-review.similarity-threshold+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cosine similarity above which two facts are treated as near-duplicates and the redundant one is removed by the nightly memory-review job. Higher is stricter (removes fewer facts).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MEMORY_REVIEW_SIMILARITY_THRESHOLD+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MEMORY_REVIEW_SIMILARITY_THRESHOLD+++`
+endif::add-copy-button-to-env-var[]
+--
+|double
+|`+++0.97+++`
+
+a| [[qlawkus-client_qlawkus-memory-review-cron]] [.property-path]##link:#qlawkus-client_qlawkus-memory-review-cron[`+++qlawkus.memory-review.cron+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.memory-review.cron+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cron expression for the scheduled memory-review job.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MEMORY_REVIEW_CRON+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MEMORY_REVIEW_CRON+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++0 30 3 * * ?+++`
+
+|===
+

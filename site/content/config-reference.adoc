@@ -4,6 +4,15 @@ This page is generated from each module's `@ConfigMapping` classes and their Jav
 
 == Core agent (qlawkus-client)
 
+=== Agent
+include::_includes/qlawkus-client_qlawkus.agent.adoc[]
+
+=== Memory review
+include::_includes/qlawkus-client_qlawkus.memory-review.adoc[]
+
+=== Memory curation
+include::_includes/qlawkus-client_qlawkus.memory-curation.adoc[]
+
 === Shell
 include::_includes/qlawkus-client_qlawkus.shell.adoc[]
 

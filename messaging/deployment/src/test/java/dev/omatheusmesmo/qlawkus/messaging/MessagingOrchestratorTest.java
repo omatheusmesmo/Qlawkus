@@ -5,7 +5,9 @@ import dev.omatheusmesmo.qlawkus.agent.AgentRunner;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
+import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
+import dev.omatheusmesmo.qlawkus.messaging.tts.TtsConfig;
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsRouter;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import io.smallrye.mutiny.Uni;
@@ -43,6 +45,17 @@ class MessagingOrchestratorTest {
         orchestrator.conversationControl = conversationControl;
         orchestrator.workingMemoryStore = workingMemoryStore;
         orchestrator.ttsRouter = ttsRouter;
+
+        TtsConfig ttsConfig = Mockito.mock(TtsConfig.class);
+        when(ttsConfig.defaultLanguage()).thenReturn("en");
+        orchestrator.ttsConfig = ttsConfig;
+
+        AgentConfig agentConfig = Mockito.mock(AgentConfig.class);
+        AgentConfig.SharedContext sharedContext = Mockito.mock(AgentConfig.SharedContext.class);
+        when(sharedContext.enabled()).thenReturn(true);
+        when(agentConfig.sharedContext()).thenReturn(sharedContext);
+        when(agentConfig.contextTtlMinutes()).thenReturn(60L);
+        orchestrator.agentConfig = agentConfig;
 
         @SuppressWarnings("unchecked")
         Instance<AgentDeliveryContext> deliveryContextInstance = Mockito.mock(Instance.class);

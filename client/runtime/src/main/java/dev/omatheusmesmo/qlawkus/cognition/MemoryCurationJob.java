@@ -1,13 +1,13 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.langchain4j.model.chat.ChatModel;
+import dev.omatheusmesmo.qlawkus.config.MemoryCurationConfig;
 import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.List;
 
@@ -27,22 +27,19 @@ public class MemoryCurationJob {
   @Inject
   EmbeddingRepository embeddingRepository;
 
-  @ConfigProperty(name = "qlawkus.memory-curation.enabled", defaultValue = "true")
-  boolean enabled;
-
-  @ConfigProperty(name = "qlawkus.memory-curation.max-facts", defaultValue = "200")
-  int maxFacts;
+  @Inject
+  MemoryCurationConfig config;
 
   @Scheduled(cron = "{qlawkus.memory-curation.cron:0 45 3 * * ?}")
   void curate() {
-    if (enabled) {
+    if (config.enabled()) {
       curateProfile();
     }
   }
 
   @Transactional
   public boolean curateProfile() {
-    List<String> facts = embeddingRepository.listFactTexts(maxFacts);
+    List<String> facts = embeddingRepository.listFactTexts(config.maxFacts());
     if (facts.isEmpty()) {
       return false;
     }
