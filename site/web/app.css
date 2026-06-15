@@ -93,6 +93,15 @@ body {
   color: #fff;
   box-shadow: inset 2px 0 0 var(--accent);
 }
+.nav a.nav-external {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.nav a.nav-external svg { flex: 0 0 auto; }
 
 .sidebar-foot {
   margin-top: auto;
@@ -101,6 +110,13 @@ body {
   border-top: 1px solid rgba(255, 255, 255, 0.07);
   padding-top: 16px;
 }
+.sidebar-foot .foot-link {
+  color: #d8d4dd;
+  text-decoration: none;
+  font-weight: 600;
+}
+.sidebar-foot .foot-link:hover { color: #fff; }
+.sidebar-foot .foot-tag { margin: 8px 0 0; }
 
 /* ---------- Content ---------- */
 .content {
