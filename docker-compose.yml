@@ -40,7 +40,7 @@ services:
       - QUARKUS_DATASOURCE_BRAG_JDBC_URL=jdbc:postgresql://postgres:5432/qlawkus_brag
       - QUARKUS_DATASOURCE_BRAG_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_BRAG_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
-      - QLAWKUS_WORKSPACE_ROOT=/tmp/qlawkus-workspace
+      - QLAWKUS_WORKSPACE_ROOT=/home/default/workspace
       # Memory tuning (AGENT_*, memory-review, memory-curation) is read from .env via env_file
       # above; any key left unset falls back to the defaults baked into the extensions
       # (see the config reference), so the defaults are not repeated here.
@@ -58,6 +58,10 @@ services:
       - TTS_EN_LOCAL_BASE_URL=${TTS_EN_LOCAL_BASE_URL:-http://tts:8000}
       - TTS_EN_LOCAL_MODEL=${TTS_EN_LOCAL_MODEL:-tts-1}
       - TTS_EN_LOCAL_VOICE=${TTS_EN_LOCAL_VOICE:-en_ryan}
+    volumes:
+      # Mounted at HOME so the empty named volume inherits HOME's perms (uid 185 / gid 0)
+      # on first init; the app then creates the workspace subdir itself.
+      - workspace:/home/default
     depends_on:
       postgres:
         condition: service_healthy
@@ -107,7 +111,11 @@ services:
       - QUARKUS_DATASOURCE_BRAG_JDBC_URL=jdbc:postgresql://postgres:5432/qlawkus_brag
       - QUARKUS_DATASOURCE_BRAG_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_BRAG_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
-      - QLAWKUS_WORKSPACE_ROOT=/tmp/qlawkus-workspace
+      - QLAWKUS_WORKSPACE_ROOT=/home/default/workspace
+    volumes:
+      # Mounted at HOME so the empty named volume inherits HOME's perms (uid 185 / gid 0)
+      # on first init; the app then creates the workspace subdir itself.
+      - workspace:/home/default
     depends_on:
       postgres:
         condition: service_healthy
@@ -195,5 +203,9 @@ services:
 
 volumes:
   pgdata:
+    name: qlawkus_pgdata
   ollama-data:
+    name: qlawkus_ollama-data
+  workspace:
+    name: qlawkus_workspace
   tts-voices:

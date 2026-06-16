@@ -11,15 +11,41 @@ services:
       - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-qlawkus}
       - QUARKUS_DATASOURCE_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
-      - QUARKUS_LANGCHAIN4J_OPENAI_BASE_URL=http://ollama:11434/v1
-      - QUARKUS_LANGCHAIN4J_OPENAI_API_KEY=dummy
-      - QUARKUS_LANGCHAIN4J_OPENAI_CHAT_MODEL_MODEL_NAME=${OLLAMA_MODEL:-gemma4:e2b}
-      - QUARKUS_LANGCHAIN4J_OPENAI_EMBEDDING_MODEL_MODEL_NAME=${OLLAMA_EMBEDDING_MODEL:-mxbai-embed-large}
-      - QUARKUS_LANGCHAIN4J_OPENAI_TIMEOUT=120s
+      - QUARKUS_DATASOURCE_GOOGLE_AUTH_JDBC_URL=jdbc:postgresql://postgres:5432/qlawkus_google_auth
+      - QUARKUS_DATASOURCE_GOOGLE_AUTH_USERNAME=${POSTGRES_USER:-qlawkus}
+      - QUARKUS_DATASOURCE_GOOGLE_AUTH_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
+      - QUARKUS_DATASOURCE_BRAG_JDBC_URL=jdbc:postgresql://postgres:5432/qlawkus_brag
+      - QUARKUS_DATASOURCE_BRAG_USERNAME=${POSTGRES_USER:-qlawkus}
+      - QUARKUS_DATASOURCE_BRAG_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
+      # The agent uses the NAMED models "nvidia" (primary) + "ollama-fallback" via
+      # FallbackChatModel, NOT the default openai model. Point the primary at the local
+      # ollama (openai-compatible) so it actually works instead of failing over to fallback.
+      - NVIDIA_BASE_URL=http://ollama:11434/v1
+      - NVIDIA_AI_API_KEY=dummy
+      - NVIDIA_CHAT_MODEL=${OLLAMA_MODEL:-qwen3.5:4b}
+      - NVIDIA_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL:-mxbai-embed-large}
+      - NVIDIA_TIMEOUT=120s
+      - OLLAMA_FALLBACK_BASE_URL=http://ollama:11434
+      - OLLAMA_FALLBACK_MODEL=${OLLAMA_MODEL:-qwen3.5:4b}
+      - OLLAMA_FALLBACK_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL:-mxbai-embed-large}
+      # Messaging defaults / env remaps (mirrors prod). Without these the env_file alone does
+      # not synthesize the names the app expects, so config validation fails on empty values.
+      - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-*}
+      - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-*}
+      - WHISPER_API_KEY=${GROQ_API_KEY:-}
+      - WHISPER_BASE_URL=${WHISPER_BASE_URL:-https://api.groq.com/openai}
+      - WHISPER_MODEL=${WHISPER_MODEL:-whisper-large-v3-turbo}
+      - QLAWKUS_WORKSPACE_ROOT=/home/default/workspace
       # Memory tuning (AGENT_*) is read from .env via env_file above; unset keys use the
       # extension defaults, so they are not repeated here.
+    volumes:
+      # Mounted at HOME so the empty named volume inherits HOME's perms (uid 185 / gid 0)
+      # on first init; the app then creates the workspace subdir itself.
+      - workspace:/home/default
     ports:
-      - "8080:8080"
+      # 8742 (not 8080) so the Google OAuth callback to localhost:8742 reaches the app,
+      # matching the redirect URI registered in Google Cloud Console (same as prod).
+      - "8742:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -34,6 +60,7 @@ services:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-qlawkus}"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     ports:
       - "5432:5432"
     healthcheck:
@@ -46,8 +73,8 @@ services:
     image: ollama/ollama
     volumes:
       - ollama-data:/root/.ollama
-    ports:
-      - "11434:11434"
+    expose:
+      - "11434"
     healthcheck:
       test: ["CMD-SHELL", "ollama list"]
       interval: 10s
@@ -60,10 +87,14 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
-    entrypoint: ["sh", "-c", "ollama pull ${OLLAMA_MODEL:-gemma4:e2b} && ollama pull ${OLLAMA_EMBEDDING_MODEL:-mxbai-embed-large}"]
+    entrypoint: ["sh", "-c", "ollama pull ${OLLAMA_MODEL:-qwen3.5:4b} && ollama pull ${OLLAMA_EMBEDDING_MODEL:-mxbai-embed-large}"]
     environment:
       OLLAMA_HOST: "http://ollama:11434"
 
 volumes:
   pgdata:
+    name: qlawkus_pgdata
   ollama-data:
+    name: qlawkus_ollama-data
+  workspace:
+    name: qlawkus_workspace
