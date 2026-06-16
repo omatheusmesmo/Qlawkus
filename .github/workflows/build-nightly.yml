@@ -14,7 +14,7 @@ jobs:
     name: Full build + native
     runs-on: ubuntu-latest
     env:
-      NVIDIA_AI_API_KEY: dummy
+      LLM_API_KEY: dummy
     steps:
       - uses: actions/checkout@v4
 

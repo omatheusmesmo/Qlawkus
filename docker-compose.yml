@@ -7,57 +7,40 @@ services:
       - path: .env
         required: false
     environment:
-      - NVIDIA_AI_API_KEY=${NVIDIA_AI_API_KEY}
-      - NVIDIA_CHAT_MODEL=${NVIDIA_CHAT_MODEL:-z-ai/glm-5.1}
-      - NVIDIA_EMBEDDING_MODEL=${NVIDIA_EMBEDDING_MODEL:-nvidia/nv-embedqa-e5-v5}
-      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-1024}
+      # Provider profile via kind. Default 'nvidia' => base-url + nemotron chat + nv-embedqa
+      # embedding (1024 dims, input_type). Just set LLM_API_KEY (your NVIDIA key) in .env.
+      # Switch provider with LLM_KIND (openai, deepseek, mistral, groq, xai, openrouter) or override
+      # individual values with LLM_CHAT_MODEL / LLM_EMBEDDING_MODEL / EMBEDDING_DIMENSION.
+      - LLM_KIND=${LLM_KIND:-nvidia}
+      - LLM_API_KEY=${LLM_API_KEY}
+      # Datasources + Ollama fallback point at docker service hostnames (not the property defaults).
       - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-qlawkus}
       - QUARKUS_DATASOURCE_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
-      - OLLAMA_FALLBACK_BASE_URL=http://ollama:11434
-      - OLLAMA_FALLBACK_MODEL=${OLLAMA_FALLBACK_MODEL:-gemma4:e2b}
-      - OLLAMA_FALLBACK_EMBEDDING_MODEL=${OLLAMA_FALLBACK_EMBEDDING_MODEL:-mxbai-embed-large}
-      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
-      - DISCORD_APP_ID=${DISCORD_APP_ID:-}
-      - DISCORD_STARTUP_CHANNEL_ID=${DISCORD_STARTUP_CHANNEL_ID:-}
-      - DISCORD_GUILD_ID=${DISCORD_GUILD_ID:-}
-      - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-*}
-      - DISCORD_RESPOND_ALL=${DISCORD_RESPOND_ALL:-true}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
-      - TELEGRAM_MODE=${TELEGRAM_MODE:-polling}
-      - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-*}
-      - WHISPER_API_KEY=${GROQ_API_KEY:-}
-      - WHISPER_BASE_URL=${WHISPER_BASE_URL:-https://api.groq.com/openai}
-      - WHISPER_MODEL=${WHISPER_MODEL:-whisper-large-v3-turbo}
-      - QLAWKUS_GOOGLE_AUTH_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
-      - QLAWKUS_GOOGLE_AUTH_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
-      - QLAWKUS_GOOGLE_AUTH_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:8742/api/google/oauth/callback}
-      - QLAWKUS_VAULT_ENABLED=${QLAWKUS_VAULT_ENABLED:-true}
-      - QLAWKUS_VAULT_PASSPHRASE=${QLAWKUS_VAULT_PASSPHRASE:-}
       - QUARKUS_DATASOURCE_GOOGLE_AUTH_JDBC_URL=jdbc:postgresql://postgres:5432/qlawkus_google_auth
       - QUARKUS_DATASOURCE_GOOGLE_AUTH_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_GOOGLE_AUTH_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
       - QUARKUS_DATASOURCE_BRAG_JDBC_URL=jdbc:postgresql://postgres:5432/qlawkus_brag
       - QUARKUS_DATASOURCE_BRAG_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_BRAG_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
+      - OLLAMA_FALLBACK_BASE_URL=http://ollama:11434
       - QLAWKUS_WORKSPACE_ROOT=/home/default/workspace
-      # Memory tuning (AGENT_*, memory-review, memory-curation) is read from .env via env_file
-      # above; any key left unset falls back to the defaults baked into the extensions
-      # (see the config reference), so the defaults are not repeated here.
+      # Below: only values that DIFFER from the application.properties defaults, or REMAP a .env var
+      # to the name the app expects. Pure pass-throughs (tokens, etc.) come from env_file (.env) and
+      # already default in the properties, so they are not repeated here. Likewise AGENT_*/memory-*.
+      - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-*}
+      - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-*}
+      # Google client-id/secret have no property default; supply empty so the app boots without Google.
+      - QLAWKUS_GOOGLE_AUTH_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - QLAWKUS_GOOGLE_AUTH_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - QLAWKUS_VAULT_ENABLED=${QLAWKUS_VAULT_ENABLED:-true}
+      - WHISPER_API_KEY=${GROQ_API_KEY:-}
+      - WHISPER_BASE_URL=${WHISPER_BASE_URL:-https://api.groq.com/openai}
+      - WHISPER_MODEL=${WHISPER_MODEL:-whisper-large-v3-turbo}
       - TTS_ENABLED=${TTS_ENABLED:-true}
-      - TTS_DEFAULT_LANGUAGE=${TTS_DEFAULT_LANGUAGE:-en}
-      - TTS_PT_KIND=${TTS_PT_KIND:-openai}
       - TTS_PT_BASE_URL=${TTS_PT_BASE_URL:-http://tts:8000}
-      - TTS_PT_API_KEY=${TTS_PT_API_KEY:-}
-      - TTS_PT_MODEL=${TTS_PT_MODEL:-tts-1}
-      - TTS_PT_VOICE=${TTS_PT_VOICE:-pt_br}
-      - TTS_EN_BASE_URL=${TTS_EN_BASE_URL:-https://api.groq.com/openai}
       - TTS_EN_API_KEY=${GROQ_API_KEY:-}
-      - TTS_EN_MODEL=${TTS_EN_MODEL:-canopylabs/orpheus-v1-english}
-      - TTS_EN_VOICE=${TTS_EN_VOICE:-troy}
       - TTS_EN_LOCAL_BASE_URL=${TTS_EN_LOCAL_BASE_URL:-http://tts:8000}
-      - TTS_EN_LOCAL_MODEL=${TTS_EN_LOCAL_MODEL:-tts-1}
-      - TTS_EN_LOCAL_VOICE=${TTS_EN_LOCAL_VOICE:-en_ryan}
     volumes:
       # Mounted at HOME so the empty named volume inherits HOME's perms (uid 185 / gid 0)
       # on first init; the app then creates the workspace subdir itself.
@@ -78,40 +61,33 @@ services:
       - path: .env
         required: false
     environment:
-      - NVIDIA_AI_API_KEY=${NVIDIA_AI_API_KEY}
-      - NVIDIA_CHAT_MODEL=${NVIDIA_CHAT_MODEL:-z-ai/glm-5.1}
-      - NVIDIA_EMBEDDING_MODEL=${NVIDIA_EMBEDDING_MODEL:-nvidia/nv-embedqa-e5-v5}
-      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-1024}
+      # Provider profile via kind. Default 'nvidia' => base-url + nemotron chat + nv-embedqa
+      # embedding (1024 dims, input_type). Just set LLM_API_KEY (your NVIDIA key) in .env.
+      # Switch provider with LLM_KIND (openai, deepseek, mistral, groq, xai, openrouter) or override
+      # individual values with LLM_CHAT_MODEL / LLM_EMBEDDING_MODEL / EMBEDDING_DIMENSION.
+      - LLM_KIND=${LLM_KIND:-nvidia}
+      - LLM_API_KEY=${LLM_API_KEY}
+      # Datasources + Ollama fallback point at docker service hostnames (not the property defaults).
       - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-qlawkus}
       - QUARKUS_DATASOURCE_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
-      - OLLAMA_FALLBACK_BASE_URL=http://ollama:11434
-      - OLLAMA_FALLBACK_MODEL=${OLLAMA_FALLBACK_MODEL:-gemma4:e2b}
-      - OLLAMA_FALLBACK_EMBEDDING_MODEL=${OLLAMA_FALLBACK_EMBEDDING_MODEL:-mxbai-embed-large}
-      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
-      - DISCORD_APP_ID=${DISCORD_APP_ID:-}
-      - DISCORD_STARTUP_CHANNEL_ID=${DISCORD_STARTUP_CHANNEL_ID:-}
-      - DISCORD_GUILD_ID=${DISCORD_GUILD_ID:-}
-      - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-*}
-      - DISCORD_RESPOND_ALL=${DISCORD_RESPOND_ALL:-true}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
-      - TELEGRAM_MODE=${TELEGRAM_MODE:-polling}
-      - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-*}
-      - WHISPER_API_KEY=${GROQ_API_KEY:-}
-      - WHISPER_BASE_URL=${WHISPER_BASE_URL:-https://api.groq.com/openai}
-      - WHISPER_MODEL=${WHISPER_MODEL:-whisper-large-v3-turbo}
-      - QLAWKUS_GOOGLE_AUTH_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
-      - QLAWKUS_GOOGLE_AUTH_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
-      - QLAWKUS_GOOGLE_AUTH_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:8742/api/google/oauth/callback}
-      - QLAWKUS_VAULT_ENABLED=${QLAWKUS_VAULT_ENABLED:-true}
-      - QLAWKUS_VAULT_PASSPHRASE=${QLAWKUS_VAULT_PASSPHRASE:-}
       - QUARKUS_DATASOURCE_GOOGLE_AUTH_JDBC_URL=jdbc:postgresql://postgres:5432/qlawkus_google_auth
       - QUARKUS_DATASOURCE_GOOGLE_AUTH_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_GOOGLE_AUTH_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
       - QUARKUS_DATASOURCE_BRAG_JDBC_URL=jdbc:postgresql://postgres:5432/qlawkus_brag
       - QUARKUS_DATASOURCE_BRAG_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_BRAG_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
+      - OLLAMA_FALLBACK_BASE_URL=http://ollama:11434
       - QLAWKUS_WORKSPACE_ROOT=/home/default/workspace
+      # Only values that DIFFER from the application.properties defaults, or REMAP a .env var.
+      - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-*}
+      - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-*}
+      - QLAWKUS_GOOGLE_AUTH_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - QLAWKUS_GOOGLE_AUTH_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - QLAWKUS_VAULT_ENABLED=${QLAWKUS_VAULT_ENABLED:-true}
+      - WHISPER_API_KEY=${GROQ_API_KEY:-}
+      - WHISPER_BASE_URL=${WHISPER_BASE_URL:-https://api.groq.com/openai}
+      - WHISPER_MODEL=${WHISPER_MODEL:-whisper-large-v3-turbo}
     volumes:
       # Mounted at HOME so the empty named volume inherits HOME's perms (uid 185 / gid 0)
       # on first init; the app then creates the workspace subdir itself.
@@ -157,7 +133,7 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
-    entrypoint: ["sh", "-c", "ollama pull ${OLLAMA_FALLBACK_MODEL:-gemma4:e2b} && ollama pull ${OLLAMA_FALLBACK_EMBEDDING_MODEL:-mxbai-embed-large}"]
+    entrypoint: ["sh", "-c", "ollama pull ${OLLAMA_FALLBACK_MODEL:-qwen3.5:4b} && ollama pull ${OLLAMA_FALLBACK_EMBEDDING_MODEL:-mxbai-embed-large}"]
     environment:
       OLLAMA_HOST: "http://ollama:11434"
 
