@@ -47,6 +47,12 @@ public interface AgentConfig {
      */
     TranscriptSearch transcriptSearch();
 
+    /**
+     * Passive fact extraction: after each completed turn, mine durable facts from the
+     * conversation and store them ({@code source=semantic-extractor}), on every channel.
+     */
+    SemanticExtractor semanticExtractor();
+
     interface SharedContext {
 
         /**
@@ -96,6 +102,15 @@ public interface AgentConfig {
 
         /**
          * Whether each user and AI message is archived as a searchable transcript embedding.
+         */
+        @WithDefault("true")
+        boolean enabled();
+    }
+
+    interface SemanticExtractor {
+
+        /**
+         * Whether to mine durable facts from each completed conversation turn.
          */
         @WithDefault("true")
         boolean enabled();

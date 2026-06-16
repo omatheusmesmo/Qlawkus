@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import io.quarkus.logging.Log;
@@ -19,7 +20,11 @@ public class SemanticExtractorObserver {
   @Inject
   FactStore factStore;
 
+  @Inject
+  AgentConfig agentConfig;
+
   void onChatCompleted(@ObservesAsync ChatCompletedEvent event) {
+    if (!agentConfig.semanticExtractor().enabled()) return;
     if (event.messages().isEmpty()) return;
 
     extractAndStore(event.messages());
