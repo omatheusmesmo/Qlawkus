@@ -28,7 +28,7 @@ public class FallbackEmbeddingModel implements EmbeddingModel {
     @Inject
     public FallbackEmbeddingModel(
             NvidiaEmbeddingModel delegate,
-            @ModelName("ollama-fallback") EmbeddingModel fallback,
+            @ModelName("fallback") EmbeddingModel fallback,
             CircuitBreaker circuitBreaker,
             ModelFallbackConfig config) {
         this.delegate = delegate;

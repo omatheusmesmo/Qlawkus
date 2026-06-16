@@ -29,15 +29,15 @@ public class FallbackChatModel implements ChatModel {
 
     @Inject
     public FallbackChatModel(
-            @ModelName("nvidia") ChatModel delegate,
-            @ModelName("ollama-fallback") ChatModel fallback,
+            @ModelName("primary") ChatModel delegate,
+            @ModelName("fallback") ChatModel fallback,
             CircuitBreaker circuitBreaker,
             ModelFallbackConfig config) {
         this.delegate = delegate;
         this.fallback = fallback;
         this.circuitBreaker = circuitBreaker;
         this.config = config;
-        Log.info("FallbackChatModel initialized with @ModelName(\"nvidia\") delegate");
+        Log.info("FallbackChatModel initialized with @ModelName(\"primary\") delegate");
     }
 
     @Override
