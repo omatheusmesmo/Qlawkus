@@ -238,5 +238,26 @@ endif::add-copy-button-to-env-var[]
 |double
 |`+++0.7+++`
 
+a| [[qlawkus-client_qlawkus-agent-semantic-extractor-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-agent-semantic-extractor-enabled[`+++qlawkus.agent.semantic-extractor.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.semantic-extractor.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether to mine durable facts from each completed conversation turn.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_SEMANTIC_EXTRACTOR_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_SEMANTIC_EXTRACTOR_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
 |===
 
