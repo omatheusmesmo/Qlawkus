@@ -26,7 +26,7 @@ public class QlawkusTestUtils {
 
         try {
             String baseUrl = ConfigProvider.getConfig()
-                    .getOptionalValue("quarkus.langchain4j.openai.\"nvidia\".base-url", String.class)
+                    .getOptionalValue("quarkus.langchain4j.openai.\"primary\".base-url", String.class)
                     .orElse("");
             if (baseUrl.contains("wiremock") || baseUrl.contains("mock") || baseUrl.contains("localhost")) {
                 return true;
@@ -34,7 +34,7 @@ public class QlawkusTestUtils {
         } catch (Exception ignored) {
         }
 
-        String apiKey = System.getenv("NVIDIA_AI_API_KEY");
+        String apiKey = System.getenv("LLM_API_KEY");
         return apiKey == null || apiKey.isBlank() || "dummy".equals(apiKey);
     }
 
