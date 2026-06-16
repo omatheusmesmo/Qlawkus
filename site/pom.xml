@@ -19,6 +19,11 @@
 
   <properties>
     <quarkus-roq.version>2.1.3</quarkus-roq.version>
+    <!-- The docs-site is decoupled from the app's Quarkus version: Roq 2.1.3 needs a Qute API
+         (altExprSyntax) only present in Quarkus 3.36+, while the app stays on 3.33.2 (the LTS that
+         quarkus-langchain4j 1.11.2 targets). This module has no dependency on client/langchain4j,
+         so it safely overrides the platform version just for itself. -->
+    <quarkus.platform.version>3.36.2</quarkus.platform.version>
     <!-- this module produces a site, not a published artifact -->
     <maven.install.skip>true</maven.install.skip>
     <maven.deploy.skip>true</maven.deploy.skip>
