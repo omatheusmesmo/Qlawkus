@@ -17,14 +17,16 @@ services:
       - QUARKUS_DATASOURCE_BRAG_JDBC_URL=jdbc:postgresql://postgres:5432/qlawkus_brag
       - QUARKUS_DATASOURCE_BRAG_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_BRAG_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
-      # The agent uses the NAMED models "nvidia" (primary) + "ollama-fallback" via
-      # FallbackChatModel, NOT the default openai model. Point the primary at the local
-      # ollama (openai-compatible) so it actually works instead of failing over to fallback.
-      - NVIDIA_BASE_URL=http://ollama:11434/v1
-      - NVIDIA_AI_API_KEY=dummy
-      - NVIDIA_CHAT_MODEL=${OLLAMA_MODEL:-qwen3.5:4b}
-      - NVIDIA_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL:-mxbai-embed-large}
-      - NVIDIA_TIMEOUT=120s
+      # The agent uses the NAMED models "primary" + "fallback" via FallbackChatModel,
+      # NOT the default openai model. Point the primary at the local ollama
+      # (openai-compatible) so it actually works instead of failing over to fallback.
+      - LLM_BASE_URL=http://ollama:11434/v1
+      - LLM_API_KEY=dummy
+      - LLM_CHAT_MODEL=${OLLAMA_MODEL:-qwen3.5:4b}
+      - LLM_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL:-mxbai-embed-large}
+      - LLM_TIMEOUT=120s
+      # mxbai-embed-large outputs 1024 dims; pgvector dimension must match the embedding model.
+      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-1024}
       - OLLAMA_FALLBACK_BASE_URL=http://ollama:11434
       - OLLAMA_FALLBACK_MODEL=${OLLAMA_MODEL:-qwen3.5:4b}
       - OLLAMA_FALLBACK_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL:-mxbai-embed-large}
