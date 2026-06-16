@@ -4,7 +4,6 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
-import dev.omatheusmesmo.qlawkus.cognition.NvidiaEmbeddingModel;
 import io.quarkus.logging.Log;
 import io.quarkiverse.langchain4j.ModelName;
 import jakarta.annotation.Priority;
@@ -20,14 +19,14 @@ import java.util.List;
 @ApplicationScoped
 public class FallbackEmbeddingModel implements EmbeddingModel {
 
-    private final NvidiaEmbeddingModel delegate;
+    private final EmbeddingModel delegate;
     private final EmbeddingModel fallback;
     private final CircuitBreaker circuitBreaker;
     private final ModelFallbackConfig config;
 
     @Inject
     public FallbackEmbeddingModel(
-            NvidiaEmbeddingModel delegate,
+            @PrimaryEmbedding EmbeddingModel delegate,
             @ModelName("fallback") EmbeddingModel fallback,
             CircuitBreaker circuitBreaker,
             ModelFallbackConfig config) {
@@ -35,7 +34,7 @@ public class FallbackEmbeddingModel implements EmbeddingModel {
         this.fallback = fallback;
         this.circuitBreaker = circuitBreaker;
         this.config = config;
-        Log.info("FallbackEmbeddingModel initialized with NvidiaEmbeddingModel delegate");
+        Log.info("FallbackEmbeddingModel initialized with @ModelName(\"primary\") delegate");
     }
 
     @Override

@@ -59,7 +59,7 @@ public interface ModelFallbackConfig {
             /**
              * Chat model name for Ollama fallback.
              */
-            @WithDefault("gemma4:e2b")
+            @WithDefault("qwen3.5:4b")
             String chatModel();
 
             /**
