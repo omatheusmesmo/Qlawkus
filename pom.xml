@@ -25,7 +25,8 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>3.35.2</quarkus.platform.version>
+    <quarkus.platform.version>3.33.2</quarkus.platform.version>
+    <quarkus-langchain4j.version>1.11.2</quarkus-langchain4j.version>
     <quarkus-wiremock.version>1.6.1</quarkus-wiremock.version>
     <skipITs>true</skipITs>
     <surefire-plugin.version>3.5.4</surefire-plugin.version>
@@ -33,16 +34,20 @@
 
   <dependencyManagement>
     <dependencies>
+      <!-- Community quarkus-langchain4j BOM, declared first so its langchain4j versions win over the
+           platform-aligned ones. Pins 1.11.0 (-> langchain4j 1.16.2), newer than what the Quarkus
+           platform bundles (1.10.0 -> langchain4j 1.14.1). Needed for OpenAiEmbeddingModel.dimensions
+           and customParameters (NVIDIA input_type). -->
       <dependency>
-        <groupId>${quarkus.platform.group-id}</groupId>
-        <artifactId>${quarkus.platform.artifact-id}</artifactId>
-        <version>${quarkus.platform.version}</version>
+        <groupId>io.quarkiverse.langchain4j</groupId>
+        <artifactId>quarkus-langchain4j-bom</artifactId>
+        <version>${quarkus-langchain4j.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>${quarkus.platform.group-id}</groupId>
-        <artifactId>quarkus-langchain4j-bom</artifactId>
+        <artifactId>${quarkus.platform.artifact-id}</artifactId>
         <version>${quarkus.platform.version}</version>
         <type>pom</type>
         <scope>import</scope>
