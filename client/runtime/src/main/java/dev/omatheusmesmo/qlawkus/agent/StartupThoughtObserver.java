@@ -5,7 +5,7 @@ import dev.omatheusmesmo.qlawkus.config.StartupConfig;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
@@ -26,7 +26,7 @@ public class StartupThoughtObserver {
     @Inject
     StartupConfig startupConfig;
 
-    void onStartup(@Observes StartupEvent event) {
+    void onStartup(@ObservesAsync StartupEvent event) {
         logSoulState();
         if (startupConfig.enabled()) {
             generateStartupThought();

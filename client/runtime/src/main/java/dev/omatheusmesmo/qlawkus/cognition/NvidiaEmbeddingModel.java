@@ -46,8 +46,8 @@ public class NvidiaEmbeddingModel implements EmbeddingModel {
 
     @Inject
     public NvidiaEmbeddingModel(
-    @ConfigProperty(name = "quarkus.langchain4j.openai.\"nvidia\".base-url") String baseUrl,
-    @ConfigProperty(name = "quarkus.langchain4j.openai.\"nvidia\".api-key") String apiKey,
+    @ConfigProperty(name = "quarkus.langchain4j.openai.\"primary\".base-url") String baseUrl,
+    @ConfigProperty(name = "quarkus.langchain4j.openai.\"primary\".api-key") String apiKey,
             Config config) {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
         this.apiKey = apiKey;

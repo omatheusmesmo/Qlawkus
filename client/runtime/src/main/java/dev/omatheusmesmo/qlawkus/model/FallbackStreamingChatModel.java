@@ -36,15 +36,15 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
 
     @Inject
     public FallbackStreamingChatModel(
-            @ModelName("nvidia") StreamingChatModel delegate,
-            @ModelName("ollama-fallback") StreamingChatModel fallback,
+            @ModelName("primary") StreamingChatModel delegate,
+            @ModelName("fallback") StreamingChatModel fallback,
             CircuitBreaker circuitBreaker,
             ModelFallbackConfig config) {
         this.delegate = delegate;
         this.fallback = fallback;
         this.circuitBreaker = circuitBreaker;
         this.config = config;
-        Log.info("FallbackStreamingChatModel initialized with @ModelName(\"nvidia\") delegate");
+        Log.info("FallbackStreamingChatModel initialized with @ModelName(\"primary\") delegate");
     }
 
     @Override
