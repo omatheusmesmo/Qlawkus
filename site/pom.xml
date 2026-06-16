@@ -18,7 +18,7 @@
   </description>
 
   <properties>
-    <quarkus-roq.version>2.1.3</quarkus-roq.version>
+    <quarkus-roq.version>2.1.4</quarkus-roq.version>
     <!-- this module produces a site, not a published artifact -->
     <maven.install.skip>true</maven.install.skip>
     <maven.deploy.skip>true</maven.deploy.skip>
