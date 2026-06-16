@@ -16,7 +16,10 @@ include::_includes/qlawkus-client_qlawkus.memory-curation.adoc[]
 === Shell
 include::_includes/qlawkus-client_qlawkus.shell.adoc[]
 
-=== Models
+=== LLM provider (kind)
+include::_includes/qlawkus-client_qlawkus.openai.adoc[]
+
+=== Models (fallback / resilience)
 include::_includes/qlawkus-client_qlawkus.model.adoc[]
 
 === Files

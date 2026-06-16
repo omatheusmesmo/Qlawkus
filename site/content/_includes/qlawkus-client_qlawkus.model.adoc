@@ -110,7 +110,7 @@ Environment variable: `+++QLAWKUS_MODEL_FALLBACK_OLLAMA_CHAT_MODEL+++`
 endif::add-copy-button-to-env-var[]
 --
 |string
-|`+++gemma4:e2b+++`
+|`+++qwen3.5:4b+++`
 
 a| [[qlawkus-client_qlawkus-model-fallback-ollama-embedding-model]] [.property-path]##link:#qlawkus-client_qlawkus-model-fallback-ollama-embedding-model[`+++qlawkus.model.fallback.ollama.embedding-model+++`]##
 ifdef::add-copy-button-to-config-props[]

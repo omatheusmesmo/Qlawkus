@@ -127,12 +127,12 @@ In Docker, `docker/postgres-init/01-create-databases.sql` creates the extra DBs.
 
 ## LLM Configuration
 
-Two named model configs via `@ModelName`:
-- **`nvidia`** - Primary (OpenAI-compatible provider, default: NVIDIA NIM)
-- **`ollama-fallback`** - Fallback (Ollama, used when primary fails after retries + circuit breaker)
+Two named model configs via `@ModelName`, both provider-agnostic:
+- **`primary`** - Primary model (any OpenAI-compatible provider; default endpoint: NVIDIA NIM). Pointed via the neutral `LLM_*` env vars (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_CHAT_MODEL`, `LLM_EMBEDDING_MODEL`, `LLM_TIMEOUT`).
+- **`fallback`** - Fallback (Ollama, used when primary fails after retries + circuit breaker).
 
 Dev mode: Dev Services auto-provisions Ollama (no `.env` needed).
-Prod: Requires `NVIDIA_AI_API_KEY` in `.env`.
+Prod: Requires `LLM_API_KEY` in `.env`.
 
 Embedding dimension is hardcoded to 1024 via `EMBEDDING_DIMENSION` - must match the model output.
 

@@ -4,7 +4,7 @@
 
 * JDK 25 and Maven (the build uses the Quarkus 3.x platform).
 * Docker, for Dev Services in dev mode and for the containerized run modes.
-* An `NVIDIA_AI_API_KEY` (from https://build.nvidia.com/[build.nvidia.com]) for the production profile. Not needed for dev mode or local Docker, which use Ollama.
+* An `LLM_API_KEY` for your chosen provider (e.g. NVIDIA from https://build.nvidia.com/[build.nvidia.com]) for the production profile. Not needed for dev mode or local Docker, which use Ollama.
 
 == This is an extension + app monorepo
 
@@ -42,13 +42,14 @@ docker compose -f docker-compose.local.yml up --build
 
 Exposes `http://localhost:8080`. An `ollama-init` one-shot container pulls the models on first start.
 
-== 3. Production Docker (NVIDIA NIM + PostgreSQL)
+== 3. Production Docker (bring your own LLM + PostgreSQL)
 
-Uses `docker-compose.yml`. Requires `NVIDIA_AI_API_KEY`.
+Uses `docker-compose.yml`. Pick a provider with `LLM_KIND` (default `nvidia`) and set `LLM_API_KEY`.
 
 [source,bash]
 ----
-export NVIDIA_AI_API_KEY=nvapi-xxxx
+export LLM_KIND=nvidia               # or openai, deepseek, mistral, groq, xai, openrouter
+export LLM_API_KEY=nvapi-xxxx        # your provider key
 mvn clean install -DskipTests        # rebuild artifacts FIRST; the Dockerfile only copies them
 docker compose up -d --build
 ----
