@@ -30,7 +30,7 @@ Discord / Telegram     ┼─> AgentService (@RegisterAiService, ReAct loop)
                              └─ chat memory: PgWorkingMemoryStore (windowed, persistent)
 ----
 
-The chat model is a `FallbackChatModel`: primary (NVIDIA) with an Ollama fallback behind a circuit breaker.
+The chat model is a `FallbackChatModel`: the primary OpenAI-compatible provider (selected via `LLM_KIND`) with an Ollama fallback behind a circuit breaker.
 
 == Memory
 

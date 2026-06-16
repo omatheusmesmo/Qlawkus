@@ -4,27 +4,42 @@ All runtime configuration is environment-variable driven (mapped from `app/src/m
 
 == LLM models
 
-The agent uses a primary model with an Ollama fallback (circuit breaker on repeated failures).
+The agent uses a primary OpenAI-compatible model with an Ollama fallback (circuit breaker on repeated failures). Pick a provider profile with `LLM_KIND`; it sets the base URL plus opinionated chat/embedding defaults for that provider. The Ollama fallback is configured separately.
 
 [cols="2,2,3",options="header"]
 |===
 |Variable |Default |Description
 
-|`NVIDIA_AI_API_KEY` |(required in prod) |API key for the primary OpenAI-compatible provider (NVIDIA NIM).
-|`NVIDIA_CHAT_MODEL` |`z-ai/glm-5.1` |Primary chat model.
-|`NVIDIA_EMBEDDING_MODEL` |`nvidia/nv-embedqa-e5-v5` |Embedding model (retrieval-tuned).
-|`EMBEDDING_DIMENSION` |`1024` |Must match the embedding model output and the pgvector column.
-|`OLLAMA_FALLBACK_BASE_URL` |`http://ollama:11434` |Fallback Ollama endpoint.
-|`OLLAMA_FALLBACK_MODEL` |`gemma4:e2b` |Fallback chat model.
-|`OLLAMA_FALLBACK_EMBEDDING_MODEL` |`mxbai-embed-large` |Fallback embedding model.
+|`LLM_KIND` |`openai` |Provider profile (see table below). Sets base URL + chat/embedding models + dimensions.
+|`LLM_API_KEY` |`dummy` |API key for the selected provider (required in prod).
+|`OLLAMA_FALLBACK_MODEL` |`qwen3.5:4b` |Fallback chat model (Ollama).
+|`OLLAMA_FALLBACK_EMBEDDING_MODEL` |`mxbai-embed-large` |Fallback embedding model (Ollama).
 |===
 
-=== Using a different provider
+Built-in provider profiles (all OpenAI-compatible, one `quarkus-langchain4j-openai` dependency):
 
-The primary model is the `openai` provider pointed at an OpenAI-compatible endpoint; `nvidia` is just the config name. To use OpenAI, Groq, OpenRouter, a local vLLM/LM Studio, etc.:
+[cols="1,2,2",options="header"]
+|===
+|`LLM_KIND` |Chat default |Embedding default
 
-* *Chat*: override `NVIDIA_BASE_URL`, `NVIDIA_AI_API_KEY`, and `NVIDIA_CHAT_MODEL`. Nothing else is required.
-* *Embeddings*: also set `QLAWKUS_NVIDIA_EMBEDDING_MODEL_ENABLED=false` (the default embedding client otherwise sends NVIDIA's `input_type` parameter), and make sure the embedding model outputs *1024 dimensions* to match the pgvector column (`vector(1024)`). A different dimension requires changing `EMBEDDING_DIMENSION` and migrating the `embeddings` table.
+|`openai` |`gpt-5-mini` |`text-embedding-3-large` @1024
+|`nvidia` |`nvidia/nemotron-3-ultra-550b-a55b` |`nvidia/nv-embedqa-e5-v5` @1024 (input_type)
+|`deepseek` |`deepseek-v4-flash` |`deepseek-embed` @1024
+|`mistral` |`mistral-large-latest` |`mistral-embed` @1024
+|`groq` |`qwen/qwen3.6-27b` |— (chat only)
+|`xai` |`grok-4.3` |— (chat only)
+|`openrouter` |`openrouter/owl-alpha` |— (chat only)
+|===
+
+=== Overriding a profile
+
+Every value defaults from the kind and stays overridable:
+
+* *Friendly env aliases*: `LLM_BASE_URL`, `LLM_CHAT_MODEL`, `LLM_EMBEDDING_MODEL`, `EMBEDDING_DIMENSION`.
+* *Native quarkus-langchain4j keys* also win (e.g. `quarkus.langchain4j.openai."primary".chat-model.model-name`) — Qlawkus does not duplicate them.
+* *Different provider for embeddings* (required for chat-only kinds like Groq/xAI/OpenRouter): set `LLM_EMBEDDING_KIND`, e.g. chat on Groq, embeddings on OpenAI.
+
+The embedding model must output the dimension of the pgvector column (default `1024`). A different dimension requires changing `EMBEDDING_DIMENSION` and migrating the `embeddings` table.
 
 == Databases
 
