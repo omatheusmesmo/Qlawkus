@@ -12,19 +12,14 @@
   <artifactId>qlawkus-docs-site</artifactId>
   <name>Qlawkus - Documentation Site (Roq)</name>
   <description>
-    Roq static site that serves the AsciiDoc docs. The content is the same Antora
-    page set (docs/modules/ROOT/pages), linked in as content/, so there is a single
-    source of files usable by both Roq and Antora.
+    Roq static site. site/content/ is the source of truth (edited by developers).
+    Config reference is generated here by quarkus-config-doc-maven-plugin.
+    docs/modules/ROOT/pages/ is synced from here for Antora.
   </description>
 
   <properties>
     <quarkus-roq.version>2.1.3</quarkus-roq.version>
-    <!-- The docs-site is decoupled from the app's Quarkus version: Roq 2.1.3 needs a Qute API
-         (altExprSyntax) only present in Quarkus 3.36+, while the app stays on 3.33.2 (the LTS that
-         quarkus-langchain4j 1.11.2 targets). This module has no dependency on client/langchain4j,
-         so it safely overrides the platform version just for itself. -->
     <quarkus.platform.version>3.36.2</quarkus.platform.version>
-    <!-- this module produces a site, not a published artifact -->
     <maven.install.skip>true</maven.install.skip>
     <maven.deploy.skip>true</maven.deploy.skip>
   </properties>
@@ -40,13 +35,88 @@
       <artifactId>quarkus-roq-plugin-asciidoc-jruby</artifactId>
       <version>${quarkus-roq.version}</version>
     </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-client-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-messaging-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-messaging-discord-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-messaging-telegram-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-messaging-slack-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-messaging-whatsapp-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-brag-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-auth-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-calendar-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-drive-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-gmail-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-sheets-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-storage-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 
   <build>
     <plugins>
       <plugin>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-config-doc-maven-plugin</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <extensions>true</extensions>
+        <configuration>
+          <targetDirectory>${project.basedir}/content/includes/</targetDirectory>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>${quarkus.platform.group-id}</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>
+        <extensions>true</extensions>
         <executions>
           <execution>
             <goals>

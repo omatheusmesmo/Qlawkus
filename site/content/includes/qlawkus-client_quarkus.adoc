@@ -1,0 +1,219 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-retry-delays]] [.property-path]##link:#qlawkus-client_quarkus-retry-delays[`+++quarkus.retry-delays+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.retry-delays+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Comma-separated retry delays in seconds between attempts before falling back.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_RETRY_DELAYS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_RETRY_DELAYS+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of int
+|`+++30+++`, `+++60+++`, `+++120+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-circuit-breaker-reset-timeout]] [.property-path]##link:#qlawkus-client_quarkus-circuit-breaker-reset-timeout[`+++quarkus.circuit-breaker-reset-timeout+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.circuit-breaker-reset-timeout+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Seconds the circuit breaker stays OPEN before transitioning to HALF_OPEN.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_CIRCUIT_BREAKER_RESET_TIMEOUT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_CIRCUIT_BREAKER_RESET_TIMEOUT+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++300+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-fallback-enabled]] [.property-path]##link:#qlawkus-client_quarkus-fallback-enabled[`+++quarkus.fallback-enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.fallback-enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the fallback to Ollama is enabled.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_FALLBACK_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_FALLBACK_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-fallback-ollama-base-url]] [.property-path]##link:#qlawkus-client_quarkus-fallback-ollama-base-url[`+++quarkus.fallback.ollama.base-url+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.fallback.ollama.base-url+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Base URL of the Ollama fallback server.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_FALLBACK_OLLAMA_BASE_URL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_FALLBACK_OLLAMA_BASE_URL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++http://localhost:11434+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-fallback-ollama-chat-model]] [.property-path]##link:#qlawkus-client_quarkus-fallback-ollama-chat-model[`+++quarkus.fallback.ollama.chat-model+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.fallback.ollama.chat-model+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Chat model name for Ollama fallback.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_FALLBACK_OLLAMA_CHAT_MODEL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_FALLBACK_OLLAMA_CHAT_MODEL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++qwen3.5:4b+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-fallback-ollama-embedding-model]] [.property-path]##link:#qlawkus-client_quarkus-fallback-ollama-embedding-model[`+++quarkus.fallback.ollama.embedding-model+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.fallback.ollama.embedding-model+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Embedding model name for Ollama fallback.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_FALLBACK_OLLAMA_EMBEDDING_MODEL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_FALLBACK_OLLAMA_EMBEDDING_MODEL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++mxbai-embed-large+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-fallback-ollama-timeout]] [.property-path]##link:#qlawkus-client_quarkus-fallback-ollama-timeout[`+++quarkus.fallback.ollama.timeout+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.fallback.ollama.timeout+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Timeout for Ollama fallback requests.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_FALLBACK_OLLAMA_TIMEOUT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_FALLBACK_OLLAMA_TIMEOUT+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-client_quarkus[icon:question-circle[title=More information about the Duration format]]
+|`+++120S+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-kind]] [.property-path]##link:#qlawkus-client_quarkus-kind[`+++quarkus.kind+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.kind+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+OpenAI-compatible provider profile: `openai` (the default when unset), `nvidia`, `deepseek`, `mistral`, `groq`, `xai` or `openrouter`. Selects the base URL and the opinionated default chat/embedding models. Override individual values via the native `quarkus.langchain4j.openai."primary".++*++` keys or `LLM_++*++` env aliases. The Ollama fallback is configured separately under `quarkus.langchain4j.ollama."fallback".++*++`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_KIND+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_KIND+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-embedding-kind]] [.property-path]##link:#qlawkus-client_quarkus-embedding-kind[`+++quarkus.embedding.kind+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.embedding.kind+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+OpenAI-compatible provider profile for embeddings. When unset, follows `qlawkus.openai.kind`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_EMBEDDING_KIND+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_EMBEDDING_KIND+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+|===
+
+ifndef::no-duration-note[]
+[NOTE]
+[id=duration-note-anchor-qlawkus-client_quarkus]
+.About the Duration format
+====
+To write duration values, use the standard `java.time.Duration` format.
+See the link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html#parse(java.lang.CharSequence)[Duration#parse() Java API documentation] for more information.
+
+You can also use a simplified format, starting with a number:
+
+* If the value is only a number, it represents time in seconds.
+* If the value is a number followed by `ms`, it represents time in milliseconds.
+
+In other cases, the simplified format is translated to the `java.time.Duration` format for parsing:
+
+* If the value is a number followed by `h`, `m`, or `s`, it is prefixed with `PT`.
+* If the value is a number followed by `d`, it is prefixed with `P`.
+====
+endif::no-duration-note[]

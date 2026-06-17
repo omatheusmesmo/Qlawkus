@@ -1,0 +1,188 @@
+= Google Workspace Tools Setup
+
+The Google Workspace tools (Gmail, Calendar, Drive, Sheets, Storage) require OAuth 2.0 credentials. This page walks through creating the credentials in Google Cloud Console and configuring Qlawkus.
+
+== 1. Create a Google Cloud Project
+
+1. Go to https://console.cloud.google.com/
+2. Create a new project or select an existing one
+3. Enable the APIs you need:
+   * Gmail API
+   * Google Calendar API
+   * Google Drive API
+   * Google Sheets API
+   * Google Cloud Storage API (for Storage tool)
+
+== 2. Configure OAuth Consent Screen
+
+1. Go to **APIs & Services** > **OAuth consent screen**
+2. Choose **External** user type (or Internal if using Google Workspace)
+3. Fill in required fields:
+   * **App name:** Qlawkus (or your preferred name)
+   * **User support email:** your email
+   * **Developer contact information:** your email
+4. **Scopes:** Add the following scopes (this is where the app declares what it will access):
+   * `openid`
+   * `email`
+   * `profile`
+   * `https://www.googleapis.com/auth/calendar`
+   * `https://www.googleapis.com/auth/gmail.modify`
+   * `https://www.googleapis.com/auth/gmail.readonly`
+   * `https://www.googleapis.com/auth/gmail.send`
+   * `https://www.googleapis.com/auth/drive`
+   * `https://www.googleapis.com/auth/spreadsheets`
+   * `https://www.googleapis.com/auth/devstorage.read_write`
+5. **Test users:** Add your Google account (and any other test accounts)
+6. Save and continue
+
+== 3. Create OAuth 2.0 Client ID (Desktop App Type)
+
+**Important:** The client must be of type **Desktop app** (not Web application).
+
+1. Go to **APIs & Services** > **Credentials**
+2. Click **Create Credentials** > **OAuth client ID**
+3. **Application type:** Desktop app
+4. **Name:** Qlawkus Desktop Client
+5. Click **Create**
+6. Copy the **Client ID** and **Client Secret**
+
+== 4. Configure Qlawkus
+
+Set these environment variables (in `.env`, `docker-compose.yml`, or shell):
+
+[source,bash]
+----
+export GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+export GOOGLE_CLIENT_SECRET=your-client-secret
+export GOOGLE_REDIRECT_URI=http://localhost:8742/api/google/oauth/callback
+----
+
+**Important notes:**
+
+* The redirect URI must match exactly what you'll use. For local Docker, use `http://localhost:8742/api/google/oauth/callback` (port 8742 is mapped in `docker-compose.yml`).
+* For production, update the redirect URI to your domain (e.g., `https://yourdomain.com/api/google/oauth/callback`).
+
+== 5. Enable the tools you need
+
+Each Google tool is disabled by default. Enable the ones you want:
+
+[source,bash]
+----
+export QLAWKUS_GOOGLE_CALENDAR_ENABLED=true
+export QLAWKUS_GOOGLE_GMAIL_ENABLED=true
+export QLAWKUS_GOOGLE_DRIVE_ENABLED=true
+export QLAWKUS_GOOGLE_SHEETS_ENABLED=true
+export QLAWKUS_GOOGLE_STORAGE_ENABLED=true
+----
+
+== 6. Credential Vault (Optional but Recommended)
+
+By default, Qlawkus stores OAuth tokens in an encrypted PostgreSQL table using AES-256 + Argon2id. Enable with:
+
+[source,bash]
+----
+export QLAWKUS_VAULT_ENABLED=true
+export QLAWKUS_VAULT_PASSPHRASE=your-strong-passphrase
+----
+
+If disabled or no passphrase provided, tokens are kept in memory and lost on restart.
+
+== 7. First Authorization Flow
+
+1. Start the agent (dev mode or Docker)
+2. Send a message that requires Google access (e.g., "List my emails")
+3. The agent will return an authorization URL
+4. Open the URL in a browser, sign in with your Google account, and grant permissions
+5. You'll be redirected back to the agent, which stores the tokens
+
+== Available tools
+
+=== Gmail (8 tools)
+
+[cols="1,3",options="header"]
+|===
+|Tool |Description
+
+|`listEmails` |List recent Gmail messages. Optionally filter by query.
+|`getEmail` |Get the full content of a single message by ID.
+|`sendEmail` |Send a message (recipient, subject, body). Has a 30-second duplicate-send guard.
+|`replyToEmail` |Reply to a message (threaded, supports reply-all).
+|`searchEmails` |Search messages by query.
+|`trashEmail` |Move a message to trash.
+|`untrashEmail` |Restore a trashed message to inbox.
+|`modifyEmailLabels` |Modify labels (mark read/unread, archive, apply labels).
+|===
+
+=== Calendar (4 tools)
+
+[cols="1,3",options="header"]
+|===
+|Tool |Description
+
+|`listEvents` |List upcoming events for the next N days.
+|`createEvent` |Create an event (summary, start/end times, optional location and attendees).
+|`checkAvailability` |Check availability for a given date. Returns busy time ranges.
+|`suggestFocusTime` |Find available focus time slots of at least 2 hours on a given date.
+|===
+
+=== Drive (4 tools)
+
+[cols="1,3",options="header"]
+|===
+|Tool |Description
+
+|`listDriveFiles` |List files with optional query filter.
+|`uploadFile` |Upload a text file (name, content, optional MIME type).
+|`downloadFile` |Download a text file by file ID.
+|`shareFile` |Share a file with a user (file ID, email, role).
+|===
+
+=== Sheets (3 tools)
+
+[cols="1,3",options="header"]
+|===
+|Tool |Description
+
+|`readSheet` |Read data from a range (spreadsheet ID + A1 notation).
+|`writeSheet` |Write data to a range (rows as comma-separated, newline-delimited).
+|`updateCell` |Update a single cell.
+|===
+
+=== Storage (3 tools)
+
+[cols="1,3",options="header"]
+|===
+|Tool |Description
+
+|`listBuckets` |List GCS buckets for a project. Requires project ID.
+|`uploadObject` |Upload a text object to a bucket.
+|`downloadObject` |Download a text object from a bucket.
+|===
+
+== Troubleshooting
+
+[cols="1,3",options="header"]
+|===
+|Issue |Solution
+
+|`redirect_uri_mismatch` |Ensure `GOOGLE_REDIRECT_URI` matches exactly what's in Google Console (including trailing slash).
+|`access_denied` |Add your account as a test user in OAuth consent screen.
+|`invalid_grant` |Token expired or revoked. Clear the vault and re-authorize.
+|Tools not showing up |Verify the tool is enabled (see step 5) and the required API is enabled in Google Cloud Console.
+|===
+
+== Scopes Reference
+
+[cols="1,2",options="header"]
+|===
+|Tool |Required Scopes
+
+|Auth (OIDC) |`openid`, `email`, `profile`
+|Gmail |`gmail.readonly`, `gmail.send`, `gmail.modify`
+|Calendar |`calendar`
+|Drive |`drive`
+|Sheets |`spreadsheets`
+|Storage |`devstorage.read_write`
+|===
+
+See xref:config-reference.adoc[Configuration] for all Google-related environment variables.

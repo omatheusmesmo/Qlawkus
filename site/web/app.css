@@ -123,7 +123,7 @@ body {
   flex: 1 1 auto;
   display: flex;
   justify-content: flex-start;
-  padding: 40px 32px 80px;
+  padding: 20px 12px 20px;
   min-width: 0;
 }
 
@@ -344,7 +344,7 @@ table.configuration-reference .description .content > .paragraph:last-child { fo
   }
   .nav-toggle:checked ~ .layout .sidebar { transform: translateX(0); }
   .nav-burger { display: flex; }
-  .content { padding: 72px 20px 80px; }
+  .content { padding: 20px 12px 20px; }
   .doc-body h1 { font-size: 1.9rem; }
   .doc-body table { font-size: 13px; }
   .doc-body table th, .doc-body table td { padding: 7px 9px; }

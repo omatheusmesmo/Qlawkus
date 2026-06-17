@@ -1,0 +1,53 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-openai-kind]] [.property-path]##link:#qlawkus-client_qlawkus-openai-kind[`+++qlawkus.openai.kind+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.openai.kind+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+OpenAI-compatible provider profile: `openai` (the default when unset), `nvidia`, `deepseek`, `mistral`, `groq`, `xai` or `openrouter`. Selects the base URL and the opinionated default chat/embedding models. Override individual values via the native `quarkus.langchain4j.openai."primary".++*++` keys or `LLM_++*++` env aliases. The Ollama fallback is configured separately under `quarkus.langchain4j.ollama."fallback".++*++`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_OPENAI_KIND+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_OPENAI_KIND+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-client_qlawkus-openai-embedding-kind]] [.property-path]##link:#qlawkus-client_qlawkus-openai-embedding-kind[`+++qlawkus.openai.embedding.kind+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.openai.embedding.kind+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+OpenAI-compatible provider profile for embeddings. When unset, follows `qlawkus.openai.kind`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_OPENAI_EMBEDDING_KIND+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_OPENAI_EMBEDDING_KIND+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+|===
+

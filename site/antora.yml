@@ -1,0 +1,8 @@
+name: qlawkus
+title: Qlawkus
+version: dev
+nav:
+  - content/nav.adoc
+asciidoc:
+  attributes:
+    page-toclevels: 3

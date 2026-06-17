@@ -1,0 +1,162 @@
+= Messaging Setup (Discord & Telegram)
+
+Qlawkus includes messaging adapters for Discord and Telegram with voice support. Slack and WhatsApp adapters exist but are not wired into the default `app/` module.
+
+== How conversation context works
+
+When you chat with the agent via any channel (REST, Discord, Telegram), it maintains a working memory of the back-and-forth conversation. By default, all channels share the same conversation context (`QLAWKUS_AGENT_SHARED_CONTEXT_ENABLED=true`), meaning the agent is continuous across Discord, Telegram, and REST — the owner is one person regardless of channel.
+
+If the conversation goes idle for too long, the working memory is automatically cleared to prevent stale context from accumulating. The default idle timeout is 60 minutes.
+
+You can also ask the agent to clear the context at any time. Say things like "clear the context", "reset", "start over", "new topic", or "forget our conversation" — the agent will wipe the short-term conversation and start fresh on the next message. This does **not** erase long-term saved facts about you (stored in pgvector); only the running back-and-forth is cleared.
+
+== Discord Bot
+
+=== 1. Create a Discord Application
+
+1. Go to https://discord.com/developers/applications
+2. Click **New Application** > name it (e.g., "Qlawkus")
+3. Go to **Bot** tab > **Add Bot**
+4. **Public Bot:** Leave unchecked if only you will use it. When checked, anyone can install the bot.
+5. Under **Privileged Gateway Intents**, enable **Message Content Intent** (required for the bot to read messages). Without this, the bot cannot see message text.
+6. Go to **OAuth2** > **General** > copy **Application ID**
+
+=== 2. Configure Permissions & Invite
+
+1. Go to **OAuth2** > **URL Generator**
+2. Scopes: `bot` + `applications.commands`
+3. Bot Permissions:
+   * Send Messages
+   * Read Messages / View Channels
+   * Read Message History
+   * Use Slash Commands
+   * Attach Files (for voice messages, sent as file attachments)
+4. Copy the generated URL, open in browser, and invite to your server
+
+=== 3. Environment Variables
+
+[source,bash]
+----
+export QLAWKUS_MESSAGING_DISCORD_BOT_TOKEN=your-bot-token
+export QLAWKUS_MESSAGING_DISCORD_APPLICATION_ID=your-application-id
+export QLAWKUS_MESSAGING_DISCORD_GUILD_ID=optional-guild-id-for-faster-command-sync
+export QLAWKUS_MESSAGING_DISCORD_STARTUP_CHANNEL_ID=optional-channel-id-for-startup-message
+export QLAWKUS_MESSAGING_DISCORD_RESPOND_TO_ALL_MESSAGES=true
+export QLAWKUS_MESSAGING_DISCORD_STARTUP_GREETING="👋 Qlawkus online and listening"
+----
+
+Optional auth:
+
+[source,bash]
+----
+export QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_DISCORD=*
+# or comma-separated user IDs: 12345,67890
+----
+
+=== 4. Slash Commands
+
+The bot registers a `/qlawkus` command with subcommands:
+
+* `/qlawkus ask question:<text>` - ask the agent a question
+* `/qlawkus status` - health check
+* `/qlawkus help` - usage info
+
+If you set `QLAWKUS_MESSAGING_DISCORD_GUILD_ID`, commands sync instantly to that guild. Without it, global sync can take up to 1 hour.
+
+== Telegram Bot
+
+=== 1. Create a Telegram Bot
+
+1. Open Telegram and message @BotFather
+2. Send `/newbot` and follow the prompts
+3. Copy the **Token**
+
+=== 2. Choose Mode: Polling vs Webhook
+
+* **Polling** (default, simpler): Bot pulls updates. Works behind NAT, no public URL needed.
+* **Webhook**: Telegram pushes updates to your HTTPS endpoint. Requires a public HTTPS URL.
+
+=== 3. Environment Variables
+
+Polling (default):
+
+[source,bash]
+----
+export QLAWKUS_MESSAGING_TELEGRAM_BOT_TOKEN=your-bot-token
+export QLAWKUS_MESSAGING_TELEGRAM_MODE=polling
+export QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_TELEGRAM=*
+# or comma-separated user IDs: 12345,67890
+----
+
+Webhook:
+
+[source,bash]
+----
+export QLAWKUS_MESSAGING_TELEGRAM_BOT_TOKEN=your-bot-token
+export QLAWKUS_MESSAGING_TELEGRAM_MODE=webhook
+export QLAWKUS_MESSAGING_TELEGRAM_WEBHOOK_URL=https://yourdomain.com/api/telegram/webhook
+export QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_TELEGRAM=*
+----
+
+The webhook path is `/api/telegram/webhook`.
+
+== Voice Support
+
+Voice messages are supported on both Discord and Telegram via file attachments (the bot does not join voice channels). When a user sends a voice message:
+
+1. Audio attachment is downloaded
+2. Audio is transcribed via STT (Whisper via Groq/OpenAI)
+3. Agent processes the text
+4. If TTS is configured, the agent can respond with voice (sent as an audio file attachment)
+
+Additionally, the orchestrator detects voice intent in text messages (e.g., "manda audio", "respond with voice") and automatically triggers TTS.
+
+For TTS setup, see xref:voice.adoc[Voice Setup].
+
+== Shared Context Across Channels
+
+By default, the agent maintains a single conversation across REST, Discord, and Telegram. The owner is one person regardless of channel.
+
+To disable (separate conversations per channel):
+
+[source,bash]
+----
+export QLAWKUS_AGENT_SHARED_CONTEXT_ENABLED=false
+----
+
+== Idle Conversation Reset
+
+If a conversation is idle for more than a configurable period, the working memory is cleared before the next message. This prevents stale context from accumulating.
+
+[source,bash]
+----
+export QLAWKUS_MESSAGING_CONTEXT_TTL_MINUTES=60
+----
+
+== Message Chunking
+
+Long responses are automatically split to fit platform limits:
+
+[cols="1,1",options="header"]
+|===
+|Platform |Max message length
+
+|Telegram |4,096 chars
+|Discord |2,000 chars
+|Slack |40,000 chars
+|WhatsApp |65,536 chars
+|===
+
+== Troubleshooting
+
+[cols="1,3",options="header"]
+|===
+|Issue |Solution
+
+|Discord bot connects but doesn't respond |Message Content Intent not enabled in Developer Portal.
+|Slash commands not appearing |Wait up to 1 hour for global sync, or set `QLAWKUS_MESSAGING_DISCORD_GUILD_ID` for instant guild sync.
+|Telegram webhook not receiving updates |Verify HTTPS URL is accessible, check logs for `setWebhook` errors.
+|Voice not working |Check STT/TTS config in xref:voice.adoc[Voice Setup].
+|===
+
+See xref:config-reference.adoc[Configuration] for all messaging-related environment variables.

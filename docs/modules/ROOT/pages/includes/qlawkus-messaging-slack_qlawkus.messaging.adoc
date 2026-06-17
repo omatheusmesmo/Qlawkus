@@ -1,0 +1,32 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-messaging-slack_qlawkus-messaging-slack-bot-token]] [.property-path]##link:#qlawkus-messaging-slack_qlawkus-messaging-slack-bot-token[`+++qlawkus.messaging.slack.bot-token+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.slack.bot-token+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Slack Bot Token obtained from the Slack App configuration (starts with xoxb-).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_SLACK_BOT_TOKEN+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_SLACK_BOT_TOKEN+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|required icon:exclamation-circle[title=Configuration property is required]
+
+|===
+

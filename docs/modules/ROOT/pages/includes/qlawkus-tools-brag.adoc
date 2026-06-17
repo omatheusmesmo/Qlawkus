@@ -1,0 +1,95 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-brag_qlawkus-brag-enabled]] [.property-path]##link:#qlawkus-tools-brag_qlawkus-brag-enabled[`+++qlawkus.brag.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.brag.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the Brag Document tool is enabled.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_BRAG_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_BRAG_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-brag_qlawkus-brag-impact-translation-enabled]] [.property-path]##link:#qlawkus-tools-brag_qlawkus-brag-impact-translation-enabled[`+++qlawkus.brag.impact-translation-enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.brag.impact-translation-enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether LLM-based impact translation is enabled. When disabled, achievements are stored with raw descriptions.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_BRAG_IMPACT_TRANSLATION_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_BRAG_IMPACT_TRANSLATION_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-brag_qlawkus-brag-cleanup-age-days]] [.property-path]##link:#qlawkus-tools-brag_qlawkus-brag-cleanup-age-days[`+++qlawkus.brag.cleanup-age-days+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.brag.cleanup-age-days+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Number of days after which soft-deleted entries are purged.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_BRAG_CLEANUP_AGE_DAYS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_BRAG_CLEANUP_AGE_DAYS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++7+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-brag_qlawkus-brag-cleanup-cron]] [.property-path]##link:#qlawkus-tools-brag_qlawkus-brag-cleanup-cron[`+++qlawkus.brag.cleanup-cron+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.brag.cleanup-cron+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cron expression for the cleanup job schedule. Defaults to daily at 03:00 UTC.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_BRAG_CLEANUP_CRON+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_BRAG_CLEANUP_CRON+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++0 0 3 * * ?+++`
+
+|===
+

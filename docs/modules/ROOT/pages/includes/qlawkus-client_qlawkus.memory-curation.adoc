@@ -1,0 +1,74 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-memory-curation-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-memory-curation-enabled[`+++qlawkus.memory-curation.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.memory-curation.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the nightly curation job folds remembered facts into the owner profile.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MEMORY_CURATION_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MEMORY_CURATION_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-memory-curation-max-facts]] [.property-path]##link:#qlawkus-client_qlawkus-memory-curation-max-facts[`+++qlawkus.memory-curation.max-facts+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.memory-curation.max-facts+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of facts loaded from the store and fed to the model in a single curation pass.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MEMORY_CURATION_MAX_FACTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MEMORY_CURATION_MAX_FACTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++200+++`
+
+a| [[qlawkus-client_qlawkus-memory-curation-cron]] [.property-path]##link:#qlawkus-client_qlawkus-memory-curation-cron[`+++qlawkus.memory-curation.cron+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.memory-curation.cron+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cron expression for the scheduled memory-curation job.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MEMORY_CURATION_CRON+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MEMORY_CURATION_CRON+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++0 45 3 * * ?+++`
+
+|===
+

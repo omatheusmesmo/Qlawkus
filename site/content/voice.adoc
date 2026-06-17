@@ -1,0 +1,107 @@
+= Voice Setup (STT / TTS)
+
+Qlawkus supports voice interactions on messaging platforms (Discord, Telegram): Speech-to-Text (STT) for transcribing voice messages, and Text-to-Speech (TTS) for spoken replies. Voice works through file attachments — the bot does not join voice channels.
+
+== Speech-to-Text (STT)
+
+Uses OpenAI-compatible Whisper API (Groq or OpenAI).
+
+=== Environment Variables
+
+[source,bash]
+----
+export WHISPER_API_KEY=your-groq-or-openai-key
+export WHISPER_BASE_URL=https://api.groq.com/openai    # or https://api.openai.com
+export WHISPER_MODEL=whisper-large-v3-turbo             # or whisper-1 for OpenAI
+----
+
+**Providers:**
+* **Groq** (recommended): Fast, free tier available. Base URL: `https://api.groq.com/openai`
+* **OpenAI**: Standard Whisper API. Base URL: `https://api.openai.com`
+
+=== How it works
+
+1. User sends a voice message on Discord/Telegram
+2. Audio is downloaded and sent to Whisper API
+3. Transcribed text is processed by the agent as a normal message
+4. Agent response follows normal flow (text or voice)
+
+== Text-to-Speech (TTS)
+
+Supports multiple providers per language. The agent selects the provider based on the requested language.
+
+=== Environment Variables (per language)
+
+Configure providers with language-specific prefixes: `TTS_EN_*` for English, `TTS_PT_*` for Portuguese, etc.
+
+[source,bash]
+----
+# English provider
+export TTS_EN_KIND=openai                          # openai or elevenlabs
+export TTS_EN_BASE_URL=https://api.openai.com
+export TTS_EN_API_KEY=your-key
+export TTS_EN_MODEL=tts-1                          # or orpheus-v1-english for local
+export TTS_EN_VOICE=alloy                          # alloy, echo, fable, onyx, nova, shimmer
+export TTS_EN_RESPONSE_FORMAT=mp3
+export TTS_EN_FALLBACK=pt                          # fallback to Portuguese provider if this fails
+
+# Portuguese provider
+export TTS_PT_KIND=elevenlabs
+export TTS_PT_BASE_URL=https://api.elevenlabs.io
+export TTS_PT_API_KEY=your-elevenlabs-key
+export TTS_PT_MODEL=eleven_multilingual_v2
+export TTS_PT_VOICE=your-voice-id
+export TTS_PT_RESPONSE_FORMAT=mp3
+----
+
+=== Provider Types
+
+[cols="1,2,3",options="header"]
+|===
+| Kind | Description | Base URL Example
+
+| `openai` | OpenAI-compatible `/v1/audio/speech` | `https://api.openai.com`
+| `elevenlabs` | ElevenLabs API | `https://api.elevenlabs.io`
+|===
+
+=== Global Settings
+
+[source,bash]
+----
+export TTS_ENABLED=true                          # enable/disable TTS globally
+export TTS_DEFAULT_LANGUAGE=en                   # fallback language
+----
+
+=== How it works
+
+1. Agent decides to respond with voice (via `respondWithVoice` tool)
+2. Agent specifies language (e.g., `pt` for Portuguese)
+3. Corresponding provider (`TTS_PT_*`) generates audio
+4. Audio is sent as a voice message on the platform
+
+== Voice on messaging platforms
+
+Voice messages on Discord and Telegram work through file attachments — the bot does **not** join voice channels. When a user sends a voice message, it is downloaded as an audio attachment, transcribed via STT, processed, and the agent can respond with voice (also as a file attachment).
+
+The orchestrator also detects voice intent in text messages (e.g., "send audio", "reply by voice", "manda audio") and automatically triggers TTS for the response.
+
+== Testing Voice
+
+1. Configure STT and at least one TTS provider
+2. Send a voice message to the bot on Discord/Telegram
+3. Bot should transcribe, process, and reply (voice if agent uses the tool)
+
+== Troubleshooting
+
+[cols="2,3",options="header"]
+|===
+| Issue | Solution
+
+| "Transcription disabled" | Set `WHISPER_API_KEY`
+| "TTS provider not configured" | Set `TTS_<LANG>_*` for the language
+| Voice message not playing | Ensure `TTS_ENABLED=true` and the correct `TTS_<LANG>_*` vars are set
+| Wrong language voice | Agent must specify language in `respondWithVoice` tool call
+| Audio format errors | Try `mp3` for `TTS_*_RESPONSE_FORMAT`
+|===
+
+See xref:config-reference.adoc[Configuration] for all voice-related environment variables.

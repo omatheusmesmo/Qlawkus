@@ -1,0 +1,74 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-tools-google-auth_qlawkus-google-vault-enabled]] [.property-path]##link:#qlawkus-tools-google-auth_qlawkus-google-vault-enabled[`+++qlawkus.google.vault.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.vault.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the persistent (encrypted) Google credential vault is enabled. When true and an encryption passphrase is provided, refresh tokens are persisted to postgres encrypted with AES-256. When false, or when no passphrase is provided, the service falls back to an in-memory ephemeral store that loses tokens on restart.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_VAULT_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_VAULT_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-tools-google-auth_qlawkus-google-vault-encryption-passphrase]] [.property-path]##link:#qlawkus-tools-google-auth_qlawkus-google-vault-encryption-passphrase[`+++qlawkus.google.vault.encryption-passphrase+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.vault.encryption-passphrase+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Passphrase used to derive the AES-256 encryption key via Argon2id. Required when vault is enabled; ignored otherwise.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_VAULT_ENCRYPTION_PASSPHRASE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_VAULT_ENCRYPTION_PASSPHRASE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-google-auth_qlawkus-google-vault-renewal-interval-seconds]] [.property-path]##link:#qlawkus-tools-google-auth_qlawkus-google-vault-renewal-interval-seconds[`+++qlawkus.google.vault.renewal-interval-seconds+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.vault.renewal-interval-seconds+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Interval in seconds between access token renewal checks.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_VAULT_RENEWAL_INTERVAL_SECONDS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_VAULT_RENEWAL_INTERVAL_SECONDS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++3600+++`
+
+|===
+

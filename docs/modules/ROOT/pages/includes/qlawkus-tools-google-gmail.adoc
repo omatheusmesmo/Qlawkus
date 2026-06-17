@@ -1,0 +1,74 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-gmail_qlawkus-google-gmail-enabled]] [.property-path]##link:#qlawkus-tools-google-gmail_qlawkus-google-gmail-enabled[`+++qlawkus.google.gmail.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.gmail.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the Gmail tool is enabled.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_GMAIL_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_GMAIL_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-gmail_qlawkus-google-gmail-user-id]] [.property-path]##link:#qlawkus-tools-google-gmail_qlawkus-google-gmail-user-id[`+++qlawkus.google.gmail.user-id+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.gmail.user-id+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Gmail user identifier. Use `me` for the authenticated user.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_GMAIL_USER_ID+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_GMAIL_USER_ID+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++me+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-gmail_qlawkus-google-gmail-max-results]] [.property-path]##link:#qlawkus-tools-google-gmail_qlawkus-google-gmail-max-results[`+++qlawkus.google.gmail.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.gmail.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Default maximum number of messages returned per request.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_GMAIL_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_GMAIL_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++10+++`
+
+|===
+
