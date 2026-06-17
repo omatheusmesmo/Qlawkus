@@ -1,0 +1,25 @@
+name: Docs Preview Teardown
+
+# Tears down the Surge.sh preview when the PR is closed or merged.
+on:
+  pull_request_target:
+    types: [closed]
+
+jobs:
+  teardown:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Teardown Surge.sh preview
+        run: npx surge teardown https://qlawkus-docs-${{ github.event.number }}-preview.surge.sh --token ${{ secrets.SURGE_TOKEN }} || true
+
+      - name: Comment on PR
+        uses: quarkusio/action-helpers@main
+        with:
+          action: maintain-one-comment
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-number: ${{ github.event.number }}
+          body: |
+            🙈 The PR is closed and the docs preview is expired.
+          body-marker: <!-- docs-preview-marker -->
