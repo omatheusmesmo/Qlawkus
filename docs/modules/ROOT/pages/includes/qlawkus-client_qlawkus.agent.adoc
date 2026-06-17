@@ -1,0 +1,263 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-agent-timezone]] [.property-path]##link:#qlawkus-client_qlawkus-agent-timezone[`+++qlawkus.agent.timezone+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.timezone+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+IANA timezone used to render the current date and time injected into the system prompt, so the agent resolves relative expressions ("today", "tomorrow") against the owner's clock.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_TIMEZONE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_TIMEZONE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++America/Sao_Paulo+++`
+
+a| [[qlawkus-client_qlawkus-agent-context-ttl-minutes]] [.property-path]##link:#qlawkus-client_qlawkus-agent-context-ttl-minutes[`+++qlawkus.agent.context-ttl-minutes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.context-ttl-minutes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Idle time-to-live, in minutes, for the single shared conversation context across all channels.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_CONTEXT_TTL_MINUTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_CONTEXT_TTL_MINUTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|long
+|`+++60+++`
+
+a| [[qlawkus-client_qlawkus-agent-shared-context-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-agent-shared-context-enabled[`+++qlawkus.agent.shared-context.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.shared-context.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether all channels share one conversation context. When false, each channel keeps its own.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_SHARED_CONTEXT_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_SHARED_CONTEXT_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-agent-memory-max-results]] [.property-path]##link:#qlawkus-client_qlawkus-agent-memory-max-results[`+++qlawkus.agent.memory.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.memory.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of facts returned by the `searchMemories` tool.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_MEMORY_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_MEMORY_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++10+++`
+
+a| [[qlawkus-client_qlawkus-agent-memory-min-score]] [.property-path]##link:#qlawkus-client_qlawkus-agent-memory-min-score[`+++qlawkus.agent.memory.min-score+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.memory.min-score+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Minimum cosine score for a fact to be returned by the `searchMemories` tool.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_MEMORY_MIN_SCORE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_MEMORY_MIN_SCORE+++`
+endif::add-copy-button-to-env-var[]
+--
+|double
+|`+++0.7+++`
+
+a| [[qlawkus-client_qlawkus-agent-active-memory-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-agent-active-memory-enabled[`+++qlawkus.agent.active-memory.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.active-memory.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether to inject query-relevant facts into the prompt before each reply.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_ACTIVE_MEMORY_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_ACTIVE_MEMORY_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-agent-active-memory-max-results]] [.property-path]##link:#qlawkus-client_qlawkus-agent-active-memory-max-results[`+++qlawkus.agent.active-memory.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.active-memory.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of facts injected per turn by active memory.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_ACTIVE_MEMORY_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_ACTIVE_MEMORY_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++5+++`
+
+a| [[qlawkus-client_qlawkus-agent-active-memory-min-score]] [.property-path]##link:#qlawkus-client_qlawkus-agent-active-memory-min-score[`+++qlawkus.agent.active-memory.min-score+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.active-memory.min-score+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Minimum cosine score for a fact to be injected by active memory.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_ACTIVE_MEMORY_MIN_SCORE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_ACTIVE_MEMORY_MIN_SCORE+++`
+endif::add-copy-button-to-env-var[]
+--
+|double
+|`+++0.7+++`
+
+a| [[qlawkus-client_qlawkus-agent-transcript-archive-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-agent-transcript-archive-enabled[`+++qlawkus.agent.transcript-archive.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.transcript-archive.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether each user and AI message is archived as a searchable transcript embedding.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_TRANSCRIPT_ARCHIVE_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_TRANSCRIPT_ARCHIVE_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-agent-transcript-search-max-results]] [.property-path]##link:#qlawkus-client_qlawkus-agent-transcript-search-max-results[`+++qlawkus.agent.transcript-search.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.transcript-search.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of transcript excerpts returned by the `searchTranscripts` tool.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_TRANSCRIPT_SEARCH_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_TRANSCRIPT_SEARCH_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++5+++`
+
+a| [[qlawkus-client_qlawkus-agent-transcript-search-min-score]] [.property-path]##link:#qlawkus-client_qlawkus-agent-transcript-search-min-score[`+++qlawkus.agent.transcript-search.min-score+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.transcript-search.min-score+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Minimum cosine score for a transcript excerpt to be returned by the `searchTranscripts` tool.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_TRANSCRIPT_SEARCH_MIN_SCORE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_TRANSCRIPT_SEARCH_MIN_SCORE+++`
+endif::add-copy-button-to-env-var[]
+--
+|double
+|`+++0.7+++`
+
+a| [[qlawkus-client_qlawkus-agent-semantic-extractor-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-agent-semantic-extractor-enabled[`+++qlawkus.agent.semantic-extractor.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.semantic-extractor.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether to mine durable facts from each completed conversation turn.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_SEMANTIC_EXTRACTOR_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_SEMANTIC_EXTRACTOR_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+|===
+

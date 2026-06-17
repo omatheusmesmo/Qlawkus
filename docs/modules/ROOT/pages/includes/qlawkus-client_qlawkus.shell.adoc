@@ -1,0 +1,326 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-shell-max-concurrent]] [.property-path]##link:#qlawkus-client_qlawkus-shell-max-concurrent[`+++qlawkus.shell.max-concurrent+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.max-concurrent+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of simultaneously running processes.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_MAX_CONCURRENT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_MAX_CONCURRENT+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++10+++`
+
+a| [[qlawkus-client_qlawkus-shell-default-timeout]] [.property-path]##link:#qlawkus-client_qlawkus-shell-default-timeout[`+++qlawkus.shell.default-timeout+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.default-timeout+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Default command timeout in seconds. Used when runCommand is called without explicit timeout.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_DEFAULT_TIMEOUT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_DEFAULT_TIMEOUT+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++30+++`
+
+a| [[qlawkus-client_qlawkus-shell-max-output-bytes]] [.property-path]##link:#qlawkus-client_qlawkus-shell-max-output-bytes[`+++qlawkus.shell.max-output-bytes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.max-output-bytes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum bytes captured per stream (stdout/stderr).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_MAX_OUTPUT_BYTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_MAX_OUTPUT_BYTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++1048576+++`
+
+a| [[qlawkus-client_qlawkus-shell-max-output-lines]] [.property-path]##link:#qlawkus-client_qlawkus-shell-max-output-lines[`+++qlawkus.shell.max-output-lines+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.max-output-lines+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum lines returned per stream.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_MAX_OUTPUT_LINES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_MAX_OUTPUT_LINES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++5000+++`
+
+a| [[qlawkus-client_qlawkus-shell-denylist]] [.property-path]##link:#qlawkus-client_qlawkus-shell-denylist[`+++qlawkus.shell.denylist+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.denylist+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Comma-separated list of denied command patterns.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_DENYLIST+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_DENYLIST+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of string
+|`+++sudo *+++`, `+++su *+++`, `+++rm -rf /*+++`, `+++mkfs*+++`, `+++dd if=*+++`, `+++format+++`, `+++shutdown+++`, `+++reboot+++`
+
+a| [[qlawkus-client_qlawkus-shell-allowlist-mode]] [.property-path]##link:#qlawkus-client_qlawkus-shell-allowlist-mode[`+++qlawkus.shell.allowlist-mode+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.allowlist-mode+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+When true, switches to allowlist mode.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_ALLOWLIST_MODE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_ALLOWLIST_MODE+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-client_qlawkus-shell-allowlist]] [.property-path]##link:#qlawkus-client_qlawkus-shell-allowlist[`+++qlawkus.shell.allowlist+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.allowlist+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Comma-separated list of allowed command patterns.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_ALLOWLIST+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_ALLOWLIST+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of string
+|`+++none+++`
+
+a| [[qlawkus-client_qlawkus-shell-default-shell]] [.property-path]##link:#qlawkus-client_qlawkus-shell-default-shell[`+++qlawkus.shell.default-shell+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.default-shell+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Default shell command. Use "auto" to detect from $SHELL.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_DEFAULT_SHELL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_DEFAULT_SHELL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++auto+++`
+
+a| [[qlawkus-client_qlawkus-shell-clean-profile]] [.property-path]##link:#qlawkus-client_qlawkus-shell-clean-profile[`+++qlawkus.shell.clean-profile+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.clean-profile+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether to append --norc --noprofile to bare shell names.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_CLEAN_PROFILE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_CLEAN_PROFILE+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-shell-prompts]] [.property-path]##link:#qlawkus-client_qlawkus-shell-prompts[`+++qlawkus.shell.prompts+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.prompts+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Regex patterns for shell prompt detection.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_PROMPTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_PROMPTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of string
+|
+
+a| [[qlawkus-client_qlawkus-shell-pty-max-sessions]] [.property-path]##link:#qlawkus-client_qlawkus-shell-pty-max-sessions[`+++qlawkus.shell.pty.max-sessions+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.pty.max-sessions+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of concurrent PTY sessions.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_PTY_MAX_SESSIONS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_PTY_MAX_SESSIONS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++10+++`
+
+a| [[qlawkus-client_qlawkus-shell-pty-idle-timeout-minutes]] [.property-path]##link:#qlawkus-client_qlawkus-shell-pty-idle-timeout-minutes[`+++qlawkus.shell.pty.idle-timeout-minutes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.pty.idle-timeout-minutes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Idle timeout in minutes before session cleanup.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_PTY_IDLE_TIMEOUT_MINUTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_PTY_IDLE_TIMEOUT_MINUTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++30+++`
+
+a| [[qlawkus-client_qlawkus-shell-pty-buffer-lines]] [.property-path]##link:#qlawkus-client_qlawkus-shell-pty-buffer-lines[`+++qlawkus.shell.pty.buffer-lines+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.pty.buffer-lines+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum lines retained in session output buffer.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_PTY_BUFFER_LINES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_PTY_BUFFER_LINES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++50000+++`
+
+a| [[qlawkus-client_qlawkus-shell-pty-default-cols]] [.property-path]##link:#qlawkus-client_qlawkus-shell-pty-default-cols[`+++qlawkus.shell.pty.default-cols+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.pty.default-cols+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Default terminal columns for new sessions.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_PTY_DEFAULT_COLS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_PTY_DEFAULT_COLS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++120+++`
+
+a| [[qlawkus-client_qlawkus-shell-pty-default-rows]] [.property-path]##link:#qlawkus-client_qlawkus-shell-pty-default-rows[`+++qlawkus.shell.pty.default-rows+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.pty.default-rows+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Default terminal rows for new sessions.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_PTY_DEFAULT_ROWS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_PTY_DEFAULT_ROWS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++40+++`
+
+|===
+

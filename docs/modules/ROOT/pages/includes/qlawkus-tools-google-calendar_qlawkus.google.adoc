@@ -1,0 +1,179 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-calendar_qlawkus-google-calendar-enabled]] [.property-path]##link:#qlawkus-tools-google-calendar_qlawkus-google-calendar-enabled[`+++qlawkus.google.calendar.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.calendar.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the Google Calendar tool is enabled.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_CALENDAR_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_CALENDAR_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-calendar_qlawkus-google-calendar-calendar-id]] [.property-path]##link:#qlawkus-tools-google-calendar_qlawkus-google-calendar-calendar-id[`+++qlawkus.google.calendar.calendar-id+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.calendar.calendar-id+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Calendar identifier. Use `primary` for the authenticated user's main calendar, or an email address for a specific calendar.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_CALENDAR_CALENDAR_ID+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_CALENDAR_CALENDAR_ID+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++primary+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-calendar_qlawkus-google-calendar-default-days-range]] [.property-path]##link:#qlawkus-tools-google-calendar_qlawkus-google-calendar-default-days-range[`+++qlawkus.google.calendar.default-days-range+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.calendar.default-days-range+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Default number of days to look ahead when listing events.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_CALENDAR_DEFAULT_DAYS_RANGE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_CALENDAR_DEFAULT_DAYS_RANGE+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++7+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-calendar_qlawkus-google-calendar-max-results]] [.property-path]##link:#qlawkus-tools-google-calendar_qlawkus-google-calendar-max-results[`+++qlawkus.google.calendar.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.calendar.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of events returned per request.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_CALENDAR_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_CALENDAR_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++25+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-calendar_qlawkus-google-calendar-focus-time-hours]] [.property-path]##link:#qlawkus-tools-google-calendar_qlawkus-google-calendar-focus-time-hours[`+++qlawkus.google.calendar.focus-time-hours+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.calendar.focus-time-hours+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Minimum duration (in hours) for a focus time slot.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_CALENDAR_FOCUS_TIME_HOURS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_CALENDAR_FOCUS_TIME_HOURS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++2+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-calendar_qlawkus-google-calendar-work-day-start]] [.property-path]##link:#qlawkus-tools-google-calendar_qlawkus-google-calendar-work-day-start[`+++qlawkus.google.calendar.work-day-start+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.calendar.work-day-start+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Start of working hours (hour of day, 0-23). Focus slots are only suggested within this range.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_CALENDAR_WORK_DAY_START+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_CALENDAR_WORK_DAY_START+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++8+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-calendar_qlawkus-google-calendar-work-day-end]] [.property-path]##link:#qlawkus-tools-google-calendar_qlawkus-google-calendar-work-day-end[`+++qlawkus.google.calendar.work-day-end+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.calendar.work-day-end+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+End of working hours (hour of day, 0-23).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_CALENDAR_WORK_DAY_END+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_CALENDAR_WORK_DAY_END+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++18+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-calendar_qlawkus-google-calendar-timezone]] [.property-path]##link:#qlawkus-tools-google-calendar_qlawkus-google-calendar-timezone[`+++qlawkus.google.calendar.timezone+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.calendar.timezone+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+User timezone for displaying times and converting input. Defaults to America/Sao_Paulo.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_CALENDAR_TIMEZONE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_CALENDAR_TIMEZONE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++America/Sao_Paulo+++`
+
+|===
+

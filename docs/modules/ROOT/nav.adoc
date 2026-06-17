@@ -1,0 +1,28 @@
+[.list-top-item]
+.Getting Started
+
+* xref:index.adoc[Quick start]
+
+[.list-top-item]
+.Architecture
+
+* xref:architecture.adoc[Architecture Overview]
+
+[.list-top-item]
+.Configuration
+
+* xref:configuration.adoc[Environment Variables Reference]
+* xref:google-workspace.adoc[Google Workspace Setup]
+* xref:messaging.adoc[Messaging Setup (Discord & Telegram)]
+* xref:voice.adoc[Voice (STT/TTS) Setup]
+
+[.list-top-item]
+.Reference
+
+* xref:config-reference.adoc[Configuration Reference (Generated)]
+
+[.list-top-item]
+.Development
+
+* https://github.com/omatheusmesmo/qlawkus[Source Code^,role=github]
+* https://github.com/omatheusmesmo/qlawkus/issues[Issues^,role=github]

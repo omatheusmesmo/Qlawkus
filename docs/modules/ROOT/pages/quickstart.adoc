@@ -1,0 +1,83 @@
+= Quick Start
+:page-title: Quick Start
+:page-description: Get Qlawkus running in minutes
+
+== Prerequisites
+
+* JDK 25 and Maven
+* Docker (for Dev Services in dev mode and for containerized run modes)
+* An `LLM_API_KEY` for your chosen provider (e.g. NVIDIA from https://build.nvidia.com/) -- only needed for the production profile, not for dev mode
+
+== Clone and run
+
+[source,bash]
+----
+git clone https://github.com/omatheusmesmo/qlawkus.git
+cd qlawkus
+mvn install -pl client -am -DskipTests
+cd app && mvn quarkus:dev
+----
+
+Dev Services auto-provision PostgreSQL (pgvector) and Ollama via Testcontainers. No `.env` required.
+
+The agent starts on `http://localhost:8080`. In dev mode, Flyway resets all databases on every restart.
+
+TIP: The first build takes a few minutes. Subsequent starts are much faster.
+
+== Try it out
+
+[source,bash]
+----
+curl -X POST http://localhost:8080/api/chat/sync -u qlawkus:qlawkus \
+  -H 'Content-Type: application/json' -d '{"message":"Hello, who are you?"}'
+----
+
+== Other run modes
+
+=== Local Docker (Ollama + PostgreSQL)
+
+Self-contained, no external API key required.
+
+[source,bash]
+----
+mvn clean install -DskipTests
+docker compose -f docker-compose.local.yml up --build
+----
+
+Exposes `http://localhost:8080`. An `ollama-init` one-shot container pulls the models on first start.
+
+=== Production Docker (bring your own LLM + PostgreSQL)
+
+Pick a provider with `LLM_KIND` (default `nvidia`) and set `LLM_API_KEY`.
+
+[source,bash]
+----
+export LLM_KIND=nvidia               # or openai, deepseek, mistral, groq, xai, openrouter
+export LLM_API_KEY=nvapi-xxxx        # your provider key
+mvn clean install -DskipTests
+docker compose up -d --build
+----
+
+The container maps host port *8742* to container `8080` (the Google OAuth redirect URI expects 8742).
+
+For the native image (faster startup, lower memory):
+
+[source,bash]
+----
+mvn clean install -DskipTests -Dnative
+docker compose --profile native up -d --build
+----
+
+WARNING: The Dockerfiles `COPY target/quarkus-app/...`; they do not compile inside the image. Always run `mvn install` before `docker compose --build`, or you will containerize a stale jar.
+
+== Authentication
+
+All HTTP endpoints use Basic auth (`quawkus` / `qlawkus` by default, override with `API_USER_PASSWORD`).
+
+== What's next?
+
+* xref:google-workspace.adoc[Google Workspace setup] -- Gmail, Calendar, Drive, Sheets, Storage tools
+* xref:messaging.adoc[Messaging setup] -- Discord and Telegram bots with voice
+* xref:voice.adoc[Voice (STT/TTS) setup] -- Speech-to-text and text-to-speech
+* xref:config-reference.adoc[Configuration] -- All settings
+* xref:architecture.adoc[Architecture] -- Module layout and request flow

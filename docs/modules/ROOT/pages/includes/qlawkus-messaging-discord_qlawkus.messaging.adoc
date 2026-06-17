@@ -1,0 +1,137 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-messaging-discord_qlawkus-messaging-discord-bot-token]] [.property-path]##link:#qlawkus-messaging-discord_qlawkus-messaging-discord-bot-token[`+++qlawkus.messaging.discord.bot-token+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.discord.bot-token+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Discord Bot Token from the Developer Portal. Leave unset to disable Discord provider.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_DISCORD_BOT_TOKEN+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_DISCORD_BOT_TOKEN+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-messaging-discord_qlawkus-messaging-discord-application-id]] [.property-path]##link:#qlawkus-messaging-discord_qlawkus-messaging-discord-application-id[`+++qlawkus.messaging.discord.application-id+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.discord.application-id+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Discord Application ID, used for slash command registration.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_DISCORD_APPLICATION_ID+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_DISCORD_APPLICATION_ID+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-messaging-discord_qlawkus-messaging-discord-respond-to-all-messages]] [.property-path]##link:#qlawkus-messaging-discord_qlawkus-messaging-discord-respond-to-all-messages[`+++qlawkus.messaging.discord.respond-to-all-messages+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.discord.respond-to-all-messages+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the bot responds to all messages in channels it is in. When false, the bot only responds to DMs and slash commands.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_DISCORD_RESPOND_TO_ALL_MESSAGES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_DISCORD_RESPOND_TO_ALL_MESSAGES+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-messaging-discord_qlawkus-messaging-discord-startup-channel-id]] [.property-path]##link:#qlawkus-messaging-discord_qlawkus-messaging-discord-startup-channel-id[`+++qlawkus.messaging.discord.startup-channel-id+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.discord.startup-channel-id+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Channel ID where the bot posts a greeting message once Gateway connects. Useful for confirming the bot is online and reachable. Leave unset to disable.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_DISCORD_STARTUP_CHANNEL_ID+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_DISCORD_STARTUP_CHANNEL_ID+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-messaging-discord_qlawkus-messaging-discord-guild-id]] [.property-path]##link:#qlawkus-messaging-discord_qlawkus-messaging-discord-guild-id[`+++qlawkus.messaging.discord.guild-id+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.discord.guild-id+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Guild (server) ID where slash commands should be registered. When set, commands are registered guild-specific (instant availability). When unset, commands are registered globally (up to 1 hour propagation).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_DISCORD_GUILD_ID+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_DISCORD_GUILD_ID+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-messaging-discord_qlawkus-messaging-discord-startup-greeting]] [.property-path]##link:#qlawkus-messaging-discord_qlawkus-messaging-discord-startup-greeting[`+++qlawkus.messaging.discord.startup-greeting+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.discord.startup-greeting+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Greeting text posted to the startup channel on Gateway connection.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_DISCORD_STARTUP_GREETING+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_DISCORD_STARTUP_GREETING+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++👋 Qlawkus online and listening+++`
+
+|===
+
