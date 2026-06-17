@@ -10,9 +10,13 @@
   </parent>
 
   <artifactId>qlawkus-docs</artifactId>
-  <name>Qlawkus - Documentation (Antora sync)</name>
+  <name>Qlawkus - Documentation (config reference + Antora sync)</name>
   <description>
-    Syncs site/content/ (the source of truth) into docs/modules/ROOT/pages/ for Antora.
+    Generates the AsciiDoc config reference from the @ConfigMapping classes
+    (quarkus-config-doc-maven-plugin, build-time augmentation only, no datasource)
+    into site/content/includes/, then syncs site/content/ into modules/ROOT/pages/
+    for Antora. Depends on the extension deployment artifacts so their config metadata
+    is available; it never starts the agent.
   </description>
 
   <properties>
@@ -20,15 +24,92 @@
     <maven.deploy.skip>true</maven.deploy.skip>
   </properties>
 
+  <dependencies>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-client-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-messaging-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-messaging-discord-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-messaging-telegram-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-messaging-slack-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-messaging-whatsapp-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-brag-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-auth-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-calendar-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-drive-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-gmail-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-sheets-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-storage-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
   <build>
     <plugins>
+      <plugin>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-config-doc-maven-plugin</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <extensions>true</extensions>
+        <configuration>
+          <targetDirectory>${project.basedir}/../site/content/includes/</targetDirectory>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <executions>
           <execution>
             <id>sync-site-to-antora</id>
-            <phase>generate-resources</phase>
+            <phase>verify</phase>
             <goals>
               <goal>copy-resources</goal>
             </goals>
