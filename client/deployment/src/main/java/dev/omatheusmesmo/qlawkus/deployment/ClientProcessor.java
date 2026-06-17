@@ -4,10 +4,14 @@ import dev.omatheusmesmo.qlawkus.tool.ClawTool;
 import dev.omatheusmesmo.qlawkus.tool.ClawToolProvider;
 import dev.omatheusmesmo.qlawkus.tool.ClawToolProviderSupplier;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
+import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.builditem.RunTimeConfigBuilderBuildItem;
+import io.quarkus.deployment.builditem.StaticInitConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
+import dev.omatheusmesmo.qlawkus.model.LlmKindConfigBuilder;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.ClassInfo;
@@ -26,6 +30,13 @@ class ClientProcessor {
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
+    }
+
+    @BuildStep
+    void registerLlmKindConfigSource(BuildProducer<StaticInitConfigBuilderBuildItem> staticInit,
+            BuildProducer<RunTimeConfigBuilderBuildItem> runTime) {
+        staticInit.produce(new StaticInitConfigBuilderBuildItem(LlmKindConfigBuilder.class.getName()));
+        runTime.produce(new RunTimeConfigBuilderBuildItem(LlmKindConfigBuilder.class.getName()));
     }
 
     @BuildStep
