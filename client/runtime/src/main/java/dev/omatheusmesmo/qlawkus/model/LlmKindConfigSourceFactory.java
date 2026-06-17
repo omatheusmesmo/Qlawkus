@@ -37,18 +37,19 @@ public class LlmKindConfigSourceFactory implements ConfigSourceFactory {
     public Iterable<ConfigSource> getConfigSources(ConfigSourceContext context) {
         ProviderKind kind = ProviderKind.of(value(context, "openai", "qlawkus.openai.kind", "LLM_KIND"));
 
-        // Overrides use the friendly LLM_* env alias only. We must NOT read the native
-        // quarkus.langchain4j.openai."primary".{api-key,base-url} keys here: those are what this
-        // factory emits, and reading them during config bootstrap is circular. To override directly,
-        // set the native key — it has a higher ordinal than this source, so it still wins downstream.
+        // Overrides use the friendly LLM_* env alias or the native quarkus-langchain4j key — Qlawkus
+        // does not add redundant qlawkus.openai.* properties for these. The native key is read so the
+        // embedding can inherit an explicitly-set primary base-url/api-key.
         // "dummy" is the project-wide "no real key" sentinel (see QlawkusTestUtils#usesLLM), but the
         // quarkus-langchain4j openai extension treats a "dummy" api-key as unset and fails to start.
         // Map it (and a missing key) to a harmless placeholder so the app boots keyless (LLM off).
-        String apiKey = value(context, NO_KEY_PLACEHOLDER, "LLM_API_KEY");
+        String apiKey = value(context, NO_KEY_PLACEHOLDER,
+                "LLM_API_KEY", "quarkus.langchain4j.openai.\"primary\".api-key");
         if ("dummy".equals(apiKey)) {
             apiKey = NO_KEY_PLACEHOLDER;
         }
-        String baseUrl = value(context, kind.baseUrl(), "LLM_BASE_URL");
+        String baseUrl = value(context, kind.baseUrl(),
+                "LLM_BASE_URL", "quarkus.langchain4j.openai.\"primary\".base-url");
         String chatModel = value(context, null, "LLM_CHAT_MODEL");
         if (chatModel == null) {
             chatModel = kind.chatModel().orElseThrow(() -> new IllegalArgumentException(
