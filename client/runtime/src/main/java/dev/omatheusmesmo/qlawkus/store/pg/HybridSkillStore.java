@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.store.pg;
 
 import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
+import dev.omatheusmesmo.qlawkus.skill.BundledSkills;
 import dev.omatheusmesmo.qlawkus.skill.MarkdownSkillFiles;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
@@ -24,20 +25,22 @@ import java.util.Optional;
 public class HybridSkillStore implements SkillStore {
 
   private final MarkdownSkillFiles files;
+  private final BundledSkills bundled;
 
   @Inject
-  public HybridSkillStore(SkillsConfig config) {
+  public HybridSkillStore(SkillsConfig config, BundledSkills bundled) {
     this.files = new MarkdownSkillFiles(config.roots().stream().map(Path::of).toList());
+    this.bundled = bundled;
   }
 
   @Override
   public List<SkillSummary> index() {
-    return files.index();
+    return bundled.mergedIndex(files.index());
   }
 
   @Override
   public Optional<Skill> get(String name) {
-    return files.get(name);
+    return files.get(name).or(() -> bundled.get(name));
   }
 
   @Override

@@ -59,7 +59,7 @@ class MarkdownSkillStoreTest {
         };
       }
     };
-    return new MarkdownSkillStore(config);
+    return new MarkdownSkillStore(config, new BundledSkills(List.of()));
   }
 
   @Test

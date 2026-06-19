@@ -8,17 +8,17 @@ import java.util.Optional;
  * read (the keys that form the injected index); other frontmatter keys are ignored. Avoids a
  * YAML dependency for what is, in practice, a couple of flat string keys.
  */
-final class SkillFrontmatter {
+public final class SkillFrontmatter {
 
   private static final String DELIMITER = "---";
 
   private SkillFrontmatter() {
   }
 
-  record Parsed(Optional<String> name, Optional<String> description, String body) {
+  public record Parsed(Optional<String> name, Optional<String> description, String body) {
   }
 
-  static Parsed parse(String content) {
+  public static Parsed parse(String content) {
     if (content == null) {
       return new Parsed(Optional.empty(), Optional.empty(), "");
     }

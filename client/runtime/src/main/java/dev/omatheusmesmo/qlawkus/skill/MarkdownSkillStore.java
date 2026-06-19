@@ -19,20 +19,22 @@ import java.util.Optional;
 public class MarkdownSkillStore implements SkillStore {
 
   private final MarkdownSkillFiles files;
+  private final BundledSkills bundled;
 
   @Inject
-  public MarkdownSkillStore(SkillsConfig config) {
+  public MarkdownSkillStore(SkillsConfig config, BundledSkills bundled) {
     this.files = new MarkdownSkillFiles(config.roots().stream().map(Path::of).toList());
+    this.bundled = bundled;
   }
 
   @Override
   public List<SkillSummary> index() {
-    return files.index();
+    return bundled.mergedIndex(files.index());
   }
 
   @Override
   public Optional<Skill> get(String name) {
-    return files.get(name);
+    return files.get(name).or(() -> bundled.get(name));
   }
 
   @Override
