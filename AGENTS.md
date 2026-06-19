@@ -49,6 +49,17 @@ Config knobs: `qlawkus.agent.memory.*`, `qlawkus.agent.active-memory.*`, `qlawku
 
 Gotcha when testing recall: working memory and the system prompt are both sources, so to prove a fact came from the vector store, `TRUNCATE chat_message_entity` first. The embedding model (`nvidia/nv-embedqa-e5-v5`) is retrieval-tuned and scores relevant pairs high, so a cosine `min-score` of 0.9 is not as strict as it looks - `0.7` is the default margin.
 
+## Skills (procedural memory)
+
+Skills are the agent's **procedural** memory (how to do a recurring task), complementing the declarative memory above. Each skill is a `SKILL.md` file (YAML frontmatter `name` + `description` + Markdown body). Same discipline as memory: the index is **injected, not searched** - `SoulEngine` adds a `## Skills` block (name + description only, via `SkillIndexRenderer`, capped by `qlawkus.skills.max-injected`) every turn; the full body is loaded on demand with the `viewSkill` tool (progressive disclosure).
+
+- **SPI**: `skill.SkillStore` (interface) with `Skill`/`SkillSummary` records and `SkillFrontmatter`. The backend is selected at **build time** via `@IfBuildProperty` on `qlawkus.cognition.backend` (`markdown` | `pgvector` | `hybrid`): `MarkdownSkillStore` (`@DefaultBean`, no DB, shared file logic in `MarkdownSkillFiles`), `store.pg.PgSkillStore` (the `skill` table, `V6` migration), `store.pg.HybridSkillStore` (files source-of-truth + pg mirror). Reads from all `qlawkus.skills.roots` (first wins); writes only to the first, owned root (default `~/.qlawkus/skills`).
+- **Tools** (in `AgentService`): `ViewSkillTool` (load body), `ManageSkillTool` (`createOrUpdateSkill` / `deleteSkill`).
+- **Auto-distill**: `SkillExtractorObserver` mines a reusable skill from each `ChatCompletedEvent` (gate `qlawkus.skills.extractor.enabled`), mirroring `SemanticExtractorObserver`.
+- **Curation**: `SkillCurationJob` removes redundant skills (scheduled + `POST /api/admin/skills/curate`). Admin: `GET/DELETE /api/admin/skills`, `GET /api/admin/skills/{name}`.
+
+Config knobs: `qlawkus.cognition.backend`, `qlawkus.skills.*`. Deferred SP1 follow-ups: usage-telemetry lifecycle (active/stale/archived) and build-time discovery of extension-contributed bundled skills. The broader plan (making facts/episodic/working memory pluggable too) lives outside the repo in the owner's notes.
+
 ## Testing
 
 ```bash
