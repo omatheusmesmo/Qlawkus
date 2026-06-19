@@ -116,8 +116,9 @@ The production setup uses NVIDIA NIM as the primary LLM with a local Ollama side
 - **Isolation by Design**: Single-tenant architecture — credentials and sandbox run in 100% isolated environment
 - **Dynamic Cognition (SOUL)**: Mutable "Soul" (Core Identity + Current State + Mood) — the agent adapts its behavior in real-time
 - **Triple Memory**: Working (session), Episodic (daily background journal), and Semantic (facts and preferences via pgvector)
+- **Skills (Procedural Memory)**: Reusable `SKILL.md` how-to procedures the agent authors, auto-distills, and curates itself; injected as an index each turn, loaded on demand. Pluggable storage (markdown / pgvector / hybrid). See the [Skills guide](site/content/skills.adoc)
 - **Autonomous Engineering**: Deep integration with `git` and `gh cli` for cloning, local testing, and autonomous code reviews
-- **Safe Self-Improvement**: The agent writes, validates (AST), and compiles Groovy scripts at runtime to create new skills, gated by strict Quarkus Security policies
+- **Safe Self-Improvement**: The agent writes, validates (AST), and compiles Groovy scripts at runtime to create new dynamic tools, gated by strict Quarkus Security policies
 - **Lightweight**: Native compilation via GraalVM for ultra-fast startup, designed to run cheaply on small instances
 - **Extensible**: Add tools by implementing `@QlawTool` beans — discovered automatically via CDI
 - **Google Workspace**: 6 optional extensions (Auth, Calendar, Gmail, Drive, Sheets, Storage) with 17 AI tools, Web/Loopback OAuth2, and encrypted credential vault

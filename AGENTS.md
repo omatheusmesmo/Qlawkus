@@ -56,10 +56,12 @@ Skills are the agent's **procedural** memory (how to do a recurring task), compl
 - **SPI**: `skill.SkillStore` (interface) with `Skill`/`SkillSummary` records and `SkillFrontmatter`. The backend is selected at **build time** via `@IfBuildProperty` on `qlawkus.cognition.backend` (`markdown` | `pgvector` | `hybrid`): `MarkdownSkillStore` (`@DefaultBean`, no DB, shared file logic in `MarkdownSkillFiles`), `store.pg.PgSkillStore` (the `skill` table, `V6` migration), `store.pg.HybridSkillStore` (files source-of-truth + pg mirror). Reads from all `qlawkus.skills.roots` (first wins); writes only to the first, owned root (default `~/.qlawkus/skills`).
 - **Tools** (in `AgentService`): `ViewSkillTool` (load body), `ManageSkillTool` (`createOrUpdateSkill` / `deleteSkill`).
 - **Auto-distill**: `SkillExtractorObserver` mines a reusable skill from each `ChatCompletedEvent` (gate `qlawkus.skills.extractor.enabled`), mirroring `SemanticExtractorObserver`.
-- **Curation**: `SkillCurationJob` removes redundant skills (scheduled + `POST /api/admin/skills/curate`). Admin: `GET/DELETE /api/admin/skills`, `GET /api/admin/skills/{name}`.
+- **Curation**: `SkillCurationJob` removes redundant skills (scheduled + `POST /api/admin/skills/curate`).
+- **Lifecycle**: `viewSkill` calls `recordUse`; `SkillLifecycleJob` ages unused skills `ACTIVE -> STALE -> ARCHIVED` (config `qlawkus.skills.lifecycle.*`, scheduled + `POST /api/admin/skills/lifecycle`). Archived skills leave the injected index but stay loadable; pinned skills (`POST /api/admin/skills/{name}/pin`) never transition. Telemetry: pg columns (migration `V7`) for pgvector/hybrid, a `.qlawkus-usage.json` sidecar for markdown.
+- **Admin REST**: `GET/DELETE /api/admin/skills`, `GET /api/admin/skills/{name}`, `POST /api/admin/skills/{curate,lifecycle}`, `POST /api/admin/skills/{name}/pin`.
 - **Bundled skills (build-time)**: extensions/apps ship read-only skills as classpath resources under `META-INF/qlawkus-skills/<name>/SKILL.md`. `ClientProcessor.bundledSkills` (a `@BuildStep` + `SkillsRecorder`) scans and parses them at **augmentation** and bakes them into the synthetic `BundledSkills` bean - no runtime classpath scanning. Stores merge bundled (read-only) with owned skills; owned wins on a name clash.
 
-Config knobs: `qlawkus.cognition.backend`, `qlawkus.skills.*`. Deferred SP1 follow-up: usage-telemetry lifecycle (active/stale/archived/pinned). The broader plan (making facts/episodic/working memory pluggable too) lives outside the repo in the owner's notes.
+Config knobs: `qlawkus.cognition.backend`, `qlawkus.skills.*`. The broader plan (making facts/episodic/working memory pluggable too, plus a `SkillHub` capability backed by jskills/skills.sh) lives outside the repo in the owner's notes.
 
 ## Testing
 
@@ -136,6 +138,23 @@ Resource collections:
 - **`qlawkus_brag`** - Career brag documents
 
 In Docker, `docker/postgres-init/01-create-databases.sql` creates the extra DBs. In dev mode, Flyway `clean-at-start` resets schema on every restart.
+
+## Documentation
+
+One source, one generated mirror. **Edit only `site/content/`** - everything else is built from it.
+
+- **`site/content/*.adoc`** - hand-written pages (the Roq site): `index`, `architecture`, `config-reference`, `quickstart`, `messaging`, `voice`, `google-workspace`. This is the source of truth.
+- **`site/content/includes/*.adoc`** - **generated** config reference. `docs/pom.xml` runs `quarkus-config-doc-maven-plugin` (build-time augmentation, no datasource, depends on every `*-deployment` artifact) which writes one file per config root from the `@ConfigMapping` JavaDoc into `site/content/includes/`. Never edit these by hand - they are overwritten every build.
+- **`docs/modules/ROOT/pages/*`** - the Antora copy. The `sync-site-to-antora` execution in `docs/pom.xml` (`maven-resources-plugin`, `verify` phase) copies all of `site/content/` here. It is a generated mirror; **never edit `docs/` directly** (the next build overwrites it). If you must commit the mirror without a full build, copy the changed file from `site/content/` to the matching `docs/modules/ROOT/pages/` path.
+
+Regenerate after a config change:
+
+```bash
+mvn install -DskipTests                  # build extensions so config metadata is available
+mvn -f docs/pom.xml verify -DskipTests   # generate includes/ into site/, then mirror site/ -> docs/
+```
+
+**`config-reference.adoc` is hand-written**, not generated. It surfaces each generated table with an `include::` directive. A `@ConfigMapping(prefix = "qlawkus.foo")` interface produces `qlawkus-client_qlawkus.foo.adoc`; the aggregate `qlawkus-client.adoc` holds **only** the `quarkus.*`-rooted properties. So **adding a new `qlawkus.*` config root requires adding a matching `include::includes/qlawkus-client_qlawkus.foo.adoc[]` line** under "Core agent" in `config-reference.adoc`, in **both** trees, or the new properties never render. (This is exactly how the entire `qlawkus.*` surface was silently dropped after the `@ConfigMapping` migration.)
 
 ## LLM Configuration
 

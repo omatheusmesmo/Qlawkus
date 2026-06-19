@@ -7,6 +7,1056 @@ h|[.header-title]##Configuration property##
 h|Type
 h|Default
 
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-timezone]] [.property-path]##link:#qlawkus-client_quarkus-timezone[`+++quarkus.timezone+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.timezone+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+IANA timezone used to render the current date and time injected into the system prompt, so the agent resolves relative expressions ("today", "tomorrow") against the owner's clock.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_TIMEZONE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_TIMEZONE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++America/Sao_Paulo+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-context-ttl-minutes]] [.property-path]##link:#qlawkus-client_quarkus-context-ttl-minutes[`+++quarkus.context-ttl-minutes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.context-ttl-minutes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Idle time-to-live, in minutes, for the single shared conversation context across all channels.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_CONTEXT_TTL_MINUTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_CONTEXT_TTL_MINUTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|long
+|`+++60+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-shared-context-enabled]] [.property-path]##link:#qlawkus-client_quarkus-shared-context-enabled[`+++quarkus.shared-context.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.shared-context.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether all channels share one conversation context. When false, each channel keeps its own.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SHARED_CONTEXT_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SHARED_CONTEXT_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-memory-max-results]] [.property-path]##link:#qlawkus-client_quarkus-memory-max-results[`+++quarkus.memory.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.memory.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of facts returned by the `searchMemories` tool.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_MEMORY_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_MEMORY_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++10+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-memory-min-score]] [.property-path]##link:#qlawkus-client_quarkus-memory-min-score[`+++quarkus.memory.min-score+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.memory.min-score+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Minimum cosine score for a fact to be returned by the `searchMemories` tool.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_MEMORY_MIN_SCORE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_MEMORY_MIN_SCORE+++`
+endif::add-copy-button-to-env-var[]
+--
+|double
+|`+++0.7+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-active-memory-enabled]] [.property-path]##link:#qlawkus-client_quarkus-active-memory-enabled[`+++quarkus.active-memory.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.active-memory.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether to inject query-relevant facts into the prompt before each reply.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_ACTIVE_MEMORY_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_ACTIVE_MEMORY_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-active-memory-max-results]] [.property-path]##link:#qlawkus-client_quarkus-active-memory-max-results[`+++quarkus.active-memory.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.active-memory.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of facts injected per turn by active memory.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_ACTIVE_MEMORY_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_ACTIVE_MEMORY_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++5+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-active-memory-min-score]] [.property-path]##link:#qlawkus-client_quarkus-active-memory-min-score[`+++quarkus.active-memory.min-score+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.active-memory.min-score+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Minimum cosine score for a fact to be injected by active memory.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_ACTIVE_MEMORY_MIN_SCORE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_ACTIVE_MEMORY_MIN_SCORE+++`
+endif::add-copy-button-to-env-var[]
+--
+|double
+|`+++0.7+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-transcript-archive-enabled]] [.property-path]##link:#qlawkus-client_quarkus-transcript-archive-enabled[`+++quarkus.transcript-archive.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.transcript-archive.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether each user and AI message is archived as a searchable transcript embedding.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_TRANSCRIPT_ARCHIVE_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_TRANSCRIPT_ARCHIVE_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-transcript-search-max-results]] [.property-path]##link:#qlawkus-client_quarkus-transcript-search-max-results[`+++quarkus.transcript-search.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.transcript-search.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of transcript excerpts returned by the `searchTranscripts` tool.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_TRANSCRIPT_SEARCH_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_TRANSCRIPT_SEARCH_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++5+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-transcript-search-min-score]] [.property-path]##link:#qlawkus-client_quarkus-transcript-search-min-score[`+++quarkus.transcript-search.min-score+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.transcript-search.min-score+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Minimum cosine score for a transcript excerpt to be returned by the `searchTranscripts` tool.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_TRANSCRIPT_SEARCH_MIN_SCORE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_TRANSCRIPT_SEARCH_MIN_SCORE+++`
+endif::add-copy-button-to-env-var[]
+--
+|double
+|`+++0.7+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-semantic-extractor-enabled]] [.property-path]##link:#qlawkus-client_quarkus-semantic-extractor-enabled[`+++quarkus.semantic-extractor.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.semantic-extractor.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether to mine durable facts from each completed conversation turn.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SEMANTIC_EXTRACTOR_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SEMANTIC_EXTRACTOR_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-backend]] [.property-path]##link:#qlawkus-client_quarkus-backend[`+++quarkus.backend+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.backend+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The cognition persistence backend. `pgvector` is today's behavior (embeddings in Postgres); `markdown` keeps curated content in files and needs no database; `hybrid` uses files as the source of truth mirrored into pgvector. Defaults to `pgvector` for backward compatibility.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_BACKEND+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_BACKEND+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`markdown`, `pgvector`, `hybrid`
+|`+++pgvector+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-max-read-size]] [.property-path]##link:#qlawkus-client_quarkus-max-read-size[`+++quarkus.max-read-size+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.max-read-size+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum file size in bytes allowed for read operations.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_MAX_READ_SIZE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_MAX_READ_SIZE+++`
+endif::add-copy-button-to-env-var[]
+--
+|long
+|`+++5242880+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-max-write-size]] [.property-path]##link:#qlawkus-client_quarkus-max-write-size[`+++quarkus.max-write-size+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.max-write-size+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum file size in bytes allowed for write operations.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_MAX_WRITE_SIZE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_MAX_WRITE_SIZE+++`
+endif::add-copy-button-to-env-var[]
+--
+|long
+|`+++10485760+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-encoding]] [.property-path]##link:#qlawkus-client_quarkus-encoding[`+++quarkus.encoding+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.encoding+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Character encoding for file read/write operations.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_ENCODING+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_ENCODING+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++UTF-8+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-enabled]] [.property-path]##link:#qlawkus-client_quarkus-enabled[`+++quarkus.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the nightly curation job folds remembered facts into the owner profile.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-max-facts]] [.property-path]##link:#qlawkus-client_quarkus-max-facts[`+++quarkus.max-facts+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.max-facts+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of facts loaded from the store and fed to the model in a single curation pass.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_MAX_FACTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_MAX_FACTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++200+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-cron]] [.property-path]##link:#qlawkus-client_quarkus-cron[`+++quarkus.cron+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.cron+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cron expression for the scheduled memory-curation job.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_CRON+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_CRON+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++0 45 3 * * ?+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-similarity-threshold]] [.property-path]##link:#qlawkus-client_quarkus-similarity-threshold[`+++quarkus.similarity-threshold+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.similarity-threshold+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cosine similarity above which two facts are treated as near-duplicates and the redundant one is removed by the nightly memory-review job. Higher is stricter (removes fewer facts).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SIMILARITY_THRESHOLD+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SIMILARITY_THRESHOLD+++`
+endif::add-copy-button-to-env-var[]
+--
+|double
+|`+++0.97+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-cron]] [.property-path]##link:#qlawkus-client_quarkus-cron[`+++quarkus.cron+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.cron+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cron expression for the scheduled memory-review job.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_CRON+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_CRON+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++0 30 3 * * ?+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-max-concurrent]] [.property-path]##link:#qlawkus-client_quarkus-max-concurrent[`+++quarkus.max-concurrent+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.max-concurrent+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of simultaneously running processes.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_MAX_CONCURRENT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_MAX_CONCURRENT+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++10+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-default-timeout]] [.property-path]##link:#qlawkus-client_quarkus-default-timeout[`+++quarkus.default-timeout+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.default-timeout+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Default command timeout in seconds. Used when runCommand is called without explicit timeout.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_DEFAULT_TIMEOUT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_DEFAULT_TIMEOUT+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++30+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-max-output-bytes]] [.property-path]##link:#qlawkus-client_quarkus-max-output-bytes[`+++quarkus.max-output-bytes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.max-output-bytes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum bytes captured per stream (stdout/stderr).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_MAX_OUTPUT_BYTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_MAX_OUTPUT_BYTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++1048576+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-max-output-lines]] [.property-path]##link:#qlawkus-client_quarkus-max-output-lines[`+++quarkus.max-output-lines+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.max-output-lines+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum lines returned per stream.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_MAX_OUTPUT_LINES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_MAX_OUTPUT_LINES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++5000+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-denylist]] [.property-path]##link:#qlawkus-client_quarkus-denylist[`+++quarkus.denylist+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.denylist+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Comma-separated list of denied command patterns.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_DENYLIST+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_DENYLIST+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of string
+|`+++sudo *+++`, `+++su *+++`, `+++rm -rf /*+++`, `+++mkfs*+++`, `+++dd if=*+++`, `+++format+++`, `+++shutdown+++`, `+++reboot+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-allowlist-mode]] [.property-path]##link:#qlawkus-client_quarkus-allowlist-mode[`+++quarkus.allowlist-mode+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.allowlist-mode+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+When true, switches to allowlist mode.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_ALLOWLIST_MODE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_ALLOWLIST_MODE+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-allowlist]] [.property-path]##link:#qlawkus-client_quarkus-allowlist[`+++quarkus.allowlist+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.allowlist+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Comma-separated list of allowed command patterns.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_ALLOWLIST+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_ALLOWLIST+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of string
+|`+++none+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-default-shell]] [.property-path]##link:#qlawkus-client_quarkus-default-shell[`+++quarkus.default-shell+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.default-shell+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Default shell command. Use "auto" to detect from $SHELL.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_DEFAULT_SHELL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_DEFAULT_SHELL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++auto+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-clean-profile]] [.property-path]##link:#qlawkus-client_quarkus-clean-profile[`+++quarkus.clean-profile+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.clean-profile+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether to append --norc --noprofile to bare shell names.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_CLEAN_PROFILE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_CLEAN_PROFILE+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-prompts]] [.property-path]##link:#qlawkus-client_quarkus-prompts[`+++quarkus.prompts+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.prompts+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Regex patterns for shell prompt detection.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_PROMPTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_PROMPTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of string
+|
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-pty-max-sessions]] [.property-path]##link:#qlawkus-client_quarkus-pty-max-sessions[`+++quarkus.pty.max-sessions+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.pty.max-sessions+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of concurrent PTY sessions.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_PTY_MAX_SESSIONS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_PTY_MAX_SESSIONS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++10+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-pty-idle-timeout-minutes]] [.property-path]##link:#qlawkus-client_quarkus-pty-idle-timeout-minutes[`+++quarkus.pty.idle-timeout-minutes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.pty.idle-timeout-minutes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Idle timeout in minutes before session cleanup.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_PTY_IDLE_TIMEOUT_MINUTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_PTY_IDLE_TIMEOUT_MINUTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++30+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-pty-buffer-lines]] [.property-path]##link:#qlawkus-client_quarkus-pty-buffer-lines[`+++quarkus.pty.buffer-lines+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.pty.buffer-lines+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum lines retained in session output buffer.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_PTY_BUFFER_LINES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_PTY_BUFFER_LINES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++50000+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-pty-default-cols]] [.property-path]##link:#qlawkus-client_quarkus-pty-default-cols[`+++quarkus.pty.default-cols+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.pty.default-cols+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Default terminal columns for new sessions.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_PTY_DEFAULT_COLS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_PTY_DEFAULT_COLS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++120+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-pty-default-rows]] [.property-path]##link:#qlawkus-client_quarkus-pty-default-rows[`+++quarkus.pty.default-rows+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.pty.default-rows+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Default terminal rows for new sessions.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_PTY_DEFAULT_ROWS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_PTY_DEFAULT_ROWS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++40+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-enabled]] [.property-path]##link:#qlawkus-client_quarkus-enabled[`+++quarkus.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the skill subsystem is active (index injection, tools and stores).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-roots]] [.property-path]##link:#qlawkus-client_quarkus-roots[`+++quarkus.roots+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.roots+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Directories scanned for SKILL.md skill folders, in precedence order. Every root is read; the first one is the owned, writable root where the agent's self-authored skills are saved. Defaults to an isolated qlawkus-owned directory so self-authored skills never pollute the shared cross-agent `.agents/skills` on the host. Add `.agents/skills` here to opt into cross-agent sharing (sensible inside a container).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_ROOTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_ROOTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of string
+|`+++${user.home}/.qlawkus/skills+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-max-injected]] [.property-path]##link:#qlawkus-client_quarkus-max-injected[`+++quarkus.max-injected+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.max-injected+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of skills whose name and description are injected into the system prompt each turn. Caps prompt growth as the library grows; the full body is always loadable on demand via the `viewSkill` tool.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_MAX_INJECTED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_MAX_INJECTED+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++50+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-extractor-enabled]] [.property-path]##link:#qlawkus-client_quarkus-extractor-enabled[`+++quarkus.extractor.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.extractor.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether to distill a reusable skill from each completed conversation turn.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_EXTRACTOR_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_EXTRACTOR_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-curation-enabled]] [.property-path]##link:#qlawkus-client_quarkus-curation-enabled[`+++quarkus.curation.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.curation.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the scheduled curation job removes redundant skills.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_CURATION_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_CURATION_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-curation-cron]] [.property-path]##link:#qlawkus-client_quarkus-curation-cron[`+++quarkus.curation.cron+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.curation.cron+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cron expression for the scheduled skill-curation job.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_CURATION_CRON+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_CURATION_CRON+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++0 50 3 * * ?+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-lifecycle-enabled]] [.property-path]##link:#qlawkus-client_quarkus-lifecycle-enabled[`+++quarkus.lifecycle.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.lifecycle.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the scheduled lifecycle sweep ages skills out of the injected index.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_LIFECYCLE_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_LIFECYCLE_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-lifecycle-stale-after-days]] [.property-path]##link:#qlawkus-client_quarkus-lifecycle-stale-after-days[`+++quarkus.lifecycle.stale-after-days+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.lifecycle.stale-after-days+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Days of non-use after which a skill is marked stale (still injected).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_LIFECYCLE_STALE_AFTER_DAYS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_LIFECYCLE_STALE_AFTER_DAYS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++30+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-lifecycle-archive-after-days]] [.property-path]##link:#qlawkus-client_quarkus-lifecycle-archive-after-days[`+++quarkus.lifecycle.archive-after-days+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.lifecycle.archive-after-days+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Days of non-use after which a skill is archived (excluded from the index, still loadable).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_LIFECYCLE_ARCHIVE_AFTER_DAYS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_LIFECYCLE_ARCHIVE_AFTER_DAYS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++90+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-lifecycle-cron]] [.property-path]##link:#qlawkus-client_quarkus-lifecycle-cron[`+++quarkus.lifecycle.cron+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.lifecycle.cron+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cron expression for the scheduled skill-lifecycle sweep.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_LIFECYCLE_CRON+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_LIFECYCLE_CRON+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++0 40 3 * * ?+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-enabled]] [.property-path]##link:#qlawkus-client_quarkus-enabled[`+++quarkus.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether to generate a startup thought on application boot.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-root]] [.property-path]##link:#qlawkus-client_quarkus-root[`+++quarkus.root+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.root+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Workspace root directory for file and shell operations. Defaults to the current working directory (`.`) where the Quarkus service runs. Must be writable and must not be `/` or the user home directory.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_ROOT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_ROOT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++.+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-restrict-to-workspace]] [.property-path]##link:#qlawkus-client_quarkus-restrict-to-workspace[`+++quarkus.restrict-to-workspace+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.restrict-to-workspace+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+When `true`, all file and shell operations are confined to the workspace root and its subdirectories. Path traversal attempts are blocked. Set to `false` to allow operations outside the workspace (not recommended).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_RESTRICT_TO_WORKSPACE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_RESTRICT_TO_WORKSPACE+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-env-file]] [.property-path]##link:#qlawkus-client_quarkus-env-file[`+++quarkus.env-file+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.env-file+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Name of the dotenv file in the workspace root. Key-value pairs are loaded and injected as environment variables in all child processes spawned by ShellTool and PtySessionManager.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_ENV_FILE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_ENV_FILE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++.qlawkus.env+++`
+
 a|icon:lock[title=Fixed at build time] [[qlawkus-client_quarkus-retry-delays]] [.property-path]##link:#qlawkus-client_quarkus-retry-delays[`+++quarkus.retry-delays+++`]##
 ifdef::add-copy-button-to-config-props[]
 config_property_copy_button:+++quarkus.retry-delays+++[]
