@@ -1,10 +1,12 @@
 package dev.omatheusmesmo.qlawkus.store.pg;
 
+import dev.omatheusmesmo.qlawkus.skill.BundledSkills;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
 import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
@@ -18,19 +20,23 @@ import java.util.Optional;
 @IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "pgvector", enableIfMissing = true)
 public class PgSkillStore implements SkillStore {
 
+  @Inject
+  BundledSkills bundled;
+
   @Override
   @Transactional
   public List<SkillSummary> index() {
-    return SkillEntity.<SkillEntity>listAll().stream()
+    List<SkillSummary> stored = SkillEntity.<SkillEntity>listAll().stream()
         .map(entity -> new SkillSummary(entity.name, entity.description))
         .toList();
+    return bundled.mergedIndex(stored);
   }
 
   @Override
   @Transactional
   public Optional<Skill> get(String name) {
     SkillEntity entity = SkillEntity.findById(name);
-    return entity == null ? Optional.empty()
+    return entity == null ? bundled.get(name)
         : Optional.of(new Skill(entity.name, entity.description, entity.body));
   }
 
