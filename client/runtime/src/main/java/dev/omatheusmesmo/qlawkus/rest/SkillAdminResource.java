@@ -2,14 +2,17 @@ package dev.omatheusmesmo.qlawkus.rest;
 
 import dev.omatheusmesmo.qlawkus.cognition.SkillAdminService;
 import dev.omatheusmesmo.qlawkus.cognition.SkillCurationJob;
+import dev.omatheusmesmo.qlawkus.cognition.SkillLifecycleJob;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +26,9 @@ public class SkillAdminResource {
 
   @Inject
   SkillCurationJob curationJob;
+
+  @Inject
+  SkillLifecycleJob lifecycleJob;
 
   @GET
   public List<SkillSummary> list() {
@@ -50,5 +56,20 @@ public class SkillAdminResource {
   public Response curate() {
     long removed = curationJob.curateNow();
     return Response.ok(Map.of("removed", removed)).build();
+  }
+
+  @POST
+  @Path("/lifecycle")
+  public Response lifecycle() {
+    return Response.ok(Map.of("transitioned", lifecycleJob.sweepNow())).build();
+  }
+
+  @POST
+  @Path("/{name}/pin")
+  public Response pin(@PathParam("name") String name,
+      @QueryParam("pinned") @DefaultValue("true") boolean pinned) {
+    return adminService.setPinned(name, pinned)
+        ? Response.ok(Map.of("name", name, "pinned", pinned)).build()
+        : Response.status(Response.Status.NOT_FOUND).build();
   }
 }

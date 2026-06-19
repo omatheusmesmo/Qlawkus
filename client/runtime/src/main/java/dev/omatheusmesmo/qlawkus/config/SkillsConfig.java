@@ -48,6 +48,11 @@ public interface SkillsConfig {
      */
     Curation curation();
 
+    /**
+     * Lifecycle: age skills out of the injected index by recency of use.
+     */
+    Lifecycle lifecycle();
+
     interface Extractor {
 
         /**
@@ -69,6 +74,33 @@ public interface SkillsConfig {
          * Cron expression for the scheduled skill-curation job.
          */
         @WithDefault("0 50 3 * * ?")
+        String cron();
+    }
+
+    interface Lifecycle {
+
+        /**
+         * Whether the scheduled lifecycle sweep ages skills out of the injected index.
+         */
+        @WithDefault("true")
+        boolean enabled();
+
+        /**
+         * Days of non-use after which a skill is marked stale (still injected).
+         */
+        @WithDefault("30")
+        int staleAfterDays();
+
+        /**
+         * Days of non-use after which a skill is archived (excluded from the index, still loadable).
+         */
+        @WithDefault("90")
+        int archiveAfterDays();
+
+        /**
+         * Cron expression for the scheduled skill-lifecycle sweep.
+         */
+        @WithDefault("0 40 3 * * ?")
         String cron();
     }
 }

@@ -28,4 +28,8 @@ public class SkillAdminService {
   public boolean deleteSkill(String name) {
     return skillStore.delete(name);
   }
+
+  public boolean setPinned(String name, boolean pinned) {
+    return skillStore.setPinned(name, pinned);
+  }
 }

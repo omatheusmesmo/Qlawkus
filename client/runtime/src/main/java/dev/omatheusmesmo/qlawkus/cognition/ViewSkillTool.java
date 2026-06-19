@@ -4,6 +4,7 @@ import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -30,9 +31,19 @@ public class ViewSkillTool {
     if (name == null || name.isBlank()) {
       return "Provide the exact skill name.";
     }
-    return skillStore.get(name.strip())
-        .map(Skill::body)
-        .filter(body -> !body.isBlank())
-        .orElse("No skill named '" + name + "' was found. Check the Skills list for exact names.");
+    Skill skill = skillStore.get(name.strip()).orElse(null);
+    if (skill == null || skill.body().isBlank()) {
+      return "No skill named '" + name + "' was found. Check the Skills list for exact names.";
+    }
+    recordUse(skill.name());
+    return skill.body();
+  }
+
+  private void recordUse(String name) {
+    try {
+      skillStore.recordUse(name);
+    } catch (RuntimeException e) {
+      Log.debugf(e, "Failed to record use of skill %s", name);
+    }
   }
 }
