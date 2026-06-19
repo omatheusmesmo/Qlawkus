@@ -118,6 +118,32 @@ graph LR
 * The shared conversation (`AGENT_SHARED_CONTEXT=true`) means the owner is continuous across Discord, Telegram, and REST.
 * To inspect or reset memory, use `GET` / `DELETE /api/admin/memory` (see xref:config-reference.adoc[Configuration]).
 
+== Skills (procedural memory)
+
+Skills are the agent's *procedural* memory: reusable how-to procedures, complementing the *declarative* memory above (facts, owner profile). Each skill is a `SKILL.md` file (YAML frontmatter `name` + `description`, then a Markdown body).
+
+Like memory, the skill index is *injected, not searched*: `SoulEngine` adds a `## Skills` block (name + description only) to the system prompt every turn, capped by `qlawkus.skills.max-injected`. The full body is loaded on demand with the `viewSkill` tool (progressive disclosure).
+
+* *Authoring* - the agent saves and removes skills with the `createOrUpdateSkill` and `deleteSkill` tools.
+* *Auto-distillation* - `SkillExtractorObserver` mines a reusable procedure from each completed turn (`ChatCompletedEvent`), gated by `qlawkus.skills.extractor.enabled`.
+* *Curation* - `SkillCurationJob` removes redundant skills (scheduled, or `POST /api/admin/skills/curate`).
+* *Admin* - `GET /api/admin/skills`, `GET /api/admin/skills/{name}`, `DELETE /api/admin/skills/{name}`.
+
+=== Storage backends
+
+The cognition persistence backend is chosen at build time with `qlawkus.cognition.backend`:
+
+[cols="1,3",options="header"]
+|===
+|Backend |Behavior
+
+|`markdown` |SKILL.md files only, no database. Injected wholesale, the Hermes/OpenClaw model.
+|`pgvector` |Skills in Postgres (the `skill` table). Default, backward compatible.
+|`hybrid` |SKILL.md files are the source of truth, mirrored into Postgres.
+|===
+
+Skills are read from every directory in `qlawkus.skills.roots` (first match wins) but written only to the first, owned root (default `~/.qlawkus/skills`), so self-authored skills never leak into a shared cross-agent `.agents/skills`. Add `.agents/skills` to the roots to opt into cross-agent sharing.
+
 == Databases
 
 Three PostgreSQL databases, Flyway-managed: `qlawkus` (soul, chat history, journals, pgvector embeddings), `qlawkus_google_auth` (OAuth), and `qlawkus_brag` (career brag documents).
