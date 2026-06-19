@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.it.google;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.DriveTool;
 import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -20,7 +20,7 @@ class DriveWireMockTest {
     WireMock wiremock;
 
     @Inject
-    @ClawTool
+    @QlawTool
     DriveTool driveTool;
 
     @Test

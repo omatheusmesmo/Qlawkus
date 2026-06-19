@@ -79,7 +79,7 @@ mvn verify -Pnative
 
 ## Adding Tools
 
-Create a CDI bean annotated with `@ClawTool` + `@ApplicationScoped`. Methods annotated with `@Tool` are auto-discovered at build time by `ClientProcessor` (which also registers DTO records in `dev.omatheusmesmo.qlawkus.dto` for reflection). No manual registration needed.
+Create a CDI bean annotated with `@QlawTool` + `@ApplicationScoped`. Methods annotated with `@Tool` are auto-discovered at build time by `ClientProcessor` (which also registers DTO records in `dev.omatheusmesmo.qlawkus.dto` for reflection). No manual registration needed.
 
 New tool modules must also be added as dependencies in `app/pom.xml`.
 
@@ -141,7 +141,7 @@ Embedding dimension is hardcoded to 1024 via `EMBEDDING_DIMENSION` - must match 
 - `client/runtime/.../agent/AgentService.java` - `@RegisterAiService` interface (ReAct agent, `maxSequentialToolInvocations=100`); wires `systemMessageProviderSupplier`, `retrievalAugmentor` (Active Memory), tools, and `toolProviderSupplier`
 - `client/runtime/.../rest/ApiResource.java` - `POST /api/chat` (SSE) and `POST /api/chat/sync`
 - `client/runtime/.../cognition/SoulEngine.java` - Builds the dynamic system prompt: `Soul` persona + `UserProfile` owner block + execution-bias section, injected every turn
-- `client/runtime/.../deployment/ClientProcessor.java` - Build step: discovers `@ClawTool` beans + DTOs for reflection
+- `client/runtime/.../deployment/ClientProcessor.java` - Build step: discovers `@QlawTool` beans + DTOs for reflection
 
 ## CI / Release
 

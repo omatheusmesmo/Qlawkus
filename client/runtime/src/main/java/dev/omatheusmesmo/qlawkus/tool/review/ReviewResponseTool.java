@@ -3,7 +3,7 @@ package dev.omatheusmesmo.qlawkus.tool.review;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.dto.CommandResult;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.shell.ShellTool;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -19,14 +19,14 @@ import jakarta.inject.Inject;
  *   <li>{@code COMMENT} — leave a comment without approving or blocking</li>
  * </ul>
  */
-@ClawTool
+@QlawTool
 @ApplicationScoped
 public class ReviewResponseTool {
 
     static final int TIMEOUT_SECONDS = 30;
 
     @Inject
-    @ClawTool
+    @QlawTool
     ShellTool shellTool;
 
     @Tool("""

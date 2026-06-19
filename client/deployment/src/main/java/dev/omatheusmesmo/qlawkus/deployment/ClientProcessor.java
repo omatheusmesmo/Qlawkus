@@ -1,8 +1,8 @@
 package dev.omatheusmesmo.qlawkus.deployment;
 
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
-import dev.omatheusmesmo.qlawkus.tool.ClawToolProvider;
-import dev.omatheusmesmo.qlawkus.tool.ClawToolProviderSupplier;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
+import dev.omatheusmesmo.qlawkus.tool.QlawToolProviderSupplier;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
@@ -24,7 +24,7 @@ import java.util.List;
 class ClientProcessor {
 
     private static final String FEATURE = "qlawkus-client";
-    private static final DotName CLAW_TOOL_ANNOTATION = DotName.createSimple(ClawTool.class.getName());
+    private static final DotName CLAW_TOOL_ANNOTATION = DotName.createSimple(QlawTool.class.getName());
     private static final DotName DTO_PACKAGE = DotName.createSimple("dev.omatheusmesmo.qlawkus.dto");
 
     @BuildStep
@@ -40,16 +40,16 @@ class ClientProcessor {
     }
 
     @BuildStep
-    AdditionalBeanBuildItem registerClawToolInfrastructure() {
+    AdditionalBeanBuildItem registerQlawToolInfrastructure() {
         return AdditionalBeanBuildItem.builder()
-                .addBeanClass(ClawToolProvider.class)
-                .addBeanClass(ClawToolProviderSupplier.class)
+                .addBeanClass(QlawToolProvider.class)
+                .addBeanClass(QlawToolProviderSupplier.class)
                 .setUnremovable()
                 .build();
     }
 
     @BuildStep
-    List<AdditionalBeanBuildItem> registerClawTools(CombinedIndexBuildItem combinedIndex) {
+    List<AdditionalBeanBuildItem> registerQlawTools(CombinedIndexBuildItem combinedIndex) {
         Collection<AnnotationInstance> annotations = combinedIndex.getIndex().getAnnotations(CLAW_TOOL_ANNOTATION);
 
         List<AdditionalBeanBuildItem> items = new ArrayList<>();
@@ -64,7 +64,7 @@ class ClientProcessor {
     }
 
     @BuildStep
-    ReflectiveClassBuildItem registerClawToolsForReflection(CombinedIndexBuildItem combinedIndex) {
+    ReflectiveClassBuildItem registerQlawToolsForReflection(CombinedIndexBuildItem combinedIndex) {
         Collection<AnnotationInstance> annotations = combinedIndex.getIndex().getAnnotations(CLAW_TOOL_ANNOTATION);
 
         List<String> classNames = new ArrayList<>();

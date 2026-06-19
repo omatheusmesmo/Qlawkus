@@ -3,7 +3,7 @@ package dev.omatheusmesmo.qlawkus.tool.review;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.dto.CommandResult;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.shell.ShellTool;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -25,7 +25,7 @@ import java.util.Set;
  *       be correlated against review activity in monitoring.</li>
  * </ul>
  */
-@ClawTool
+@QlawTool
 @ApplicationScoped
 public class CodeReviewTool {
 
@@ -47,7 +47,7 @@ public class CodeReviewTool {
     public static final int INVALID_BUILD_TOOL_EXIT_CODE = -10;
 
     @Inject
-    @ClawTool
+    @QlawTool
     ShellTool shellTool;
 
     @Tool("""

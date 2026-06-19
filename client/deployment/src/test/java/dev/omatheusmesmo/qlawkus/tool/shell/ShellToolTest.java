@@ -4,7 +4,7 @@ import dev.omatheusmesmo.qlawkus.dto.CommandResult;
 import dev.omatheusmesmo.qlawkus.dto.EnvironmentResult;
 import dev.omatheusmesmo.qlawkus.dto.ProcessInfo;
 import dev.omatheusmesmo.qlawkus.dto.SecurityResult;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ShellToolTest {
 
     @Inject
-    @ClawTool
+    @QlawTool
     ShellTool shellTool;
 
     @Inject

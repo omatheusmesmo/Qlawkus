@@ -2,7 +2,7 @@ package dev.omatheusmesmo.qlawkus.tool.shell;
 
 import dev.omatheusmesmo.qlawkus.dto.FileEntry;
 import dev.omatheusmesmo.qlawkus.dto.FileResult;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class FileToolTest {
 
     @Inject
-    @ClawTool
+    @QlawTool
     FileTool fileTool;
 
     @Inject

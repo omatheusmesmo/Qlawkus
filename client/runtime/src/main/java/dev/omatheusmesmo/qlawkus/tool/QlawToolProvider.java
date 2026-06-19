@@ -18,16 +18,16 @@ import java.util.List;
 import java.util.Map;
 
 @ApplicationScoped
-public class ClawToolProvider implements ToolProvider {
+public class QlawToolProvider implements ToolProvider {
 
     @Inject
-    @ClawTool
+    @QlawTool
     public Instance<Object> extensionTools;
 
     @Override
     public ToolProviderResult provideTools(ToolProviderRequest request) {
         if (extensionTools.isUnsatisfied()) {
-            Log.debug("No @ClawTool extension tools found");
+            Log.debug("No @QlawTool extension tools found");
             return new ToolProviderResult(Map.of());
         }
 

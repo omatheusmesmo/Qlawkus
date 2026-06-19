@@ -3,7 +3,7 @@ package dev.omatheusmesmo.qlawkus.tool.review;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -22,7 +22,7 @@ import java.util.List;
  * so the agent can fall back to general reasoning. Rules accumulate over time as
  * the user discusses Clean Code practices in conversation (via SemanticExtractorObserver).
  */
-@ClawTool
+@QlawTool
 @ApplicationScoped
 public class CodeQualityAnalysisTool {
 

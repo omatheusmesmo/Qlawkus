@@ -3,11 +3,11 @@ package dev.omatheusmesmo.qlawkus.tool.shell;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.dto.SessionInfo;
 import dev.omatheusmesmo.qlawkus.dto.SessionOutput;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import jakarta.inject.Inject;
 import java.util.List;
 
-@ClawTool
+@QlawTool
 public class InteractiveShellTool {
 
     @Inject

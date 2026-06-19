@@ -49,7 +49,7 @@ Please add meaningful tests (business logic, edge cases, integration points), no
 ## Conventions
 
 - **Configuration**: prefer typed config (`@ConfigMapping` interfaces) with a JavaDoc comment on each method. The JavaDoc becomes the description in the generated configuration reference, so well-documented config is documented config.
-- **Adding a tool**: annotate a CDI bean with `@ClawTool` + `@ApplicationScoped`; `@Tool` methods are auto-discovered at build time. New tool modules must also be added to `app/pom.xml`.
+- **Adding a tool**: annotate a CDI bean with `@QlawTool` + `@ApplicationScoped`; `@Tool` methods are auto-discovered at build time. New tool modules must also be added to `app/pom.xml`.
 - **Code style**: constructor injection for required dependencies; DTOs at API boundaries; self-documenting code over comments.
 - **Commits**: Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, ...), small and atomic.
 - **Branches/merges**: feature branches; integrate by **rebase** (no merge commits).

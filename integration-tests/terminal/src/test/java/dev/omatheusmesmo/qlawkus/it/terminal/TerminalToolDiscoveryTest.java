@@ -2,8 +2,8 @@ package dev.omatheusmesmo.qlawkus.it.terminal;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.service.tool.ToolProviderResult;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
-import dev.omatheusmesmo.qlawkus.tool.ClawToolProvider;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
 import io.quarkus.arc.Arc;
 import io.quarkus.arc.ClientProxy;
 import io.quarkus.test.junit.QuarkusTest;
@@ -23,30 +23,30 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TerminalToolDiscoveryTest {
 
     @Inject
-    ClawToolProvider clawToolProvider;
+    QlawToolProvider clawToolProvider;
 
     @Test
-    void terminalTools_areDiscoveredAsClawToolBeans() {
-        Instance<Object> clawToolBeans = Arc.container().select(Object.class, new ClawToolLiteral());
+    void terminalTools_areDiscoveredAsQlawToolBeans() {
+        Instance<Object> clawToolBeans = Arc.container().select(Object.class, new QlawToolLiteral());
 
         Set<String> toolClassNames = clawToolBeans.stream()
                 .map(proxy -> ClientProxy.unwrap(proxy).getClass().getName())
                 .collect(Collectors.toSet());
 
         assertTrue(toolClassNames.contains("dev.omatheusmesmo.qlawkus.tool.shell.ShellTool"),
-                "ShellTool should be discovered via @ClawTool. Got: " + toolClassNames);
+                "ShellTool should be discovered via @QlawTool. Got: " + toolClassNames);
         assertTrue(toolClassNames.contains("dev.omatheusmesmo.qlawkus.tool.shell.FileTool"),
-                "FileTool should be discovered via @ClawTool. Got: " + toolClassNames);
+                "FileTool should be discovered via @QlawTool. Got: " + toolClassNames);
         assertTrue(toolClassNames.contains("dev.omatheusmesmo.qlawkus.tool.shell.InteractiveShellTool"),
-                "InteractiveShellTool should be discovered via @ClawTool. Got: " + toolClassNames);
+                "InteractiveShellTool should be discovered via @QlawTool. Got: " + toolClassNames);
     }
 
     @Test
     void clawToolProvider_providesAllTerminalToolSpecs() {
         ToolProviderResult result = clawToolProvider.provideTools(null);
 
-        assertNotNull(result, "ClawToolProvider should return a non-null result");
-        assertFalse(result.tools().isEmpty(), "ClawToolProvider should provide tool specs");
+        assertNotNull(result, "QlawToolProvider should return a non-null result");
+        assertFalse(result.tools().isEmpty(), "QlawToolProvider should provide tool specs");
 
         Set<String> toolNames = result.tools().keySet().stream()
                 .map(ToolSpecification::name)
@@ -68,6 +68,6 @@ class TerminalToolDiscoveryTest {
     }
 
     @SuppressWarnings("serial")
-    static class ClawToolLiteral extends AnnotationLiteral<ClawTool> implements ClawTool {
+    static class QlawToolLiteral extends AnnotationLiteral<QlawTool> implements QlawTool {
     }
 }

@@ -2,8 +2,8 @@ package dev.omatheusmesmo.qlawkus.it.brag;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.service.tool.ToolProviderResult;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
-import dev.omatheusmesmo.qlawkus.tool.ClawToolProvider;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
 import io.quarkus.arc.Arc;
 import io.quarkus.arc.ClientProxy;
 import io.quarkus.test.junit.QuarkusTest;
@@ -23,24 +23,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BragToolDiscoveryTest {
 
     @Inject
-    ClawToolProvider clawToolProvider;
+    QlawToolProvider clawToolProvider;
 
     @Test
-    void bragTool_isDiscoveredAsClawToolBean() {
-        Instance<Object> clawToolBeans = Arc.container().select(Object.class, new ClawToolLiteral());
+    void bragTool_isDiscoveredAsQlawToolBean() {
+        Instance<Object> clawToolBeans = Arc.container().select(Object.class, new QlawToolLiteral());
         Set<String> toolClassNames = clawToolBeans.stream()
                 .map(proxy -> ClientProxy.unwrap(proxy).getClass().getName())
                 .collect(Collectors.toSet());
 
         assertTrue(toolClassNames.stream().anyMatch(n -> n.startsWith("dev.omatheusmesmo.qlawkus.tools.brag.BragTool")),
-                "BragTool should be discovered via @ClawTool. Got: " + toolClassNames);
+                "BragTool should be discovered via @QlawTool. Got: " + toolClassNames);
     }
 
     @Test
     void clawToolProvider_providesAllBragToolSpecs() {
         ToolProviderResult result = clawToolProvider.provideTools(null);
-        assertNotNull(result, "ClawToolProvider should return a non-null result");
-        assertFalse(result.tools().isEmpty(), "ClawToolProvider should provide tool specs");
+        assertNotNull(result, "QlawToolProvider should return a non-null result");
+        assertFalse(result.tools().isEmpty(), "QlawToolProvider should provide tool specs");
 
         Set<String> toolNames = result.tools().keySet().stream()
                 .map(ToolSpecification::name)
@@ -55,6 +55,6 @@ class BragToolDiscoveryTest {
     }
 
     @SuppressWarnings("serial")
-    static class ClawToolLiteral extends AnnotationLiteral<ClawTool> implements ClawTool {
+    static class QlawToolLiteral extends AnnotationLiteral<QlawTool> implements QlawTool {
     }
 }

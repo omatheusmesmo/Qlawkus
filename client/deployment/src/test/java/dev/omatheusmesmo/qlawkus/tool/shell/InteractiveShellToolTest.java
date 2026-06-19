@@ -3,7 +3,7 @@ package dev.omatheusmesmo.qlawkus.tool.shell;
 import dev.omatheusmesmo.qlawkus.config.ShellConfig;
 import dev.omatheusmesmo.qlawkus.dto.SessionInfo;
 import dev.omatheusmesmo.qlawkus.dto.SessionOutput;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class InteractiveShellToolTest {
 
     @Inject
-    @ClawTool
+    @QlawTool
     InteractiveShellTool interactiveShellTool;
 
     @Inject

@@ -2,7 +2,7 @@ package dev.omatheusmesmo.qlawkus.tools.google.auth;
 
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.Logged;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
@@ -13,7 +13,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
-@ClawTool
+@QlawTool
 @ApplicationScoped
 @Logged
 public class GoogleAuthTool {

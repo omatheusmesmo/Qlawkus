@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.it.review;
 
 import dev.omatheusmesmo.qlawkus.dto.CommandResult;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.review.CodeReviewTool;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
@@ -15,7 +15,7 @@ import jakarta.ws.rs.core.Response;
 public class CodeReviewTestResource {
 
     @Inject
-    @ClawTool
+    @QlawTool
     CodeReviewTool codeReviewTool;
 
     @GET

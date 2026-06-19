@@ -3,7 +3,7 @@ package dev.omatheusmesmo.qlawkus.tools.google.sheets;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.Logged;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiDiagnostics;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiExecutor;
 import dev.omatheusmesmo.qlawkus.tools.google.sheets.model.SheetValues;
@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@ClawTool
+@QlawTool
 @ApplicationScoped
 @Logged
 public class SheetsTool {

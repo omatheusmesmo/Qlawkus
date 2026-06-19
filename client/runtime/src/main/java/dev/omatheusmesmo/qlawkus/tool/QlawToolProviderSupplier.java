@@ -6,10 +6,10 @@ import jakarta.enterprise.context.ApplicationScoped;
 import java.util.function.Supplier;
 
 @ApplicationScoped
-public class ClawToolProviderSupplier implements Supplier<ToolProvider> {
+public class QlawToolProviderSupplier implements Supplier<ToolProvider> {
 
     @Override
     public ToolProvider get() {
-        return Arc.container().instance(ClawToolProvider.class).get();
+        return Arc.container().instance(QlawToolProvider.class).get();
     }
 }
