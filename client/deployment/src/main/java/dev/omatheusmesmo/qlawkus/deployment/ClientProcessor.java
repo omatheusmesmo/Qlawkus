@@ -33,6 +33,16 @@ class ClientProcessor {
     }
 
     @BuildStep
+    ReflectiveClassBuildItem registerSkillModelForReflection() {
+        return ReflectiveClassBuildItem.builder(
+                "dev.omatheusmesmo.qlawkus.skill.Skill",
+                "dev.omatheusmesmo.qlawkus.skill.SkillSummary")
+                .methods()
+                .fields()
+                .build();
+    }
+
+    @BuildStep
     void registerLlmKindConfigSource(BuildProducer<StaticInitConfigBuilderBuildItem> staticInit,
             BuildProducer<RunTimeConfigBuilderBuildItem> runTime) {
         staticInit.produce(new StaticInitConfigBuilderBuildItem(LlmKindConfigBuilder.class.getName()));

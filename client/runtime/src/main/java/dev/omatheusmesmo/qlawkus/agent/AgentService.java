@@ -8,9 +8,11 @@ import dev.omatheusmesmo.qlawkus.cognition.RespondWithVoiceTool;
 import dev.omatheusmesmo.qlawkus.cognition.SearchMemoriesTool;
 import dev.omatheusmesmo.qlawkus.cognition.SearchTranscriptsTool;
 import dev.omatheusmesmo.qlawkus.cognition.ActiveMemoryAugmentor;
+import dev.omatheusmesmo.qlawkus.cognition.ManageSkillTool;
 import dev.omatheusmesmo.qlawkus.cognition.SoulEngine;
 import dev.omatheusmesmo.qlawkus.cognition.UpdateSelfStateTool;
 import dev.omatheusmesmo.qlawkus.cognition.UpdateUserProfileTool;
+import dev.omatheusmesmo.qlawkus.cognition.ViewSkillTool;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProviderSupplier;
 import io.quarkiverse.langchain4j.RegisterAiService;
 import io.smallrye.mutiny.Multi;
@@ -20,7 +22,7 @@ import jakarta.enterprise.context.ApplicationScoped;
     systemMessageProviderSupplier = SoulEngine.class,
     tools = {UpdateSelfStateTool.class, UpdateUserProfileTool.class, SearchMemoriesTool.class,
             SearchTranscriptsTool.class, RememberFactTool.class, RespondWithVoiceTool.class,
-            ClearContextTool.class},
+            ClearContextTool.class, ViewSkillTool.class, ManageSkillTool.class},
     toolProviderSupplier = QlawToolProviderSupplier.class,
     retrievalAugmentor = ActiveMemoryAugmentor.class,
     maxSequentialToolInvocations = 100
