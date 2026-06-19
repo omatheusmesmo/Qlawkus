@@ -6,7 +6,6 @@ import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import io.quarkiverse.langchain4j.runtime.aiservice.SystemMessageProvider;
 import io.quarkus.arc.Arc;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.ConfigProvider;
 
@@ -22,12 +21,6 @@ public class SoulEngine implements SystemMessageProvider {
   private static final DateTimeFormatter NOW_FORMAT =
       DateTimeFormatter.ofPattern("EEEE, yyyy-MM-dd HH:mm:ss zzz (XXX)", Locale.ENGLISH);
 
-  @Inject
-  SkillStore skillStore;
-
-  @Inject
-  SkillsConfig skillsConfig;
-
   @Override
   @Transactional
   public Optional<String> getSystemMessage(Object memoryId) {
@@ -41,9 +34,11 @@ public class SoulEngine implements SystemMessageProvider {
   }
 
   private String skillsContext() {
+    SkillsConfig skillsConfig = Arc.container().instance(SkillsConfig.class).get();
     if (!skillsConfig.enabled()) {
       return "";
     }
+    SkillStore skillStore = Arc.container().instance(SkillStore.class).get();
     String block = SkillIndexRenderer.render(skillStore.index(), skillsConfig.maxInjected());
     return block.isEmpty() ? "" : "\n\n---\n\n" + block;
   }
