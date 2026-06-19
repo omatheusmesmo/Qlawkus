@@ -1,9 +1,12 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
+import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
+import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import io.quarkiverse.langchain4j.runtime.aiservice.SystemMessageProvider;
 import io.quarkus.arc.Arc;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.ConfigProvider;
 
@@ -19,6 +22,12 @@ public class SoulEngine implements SystemMessageProvider {
   private static final DateTimeFormatter NOW_FORMAT =
       DateTimeFormatter.ofPattern("EEEE, yyyy-MM-dd HH:mm:ss zzz (XXX)", Locale.ENGLISH);
 
+  @Inject
+  SkillStore skillStore;
+
+  @Inject
+  SkillsConfig skillsConfig;
+
   @Override
   @Transactional
   public Optional<String> getSystemMessage(Object memoryId) {
@@ -27,8 +36,16 @@ public class SoulEngine implements SystemMessageProvider {
       return Optional.empty();
     }
 
-    return Optional.of(soul.toSystemMessage() + ownerContext() + executionBias()
+    return Optional.of(soul.toSystemMessage() + ownerContext() + skillsContext() + executionBias()
         + currentDateTimeContext() + voiceCapabilityContext());
+  }
+
+  private String skillsContext() {
+    if (!skillsConfig.enabled()) {
+      return "";
+    }
+    String block = SkillIndexRenderer.render(skillStore.index(), skillsConfig.maxInjected());
+    return block.isEmpty() ? "" : "\n\n---\n\n" + block;
   }
 
   private String ownerContext() {

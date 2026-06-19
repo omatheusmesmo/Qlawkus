@@ -28,4 +28,47 @@ public interface SkillsConfig {
      */
     @WithDefault("${user.home}/.qlawkus/skills")
     List<String> roots();
+
+    /**
+     * Maximum number of skills whose name and description are injected into the system prompt
+     * each turn. Caps prompt growth as the library grows; the full body is always loadable on
+     * demand via the {@code viewSkill} tool.
+     */
+    @WithDefault("50")
+    int maxInjected();
+
+    /**
+     * Passive distillation: after each completed turn, mine a reusable procedure from the
+     * conversation and save it as a skill.
+     */
+    Extractor extractor();
+
+    /**
+     * Background curation: periodically remove redundant (duplicate) skills.
+     */
+    Curation curation();
+
+    interface Extractor {
+
+        /**
+         * Whether to distill a reusable skill from each completed conversation turn.
+         */
+        @WithDefault("true")
+        boolean enabled();
+    }
+
+    interface Curation {
+
+        /**
+         * Whether the scheduled curation job removes redundant skills.
+         */
+        @WithDefault("true")
+        boolean enabled();
+
+        /**
+         * Cron expression for the scheduled skill-curation job.
+         */
+        @WithDefault("0 50 3 * * ?")
+        String cron();
+    }
 }

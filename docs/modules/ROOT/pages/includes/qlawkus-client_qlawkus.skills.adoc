@@ -1,0 +1,137 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-skills-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-skills-enabled[`+++qlawkus.skills.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skills.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the skill subsystem is active (index injection, tools and stores).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILLS_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILLS_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-skills-roots]] [.property-path]##link:#qlawkus-client_qlawkus-skills-roots[`+++qlawkus.skills.roots+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skills.roots+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Directories scanned for SKILL.md skill folders, in precedence order. Every root is read; the first one is the owned, writable root where the agent's self-authored skills are saved. Defaults to an isolated qlawkus-owned directory so self-authored skills never pollute the shared cross-agent `.agents/skills` on the host. Add `.agents/skills` here to opt into cross-agent sharing (sensible inside a container).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILLS_ROOTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILLS_ROOTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of string
+|`+++${user.home}/.qlawkus/skills+++`
+
+a| [[qlawkus-client_qlawkus-skills-max-injected]] [.property-path]##link:#qlawkus-client_qlawkus-skills-max-injected[`+++qlawkus.skills.max-injected+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skills.max-injected+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of skills whose name and description are injected into the system prompt each turn. Caps prompt growth as the library grows; the full body is always loadable on demand via the `viewSkill` tool.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILLS_MAX_INJECTED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILLS_MAX_INJECTED+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++50+++`
+
+a| [[qlawkus-client_qlawkus-skills-extractor-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-skills-extractor-enabled[`+++qlawkus.skills.extractor.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skills.extractor.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether to distill a reusable skill from each completed conversation turn.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILLS_EXTRACTOR_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILLS_EXTRACTOR_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-skills-curation-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-skills-curation-enabled[`+++qlawkus.skills.curation.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skills.curation.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the scheduled curation job removes redundant skills.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILLS_CURATION_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILLS_CURATION_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-skills-curation-cron]] [.property-path]##link:#qlawkus-client_qlawkus-skills-curation-cron[`+++qlawkus.skills.curation.cron+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skills.curation.cron+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cron expression for the scheduled skill-curation job.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILLS_CURATION_CRON+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILLS_CURATION_CRON+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++0 50 3 * * ?+++`
+
+|===
+

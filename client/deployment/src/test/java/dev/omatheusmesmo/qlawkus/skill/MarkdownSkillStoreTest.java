@@ -33,6 +33,31 @@ class MarkdownSkillStoreTest {
       public List<String> roots() {
         return rootStrings;
       }
+
+      @Override
+      public int maxInjected() {
+        return 50;
+      }
+
+      @Override
+      public Extractor extractor() {
+        return () -> true;
+      }
+
+      @Override
+      public Curation curation() {
+        return new Curation() {
+          @Override
+          public boolean enabled() {
+            return true;
+          }
+
+          @Override
+          public String cron() {
+            return "0 50 3 * * ?";
+          }
+        };
+      }
     };
     return new MarkdownSkillStore(config);
   }

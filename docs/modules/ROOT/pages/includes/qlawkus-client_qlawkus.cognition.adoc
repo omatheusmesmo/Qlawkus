@@ -1,0 +1,32 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-client_qlawkus-cognition-backend]] [.property-path]##link:#qlawkus-client_qlawkus-cognition-backend[`+++qlawkus.cognition.backend+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.cognition.backend+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The cognition persistence backend. `pgvector` is today's behavior (embeddings in Postgres); `markdown` keeps curated content in files and needs no database; `hybrid` uses files as the source of truth mirrored into pgvector. Defaults to `pgvector` for backward compatibility.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_COGNITION_BACKEND+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_COGNITION_BACKEND+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`markdown`, `pgvector`, `hybrid`
+|`+++pgvector+++`
+
+|===
+
