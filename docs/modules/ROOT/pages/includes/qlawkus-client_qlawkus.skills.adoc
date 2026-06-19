@@ -133,5 +133,89 @@ endif::add-copy-button-to-env-var[]
 |string
 |`+++0 50 3 * * ?+++`
 
+a| [[qlawkus-client_qlawkus-skills-lifecycle-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-skills-lifecycle-enabled[`+++qlawkus.skills.lifecycle.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skills.lifecycle.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the scheduled lifecycle sweep ages skills out of the injected index.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILLS_LIFECYCLE_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILLS_LIFECYCLE_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-skills-lifecycle-stale-after-days]] [.property-path]##link:#qlawkus-client_qlawkus-skills-lifecycle-stale-after-days[`+++qlawkus.skills.lifecycle.stale-after-days+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skills.lifecycle.stale-after-days+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Days of non-use after which a skill is marked stale (still injected).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILLS_LIFECYCLE_STALE_AFTER_DAYS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILLS_LIFECYCLE_STALE_AFTER_DAYS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++30+++`
+
+a| [[qlawkus-client_qlawkus-skills-lifecycle-archive-after-days]] [.property-path]##link:#qlawkus-client_qlawkus-skills-lifecycle-archive-after-days[`+++qlawkus.skills.lifecycle.archive-after-days+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skills.lifecycle.archive-after-days+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Days of non-use after which a skill is archived (excluded from the index, still loadable).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILLS_LIFECYCLE_ARCHIVE_AFTER_DAYS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILLS_LIFECYCLE_ARCHIVE_AFTER_DAYS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++90+++`
+
+a| [[qlawkus-client_qlawkus-skills-lifecycle-cron]] [.property-path]##link:#qlawkus-client_qlawkus-skills-lifecycle-cron[`+++qlawkus.skills.lifecycle.cron+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skills.lifecycle.cron+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cron expression for the scheduled skill-lifecycle sweep.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILLS_LIFECYCLE_CRON+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILLS_LIFECYCLE_CRON+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++0 40 3 * * ?+++`
+
 |===
 

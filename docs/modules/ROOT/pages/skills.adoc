@@ -1,0 +1,125 @@
+= Skills
+:page-title: Skills
+:page-description: Procedural memory the agent writes, uses, and curates itself
+
+Skills are Qlawkus's *procedural* memory: reusable how-to procedures the agent can author, load on demand, and curate over time. They complement the *declarative* memory (facts and the owner profile) described in xref:architecture.adoc#_memory[Architecture]: declarative memory is *what the agent knows*, skills are *how the agent does recurring things*.
+
+Like memory, the skill index is **injected, not searched**. Every turn, `SoulEngine` adds a `## Skills` block (each skill's name and description only) to the system prompt, so the model always knows which procedures exist without having to decide to look. The full body is pulled in on demand with the `viewSkill` tool (progressive disclosure), keeping the prompt small.
+
+See xref:architecture.adoc#_skills_procedural_memory[Architecture > Skills] for the data-flow diagram, and the xref:config-reference.adoc#_skills[Skills configuration reference] for every `qlawkus.skills.*` knob.
+
+== Anatomy of a skill
+
+A skill is a single `SKILL.md` file: YAML frontmatter with a `name` and `description`, followed by a Markdown body.
+
+[source,markdown]
+----
+---
+name: open-a-pr
+description: Open a GitHub pull request from the current branch with a clean summary
+---
+
+# Open a pull request
+
+1. Confirm the branch is pushed: `git status -sb`.
+2. Draft a title that reads well in a changelog (no `feat:`/`fix:` prefix).
+3. Open it: `gh pr create --title "<title>" --body "<summary>"`.
+4. Never force-push to `main`; only to the feature branch, and only when asked.
+----
+
+The frontmatter is the *index*: `name` and `description` are what get injected each turn. The body is the *procedure*: it is loaded only when the agent calls `viewSkill` on that name.
+
+== Where skills live
+
+Skills are read from every directory in `qlawkus.skills.roots` (first match wins on a name clash) but **written only to the first, owned root** (default `~/.qlawkus/skills`).
+
+[cols="1,3",options="header"]
+|===
+|Root |Role
+
+|`~/.qlawkus/skills` (default, owned) |The agent's own skills. The only place new and auto-distilled skills are written, so self-authored procedures stay isolated.
+|`.agents/skills` (opt-in) |The cross-agent project convention shared with other tools. Add it to `qlawkus.skills.roots` to *read* shared skills; it is never written to.
+|===
+
+This split is deliberate: running on a host (not a container), the agent should never pollute a shared `.agents/skills` with skills it invented for itself. Path traversal is rejected, so a skill name can never escape its root.
+
+NOTE: Bundled skills (below) are a third, read-only source merged on top of these roots; an owned skill always wins a name clash with a bundled one.
+
+== How the agent uses skills
+
+* *Injection* - `SoulEngine` renders the index (`SkillIndexRenderer`) into the system prompt every turn, capped by `qlawkus.skills.max-injected`.
+* *Progressive disclosure* - the `viewSkill` tool loads a single skill's full body when the agent needs the steps. This also records a use (see Lifecycle).
+* *Authoring* - the agent creates and removes its own skills with the `createOrUpdateSkill` and `deleteSkill` tools.
+
+== Auto-distillation and curation
+
+Skills grow and stay clean on their own, mirroring the fact-memory subsystem:
+
+* *Auto-distillation* - `SkillExtractorObserver` mines a reusable procedure from each completed turn (`ChatCompletedEvent`, fired channel-agnostically), gated by `qlawkus.skills.extractor.enabled` (default `true`). Passive authoring works on every channel (REST, Discord, Telegram).
+* *Curation* - `SkillCurationJob` removes redundant skills. It runs on a schedule and can be triggered with `POST /api/admin/skills/curate`.
+
+== Lifecycle
+
+Using a skill (`viewSkill`) marks it used. `SkillLifecycleJob` then ages unused skills by recency:
+
+`ACTIVE` -> `STALE` -> `ARCHIVED`
+
+* Archived skills leave the injected index but stay loadable by name, so nothing is lost.
+* Pinned skills never transition. Pin with `POST /api/admin/skills/{name}/pin`.
+* Thresholds are config: `qlawkus.skills.lifecycle.stale-after-days`, `archive-after-days`, and `cron`.
+
+Usage telemetry is stored where the backend lives: Postgres columns (`pgvector`/`hybrid`, migration `V7`) or a `.qlawkus-usage.json` sidecar next to the files (`markdown`).
+
+== Bundled skills
+
+Extensions and apps can ship read-only skills as classpath resources under `META-INF/qlawkus-skills/<name>/SKILL.md`. They are discovered and parsed at **build time** (a `@BuildStep` bakes them into a synthetic bean - no runtime classpath scanning) and merged, read-only, on top of the owned roots. This lets a tool extension contribute the procedures for using it, without writing to the user's filesystem.
+
+== Storage backends
+
+The cognition persistence backend is chosen at **build time** with `qlawkus.cognition.backend`. It governs where skills (and the rest of cognition) are stored:
+
+[cols="1,3",options="header"]
+|===
+|Backend |Behavior
+
+|`markdown` |`SKILL.md` files only, no database. The whole index is injected wholesale - the Hermes/OpenClaw model.
+|`pgvector` |Skills in Postgres (the `skill` table, migration `V6`). The default; backward compatible.
+|`hybrid` |`SKILL.md` files are the source of truth, mirrored into Postgres for ranking.
+|===
+
+Because the choice is build-time fixed, a markdown-only distribution carries no datasource or Flyway dependency for skills at all.
+
+== Administration
+
+All endpoints are under `/api/admin/skills` (Basic auth, same as the rest of the API):
+
+[cols="2,3",options="header"]
+|===
+|Endpoint |What it does
+
+|`GET /api/admin/skills` |List the current skill index.
+|`GET /api/admin/skills/{name}` |Fetch a single skill (frontmatter + body).
+|`DELETE /api/admin/skills/{name}` |Delete an owned skill.
+|`POST /api/admin/skills/curate` |Run curation now (dedup redundant skills).
+|`POST /api/admin/skills/lifecycle` |Run the lifecycle sweep now (age unused skills).
+|`POST /api/admin/skills/{name}/pin` |Pin a skill so it never ages out.
+|===
+
+== Roadmap
+
+Today a skill is procedural text. Two extensions are planned.
+
+=== Executable skills
+
+Because a skill is already a directory (`<root>/<name>/SKILL.md`), it can carry sibling assets - bash or Python scripts the agent runs as part of the procedure. This is the Anthropic skill model (a `SKILL.md` plus assets). It is not wired up yet: the file and shell tools are confined to the *workspace* root, while skills live in their own isolated root, so neither writing nor running a script inside a skill folder works today. The plan is to author assets through the skill API (not the workspace file tool) and stage them into the workspace for execution, without loosening either confinement boundary.
+
+Note the overlap with in-process *dynamic tools* (e.g. runtime-compiled Groovy that registers a typed `@Tool`): both let the agent gain a self-authored capability. Bundled scripts win the common case - they run as a confined subprocess and work in native image - so they are the primary path for "executable skill". In-process dynamic tools remain a separate, niche axis for typed tools that need direct access to app internals (JVM-mode only, since GraalVM cannot load new bytecode at runtime).
+
+=== Skill hubs
+
+A planned `SkillHub` extension point will let the agent *search*, *install*, and *publish* skills against an existing ecosystem (https://maxandersen.github.io/jskills/[jskills] / skills.sh) rather than a Qlawkus-hosted hub. The capability is exposed as an overridable `@DefaultBean`; Qlawkus never hosts or manages a registry itself. Downloaded skills are read like any opt-in root, with the same path-traversal and trust safeguards.
+
+== What's next?
+
+* xref:architecture.adoc[Architecture] - how skills fit the cognition subsystem, with diagrams
+* xref:config-reference.adoc#_skills[Configuration] - every `qlawkus.skills.*` and `qlawkus.cognition.backend` setting

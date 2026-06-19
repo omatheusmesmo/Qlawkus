@@ -89,15 +89,23 @@ Resource collections:
 
 ## Documentation
 
-User-facing docs live in `site/content/*.adoc`. The per-module configuration reference is generated from `@ConfigMapping` JavaDoc:
+There is **one source of truth and one generated mirror**:
+
+- `site/content/*.adoc` - the hand-written pages (Roq site): `index`, `architecture`, `config-reference`, `quickstart`, `messaging`, `voice`, `google-workspace`. **Edit these.**
+- `site/content/includes/*.adoc` - the per-module configuration reference, **generated** from the `@ConfigMapping` JavaDoc by `quarkus-config-doc-maven-plugin` (configured in `docs/pom.xml`). Do not edit by hand; they are overwritten on every build.
+- `docs/modules/ROOT/pages/*` - the Antora copy. It is a **generated mirror** of `site/content/` (the `sync-site-to-antora` execution in `docs/pom.xml` copies the whole directory at the `verify` phase). **Never edit `docs/` directly** - your change is overwritten by the next build.
+
+So the rule is: edit only `site/content/`, then build to regenerate the includes and the Antora mirror.
 
 ```bash
-mvn install -DskipTests                                   # so config metadata is available
-mvn -f docs/pom.xml package -DskipTests                  # generate site/content/_includes
-cd site && mvn quarkus:dev                                # preview at http://localhost:8080
+mvn install -DskipTests                  # build the extensions so config metadata is available
+mvn -f docs/pom.xml verify -DskipTests   # generate site/content/includes/ AND mirror site/content -> docs/
+cd site && mvn quarkus:dev               # preview at http://localhost:8080
 ```
 
-If you change configuration, regenerate the reference so the docs match the code.
+`config-reference.adoc` is itself hand-written: each module's generated table is surfaced with an `include::includes/<artifact>[_<prefix>].adoc[]` directive. A `@ConfigMapping(prefix = "qlawkus.foo")` interface produces a separate `qlawkus-client_qlawkus.foo.adoc` file, so **adding a new config root means adding a matching `include::` line** under the relevant section, or it will not appear on the site.
+
+If you change configuration, run the commands above so the includes regenerate and the Antora mirror stays in sync.
 
 ## Submitting changes
 

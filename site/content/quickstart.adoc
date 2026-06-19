@@ -81,3 +81,4 @@ All HTTP endpoints use Basic auth (`quawkus` / `qlawkus` by default, override wi
 * xref:voice.adoc[Voice (STT/TTS) setup] -- Speech-to-text and text-to-speech
 * xref:config-reference.adoc[Configuration] -- All settings
 * xref:architecture.adoc[Architecture] -- Module layout and request flow
+* xref:skills.adoc[Skills] -- Procedural memory the agent writes and curates itself

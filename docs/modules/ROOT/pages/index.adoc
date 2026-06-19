@@ -4,7 +4,7 @@
 
 == What is Qlawkus?
 
-Qlawkus is a set of Quarkus extensions for building personal AI agents in Java. It provides the foundations - cognition, memory, messaging, and tools - so you can assemble an agent by depending on just the pieces you need.
+Qlawkus is a set of Quarkus extensions for building personal AI agents in Java. It provides the foundations - cognition, memory, skills, messaging, and tools - so you can assemble an agent by depending on just the pieces you need.
 
 Inspired by projects like https://github.com/openclaw/openclaw[OpenClaw] and https://github.com/NousResearch/hermes-agent[Hermes], rebuilt on the Quarkus stack and powered by https://docs.quarkiverse.io/quarkus-langchain4j/dev/[Quarkus LangChain4j].
 
@@ -31,6 +31,9 @@ A persistent `Soul` (identity, mood, focus) that shapes the agent's behavior eve
 Memory::
 pgvector-backed long-term memory with automatic retrieval, background curation, and transcript search. Always in context, never missed.
 
+Skills::
+Procedural memory the agent writes, uses, and curates itself: reusable `SKILL.md` how-to procedures, injected as an index each turn and loaded on demand.
+
 Messaging::
 Discord and Telegram adapters with voice in and out. Slack and WhatsApp adapters available.
 
@@ -47,6 +50,7 @@ xref:quickstart.adoc[Quick Start] - Get a working agent running in minutes.
 == Learn more
 
 * xref:architecture.adoc[Architecture] - How the modules fit together
+* xref:skills.adoc[Skills] - Procedural memory the agent writes and curates itself
 * xref:google-workspace.adoc[Google Workspace] - Gmail, Calendar, Drive, Sheets, Storage
 * xref:messaging.adoc[Messaging] - Discord and Telegram bots with voice
 * xref:voice.adoc[Voice] - Speech-to-text and text-to-speech

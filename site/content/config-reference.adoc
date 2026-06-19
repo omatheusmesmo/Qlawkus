@@ -4,7 +4,41 @@ All runtime configuration for every module. Override any variable in your `.env`
 
 == Core agent (qlawkus-client)
 
+=== Provider & resilience
 include::includes/qlawkus-client.adoc[]
+
+=== Provider kind (OpenAI-compatible)
+include::includes/qlawkus-client_qlawkus.openai.adoc[]
+
+=== Models
+include::includes/qlawkus-client_qlawkus.model.adoc[]
+
+=== Agent & memory
+include::includes/qlawkus-client_qlawkus.agent.adoc[]
+
+=== Cognition backend
+include::includes/qlawkus-client_qlawkus.cognition.adoc[]
+
+=== Skills
+include::includes/qlawkus-client_qlawkus.skills.adoc[]
+
+=== Memory review
+include::includes/qlawkus-client_qlawkus.memory-review.adoc[]
+
+=== Memory curation
+include::includes/qlawkus-client_qlawkus.memory-curation.adoc[]
+
+=== Startup thought
+include::includes/qlawkus-client_qlawkus.startup-thought.adoc[]
+
+=== Workspace
+include::includes/qlawkus-client_qlawkus.workspace.adoc[]
+
+=== File
+include::includes/qlawkus-client_qlawkus.file.adoc[]
+
+=== Sandboxed shell
+include::includes/qlawkus-client_qlawkus.shell.adoc[]
 
 == Messaging
 
