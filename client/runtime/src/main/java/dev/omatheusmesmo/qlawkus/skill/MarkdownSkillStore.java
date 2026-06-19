@@ -46,4 +46,19 @@ public class MarkdownSkillStore implements SkillStore {
   public boolean delete(String name) {
     return files.delete(name);
   }
+
+  @Override
+  public void recordUse(String name) {
+    files.recordUse(name);
+  }
+
+  @Override
+  public boolean setPinned(String name, boolean pinned) {
+    return files.setPinned(name, pinned);
+  }
+
+  @Override
+  public int sweepLifecycle(int staleAfterDays, int archiveAfterDays) {
+    return files.sweepLifecycle(staleAfterDays, archiveAfterDays);
+  }
 }

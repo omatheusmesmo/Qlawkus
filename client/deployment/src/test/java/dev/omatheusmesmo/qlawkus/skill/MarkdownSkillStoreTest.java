@@ -58,6 +58,31 @@ class MarkdownSkillStoreTest {
           }
         };
       }
+
+      @Override
+      public Lifecycle lifecycle() {
+        return new Lifecycle() {
+          @Override
+          public boolean enabled() {
+            return true;
+          }
+
+          @Override
+          public int staleAfterDays() {
+            return 30;
+          }
+
+          @Override
+          public int archiveAfterDays() {
+            return 90;
+          }
+
+          @Override
+          public String cron() {
+            return "0 40 3 * * ?";
+          }
+        };
+      }
     };
     return new MarkdownSkillStore(config, new BundledSkills(List.of()));
   }
@@ -129,6 +154,43 @@ class MarkdownSkillStoreTest {
     MarkdownSkillStore store = storeWithRoots(tempDir);
     assertThrows(IllegalArgumentException.class,
         () -> store.save(new Skill("../evil", "x", "y")));
+  }
+
+  @Test
+  void lifecycle_archivesUnusedSkill_excludedFromIndex_butStillLoadable() {
+    MarkdownSkillStore store = storeWithRoots(tempDir);
+    store.save(new Skill("old-skill", "desc", "body"));
+    assertTrue(inIndex(store, "old-skill"));
+
+    int changed = store.sweepLifecycle(0, 0);
+    assertEquals(1, changed);
+    assertFalse(inIndex(store, "old-skill"), "archived skill is excluded from the index");
+    assertTrue(store.get("old-skill").isPresent(), "archived skill is still loadable");
+  }
+
+  @Test
+  void lifecycle_recordUse_revivesArchivedSkill() {
+    MarkdownSkillStore store = storeWithRoots(tempDir);
+    store.save(new Skill("revive-me", "desc", "body"));
+    store.sweepLifecycle(0, 0);
+    assertFalse(inIndex(store, "revive-me"));
+
+    store.recordUse("revive-me");
+    assertTrue(inIndex(store, "revive-me"), "a used skill returns to the index");
+  }
+
+  @Test
+  void lifecycle_pinnedSkill_isNotArchived() {
+    MarkdownSkillStore store = storeWithRoots(tempDir);
+    store.save(new Skill("keep-me", "desc", "body"));
+    assertTrue(store.setPinned("keep-me", true));
+
+    store.sweepLifecycle(0, 0);
+    assertTrue(inIndex(store, "keep-me"), "pinned skill survives the sweep");
+  }
+
+  private static boolean inIndex(MarkdownSkillStore store, String name) {
+    return store.index().stream().anyMatch(summary -> summary.name().equals(name));
   }
 
   private void writeSkill(Path root, String name, String description) throws IOException {

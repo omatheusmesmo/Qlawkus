@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.store.pg;
 
 import dev.omatheusmesmo.qlawkus.skill.BundledSkills;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
+import dev.omatheusmesmo.qlawkus.skill.SkillState;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
 import io.quarkus.arc.properties.IfBuildProperty;
@@ -26,7 +27,8 @@ public class PgSkillStore implements SkillStore {
   @Override
   @Transactional
   public List<SkillSummary> index() {
-    List<SkillSummary> stored = SkillEntity.<SkillEntity>listAll().stream()
+    List<SkillSummary> stored = SkillEntity.<SkillEntity>list("state <> ?1", SkillState.ARCHIVED)
+        .stream()
         .map(entity -> new SkillSummary(entity.name, entity.description))
         .toList();
     return bundled.mergedIndex(stored);
@@ -56,5 +58,23 @@ public class PgSkillStore implements SkillStore {
   @Transactional
   public boolean delete(String name) {
     return SkillEntity.deleteById(name);
+  }
+
+  @Override
+  @Transactional
+  public void recordUse(String name) {
+    SkillEntity.recordUse(name);
+  }
+
+  @Override
+  @Transactional
+  public boolean setPinned(String name, boolean pinned) {
+    return SkillEntity.setPinned(name, pinned);
+  }
+
+  @Override
+  @Transactional
+  public int sweepLifecycle(int staleAfterDays, int archiveAfterDays) {
+    return SkillEntity.sweep(staleAfterDays, archiveAfterDays);
   }
 }

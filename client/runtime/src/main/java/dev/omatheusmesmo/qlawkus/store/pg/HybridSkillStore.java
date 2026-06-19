@@ -13,6 +13,7 @@ import jakarta.transaction.Transactional;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Hybrid {@link SkillStore}, active when {@code qlawkus.cognition.backend=hybrid}. SKILL.md files
@@ -34,8 +35,13 @@ public class HybridSkillStore implements SkillStore {
   }
 
   @Override
+  @Transactional
   public List<SkillSummary> index() {
-    return bundled.mergedIndex(files.index());
+    Set<String> archived = SkillEntity.archivedNames();
+    List<SkillSummary> active = files.index().stream()
+        .filter(summary -> !archived.contains(summary.name()))
+        .toList();
+    return bundled.mergedIndex(active);
   }
 
   @Override
@@ -59,5 +65,23 @@ public class HybridSkillStore implements SkillStore {
     boolean removed = files.delete(name);
     SkillEntity.deleteById(name);
     return removed;
+  }
+
+  @Override
+  @Transactional
+  public void recordUse(String name) {
+    SkillEntity.recordUse(name);
+  }
+
+  @Override
+  @Transactional
+  public boolean setPinned(String name, boolean pinned) {
+    return SkillEntity.setPinned(name, pinned);
+  }
+
+  @Override
+  @Transactional
+  public int sweepLifecycle(int staleAfterDays, int archiveAfterDays) {
+    return SkillEntity.sweep(staleAfterDays, archiveAfterDays);
   }
 }
