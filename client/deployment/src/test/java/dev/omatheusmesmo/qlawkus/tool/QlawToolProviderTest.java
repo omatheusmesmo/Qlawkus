@@ -14,14 +14,14 @@ import java.util.Collections;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
-class ClawToolProviderTest {
+class QlawToolProviderTest {
 
     @Inject
-    ClawToolProvider provider;
+    QlawToolProvider provider;
 
     @Test
     void provideTools_returnsEmptyWhenNoExtensionTools() {
-        ClawToolProvider emptyProvider = new ClawToolProvider();
+        QlawToolProvider emptyProvider = new QlawToolProvider();
         @SuppressWarnings("unchecked")
         Instance<Object> unsatisfied = Mockito.mock(Instance.class);
         Mockito.when(unsatisfied.isUnsatisfied()).thenReturn(true);
@@ -35,10 +35,10 @@ class ClawToolProviderTest {
 
     @Test
     void clawToolProviderSupplier_resolvesProviderFromArc() {
-        ClawToolProviderSupplier supplier = new ClawToolProviderSupplier();
+        QlawToolProviderSupplier supplier = new QlawToolProviderSupplier();
         ToolProvider resolved = supplier.get();
 
         assertNotNull(resolved);
-        assertInstanceOf(ClawToolProvider.class, resolved);
+        assertInstanceOf(QlawToolProvider.class, resolved);
     }
 }

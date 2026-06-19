@@ -5,9 +5,9 @@ import dev.langchain4j.service.tool.ToolProvider;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils;
 import dev.omatheusmesmo.qlawkus.testing.QlawkusWireMockStubs;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
-import dev.omatheusmesmo.qlawkus.tool.ClawToolProvider;
-import dev.omatheusmesmo.qlawkus.tool.ClawToolProviderSupplier;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
+import dev.omatheusmesmo.qlawkus.tool.QlawToolProviderSupplier;
 import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.arc.Arc;
 import io.quarkus.test.junit.QuarkusTest;
@@ -86,10 +86,10 @@ class SmokeTest {
 
     @Test
     void clawTool_beansAreDiscoveredByArc() {
-        Instance<Object> clawToolBeans = Arc.container().select(Object.class, new ClawToolLiteral());
+        Instance<Object> clawToolBeans = Arc.container().select(Object.class, new QlawToolLiteral());
 
         assertFalse(clawToolBeans.isUnsatisfied(),
-                "@ClawTool beans should be satisfied with SampleExtensionTool on classpath");
+                "@QlawTool beans should be satisfied with SampleExtensionTool on classpath");
 
         boolean found = false;
         for (Object tool : clawToolBeans) {
@@ -98,30 +98,30 @@ class SmokeTest {
                 break;
             }
         }
-        assertTrue(found, "SampleExtensionTool should be discovered via @ClawTool qualifier");
+        assertTrue(found, "SampleExtensionTool should be discovered via @QlawTool qualifier");
     }
 
     @SuppressWarnings("serial")
-    static class ClawToolLiteral extends AnnotationLiteral<ClawTool> implements ClawTool {
+    static class QlawToolLiteral extends AnnotationLiteral<QlawTool> implements QlawTool {
     }
 
     @Test
     void clawToolProviderSupplier_resolvesFromArc() {
-        ClawToolProviderSupplier supplier = new ClawToolProviderSupplier();
+        QlawToolProviderSupplier supplier = new QlawToolProviderSupplier();
 
         ToolProvider resolved = supplier.get();
         assertNotNull(resolved);
-        assertInstanceOf(ClawToolProvider.class, resolved);
+        assertInstanceOf(QlawToolProvider.class, resolved);
     }
 
     @Test
     void clawToolProvider_providesExtensionTools() {
-        ClawToolProvider provider = Arc.container().instance(ClawToolProvider.class).get();
+        QlawToolProvider provider = Arc.container().instance(QlawToolProvider.class).get();
 
         var result = provider.provideTools(null);
 
-        assertNotNull(result, "ClawToolProvider should return a non-null ToolProviderResult");
+        assertNotNull(result, "QlawToolProvider should return a non-null ToolProviderResult");
         assertFalse(result.tools().isEmpty(),
-                "ClawToolProvider should discover at least one extension tool");
+                "QlawToolProvider should discover at least one extension tool");
     }
 }

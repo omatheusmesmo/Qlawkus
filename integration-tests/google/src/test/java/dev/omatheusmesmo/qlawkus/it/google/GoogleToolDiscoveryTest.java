@@ -3,8 +3,8 @@ package dev.omatheusmesmo.qlawkus.it.google;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
 import dev.langchain4j.service.tool.ToolProviderResult;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
-import dev.omatheusmesmo.qlawkus.tool.ClawToolProvider;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
 import io.quarkus.arc.Arc;
 import io.quarkus.arc.ClientProxy;
 import io.quarkus.test.junit.QuarkusTest;
@@ -25,11 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GoogleToolDiscoveryTest {
 
     @Inject
-    ClawToolProvider clawToolProvider;
+    QlawToolProvider clawToolProvider;
 
     @Test
-    void googleTools_areDiscoveredAsClawToolBeans() {
-        Instance<Object> clawToolBeans = Arc.container().select(Object.class, new ClawToolLiteral());
+    void googleTools_areDiscoveredAsQlawToolBeans() {
+        Instance<Object> clawToolBeans = Arc.container().select(Object.class, new QlawToolLiteral());
 
     Set<String> toolClassNames = clawToolBeans.stream()
             .map(proxy -> ClientProxy.unwrap(proxy).getClass().getName())
@@ -40,23 +40,23 @@ class GoogleToolDiscoveryTest {
             .collect(Collectors.toSet());
 
     assertTrue(simpleNames.contains("dev.omatheusmesmo.qlawkus.tools.google.calendar.CalendarTool"),
-            "CalendarTool should be discovered via @ClawTool. Got: " + toolClassNames);
+            "CalendarTool should be discovered via @QlawTool. Got: " + toolClassNames);
     assertTrue(simpleNames.contains("dev.omatheusmesmo.qlawkus.tools.google.gmail.GmailTool"),
-            "GmailTool should be discovered via @ClawTool. Got: " + toolClassNames);
+            "GmailTool should be discovered via @QlawTool. Got: " + toolClassNames);
     assertTrue(simpleNames.contains("dev.omatheusmesmo.qlawkus.tools.google.drive.DriveTool"),
-            "DriveTool should be discovered via @ClawTool. Got: " + toolClassNames);
+            "DriveTool should be discovered via @QlawTool. Got: " + toolClassNames);
     assertTrue(simpleNames.contains("dev.omatheusmesmo.qlawkus.tools.google.sheets.SheetsTool"),
-            "SheetsTool should be discovered via @ClawTool. Got: " + toolClassNames);
+            "SheetsTool should be discovered via @QlawTool. Got: " + toolClassNames);
     assertTrue(simpleNames.contains("dev.omatheusmesmo.qlawkus.tools.google.storage.StorageTool"),
-            "StorageTool should be discovered via @ClawTool. Got: " + toolClassNames);
+            "StorageTool should be discovered via @QlawTool. Got: " + toolClassNames);
     }
 
     @Test
     void clawToolProvider_providesAllGoogleToolSpecs() {
         ToolProviderResult result = clawToolProvider.provideTools(null);
 
-        assertNotNull(result, "ClawToolProvider should return a non-null result");
-        assertFalse(result.tools().isEmpty(), "ClawToolProvider should provide tool specs");
+        assertNotNull(result, "QlawToolProvider should return a non-null result");
+        assertFalse(result.tools().isEmpty(), "QlawToolProvider should provide tool specs");
 
         Set<String> toolNames = result.tools().keySet().stream()
                 .map(ToolSpecification::name)
@@ -87,6 +87,6 @@ class GoogleToolDiscoveryTest {
     }
 
     @SuppressWarnings("serial")
-    static class ClawToolLiteral extends AnnotationLiteral<ClawTool> implements ClawTool {
+    static class QlawToolLiteral extends AnnotationLiteral<QlawTool> implements QlawTool {
     }
 }

@@ -2,7 +2,7 @@ package dev.omatheusmesmo.qlawkus.it.terminal;
 
 import dev.omatheusmesmo.qlawkus.dto.FileEntry;
 import dev.omatheusmesmo.qlawkus.dto.FileResult;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.shell.FileTool;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -18,7 +18,7 @@ import java.util.List;
 public class FileTestResource {
 
     @Inject
-    @ClawTool
+    @QlawTool
     FileTool fileTool;
 
     @GET

@@ -15,7 +15,7 @@ import dev.omatheusmesmo.qlawkus.cognition.SearchMemoriesTool;
 import dev.omatheusmesmo.qlawkus.cognition.SearchTranscriptsTool;
 import dev.omatheusmesmo.qlawkus.cognition.UpdateSelfStateTool;
 import dev.omatheusmesmo.qlawkus.cognition.UpdateUserProfileTool;
-import dev.omatheusmesmo.qlawkus.tool.ClawToolProvider;
+import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
 import io.quarkus.arc.Arc;
 
 /**
@@ -26,7 +26,7 @@ import io.quarkus.arc.Arc;
  *   <li>{@code @MemoryId} -> Quarkus ChatMemoryProvider backed by PgWorkingMemoryStore (persistent, keyed by conversation).</li>
  *   <li>No {@code @ChatModelSupplier}/{@code @ModelName} -> uses the default ChatModel bean = FallbackChatModel (resilience).</li>
  *   <li>{@code @SystemMessage("{{soul}}")} -> dynamic soul injected per call by callers (SoulEngine), since declarative agents have no system-message-provider hook.</li>
- *   <li>{@code @ToolProviderSupplier} -> ClawToolProvider (Google + dynamically discovered tools); the agent has no per-tool/module coupling.</li>
+ *   <li>{@code @ToolProviderSupplier} -> QlawToolProvider (Google + dynamically discovered tools); the agent has no per-tool/module coupling.</li>
  *   <li>{@code @ToolsSupplier} -> the in-module cognition tools.</li>
  * </ul>
  */
@@ -39,7 +39,7 @@ public interface QlawkusAgent {
 
     @ToolProviderSupplier
     static ToolProvider toolProvider() {
-        return Arc.container().instance(ClawToolProvider.class).get();
+        return Arc.container().instance(QlawToolProvider.class).get();
     }
 
     @ToolsSupplier

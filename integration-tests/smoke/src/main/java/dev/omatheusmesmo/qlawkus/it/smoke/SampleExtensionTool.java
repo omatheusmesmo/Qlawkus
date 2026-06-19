@@ -1,9 +1,9 @@
 package dev.omatheusmesmo.qlawkus.it.smoke;
 
 import dev.langchain4j.agent.tool.Tool;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 
-@ClawTool
+@QlawTool
 public class SampleExtensionTool {
 
   @Tool("A sample extension tool for testing")

@@ -4,7 +4,7 @@ import dev.omatheusmesmo.qlawkus.dto.CommandResult;
 import dev.omatheusmesmo.qlawkus.dto.EnvironmentResult;
 import dev.omatheusmesmo.qlawkus.dto.ProcessInfo;
 import dev.omatheusmesmo.qlawkus.dto.SecurityResult;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.shell.ShellTool;
 import dev.omatheusmesmo.qlawkus.tool.shell.WorkspaceConfinement;
 import io.quarkus.security.Authenticated;
@@ -22,7 +22,7 @@ import java.util.Map;
 public class ShellTestResource {
 
     @Inject
-    @ClawTool
+    @QlawTool
     ShellTool shellTool;
 
     @Inject

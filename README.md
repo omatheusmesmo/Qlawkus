@@ -119,7 +119,7 @@ The production setup uses NVIDIA NIM as the primary LLM with a local Ollama side
 - **Autonomous Engineering**: Deep integration with `git` and `gh cli` for cloning, local testing, and autonomous code reviews
 - **Safe Self-Improvement**: The agent writes, validates (AST), and compiles Groovy scripts at runtime to create new skills, gated by strict Quarkus Security policies
 - **Lightweight**: Native compilation via GraalVM for ultra-fast startup, designed to run cheaply on small instances
-- **Extensible**: Add tools by implementing `@ClawTool` beans — discovered automatically via CDI
+- **Extensible**: Add tools by implementing `@QlawTool` beans — discovered automatically via CDI
 - **Google Workspace**: 6 optional extensions (Auth, Calendar, Gmail, Drive, Sheets, Storage) with 17 AI tools, Web/Loopback OAuth2, and encrypted credential vault
 - **Multi-Provider Messaging**: Provider-agnostic interface (Discord Gateway, Telegram polling/webhook; Slack & WhatsApp adapters) with per-provider formatting, chunking, auth allowlists, and a shared conversation memory across interfaces
 - **Voice In/Out**: Agnostic speech-to-text (Whisper) and text-to-speech (local Piper, Groq Orpheus, ElevenLabs) with a per-language provider/fallback router
@@ -191,7 +191,7 @@ qlawkus/                          # Parent POM (semantic versioning)
 │           ├── rest/             # ApiResource (SSE chat), AdminResource
 │           ├── store/            # FactStore, WorkingMemoryStore, EpisodicStore (interfaces)
 │           │   └── pg/           # PostgreSQL implementations + ChatMessageEntity, Journal
-│           └── tool/             # @ClawTool qualifier, ClawToolProvider, ClawToolProviderSupplier
+│           └── tool/             # @QlawTool qualifier, QlawToolProvider, QlawToolProviderSupplier
 ├── app/                          # Deployable application (packaging = quarkus)
 │   └── src/main/
 │       ├── docker/               # Dockerfiles (JVM + native) + entrypoint.sh
@@ -204,10 +204,10 @@ qlawkus/                          # Parent POM (semantic versioning)
 
 ### Adding Custom Tools
 
-Create a CDI bean annotated with `@ClawTool` — it's auto-discovered by the agent:
+Create a CDI bean annotated with `@QlawTool` — it's auto-discovered by the agent:
 
 ```java
-@ClawTool
+@QlawTool
 @ApplicationScoped
 public class MyTool {
     @Tool("Does something useful")

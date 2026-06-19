@@ -6,7 +6,7 @@ import dev.omatheusmesmo.qlawkus.dto.CommandResult;
 import dev.omatheusmesmo.qlawkus.dto.EnvironmentResult;
 import dev.omatheusmesmo.qlawkus.dto.ProcessInfo;
 import dev.omatheusmesmo.qlawkus.dto.SecurityResult;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import io.quarkus.logging.Log;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
@@ -24,7 +24,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@ClawTool
+@QlawTool
 public class ShellTool {
 
     public static final boolean IS_WINDOWS = System.getProperty("os.name", "").toLowerCase().contains("win");

@@ -2,7 +2,7 @@ package dev.omatheusmesmo.qlawkus.it.terminal;
 
 import dev.omatheusmesmo.qlawkus.dto.SessionInfo;
 import dev.omatheusmesmo.qlawkus.dto.SessionOutput;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.shell.InteractiveShellTool;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
@@ -21,7 +21,7 @@ import java.util.Map;
 public class PtyTestResource {
 
     @Inject
-    @ClawTool
+    @QlawTool
     InteractiveShellTool interactiveShellTool;
 
     @POST

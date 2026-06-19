@@ -5,7 +5,7 @@ import dev.omatheusmesmo.qlawkus.config.FileConfig;
 import dev.omatheusmesmo.qlawkus.dto.FileEntry;
 import dev.omatheusmesmo.qlawkus.dto.FileResult;
 import dev.omatheusmesmo.qlawkus.dto.SecurityResult;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import io.quarkus.logging.Log;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-@ClawTool
+@QlawTool
 public class FileTool {
 
     private static final long KB = 1024;

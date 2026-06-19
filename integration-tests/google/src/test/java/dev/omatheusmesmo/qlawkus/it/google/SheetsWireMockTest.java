@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.it.google;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tools.google.sheets.SheetsTool;
 import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -19,7 +19,7 @@ class SheetsWireMockTest {
     WireMock wiremock;
 
     @Inject
-    @ClawTool
+    @QlawTool
     SheetsTool sheetsTool;
 
     @Test

@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.it.brag;
 
 import dev.langchain4j.model.chat.ChatModel;
-import dev.omatheusmesmo.qlawkus.tool.ClawTool;
+import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragEntry;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragTool;
 import io.quarkus.test.InjectMock;
@@ -26,7 +26,7 @@ class BragExportResourceTest {
     ChatModel chatModel;
 
     @Inject
-    @ClawTool
+    @QlawTool
     BragTool bragTool;
 
     @AfterEach
