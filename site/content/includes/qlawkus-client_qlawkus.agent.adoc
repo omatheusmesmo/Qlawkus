@@ -259,5 +259,26 @@ endif::add-copy-button-to-env-var[]
 |boolean
 |`+++true+++`
 
+a| [[qlawkus-client_qlawkus-agent-facts-root]] [.property-path]##link:#qlawkus-client_qlawkus-agent-facts-root[`+++qlawkus.agent.facts.root+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.facts.root+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Directory holding the markdown fact files and the sibling embedding cache (`.embeddings.json`). Defaults to a qlawkus-owned folder, keeping facts editable and git-versionable.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_FACTS_ROOT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_FACTS_ROOT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++${user.home}/.qlawkus/facts+++`
+
 |===
 
