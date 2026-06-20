@@ -14,7 +14,6 @@ import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.markdown.MarkdownFactFiles;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.logging.Log;
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.nio.file.Path;
@@ -32,23 +31,23 @@ import java.util.Map;
 @IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "hybrid")
 public class HybridFactStore implements FactStore {
 
-  @Inject
-  AgentConfig config;
+  private final MarkdownFactFiles files;
+  private final EmbeddingModel embeddingModel;
+  private final EmbeddingStore<TextSegment> embeddingStore;
+  private final EmbeddingRepository embeddingRepository;
 
   @Inject
-  EmbeddingModel embeddingModel;
+  public HybridFactStore(AgentConfig config, EmbeddingModel embeddingModel,
+      EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository) {
+    this(config.facts().root(), embeddingModel, embeddingStore, embeddingRepository);
+  }
 
-  @Inject
-  EmbeddingStore<TextSegment> embeddingStore;
-
-  @Inject
-  EmbeddingRepository embeddingRepository;
-
-  private MarkdownFactFiles files;
-
-  @PostConstruct
-  void init() {
-    files = new MarkdownFactFiles(Path.of(config.facts().root()));
+  HybridFactStore(String root, EmbeddingModel embeddingModel,
+      EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository) {
+    this.files = new MarkdownFactFiles(Path.of(root));
+    this.embeddingModel = embeddingModel;
+    this.embeddingStore = embeddingStore;
+    this.embeddingRepository = embeddingRepository;
   }
 
   @Override

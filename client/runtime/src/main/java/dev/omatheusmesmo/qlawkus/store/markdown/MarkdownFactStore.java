@@ -44,13 +44,18 @@ public class MarkdownFactStore implements FactStore {
     this(config.facts().root(), embeddingModel);
   }
 
-  MarkdownFactStore(String root, EmbeddingModel embeddingModel) {
+  public MarkdownFactStore(String root, EmbeddingModel embeddingModel) {
     this.files = new MarkdownFactFiles(Path.of(root));
     this.embeddingModel = embeddingModel;
   }
 
+  /**
+   * Rebuilds the in-process embedding index from the {@code .md} files, re-embedding only facts
+   * absent from the JSON cache. Runs automatically as the CDI {@code @PostConstruct}; also callable
+   * directly when the store is constructed outside the container (tests).
+   */
   @PostConstruct
-  void load() {
+  public void load() {
     Map<String, float[]> cache = files.loadCache();
     Map<String, float[]> refreshed = new LinkedHashMap<>();
     boolean changed = false;
