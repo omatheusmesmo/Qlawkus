@@ -46,7 +46,7 @@ jobs:
           SITE_PATH_PREFIX: ''
         run: mvn -B -ntp -f site/pom.xml package quarkus:run -DskipTests
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v3
         with:
