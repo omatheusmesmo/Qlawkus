@@ -8,6 +8,17 @@ Thanks for your interest in Qlawkus. It is a multi-module Quarkus project: a set
 - Docker (for Dev Services in dev mode, and for the container run modes)
 - An `NVIDIA_AI_API_KEY` only if you want to run against a real LLM (dev mode and local Docker use Ollama)
 
+## Versions
+
+| What | Version |
+|------|---------|
+| Java | 25 |
+| Quarkus platform | 3.33.2 |
+| quarkus-langchain4j (Quarkiverse extension + BOM) | 1.11.2 |
+| Upstream `dev.langchain4j` (transitive, BOM-managed) | 1.16.2 (beta modules `langchain4j-skills`/`-pgvector`/`-agentic`: 1.16.2-beta26) |
+
+The Quarkiverse **extension** version (`1.11.2`) and the upstream **library** version (`1.16.2`) are **different namespaces** - they are not the same number by coincidence; they track separately. The platform and extension versions are set in the root `pom.xml` (`quarkus.platform.version`, `quarkus-langchain4j.version`); the upstream `dev.langchain4j:*` versions are managed transitively by `quarkus-langchain4j-bom`, so add those dependencies **without** a `<version>`. Verify with `mvn dependency:tree -pl client/runtime -Dincludes='dev.langchain4j'`.
+
 ## Project layout
 
 | Module | Role |

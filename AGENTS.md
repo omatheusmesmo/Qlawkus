@@ -53,13 +53,13 @@ Gotcha when testing recall: working memory and the system prompt are both source
 
 Skills are the agent's **procedural** memory (how to do a recurring task), complementing the declarative memory above. Each skill is a `SKILL.md` file (YAML frontmatter `name` + `description` + Markdown body). Same discipline as memory: the index is **injected, not searched** - `SoulEngine` adds a `## Skills` block (name + description only, via `SkillIndexRenderer`, capped by `qlawkus.skills.max-injected`) every turn; the full body is loaded on demand with the `viewSkill` tool (progressive disclosure).
 
-- **SPI**: `skill.SkillStore` (interface) with `Skill`/`SkillSummary` records and `SkillFrontmatter`. The backend is selected at **build time** via `@IfBuildProperty` on `qlawkus.cognition.backend` (`markdown` | `pgvector` | `hybrid`): `MarkdownSkillStore` (`@DefaultBean`, no DB, shared file logic in `MarkdownSkillFiles`), `store.pg.PgSkillStore` (the `skill` table, `V6` migration), `store.pg.HybridSkillStore` (files source-of-truth + pg mirror). Reads from all `qlawkus.skills.roots` (first wins); writes only to the first, owned root (default `~/.qlawkus/skills`).
+- **SPI**: `skill.SkillStore` (interface) with `Skill`/`SkillSummary` records. SKILL.md **parsing is delegated to the upstream `dev.langchain4j.skills` loaders** (`FileSystemSkillLoader`, agentskills.io spec, BOM-managed `dev.langchain4j:langchain4j-skills`); `SkillFrontmatter` owns only the **write** side (rendering a `Skill` back to frontmatter + body), which upstream does not provide. The backend is selected at **build time** via `@IfBuildProperty` on `qlawkus.cognition.backend` (`markdown` | `pgvector` | `hybrid`): `MarkdownSkillStore` (`@DefaultBean`, no DB, shared file logic in `MarkdownSkillFiles`), `store.pg.PgSkillStore` (the `skill` table, `V6` migration), `store.pg.HybridSkillStore` (files source-of-truth + pg mirror). Reads from all `qlawkus.skills.roots` (first wins); writes only to the first, owned root (default `~/.qlawkus/skills`).
 - **Tools** (in `AgentService`): `ViewSkillTool` (load body), `ManageSkillTool` (`createOrUpdateSkill` / `deleteSkill`).
 - **Auto-distill**: `SkillExtractorObserver` mines a reusable skill from each `ChatCompletedEvent` (gate `qlawkus.skills.extractor.enabled`), mirroring `SemanticExtractorObserver`.
 - **Curation**: `SkillCurationJob` removes redundant skills (scheduled + `POST /api/admin/skills/curate`).
 - **Lifecycle**: `viewSkill` calls `recordUse`; `SkillLifecycleJob` ages unused skills `ACTIVE -> STALE -> ARCHIVED` (config `qlawkus.skills.lifecycle.*`, scheduled + `POST /api/admin/skills/lifecycle`). Archived skills leave the injected index but stay loadable; pinned skills (`POST /api/admin/skills/{name}/pin`) never transition. Telemetry: pg columns (migration `V7`) for pgvector/hybrid, a `.qlawkus-usage.json` sidecar for markdown.
 - **Admin REST**: `GET/DELETE /api/admin/skills`, `GET /api/admin/skills/{name}`, `POST /api/admin/skills/{curate,lifecycle}`, `POST /api/admin/skills/{name}/pin`.
-- **Bundled skills (build-time)**: extensions/apps ship read-only skills as classpath resources under `META-INF/qlawkus-skills/<name>/SKILL.md`. `ClientProcessor.bundledSkills` (a `@BuildStep` + `SkillsRecorder`) scans and parses them at **augmentation** and bakes them into the synthetic `BundledSkills` bean - no runtime classpath scanning. Stores merge bundled (read-only) with owned skills; owned wins on a name clash.
+- **Bundled skills (build-time)**: extensions/apps ship read-only skills as classpath resources under `META-INF/qlawkus-skills/<name>/SKILL.md`. `ClientProcessor.bundledSkills` (a `@BuildStep` + `SkillsRecorder`) scans and parses them (via the same `FileSystemSkillLoader`) at **augmentation** and bakes them into the synthetic `BundledSkills` bean - no runtime classpath scanning. Stores merge bundled (read-only) with owned skills; owned wins on a name clash.
 
 Config knobs: `qlawkus.cognition.backend`, `qlawkus.skills.*`. The broader plan (making facts/episodic/working memory pluggable too, plus a `SkillHub` capability backed by jskills/skills.sh) lives outside the repo in the owner's notes.
 
@@ -166,6 +166,21 @@ Dev mode: Dev Services auto-provisions Ollama (no `.env` needed).
 Prod: Requires `LLM_API_KEY` in `.env`.
 
 Embedding dimension is hardcoded to 1024 via `EMBEDDING_DIMENSION` - must match the model output.
+
+### Dependency versions (do NOT conflate the two langchain4j namespaces)
+
+| What | Version | Where set |
+|------|---------|-----------|
+| Quarkus platform | `3.33.2` | `quarkus.platform.version` in root `pom.xml` |
+| quarkus-langchain4j (Quarkiverse extension + BOM) | `1.11.2` | `quarkus-langchain4j.version` in root `pom.xml` |
+| Upstream `dev.langchain4j` core (transitive) | `1.16.2` | managed by `quarkus-langchain4j-bom:1.11.2` - do not set |
+| Upstream beta modules (`langchain4j-skills`, `langchain4j-pgvector`, `langchain4j-agentic`) | `1.16.2-beta26` | same BOM - do not set |
+
+The Quarkiverse **extension** version (`1.11.2`) and the upstream **library** version (`1.16.2`) are different namespaces: `1.11.2` is NOT a langchain4j-core version. `quarkus-langchain4j-bom` transitively imports the `langchain4j-bom`, which pins every `dev.langchain4j:*` artifact. So when adding an upstream module (e.g. `langchain4j-skills`, or `dev.langchain4j:langchain4j` for `InMemoryEmbeddingStore`), add it with **no `<version>`** - the BOM resolves it. Re-verify any time with:
+
+```bash
+mvn dependency:tree -pl client/runtime -Dincludes='dev.langchain4j'
+```
 
 ## Key Entry Points
 
