@@ -10,7 +10,9 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
+import dev.omatheusmesmo.qlawkus.store.markdown.MarkdownFactStore;
 import io.quarkus.arc.Arc;
+import io.quarkus.arc.InstanceHandle;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.List;
@@ -38,8 +40,7 @@ public class ActiveMemoryAugmentor implements Supplier<RetrievalAugmentor> {
 
     ContentRetriever retriever;
     if (enabled) {
-      @SuppressWarnings("unchecked")
-      EmbeddingStore<TextSegment> store = Arc.container().instance(EmbeddingStore.class).get();
+      EmbeddingStore<TextSegment> store = resolveEmbeddingStore();
       EmbeddingModel model = Arc.container().instance(EmbeddingModel.class).get();
       retriever = EmbeddingStoreContentRetriever.builder()
           .embeddingStore(store)
@@ -52,5 +53,20 @@ public class ActiveMemoryAugmentor implements Supplier<RetrievalAugmentor> {
       retriever = query -> List.of();
     }
     return DefaultRetrievalAugmentor.builder().contentRetriever(retriever).build();
+  }
+
+  /**
+   * The embedding store to retrieve facts from, chosen by the active cognition backend. In markdown
+   * mode the {@link MarkdownFactStore} bean is present and owns an in-process index (no database);
+   * otherwise the Postgres-backed {@code EmbeddingStore} (pgvector / hybrid) is used. Both flow
+   * through the same {@code EmbeddingStoreContentRetriever}.
+   */
+  @SuppressWarnings("unchecked")
+  private EmbeddingStore<TextSegment> resolveEmbeddingStore() {
+    InstanceHandle<MarkdownFactStore> markdown = Arc.container().instance(MarkdownFactStore.class);
+    if (markdown.isAvailable()) {
+      return markdown.get().embeddingStore();
+    }
+    return Arc.container().instance(EmbeddingStore.class).get();
   }
 }

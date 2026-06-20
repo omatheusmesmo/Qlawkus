@@ -53,6 +53,23 @@ public interface AgentConfig {
      */
     SemanticExtractor semanticExtractor();
 
+    /**
+     * Markdown fact backend: where the agent's {@code .md} fact files and their embedding cache
+     * live. Used only when {@code qlawkus.cognition.backend=markdown}.
+     */
+    Facts facts();
+
+    interface Facts {
+
+        /**
+         * Directory holding the markdown fact files and the sibling embedding cache
+         * ({@code .embeddings.json}). Defaults to a qlawkus-owned folder, keeping facts editable
+         * and git-versionable.
+         */
+        @WithDefault("${user.home}/.qlawkus/facts")
+        String root();
+    }
+
     interface SharedContext {
 
         /**
