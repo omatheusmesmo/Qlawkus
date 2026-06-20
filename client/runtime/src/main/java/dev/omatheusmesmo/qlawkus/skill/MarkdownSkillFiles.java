@@ -2,6 +2,8 @@ package dev.omatheusmesmo.qlawkus.skill;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.skills.FileSystemSkill;
+import dev.langchain4j.skills.FileSystemSkillLoader;
 import io.quarkus.logging.Log;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -171,14 +173,17 @@ public class MarkdownSkillFiles {
       return;
     }
     try {
-      SkillFrontmatter.Parsed parsed =
-          SkillFrontmatter.parse(Files.readString(file, StandardCharsets.UTF_8));
-      String name = parsed.name().orElse(dir.getFileName().toString());
-      byName.putIfAbsent(name,
-          new Loaded(new Skill(name, parsed.description().orElse(""), parsed.body()), file));
-    } catch (IOException e) {
+      FileSystemSkill parsed = FileSystemSkillLoader.loadSkill(dir);
+      String name = isBlank(parsed.name()) ? dir.getFileName().toString() : parsed.name();
+      String description = parsed.description() == null ? "" : parsed.description();
+      byName.putIfAbsent(name, new Loaded(new Skill(name, description, parsed.content()), file));
+    } catch (RuntimeException e) {
       Log.warnf(e, "Failed to read skill at %s", file);
     }
+  }
+
+  private static boolean isBlank(String value) {
+    return value == null || value.isBlank();
   }
 
   private Map<String, SkillUsage> readUsage() {

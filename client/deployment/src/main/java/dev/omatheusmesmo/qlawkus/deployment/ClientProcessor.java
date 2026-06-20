@@ -1,7 +1,8 @@
 package dev.omatheusmesmo.qlawkus.deployment;
 
+import dev.langchain4j.skills.FileSystemSkill;
+import dev.langchain4j.skills.FileSystemSkillLoader;
 import dev.omatheusmesmo.qlawkus.skill.BundledSkills;
-import dev.omatheusmesmo.qlawkus.skill.SkillFrontmatter;
 import dev.omatheusmesmo.qlawkus.skill.SkillsRecorder;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
@@ -28,7 +29,6 @@ import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -87,13 +87,14 @@ class ClientProcessor {
     private static void readBundledSkill(Path file, List<String> names, List<String> descriptions,
             List<String> bodies) {
         try {
-            SkillFrontmatter.Parsed parsed =
-                    SkillFrontmatter.parse(Files.readString(file, StandardCharsets.UTF_8));
-            String name = parsed.name().orElseGet(() -> file.getParent().getFileName().toString());
+            FileSystemSkill parsed = FileSystemSkillLoader.loadSkill(file.getParent());
+            String name = (parsed.name() == null || parsed.name().isBlank())
+                    ? file.getParent().getFileName().toString()
+                    : parsed.name();
             names.add(name);
-            descriptions.add(parsed.description().orElse(""));
-            bodies.add(parsed.body());
-        } catch (IOException e) {
+            descriptions.add(parsed.description() == null ? "" : parsed.description());
+            bodies.add(parsed.content());
+        } catch (RuntimeException e) {
             Log.warnf(e, "Failed to read bundled skill %s", file);
         }
     }
