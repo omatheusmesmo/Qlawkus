@@ -2,8 +2,11 @@ package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.rag.RetrievalAugmentor;
+import dev.langchain4j.rag.content.injector.ContentInjector;
+import dev.langchain4j.rag.content.injector.DefaultContentInjector;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -30,6 +33,18 @@ import java.util.function.Supplier;
 @ApplicationScoped
 public class ActiveMemoryAugmentor implements Supplier<RetrievalAugmentor> {
 
+  /**
+   * Frames retrieved facts in the user message and surfaces each fact's {@code source} as
+   * provenance, so the model knows these are recalled memories (not the user's words) and where
+   * they came from. Empty retrieval is a no-op, so this is safe to apply unconditionally.
+   */
+  private static final ContentInjector MEMORY_INJECTOR = DefaultContentInjector.builder()
+      .promptTemplate(PromptTemplate.from("{{userMessage}}\n\n"
+          + "Relevant things you remember (each item is a stored memory, with its source):\n"
+          + "{{contents}}"))
+      .metadataKeysToInclude(List.of("source"))
+      .build();
+
   @Override
   public RetrievalAugmentor get() {
     AgentConfig.ActiveMemory activeMemory =
@@ -52,7 +67,10 @@ public class ActiveMemoryAugmentor implements Supplier<RetrievalAugmentor> {
     } else {
       retriever = query -> List.of();
     }
-    return DefaultRetrievalAugmentor.builder().contentRetriever(retriever).build();
+    return DefaultRetrievalAugmentor.builder()
+        .contentRetriever(retriever)
+        .contentInjector(MEMORY_INJECTOR)
+        .build();
   }
 
   /**
