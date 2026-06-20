@@ -70,7 +70,12 @@ sequenceDiagram
 
 == Memory
 
-The defining idea: *memory is injected into the prompt, not searched*. The agent does not have to decide to look things up.
+The defining idea is two deliberate choices that set Qlawkus apart from agents that paste their whole memory into the system prompt:
+
+* *Injected, not tool-called.* Relevant memory is retrieved and added automatically before every reply, so recall never depends on the model choosing to call a search tool.
+* *Retrieved, not dumped.* Active memory uses Retrieval-Augmented Generation (RAG): only the facts relevant to the current turn are injected (query-relevant top-K), never the entire store. The prompt stays small and the per-turn cost stays roughly constant as memory grows.
+
+See xref:memory.adoc[Memory] for the full treatment of this approach.
 
 ++++
 <div class="mermaid">

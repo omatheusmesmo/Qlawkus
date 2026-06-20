@@ -1,0 +1,57 @@
+= Memory
+:page-title: Memory
+:page-description: Declarative memory the agent retrieves with RAG and injects automatically, never a prompt dump
+
+Memory is Qlawkus's *declarative* memory: *what the agent knows* about its owner and the world. It complements the *procedural* memory described in xref:skills.adoc[Skills] (*how* the agent does recurring things). Where skills are how-to procedures, memory is facts, history, and the owner's profile.
+
+== Injected, not searched - and retrieved, not dumped
+
+Most agents handle long-term memory in one of two weak ways: they make the model *call a search tool* (so recall depends on the model deciding to look), or they *paste the entire memory* into the system prompt every turn (which balloons the prompt and stops scaling). Qlawkus rejects both. Two deliberate choices define the approach:
+
+* *Injected, not tool-called.* Relevant memory is retrieved and added to the prompt automatically before every reply. Recall never depends on the model choosing to call a search tool - reactive recall is unreliable, and the most important memory is the kind the model does not know it should look for.
+* *Retrieved, not wholesale.* Active memory uses Retrieval-Augmented Generation (RAG): each turn, only the facts relevant to the current message are selected (query-relevant top-K) and injected. The full store is never dumped into the prompt, so the per-turn token cost stays roughly constant as memory grows.
+
+The result is recall that is both *reliable* (always runs) and *bounded* (only what is relevant), instead of trading one off against the other.
+
+== What is injected each turn
+
+[cols="1,3",options="header"]
+|===
+|Layer |What it is
+
+|*Persona* |The agent's own `Soul` (identity, mood, focus), rendered into the system prompt by `SoulEngine`. Framing, not retrieval.
+|*Owner profile* |A single `UserProfile` describing the person served, injected on every turn by `SoulEngine`. Stable framing maintained by the `updateUserProfile` tool and refreshed nightly.
+|*Active memory (facts)* |Query-relevant facts retrieved before each reply by the `ActiveMemoryAugmentor` (a RAG retrieval augmentor) and injected into the prompt. This is the RAG path described above.
+|===
+
+Persona and owner profile are *stable framing* and live in the system prompt. Facts are *retrieved knowledge* and flow through the RAG augmentor - the two are kept separate on purpose.
+
+== Where facts come from
+
+Facts are written from several sources, each tagged so producers and purges never drift:
+
+* `remember-tool` - the agent explicitly records something with the `rememberFact` tool.
+* `semantic-extractor` - facts are distilled passively from each completed turn, on every channel (REST, Discord, Telegram).
+* `episodic-consolidator` - a nightly job summarizes each day into a journal.
+* `transcript` - every message is archived for full-text recall; transcripts are excluded from active memory so curated facts stay clean, and are searched on demand with the `searchTranscripts` tool.
+
+== Background curation
+
+The agent maintains its own memory so it does not rot:
+
+[cols="2,1,3",options="header"]
+|===
+|Job |Schedule |What it does
+
+|Episodic consolidation |nightly |Summarizes the day into a journal that active memory can surface.
+|Memory review |nightly (`POST /api/admin/memory/review`) |Removes semantic near-duplicate facts.
+|Profile curation |nightly (`POST /api/admin/memory/curate`) |Folds facts into the owner profile, reconciling contradictions. Facts themselves are left untouched.
+|===
+
+== Administration
+
+* `GET /api/admin/memory` - summary of what is stored.
+* `DELETE /api/admin/memory` - purge (all, or by source).
+* `POST /api/admin/memory/review` and `POST /api/admin/memory/curate` - trigger the curation jobs manually.
+
+See xref:architecture.adoc#_memory[Architecture > Memory] for the write/read data-flow diagram, and the xref:config-reference.adoc[configuration reference] for every `qlawkus.agent.*` memory knob.
