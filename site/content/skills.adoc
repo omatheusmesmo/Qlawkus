@@ -10,7 +10,7 @@ See xref:architecture.adoc#_skills_procedural_memory[Architecture > Skills] for 
 
 == Anatomy of a skill
 
-A skill is a single `SKILL.md` file: YAML frontmatter with a `name` and `description`, followed by a Markdown body.
+A skill is a single `SKILL.md` file: YAML frontmatter with a `name` and `description`, followed by a Markdown body. The file follows the https://agentskills.io[agentskills.io] spec and is parsed by the upstream langchain4j skill loaders, so a `SKILL.md` written for Qlawkus is portable to any other agent that speaks the same format.
 
 [source,markdown]
 ----
