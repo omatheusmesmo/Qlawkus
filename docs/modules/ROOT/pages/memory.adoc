@@ -54,4 +54,19 @@ The agent maintains its own memory so it does not rot:
 * `DELETE /api/admin/memory` - purge (all, or by source).
 * `POST /api/admin/memory/review` and `POST /api/admin/memory/curate` - trigger the curation jobs manually.
 
+== Storage backends
+
+The fact store backend is selected at build time with `qlawkus.cognition.backend`:
+
+[cols="1,3",options="header"]
+|===
+|Backend |Behavior
+
+|`pgvector` (default) |Embeddings in Postgres. Scales and is shared across instances.
+|`markdown` |Facts are `.md` files (editable, git-versionable) plus an in-process embedding index cached to JSON. No database; single-node.
+|`hybrid` |`.md` files are the source of truth, mirrored into pgvector for retrieval.
+|===
+
+Whichever backend is active, retrieval is the same query-relevant top-K RAG path described above - the choice trades off persistence and scale, never the recall model.
+
 See xref:architecture.adoc#_memory[Architecture > Memory] for the write/read data-flow diagram, and the xref:config-reference.adoc[configuration reference] for every `qlawkus.agent.*` memory knob.
