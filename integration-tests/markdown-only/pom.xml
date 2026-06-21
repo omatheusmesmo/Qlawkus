@@ -10,18 +10,18 @@
     <version>0.7.3-SNAPSHOT</version>
   </parent>
 
-  <artifactId>qlawkus-integration-tests-cognition</artifactId>
+  <artifactId>qlawkus-integration-tests-markdown-only</artifactId>
   <packaging>quarkus</packaging>
 
+  <!--
+    Proof of the database-free distribution: depends on qlawkus-client WITHOUT
+    qlawkus-cognition-pgvector, so there is no datasource, no Flyway and no pgvector. The agent boots
+    on the markdown @DefaultBean stores and persists everything to files under a temp ~/.qlawkus.
+  -->
   <dependencies>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-client</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>dev.omatheusmesmo</groupId>
-      <artifactId>qlawkus-cognition-pgvector</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -36,11 +36,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit-mockito</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>io.quarkiverse.wiremock</groupId>
       <artifactId>quarkus-wiremock</artifactId>
       <version>${quarkus-wiremock.version}</version>
@@ -50,11 +45,6 @@
       <groupId>io.quarkiverse.wiremock</groupId>
       <artifactId>quarkus-wiremock-test</artifactId>
       <version>${quarkus-wiremock.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.awaitility</groupId>
-      <artifactId>awaitility</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
