@@ -23,7 +23,7 @@ import io.quarkus.arc.Arc;
  * wires memoryId, tools and model correctly at build time.
  *
  * <ul>
- *   <li>{@code @MemoryId} -> Quarkus ChatMemoryProvider backed by PgWorkingMemoryStore (persistent, keyed by conversation).</li>
+ *   <li>{@code @MemoryId} -> Quarkus ChatMemoryProvider backed by the selected WorkingMemoryStore (persistent, keyed by conversation).</li>
  *   <li>No {@code @ChatModelSupplier}/{@code @ModelName} -> uses the default ChatModel bean = FallbackChatModel (resilience).</li>
  *   <li>{@code @SystemMessage("{{soul}}")} -> dynamic soul injected per call by callers (SoulEngine), since declarative agents have no system-message-provider hook.</li>
  *   <li>{@code @ToolProviderSupplier} -> QlawToolProvider (Google + dynamically discovered tools); the agent has no per-tool/module coupling.</li>
