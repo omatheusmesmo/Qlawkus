@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
-import jakarta.transaction.Transactional;
+import dev.omatheusmesmo.qlawkus.store.SoulStore;
+import io.quarkus.arc.Arc;
 
 public class SoulResetHelper {
 
@@ -39,13 +40,17 @@ public class SoulResetHelper {
 
             You have access to the user's long-term memory. Use the searchMemories tool when the conversation relates to user preferences, past decisions, or personal context. When in doubt, search.""";
 
-    @Transactional
     public static void resetToDefaults() {
-        Soul soul = Soul.findSoul();
+        SoulStore soulStore = Arc.container().instance(SoulStore.class).get();
+        Soul soul = soulStore.load();
+        if (soul == null) {
+            return;
+        }
         soul.rename("Qlawkus");
         soul.shiftMood(Mood.FOCUSED);
         soul.shiftState("Awaiting first interaction. No active context or specialization yet.");
         soul.rewriteIdentity(DEFAULT_CORE_IDENTITY);
+        soulStore.save(soul);
     }
 
     private SoulResetHelper() {}

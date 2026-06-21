@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
+import dev.omatheusmesmo.qlawkus.store.pg.UserProfileEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -22,7 +23,7 @@ class UserProfileTest {
   @AfterEach
   @Transactional
   void reset() {
-    UserProfile p = UserProfile.findProfile();
+    UserProfileEntity p = UserProfileEntity.findProfile();
     if (p != null) {
       p.name = null;
       p.profile = null;
@@ -32,7 +33,7 @@ class UserProfileTest {
   @Test
   @Transactional
   void findProfile_returnsSeededSingleton() {
-    UserProfile p = UserProfile.findProfile();
+    UserProfileEntity p = UserProfileEntity.findProfile();
     assertNotNull(p, "migration must seed a UserProfile row");
     assertEquals(1L, p.id);
   }

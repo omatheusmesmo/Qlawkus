@@ -3,7 +3,7 @@ package dev.omatheusmesmo.qlawkus.it.cognition;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.cognition.Mood;
-import dev.omatheusmesmo.qlawkus.cognition.Soul;
+import dev.omatheusmesmo.qlawkus.store.pg.SoulEntity;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils;
 import dev.omatheusmesmo.qlawkus.testing.QlawkusWireMockStubs;
@@ -147,21 +147,21 @@ class AgentServiceTest {
 
     @Transactional
     String currentName() {
-        return Soul.findSoul().name;
+        return SoulEntity.findSoul().name;
     }
 
     @Transactional
     Mood currentMood() {
-        return Soul.findSoul().mood;
+        return SoulEntity.findSoul().mood;
     }
 
     @Transactional
     String currentState() {
-        return Soul.findSoul().currentState;
+        return SoulEntity.findSoul().currentState;
     }
 
     @Transactional
     String currentCoreIdentity() {
-        return Soul.findSoul().coreIdentity;
+        return SoulEntity.findSoul().coreIdentity;
     }
 }

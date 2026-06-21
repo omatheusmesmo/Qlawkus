@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
+import dev.omatheusmesmo.qlawkus.store.pg.SoulEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.AfterEach;
@@ -23,7 +24,7 @@ class SoulTest {
     @Test
     @Transactional
     void findSoul_returnsSeededEntity() {
-        Soul soul = Soul.findSoul();
+        SoulEntity soul = SoulEntity.findSoul();
 
         assertNotNull(soul);
         assertEquals(1L, soul.id);
@@ -39,51 +40,51 @@ class SoulTest {
     @Test
     @Transactional
     void shiftMood_persistsNewMood() {
-        Soul soul = Soul.findSoul();
+        SoulEntity soul = SoulEntity.findSoul();
         Mood previousMood = soul.mood;
         Mood newMood = previousMood == Mood.CURIOUS ? Mood.ALERT : Mood.CURIOUS;
 
-        soul.shiftMood(newMood);
+        soul.mood = newMood;
 
-        Soul reloaded = Soul.findSoul();
+        SoulEntity reloaded = SoulEntity.findSoul();
         assertEquals(newMood, reloaded.mood);
     }
 
     @Test
     @Transactional
     void shiftState_persistsChanges() {
-        Soul soul = Soul.findSoul();
+        SoulEntity soul = SoulEntity.findSoul();
         String newState = "Reviewing open pull requests at " + Instant.now();
 
-        soul.shiftState(newState);
+        soul.currentState = newState;
 
-        Soul reloaded = Soul.findSoul();
+        SoulEntity reloaded = SoulEntity.findSoul();
         assertEquals(newState, reloaded.currentState);
     }
 
     @Test
     @Transactional
     void rename_persistsNewName() {
-        Soul soul = Soul.findSoul();
+        SoulEntity soul = SoulEntity.findSoul();
         String newName = "TestAgent" + System.currentTimeMillis();
 
-        soul.rename(newName);
+        soul.name = newName;
 
-        Soul reloaded = Soul.findSoul();
+        SoulEntity reloaded = SoulEntity.findSoul();
         assertEquals(newName, reloaded.name);
     }
 
     @Test
     @Transactional
     void preUpdate_setsUpdatedAt() throws InterruptedException {
-        Soul soul = Soul.findSoul();
+        SoulEntity soul = SoulEntity.findSoul();
         Instant beforeUpdate = soul.updatedAt;
 
         Thread.sleep(10);
 
-        soul.shiftState("Testing timestamp update at " + Instant.now());
+        soul.currentState = "Testing timestamp update at " + Instant.now();
 
-        Soul reloaded = Soul.findSoul();
+        SoulEntity reloaded = SoulEntity.findSoul();
         assertNotNull(reloaded.updatedAt);
         assertTrue(reloaded.updatedAt.isAfter(beforeUpdate) || reloaded.updatedAt.equals(beforeUpdate));
     }
