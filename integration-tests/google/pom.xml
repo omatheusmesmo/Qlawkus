@@ -30,21 +30,6 @@
         <artifactId>qlawkus-tools-google-auth</artifactId>
         <version>${project.version}</version>
     </dependency>
-    <!-- google-auth owns a Postgres-backed OAuth store (named "google-auth" PU) and marks its
-         persistence deps optional, so they no longer arrive transitively now that qlawkus-client is
-         database-free. Bring them in explicitly for this IT. -->
-    <dependency>
-        <groupId>io.quarkus</groupId>
-        <artifactId>quarkus-hibernate-orm-panache</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>io.quarkus</groupId>
-        <artifactId>quarkus-jdbc-postgresql</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>io.quarkus</groupId>
-        <artifactId>quarkus-flyway</artifactId>
-    </dependency>
     <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk18on</artifactId>
