@@ -4,7 +4,7 @@ import dev.omatheusmesmo.qlawkus.cognition.Mood;
 import dev.omatheusmesmo.qlawkus.cognition.Soul;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.SoulStore;
-import io.quarkus.arc.properties.IfBuildProperty;
+import io.quarkus.arc.DefaultBean;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -24,7 +24,7 @@ import java.nio.file.Path;
  * ({@code META-INF/qlawkus/default-soul.md}) so markdown mode still boots with a persona.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "markdown")
+@DefaultBean
 public class MarkdownSoulStore implements SoulStore {
 
   private static final String FILE = "soul.md";

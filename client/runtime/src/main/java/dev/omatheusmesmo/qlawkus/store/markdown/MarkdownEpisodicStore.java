@@ -3,7 +3,7 @@ package dev.omatheusmesmo.qlawkus.store.markdown;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.dto.JournalSummary;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
-import io.quarkus.arc.properties.IfBuildProperty;
+import io.quarkus.arc.DefaultBean;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -19,7 +19,7 @@ import java.util.List;
  * {@code FactStore} ({@code source=episodic-consolidator}), which owns its own index.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "markdown")
+@DefaultBean
 public class MarkdownEpisodicStore implements EpisodicStore {
 
   private final MarkdownEpisodicFiles files;

@@ -3,7 +3,7 @@ package dev.omatheusmesmo.qlawkus.store.markdown;
 import dev.omatheusmesmo.qlawkus.cognition.UserProfile;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
-import io.quarkus.arc.properties.IfBuildProperty;
+import io.quarkus.arc.DefaultBean;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.io.IOException;
@@ -20,7 +20,7 @@ import java.nio.file.Path;
  * system prompt renders the "record a profile" nudge identically.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "markdown")
+@DefaultBean
 public class MarkdownUserProfileStore implements UserProfileStore {
 
   private static final String FILE = "owner.md";
