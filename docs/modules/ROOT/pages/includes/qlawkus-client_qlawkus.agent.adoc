@@ -301,5 +301,47 @@ endif::add-copy-button-to-env-var[]
 |string
 |`+++${user.home}/.qlawkus/journals+++`
 
+a| [[qlawkus-client_qlawkus-agent-working-memory-root]] [.property-path]##link:#qlawkus-client_qlawkus-agent-working-memory-root[`+++qlawkus.agent.working-memory.root+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.working-memory.root+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Directory holding the append-only per-conversation chat logs (`<memoryId>.jsonl`). Defaults to a qlawkus-owned folder.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_WORKING_MEMORY_ROOT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_WORKING_MEMORY_ROOT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++${user.home}/.qlawkus/working-memory+++`
+
+a| [[qlawkus-client_qlawkus-agent-state-root]] [.property-path]##link:#qlawkus-client_qlawkus-agent-state-root[`+++qlawkus.agent.state.root+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.state.root+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Directory holding the singleton persona (`soul.md`) and owner profile (`owner.md`) files. Defaults to a qlawkus-owned folder, keeping them editable and git-versionable.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_STATE_ROOT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_STATE_ROOT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++${user.home}/.qlawkus/state+++`
+
 |===
 

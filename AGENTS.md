@@ -13,14 +13,15 @@ Changing `client/` requires re-running `mvn install -pl client -am` then restart
 
 Multi-module Maven monorepo with a Quarkus extension pattern (`client/deployment` + `client/runtime`):
 
-- **`client/`** - Quarkus extension (core agent, cognition, REST, tools). Not a runnable app.
+- **`client/`** - Quarkus extension (core agent, cognition, REST, tools). Not a runnable app. **Database-free**: depends on no datasource/JDBC/Flyway/pgvector - the markdown stores are its `@DefaultBean` backend.
+- **`cognition-pgvector/`** - Optional Quarkus extension (`deployment/` + `runtime/`) holding the entire Postgres/pgvector backend for the cognition stores (the `store.pg` package, the 7 Flyway migrations, and the datasource/pgvector config as `META-INF/microprofile-config.properties`). Present in `app/`; absent in a markdown-only distribution. `requires` the `dev.omatheusmesmo.qlawkus.agent` capability.
 - **`app/`** - Deployable Quarkus app (`packaging=quarkus`). Wires all extensions together. Only module you run.
 - **`tools/`** - Optional tool extensions (Google Workspace 6 modules + Brag). Each is a standalone Quarkus extension with `deployment/` + `runtime/`.
 - **`messaging/`** - Messaging extension (core + Discord/Telegram/Slack/WhatsApp adapters). Same `deployment/` + `runtime/` pattern.
-- **`integration-tests/`** - Per-feature integration test modules (smoke, cognition, google, terminal, brag, code-review, messaging). Each is a standalone Quarkus app (`packaging=quarkus`).
+- **`integration-tests/`** - Per-feature integration test modules (smoke, cognition, markdown-only, google, terminal, brag, code-review, messaging). Each is a standalone Quarkus app (`packaging=quarkus`). `markdown-only` is the proof of the database-free distribution (boots with no datasource); `cognition` depends on `cognition-pgvector` to exercise the Postgres path.
 - **`testing-internal/`** - Shared test utilities (depends on `qlawkus-client`).
 
-`app/` depends on `client`, all `tools/*`, and `messaging` (core + discord + telegram). Slack and WhatsApp adapters are built but not in `app/` pom.
+`app/` depends on `client`, `cognition-pgvector`, all `tools/*`, and `messaging` (core + discord + telegram). Slack and WhatsApp adapters are built but not in `app/` pom.
 
 ## Cognition & Memory
 
@@ -28,16 +29,16 @@ The memory subsystem (`client/runtime/.../cognition` + `.../store`) is the core 
 
 Three layers, all injected each turn via `SoulEngine` (the agent's `systemMessageProviderSupplier`) and the retrieval augmentor:
 
-- **Persona** - `Soul` (singleton entity) rendered into the system message by `SoulEngine`.
-- **Owner** - `UserProfile` (singleton; the single user this agent serves) injected every turn by `SoulEngine`. Maintained by `UpdateUserProfileTool`, refreshed by `MemoryCurationJob`.
-- **Facts** - `FactStore` SPI, backend selected at **build time** via `@IfBuildProperty` on `qlawkus.cognition.backend` (`markdown` | `pgvector` | `hybrid`): `store.pg.PgFactStore` (pgvector, default), `store.markdown.MarkdownFactStore` (`.md` files + in-process `InMemoryEmbeddingStore` with a JSON embedding cache, no DB; shared file logic in `MarkdownFactFiles`), `store.pg.HybridFactStore` (files source-of-truth + pg mirror). Root: `qlawkus.agent.facts.root` (default `~/.qlawkus/facts`). Every embedding is tagged with a `MemorySource` (`remember-tool`, `semantic-extractor`, `episodic-consolidator`, `transcript`) - the enum exists so producers and purges never drift.
+- **Persona** - `Soul` (a plain singleton domain object) rendered into the system message by `SoulEngine`. Persisted behind the `SoulStore` SPI, backend selected by the same `qlawkus.cognition.backend` switch: `store.markdown.MarkdownSoulStore` (`@DefaultBean`, a `soul.md` file seeded from `META-INF/qlawkus/default-soul.md`, no DB), `store.pg.PgSoulStore` (the `soul` table via `SoulEntity`), `store.pg.HybridSoulStore` (reuses pg).
+- **Owner** - `UserProfile` (a plain singleton domain object; the single user this agent serves) injected every turn by `SoulEngine`. Maintained by `UpdateUserProfileTool`, refreshed by `MemoryCurationJob`. Persisted behind the `UserProfileStore` SPI: `MarkdownUserProfileStore` (`@DefaultBean`, an `owner.md` file), `PgUserProfileStore` (the `user_profile` table via `UserProfileEntity`), `HybridUserProfileStore`. Roots for the markdown soul/profile files: `qlawkus.agent.state.root` (default `~/.qlawkus/state`).
+- **Facts** - `FactStore` SPI, backend selected at **build time** via `@IfBuildProperty` on `qlawkus.cognition.backend` (`markdown` | `pgvector` | `hybrid`): `store.markdown.MarkdownFactStore` (`@DefaultBean`; `.md` files + in-process `InMemoryEmbeddingStore` with a JSON embedding cache, no DB; shared file logic in `MarkdownFactFiles`), `store.pg.PgFactStore` (pgvector; `@IfBuildProperty pgvector enableIfMissing`, only present when the `cognition-pgvector` extension is on the classpath), `store.pg.HybridFactStore` (files source-of-truth + pg mirror). Root: `qlawkus.agent.facts.root` (default `~/.qlawkus/facts`). The markdown stores are `@DefaultBean` across the module split, so they win whenever the pgvector extension is absent (database-free) and the non-default pg/hybrid beans override them when it is present - regardless of the `backend` value. Every embedding is tagged with a `MemorySource` (`remember-tool`, `semantic-extractor`, `episodic-consolidator`, `transcript`) - the enum exists so producers and purges never drift.
 
 Stores & retrieval:
 
 - **Active Memory** - `ActiveMemoryAugmentor` is the AiService `retrievalAugmentor`; it runs an `EmbeddingStoreContentRetriever` before each reply and injects query-relevant facts. It filters OUT `source=transcript` so curated facts stay clean.
-- **Working memory** - `PgWorkingMemoryStore` (a langchain4j `ChatMemoryStore`), windowed to 40 messages. `updateMessages` is append-only (preserves `createdAt`; never reset it) and fires `MessagesAppendedEvent` for every new message on any channel.
+- **Working memory** - `WorkingMemoryStore` SPI (also a langchain4j `ChatMemoryStore`), windowed to 40 messages. `updateMessages` is append-only (preserves `createdAt`; never reset it) and fires `MessagesAppendedEvent` for every new message on any channel. Backends: `store.markdown.MarkdownWorkingMemoryStore` (`@DefaultBean`, one append-only `<memoryId>.jsonl` per conversation under `qlawkus.agent.working-memory.root`, default `~/.qlawkus/working-memory`), `store.pg.PgWorkingMemoryStore` (the `chat_message_entity` table), `store.pg.HybridWorkingMemoryStore` (reuses pg - the rolling chat log is transient, not file-versioned). The markdown store is the `@DefaultBean`; because upstream ships a `@DefaultBean InMemoryChatMemoryStore`, `ClientProcessor` vetoes it (`ExcludedTypeBuildItem`) so there is a single default and the non-default pg/hybrid beans still override when the pgvector extension is present.
 - **Transcripts (session_search)** - `TranscriptArchiveObserver` embeds each message as `source=transcript`; `SearchTranscriptsTool` searches only those.
-- **Episodic** - `EpisodicConsolidatorJob` (nightly) summarizes each day into journals (also embedded through the `FactStore` as `source=episodic-consolidator`). The journal record is an `EpisodicStore` SPI, backend selected at build time by the same `qlawkus.cognition.backend`: `store.pg.PgEpisodicStore` (the `Journal` table, default), `store.markdown.MarkdownEpisodicStore` (dated `<date>.md` files, one per day, no DB; file logic in `MarkdownEpisodicFiles`), `store.pg.HybridEpisodicStore` (files source-of-truth + pg mirror). Pg/hybrid share Panache access via `JournalRepository`. Root: `qlawkus.agent.episodic.root` (default `~/.qlawkus/journals`).
+- **Episodic** - `EpisodicConsolidatorJob` (nightly) summarizes each day into journals (also embedded through the `FactStore` as `source=episodic-consolidator`). The journal record is an `EpisodicStore` SPI, backend selected at build time by the same `qlawkus.cognition.backend`: `store.markdown.MarkdownEpisodicStore` (`@DefaultBean`; dated `<date>.md` files, one per day, no DB; file logic in `MarkdownEpisodicFiles`), `store.pg.PgEpisodicStore` (the `Journal` table), `store.pg.HybridEpisodicStore` (files source-of-truth + pg mirror). Pg/hybrid share Panache access via `JournalRepository` and live in the `cognition-pgvector` extension. Root: `qlawkus.agent.episodic.root` (default `~/.qlawkus/journals`).
 
 Scheduled background jobs, each with a manual `POST /api/admin/memory/*` trigger:
 
@@ -61,7 +62,7 @@ Skills are the agent's **procedural** memory (how to do a recurring task), compl
 - **Admin REST**: `GET/DELETE /api/admin/skills`, `GET /api/admin/skills/{name}`, `POST /api/admin/skills/{curate,lifecycle}`, `POST /api/admin/skills/{name}/pin`.
 - **Bundled skills (build-time)**: extensions/apps ship read-only skills as classpath resources under `META-INF/qlawkus-skills/<name>/SKILL.md`. `ClientProcessor.bundledSkills` (a `@BuildStep` + `SkillsRecorder`) scans and parses them (via the same `FileSystemSkillLoader`) at **augmentation** and bakes them into the synthetic `BundledSkills` bean - no runtime classpath scanning. Stores merge bundled (read-only) with owned skills; owned wins on a name clash.
 
-Config knobs: `qlawkus.cognition.backend`, `qlawkus.skills.*`. Facts and episodic journals are already pluggable on this same switch; the broader plan (making working memory pluggable too and fully gating the datasource for a markdown-only distribution, plus a `SkillHub` capability backed by jskills/skills.sh) lives outside the repo in the owner's notes.
+Config knobs: `qlawkus.cognition.backend`, `qlawkus.skills.*`. Facts, episodic journals, skills, working memory, the persona (`Soul`) and the owner profile (`UserProfile`) are all pluggable on this same switch, and the entire Postgres backend now lives in the optional `cognition-pgvector` extension - so a build without it is database-free (validated by `integration-tests/markdown-only`). The remaining broader plan (a `SkillHub` capability backed by jskills/skills.sh) lives outside the repo in the owner's notes.
 
 ## Testing
 
@@ -132,10 +133,10 @@ Resource collections:
 
 ## Databases
 
-3 PostgreSQL databases, all managed by Flyway:
-- **`qlawkus`** (default) - Main: SOUL, chat history, episodic journal, pgvector embeddings
-- **`qlawkus_google_auth`** - OAuth credentials + state
-- **`qlawkus_brag`** - Career brag documents
+Up to 3 PostgreSQL databases, all managed by Flyway:
+- **`qlawkus`** (default) - Main: persona, owner profile, chat history, episodic journal, pgvector embeddings. **Only present when the `cognition-pgvector` extension is on the classpath** (it owns the default datasource, the 7 `V1..V7` migrations, and the pgvector config, contributed via its `META-INF/microprofile-config.properties`). A markdown-only build has no default datasource and never connects to Postgres.
+- **`qlawkus_google_auth`** - OAuth credentials + state (Google tools extension)
+- **`qlawkus_brag`** - Career brag documents (Brag tool extension; its own named `brag` datasource, independent of cognition)
 
 In Docker, `docker/postgres-init/01-create-databases.sql` creates the extra DBs. In dev mode, Flyway `clean-at-start` resets schema on every restart.
 
