@@ -33,6 +33,23 @@ public class LlmKindConfigSourceFactory implements ConfigSourceFactory {
     private static final int ORDINAL = 90;
     private static final String NO_KEY_PLACEHOLDER = "no-key";
 
+    /**
+     * Whether the qlawkus-cognition-pgvector extension is on the classpath. Gates emitting the
+     * pgvector table dimension so a markdown-only, database-free build does not feed config to an
+     * absent extension.
+     */
+    private static final boolean PGVECTOR_PRESENT = isPgvectorPresent();
+
+    private static boolean isPgvectorPresent() {
+        try {
+            Class.forName("io.quarkiverse.langchain4j.pgvector.PgVectorEmbeddingStore", false,
+                    Thread.currentThread().getContextClassLoader());
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
     @Override
     public Iterable<ConfigSource> getConfigSources(ConfigSourceContext context) {
         ProviderKind kind = ProviderKind.of(value(context, "openai", "qlawkus.openai.kind", "LLM_KIND"));
@@ -88,9 +105,14 @@ public class LlmKindConfigSourceFactory implements ConfigSourceFactory {
         emitted.put("qlawkus.embedding.base-url", embBaseUrl);
         emitted.put("qlawkus.embedding.api-key", embApiKey);
         emitted.put("qlawkus.embedding.model-name", embModel);
-        // pgvector table dimension is always set; the OpenAI `dimensions` request param is only sent
-        // for providers that accept it (Matryoshka) — sending it to NVIDIA/mistral/ollama errors.
-        emitted.put("quarkus.langchain4j.pgvector.dimension", embDims);
+        // pgvector table dimension is only emitted when the qlawkus-cognition-pgvector extension is on
+        // the classpath; a markdown-only (database-free) build has no pgvector config to feed, so
+        // skipping it avoids an "unrecognized configuration key" warning at boot. The OpenAI
+        // `dimensions` request param below is separate: only sent for providers that accept it
+        // (Matryoshka) — sending it to NVIDIA/mistral/ollama errors.
+        if (PGVECTOR_PRESENT) {
+            emitted.put("quarkus.langchain4j.pgvector.dimension", embDims);
+        }
         if (embKind.sendsDimensionsParam()) {
             emitted.put("qlawkus.embedding.dimensions", embDims);
         }

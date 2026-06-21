@@ -8,6 +8,7 @@ import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProviderSupplier;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
+import io.quarkus.arc.deployment.ExcludedTypeBuildItem;
 import io.quarkus.arc.deployment.SyntheticBeanBuildItem;
 import io.quarkus.deployment.ApplicationArchive;
 import io.quarkus.deployment.annotations.BuildProducer;
@@ -48,6 +49,22 @@ class ClientProcessor {
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
+    }
+
+    /**
+     * Vetoes the upstream {@code @DefaultBean InMemoryChatMemoryStore} so the agent's working memory
+     * always comes from a Qlawkus {@code WorkingMemoryStore}. Qlawkus ships its own
+     * {@code @DefaultBean MarkdownWorkingMemoryStore} (which also implements {@code ChatMemoryStore});
+     * leaving the upstream default in place would make two {@code @DefaultBean ChatMemoryStore}
+     * candidates and an ambiguous resolution in the database-free build. With the upstream one
+     * excluded, the markdown store is the sole default and the non-default Postgres stores
+     * ({@code PgWorkingMemoryStore} / {@code HybridWorkingMemoryStore}) still override it when the
+     * pgvector extension is present.
+     */
+    @BuildStep
+    ExcludedTypeBuildItem vetoUpstreamInMemoryChatMemoryStore() {
+        return new ExcludedTypeBuildItem(
+                "io.quarkiverse.langchain4j.runtime.aiservice.InMemoryChatMemoryStoreProducer");
     }
 
     /**
