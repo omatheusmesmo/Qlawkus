@@ -20,6 +20,7 @@ import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.RunTimeConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.StaticInitConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedClassBuildItem;
 import io.quarkus.logging.Log;
 import dev.omatheusmesmo.qlawkus.model.LlmKindConfigBuilder;
 import jakarta.inject.Singleton;
@@ -97,6 +98,17 @@ class ClientProcessor {
         } catch (RuntimeException e) {
             Log.warnf(e, "Failed to read bundled skill %s", file);
         }
+    }
+
+    /**
+     * {@code ActiveMemoryAugmentor} holds a static {@code ContentInjector} whose prompt template is
+     * not native-image safe to construct at image build time. Initialize the class at runtime so its
+     * static initializer runs in the running image instead of failing the build.
+     */
+    @BuildStep
+    RuntimeInitializedClassBuildItem runtimeInitActiveMemoryAugmentor() {
+        return new RuntimeInitializedClassBuildItem(
+                "dev.omatheusmesmo.qlawkus.cognition.ActiveMemoryAugmentor");
     }
 
     @BuildStep

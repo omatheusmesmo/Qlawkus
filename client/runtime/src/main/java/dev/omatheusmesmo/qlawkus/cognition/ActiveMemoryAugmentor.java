@@ -37,6 +37,10 @@ public class ActiveMemoryAugmentor implements Supplier<RetrievalAugmentor> {
    * Frames retrieved facts in the user message and surfaces each fact's {@code source} as
    * provenance, so the model knows these are recalled memories (not the user's words) and where
    * they came from. Empty retrieval is a no-op, so this is safe to apply unconditionally.
+   *
+   * <p>The injector's prompt template is not native-image safe to build at image build time, so
+   * {@code ClientProcessor} marks this class for runtime class initialization
+   * ({@code RuntimeInitializedClassBuildItem}); the field is then initialized at runtime.
    */
   private static final ContentInjector MEMORY_INJECTOR = DefaultContentInjector.builder()
       .promptTemplate(PromptTemplate.from("{{userMessage}}\n\n"
