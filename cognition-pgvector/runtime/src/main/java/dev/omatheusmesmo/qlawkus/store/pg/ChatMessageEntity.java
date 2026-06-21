@@ -46,6 +46,14 @@ public class ChatMessageEntity extends PanacheEntityBase {
     return delete("memoryId = ?1", memoryId);
   }
 
+  /** Distinct conversation ids with stored messages, for reconciling/migrating working memory. */
+  @SuppressWarnings("unchecked")
+  public static List<String> distinctMemoryIds() {
+    return getEntityManager()
+        .createQuery("SELECT DISTINCT m.memoryId FROM ChatMessageEntity m")
+        .getResultList();
+  }
+
   public static Instant findLatestTimestamp(String memoryId) {
     ChatMessageEntity latest = find("memoryId = ?1 order by createdAt desc", memoryId).firstResult();
     return latest != null ? latest.createdAt : null;

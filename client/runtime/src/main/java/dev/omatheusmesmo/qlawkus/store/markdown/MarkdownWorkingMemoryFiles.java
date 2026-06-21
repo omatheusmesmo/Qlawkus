@@ -125,6 +125,17 @@ public class MarkdownWorkingMemoryFiles {
     return all;
   }
 
+  /**
+   * The conversation ids that have a stored log, i.e. the {@code .jsonl} file stems. Used to
+   * reconcile/migrate working memory against another backend. Ids are already in their sanitized
+   * on-disk form.
+   */
+  public List<String> listMemoryIds() {
+    return allFiles().stream()
+        .map(p -> p.getFileName().toString().replaceFirst("\\.jsonl$", ""))
+        .toList();
+  }
+
   private List<Path> allFiles() {
     if (!Files.isDirectory(root)) {
       return List.of();
