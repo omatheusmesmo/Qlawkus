@@ -21,14 +21,16 @@ graph TB
     end
     subgraph infra["Infrastructure"]
         style infra fill:#fff,stroke:#ccc,stroke-dasharray: 5 5
-        pg["PostgreSQL + pgvector"]
+        pg["PostgreSQL + pgvector (optional)"]
         llm["LLM - NVIDIA NIM / Ollama"]
     end
     app --> client
+    app --> cognitionpg
     app --> messaging
     app --> tools
-    client --> pg
     client --> llm
+    cognitionpg --> client
+    cognitionpg -.->|only backend that touches a DB| pg
     messaging --> client
     tools --> client
 </div>
