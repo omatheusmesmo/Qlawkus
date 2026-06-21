@@ -8,7 +8,7 @@ import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.MessagesAppendedEvent;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import dev.omatheusmesmo.qlawkus.store.markdown.MarkdownWorkingMemoryFiles.StoredMessage;
-import io.quarkus.arc.properties.IfBuildProperty;
+import io.quarkus.arc.DefaultBean;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
@@ -19,14 +19,20 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 /**
- * Markdown-backed {@link WorkingMemoryStore} (and langchain4j {@link ChatMemoryStore}), active when
- * {@code qlawkus.cognition.backend=markdown}. Each conversation is an append-only
- * {@code <memoryId>.jsonl} log under {@code qlawkus.agent.working-memory.root}; no database. Overrides
- * the upstream {@code @DefaultBean InMemoryChatMemoryStore}, exactly as {@code PgWorkingMemoryStore}
- * does for the pgvector backend. The 40-message window is applied by langchain4j on read, not here.
+ * Markdown-backed {@link WorkingMemoryStore} (and langchain4j {@link ChatMemoryStore}). Each
+ * conversation is an append-only {@code <memoryId>.jsonl} log under
+ * {@code qlawkus.agent.working-memory.root}; no database. The 40-message window is applied by
+ * langchain4j on read, not here.
+ *
+ * <p>This is the {@code @DefaultBean} working-memory store, so it backs the agent whenever no
+ * Postgres backend is on the classpath (the database-free distribution). When the
+ * qlawkus-cognition-pgvector extension is present its non-default {@code PgWorkingMemoryStore} /
+ * {@code HybridWorkingMemoryStore} override this one. For the default to apply to the
+ * {@link ChatMemoryStore} type, {@code ClientProcessor} vetoes the upstream
+ * {@code @DefaultBean InMemoryChatMemoryStore} so there is a single default.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "markdown")
+@DefaultBean
 public class MarkdownWorkingMemoryStore implements WorkingMemoryStore, ChatMemoryStore {
 
   private final MarkdownWorkingMemoryFiles files;
