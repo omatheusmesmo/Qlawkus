@@ -105,7 +105,7 @@ graph LR
 * *Facts* - long-term facts, each tagged with a source (`remember-tool`, `semantic-extractor`, `episodic-consolidator`, `transcript`). The store backend is selectable via `qlawkus.cognition.backend`: `pgvector` (default), `markdown` (files plus an in-process embedding index, no database), or `hybrid` (files mirrored into pgvector). All three retrieve query-relevant top-K through the same RAG path.
 * *Active memory* - before each reply, relevant facts are retrieved and injected (transcripts excluded to keep it clean).
 * *Transcripts (session search)* - every message is archived and semantically searchable via the `searchTranscripts` tool, distinct from curated facts.
-* *Episodic journals* - a nightly job summarizes each day; summaries are embedded and surfaced by active memory.
+* *Episodic journals* - a nightly job summarizes each day; the summary is embedded through the fact store (so it is surfaced by active memory) and the journal record is kept by an `EpisodicStore` whose backend follows the same `qlawkus.cognition.backend` switch: `pgvector` (the `Journal` table, default), `markdown` (dated `<date>.md` files, no database), or `hybrid` (files mirrored into pgvector).
 
 === Background jobs
 
