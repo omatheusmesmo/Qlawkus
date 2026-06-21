@@ -54,9 +54,12 @@ public class LlmKindConfigSourceFactory implements ConfigSourceFactory {
     public Iterable<ConfigSource> getConfigSources(ConfigSourceContext context) {
         ProviderKind kind = ProviderKind.of(value(context, "openai", "qlawkus.openai.kind", "LLM_KIND"));
 
-        // Overrides use the friendly LLM_* env alias or the native quarkus-langchain4j key — Qlawkus
-        // does not add redundant qlawkus.openai.* properties for these. The native key is read so the
-        // embedding can inherit an explicitly-set primary base-url/api-key.
+        // Overrides use the friendly LLM_* env alias or an explicitly-set native quarkus-langchain4j
+        // key (so the embedding can inherit an explicit primary base-url/api-key). "Explicitly-set" is
+        // the crux: value() only honors a key whose winning source out-ranks this one (ordinal > 90),
+        // so the openai extension's @WithDefault (base-url "https://api.openai.com/v1/", at the
+        // lowest ordinal) is NOT read back here. Reading it would shadow the selected kind's default
+        // and silently route a non-OpenAI provider (NVIDIA, mistral, ...) to the OpenAI endpoint.
         // "dummy" is the project-wide "no real key" sentinel (see QlawkusTestUtils#usesLLM), but the
         // quarkus-langchain4j openai extension treats a "dummy" api-key as unset and fails to start.
         // Map it (and a missing key) to a harmless placeholder so the app boots keyless (LLM off).
@@ -129,10 +132,18 @@ public class LlmKindConfigSourceFactory implements ConfigSourceFactory {
         return OptionalInt.of(ORDINAL);
     }
 
+    /**
+     * Returns the first key whose value is set by a source that out-ranks this factory (ordinal &gt;
+     * {@link #ORDINAL}) - i.e. an explicit override (env, application.properties) rather than another
+     * extension's {@code @WithDefault}. Values originating from the lowest-ordinal default sources are
+     * ignored so the caller falls back to the kind default instead of echoing, say, the openai
+     * extension's default base-url. Mirrors the precedence promised in the class javadoc.
+     */
     private static String value(ConfigSourceContext context, String fallback, String... keys) {
         for (String key : keys) {
             ConfigValue configValue = context.getValue(key);
-            if (configValue != null && configValue.getValue() != null && !configValue.getValue().isBlank()) {
+            if (configValue != null && configValue.getValue() != null && !configValue.getValue().isBlank()
+                    && configValue.getConfigSourceOrdinal() > ORDINAL) {
                 return configValue.getValue();
             }
         }
