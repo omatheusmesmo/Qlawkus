@@ -64,6 +64,8 @@ Skills are the agent's **procedural** memory (how to do a recurring task), compl
 
 Config knobs: `qlawkus.cognition.backend`, `qlawkus.skills.*`. Facts, episodic journals, skills, working memory, the persona (`Soul`) and the owner profile (`UserProfile`) are all pluggable on this same switch, and the entire Postgres backend now lives in the optional `cognition-pgvector` extension - so a build without it is database-free (validated by `integration-tests/markdown-only`). The remaining broader plan (a `SkillHub` capability backed by jskills/skills.sh) lives outside the repo in the owner's notes.
 
+Backend migration (in `cognition-pgvector`, so only in pgvector/hybrid builds): `store.pg.reconcile.CognitionReconciler` does a bidirectional, idempotent **union** of files <-> pgvector across all six stores (collections keyed by content hash/date/name/conversation id; singletons filled only when one side is empty, never clobbered). It runs once at hybrid boot via `HybridReconcileStartup` (gate `qlawkus.cognition.reconcile-at-start`, default `true`) and on `POST /api/admin/cognition/reconcile`. `CognitionMigrator` (`POST /api/admin/cognition/migrate?direction=files-to-pg|pg-to-files`) is the explicit one-directional copy that **does** overwrite the destination singletons. This is a Qlawkus capability, not an upstream langchain4j one - it's only possible because every store keeps a parallel markdown representation as the bridge. Covered by `CognitionReconcileTest`.
+
 ## Testing
 
 ```bash
