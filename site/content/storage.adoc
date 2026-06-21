@@ -1,0 +1,74 @@
+= Storage
+:page-title: Storage
+:page-description: How cognition data is persisted - markdown, pgvector or hybrid - and how to move between them
+
+Qlawkus persists everything the agent knows behind a small set of store SPIs, with the concrete backend chosen at build time by a single switch. The same switch governs every cognition store, so a deployment is uniformly database-backed, file-backed, or hybrid - and a build that omits the Postgres extension is genuinely database-free.
+
+== The stores
+
+Six cognition stores (plus skills) sit behind SPIs in `qlawkus-client`, each with interchangeable backends:
+
+[cols="1,3",options="header"]
+|===
+|Store |What it holds
+
+|`FactStore` |Long-term facts, retrieved as query-relevant top-K (RAG) and injected each turn.
+|`EpisodicStore` |Dated daily journals produced by the nightly consolidator.
+|`SkillStore` |Procedural how-to skills (`SKILL.md`), injected as an index and loaded on demand.
+|`WorkingMemoryStore` |The rolling 40-message conversation window (also the langchain4j `ChatMemoryStore`).
+|`SoulStore` |The agent's persona singleton (`Soul`: mood, focus, identity).
+|`UserProfileStore` |The owner profile singleton (`UserProfile`).
+|===
+
+== Backends
+
+The backend is selected at build time with `qlawkus.cognition.backend`:
+
+[cols="1,3",options="header"]
+|===
+|Backend |Behavior
+
+|`markdown` |Facts are `.md` files (editable, git-versionable) plus an in-process embedding index cached to JSON; journals are dated `<date>.md` files; working memory is one append-only `<memoryId>.jsonl` per conversation; the persona is `soul.md` and the owner profile is `owner.md`. No database; single-node. This is the default whenever the pgvector extension is absent.
+|`pgvector` |Facts are embeddings in Postgres; journals, skills, working memory, persona and owner profile are Postgres tables. Scales and is shared across instances.
+|`hybrid` |`.md` files are the source of truth for the git-versionable knowledge (facts, dated journals, skills), mirrored into pgvector for retrieval and scale. The high-churn working memory and the live persona/profile singletons stay in Postgres. This is what the deployable `app` ships with.
+|===
+
+Whichever backend is active, fact retrieval is the same query-relevant top-K RAG path - the choice trades off persistence and scale, never the recall model. Journal text is always embedded through the fact store (`source=episodic-consolidator`), so journals stay searchable regardless of where the journal record itself lives.
+
+== The pgvector extension and the database-free distribution
+
+All Postgres backends live in one optional extension, `qlawkus-cognition-pgvector`: the `store.pg` package, the Flyway migrations, and the datasource/pgvector config (shipped as the extension's `META-INF/microprofile-config.properties`, so it applies only when the extension is present). `qlawkus-client` itself depends on no datasource, JDBC, Flyway or pgvector.
+
+The markdown stores are registered as `@DefaultBean`, so they back the agent automatically whenever the pgvector extension is off the classpath; when it is present, the non-default `pgvector`/`hybrid` beans override them. (Working memory also implements langchain4j's `ChatMemoryStore`; the client build vetoes the upstream `@DefaultBean InMemoryChatMemoryStore` so the markdown store is the single default.)
+
+The result is a real **database-free distribution**: drop `qlawkus-cognition-pgvector`, and the agent boots on files only with no datasource - validated end to end by the `integration-tests/markdown-only` module.
+
+== File locations
+
+The markdown directories default under `${user.home}/.qlawkus` and are configurable:
+
+[cols="2,2",options="header"]
+|===
+|Property |Default
+
+|`qlawkus.agent.facts.root` |`~/.qlawkus/facts`
+|`qlawkus.agent.episodic.root` |`~/.qlawkus/journals`
+|`qlawkus.agent.working-memory.root` |`~/.qlawkus/working-memory`
+|`qlawkus.agent.state.root` (holds `soul.md`, `owner.md`) |`~/.qlawkus/state`
+|`qlawkus.skills.roots` |`~/.qlawkus/skills`
+|===
+
+In the Docker images these sit under the container `HOME` (`/home/default`), which is backed by the `qlawkus_workspace` named volume, so they persist across restarts. They live outside the agent's shell workspace (`QLAWKUS_WORKSPACE_ROOT`), so the agent mutates them only through the cognition tools, never by raw file edits.
+
+== Switching backends: reconcile and migrate
+
+The backend is build-time fixed, so changing it means rebuilding. Because each cognition store keeps a parallel markdown representation alongside its Postgres form, Qlawkus can move data between the two - something a plain embedding store cannot do, since langchain4j's `EmbeddingStore`/`ChatMemoryStore` SPIs are isolated silos with no second representation to sync against. Both operations live in the `qlawkus-cognition-pgvector` extension, so they only run in a `pgvector` or `hybrid` build (a markdown-only build has no Postgres side in-process).
+
+* **Reconcile** (`CognitionReconciler`) - a bidirectional, idempotent *union* of files and pgvector across all six stores. Collections (facts, journals, skills, working-memory conversations) are keyed by a stable identity (content hash, date, name, conversation id), so re-running is a no-op. The singletons (persona, owner profile) are filled only when one side is empty, never clobbering a customized side. In `hybrid` mode it runs once at boot (toggle with `qlawkus.cognition.reconcile-at-start`, default `true`), so a fresh switch into hybrid backfills the missing mirror automatically; it is also exposed as `POST /api/admin/cognition/reconcile`.
+* **Migrate** (`CognitionMigrator`, `POST /api/admin/cognition/migrate?direction=files-to-pg|pg-to-files`) - an explicit one-directional copy that *does* overwrite the destination singletons. Use it to move a deployment between backends: build with the pgvector extension present, point the file roots at the source/target `.md` tree, and run a direction.
+
+Because the persona is always seeded in Postgres, reconcile never imports a markdown `soul.md` into pg on its own (it cannot tell a customized persona from the seed); to carry a markdown persona into Postgres, run an explicit `migrate?direction=files-to-pg`.
+
+A direct `markdown` <-> `pgvector` move therefore goes through a pgvector-enabled build: boot once (a `hybrid` build reconciles automatically, or call the migrate endpoint), then rebuild on the target backend.
+
+See xref:memory.adoc[Memory] for how facts are retrieved and injected, xref:skills.adoc[Skills] for the procedural side, and the xref:config-reference.adoc[configuration reference] for every storage knob.

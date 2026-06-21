@@ -190,10 +190,12 @@ qlawkus/                          # Parent POM (semantic versioning)
 │           │                     # SemanticExtractorObserver, UpdateSelfStateTool, SearchMemoriesTool
 │           ├── dto/              # ChatRequest, MemorySummary, JournalSummary
 │           ├── rest/             # ApiResource (SSE chat), AdminResource
-│           ├── store/            # FactStore, WorkingMemoryStore, EpisodicStore (interfaces)
-│           │   └── pg/           # PostgreSQL implementations + ChatMessageEntity, Journal
+│           ├── store/            # Store SPIs (Fact/WorkingMemory/Episodic/Soul/UserProfile)
+│           │   └── markdown/     # Default file-based backends (no database)
 │           └── tool/             # @QlawTool qualifier, QlawToolProvider, QlawToolProviderSupplier
-├── app/                          # Deployable application (packaging = quarkus)
+├── cognition-pgvector/           # Optional extension: Postgres/pgvector backend + migrations
+│                                 # (store/pg/*, reconcile/migrate). Absent = database-free build.
+├── app/                          # Deployable application (packaging = quarkus, hybrid backend)
 │   └── src/main/
 │       ├── docker/               # Dockerfiles (JVM + native) + entrypoint.sh
 │       └── resources/            # application.properties (profile overrides)
@@ -225,10 +227,10 @@ public class MyTool {
 | Component | Extension / Technology | Primary Use |
 |:----------|:----------------------|:------------|
 | **LLM Core** | `quarkus-langchain4j-ollama` (Dev) / `openai` (Prod) | ReAct Engine |
-| **Embeddings** | `quarkus-langchain4j-pgvector` | Semantic memory (RAG) |
+| **Embeddings** | `quarkus-langchain4j-pgvector` (in the optional `cognition-pgvector` extension) | Semantic memory (RAG) |
 | **REST** | `quarkus-rest-jackson` | JSON + SSE chat endpoint |
-| **Data** | `hibernate-orm-panache`, `jdbc-postgresql` | SOUL, History, Episodic |
-| **Migrations** | `quarkus-flyway` | Schema evolution |
+| **Data** | `hibernate-orm-panache`, `jdbc-postgresql` (in `cognition-pgvector`; omit it for a database-free, markdown-only build) | Persona, profile, history, episodic, embeddings |
+| **Migrations** | `quarkus-flyway` (in `cognition-pgvector`) | Schema evolution |
 | **Security** | `elytron-security-properties-file`, `hibernate-validator` | Basic Auth, input validation |
 | **Resilience** | `smallrye-fault-tolerance` | LLM call retry / timeout |
 | **Messaging** | `qlawkus-messaging` (+ discord/telegram/slack/whatsapp) | Multi-provider chat, voice, formatting, chunking |

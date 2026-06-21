@@ -8,6 +8,7 @@
 
 * xref:architecture.adoc[Architecture Overview]
 * xref:memory.adoc[Memory]
+* xref:storage.adoc[Storage]
 * xref:skills.adoc[Skills]
 
 [.list-top-item]
