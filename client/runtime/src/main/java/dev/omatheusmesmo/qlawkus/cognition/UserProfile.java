@@ -1,42 +1,21 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.Cacheable;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.Table;
-
 import java.time.Instant;
 
 /**
  * The owner of this agent. Qlawkus is a single-user agent: every conversation across every channel
  * is the same person. This profile is the durable, structured record of who that person is and is
  * injected into the system prompt on every turn, so the agent always has owner context without
- * depending on a memory search. Modeled as a singleton (id = 1), like {@link Soul}.
+ * depending on a memory search. A plain domain object (no persistence), loaded and saved through
+ * {@link dev.omatheusmesmo.qlawkus.store.UserProfileStore} so the backend is pluggable.
  */
-@Entity
-@Table(name = "user_profile")
-@Cacheable
-public class UserProfile extends PanacheEntityBase {
+public class UserProfile {
 
-  @Id
   public Long id;
-
   public String name;
-
-  @Column(columnDefinition = "TEXT")
   public String profile;
-
   public Instant createdAt;
-
   public Instant updatedAt;
-
-  public static UserProfile findProfile() {
-    return findById(1L);
-  }
 
   public void rename(String newName) {
     this.name = newName;
@@ -44,17 +23,6 @@ public class UserProfile extends PanacheEntityBase {
 
   public void rewriteProfile(String newProfile) {
     this.profile = newProfile;
-  }
-
-  @PrePersist
-  void onCreate() {
-    createdAt = Instant.now();
-    updatedAt = Instant.now();
-  }
-
-  @PreUpdate
-  void onUpdate() {
-    updatedAt = Instant.now();
   }
 
   /** Renders the owner section injected into the system prompt on every turn. */

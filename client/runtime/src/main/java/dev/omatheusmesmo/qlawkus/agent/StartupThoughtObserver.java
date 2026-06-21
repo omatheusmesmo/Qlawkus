@@ -2,12 +2,12 @@ package dev.omatheusmesmo.qlawkus.agent;
 
 import dev.omatheusmesmo.qlawkus.cognition.Soul;
 import dev.omatheusmesmo.qlawkus.config.StartupConfig;
+import dev.omatheusmesmo.qlawkus.store.SoulStore;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 
 import java.time.Duration;
 
@@ -26,6 +26,9 @@ public class StartupThoughtObserver {
     @Inject
     StartupConfig startupConfig;
 
+    @Inject
+    SoulStore soulStore;
+
     void onStartup(@ObservesAsync StartupEvent event) {
         logSoulState();
         if (startupConfig.enabled()) {
@@ -33,9 +36,8 @@ public class StartupThoughtObserver {
         }
     }
 
-    @Transactional
     void logSoulState() {
-        Soul soul = Soul.findSoul();
+        Soul soul = soulStore.load();
         if (soul != null) {
             Log.infof("Soul initialized: %s [%s] — %s", soul.name, soul.mood, soul.currentState);
         } else {

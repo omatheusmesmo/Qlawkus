@@ -3,10 +3,11 @@ package dev.omatheusmesmo.qlawkus.cognition;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
+import dev.omatheusmesmo.qlawkus.store.SoulStore;
+import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
 import io.quarkiverse.langchain4j.runtime.aiservice.SystemMessageProvider;
 import io.quarkus.arc.Arc;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.ConfigProvider;
 
 import java.time.ZoneId;
@@ -22,9 +23,8 @@ public class SoulEngine implements SystemMessageProvider {
       DateTimeFormatter.ofPattern("EEEE, yyyy-MM-dd HH:mm:ss zzz (XXX)", Locale.ENGLISH);
 
   @Override
-  @Transactional
   public Optional<String> getSystemMessage(Object memoryId) {
-    Soul soul = Soul.findSoul();
+    Soul soul = Arc.container().instance(SoulStore.class).get().load();
     if (soul == null) {
       return Optional.empty();
     }
@@ -44,7 +44,7 @@ public class SoulEngine implements SystemMessageProvider {
   }
 
   private String ownerContext() {
-    UserProfile profile = UserProfile.findProfile();
+    UserProfile profile = Arc.container().instance(UserProfileStore.class).get().load();
     if (profile == null) {
       return "";
     }

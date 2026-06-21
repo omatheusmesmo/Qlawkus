@@ -2,8 +2,9 @@ package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
+import jakarta.inject.Inject;
 
 /**
  * Lets the agent maintain its owner's profile ({@link UserProfile}), which is injected into the
@@ -13,15 +14,17 @@ import jakarta.transaction.Transactional;
 @ApplicationScoped
 public class UpdateUserProfileTool {
 
+  @Inject
+  UserProfileStore userProfileStore;
+
   @Tool("""
       Record or update what you know about your owner (the single person you serve). Use this for \
       durable, profile-level facts: their name, role, location, stack, preferences, ongoing \
       projects. This profile is injected into every conversation, so keep it compact and current. \
       It replaces the existing profile, so include everything that should still be remembered.""")
-  @Transactional
   public String updateUserProfile(
       @P("The owner's profile as a compact set of durable facts in markdown") String profile) {
-    UserProfile userProfile = UserProfile.findProfile();
+    UserProfile userProfile = userProfileStore.load();
     if (userProfile == null) {
       return "User profile not found.";
     }
@@ -29,13 +32,13 @@ public class UpdateUserProfileTool {
       return "Cannot set an empty profile.";
     }
     userProfile.rewriteProfile(profile);
+    userProfileStore.save(userProfile);
     return "Owner profile updated.";
   }
 
   @Tool("Set or update your owner's name (the person you serve).")
-  @Transactional
   public String updateOwnerName(@P("The owner's name") String name) {
-    UserProfile userProfile = UserProfile.findProfile();
+    UserProfile userProfile = userProfileStore.load();
     if (userProfile == null) {
       return "User profile not found.";
     }
@@ -43,6 +46,7 @@ public class UpdateUserProfileTool {
       return "Cannot set an empty name.";
     }
     userProfile.rename(name);
+    userProfileStore.save(userProfile);
     return "Owner name set to: " + name;
   }
 }

@@ -2,12 +2,12 @@ package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.config.MemoryCurationConfig;
+import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
 import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 
 import java.util.List;
 
@@ -30,6 +30,9 @@ public class MemoryCurationJob {
   @Inject
   MemoryCurationConfig config;
 
+  @Inject
+  UserProfileStore userProfileStore;
+
   @Scheduled(cron = "{qlawkus.memory-curation.cron:0 45 3 * * ?}")
   void curate() {
     if (config.enabled()) {
@@ -37,14 +40,13 @@ public class MemoryCurationJob {
     }
   }
 
-  @Transactional
   public boolean curateProfile() {
     List<String> facts = embeddingRepository.listFactTexts(config.maxFacts());
     if (facts.isEmpty()) {
       return false;
     }
 
-    UserProfile profile = UserProfile.findProfile();
+    UserProfile profile = userProfileStore.load();
     if (profile == null) {
       return false;
     }
@@ -73,6 +75,7 @@ public class MemoryCurationJob {
         return false;
       }
       profile.rewriteProfile(updated.trim());
+      userProfileStore.save(profile);
       Log.infof("MemoryCurationJob: refreshed owner profile from %d facts", facts.size());
       return true;
     } catch (Exception e) {

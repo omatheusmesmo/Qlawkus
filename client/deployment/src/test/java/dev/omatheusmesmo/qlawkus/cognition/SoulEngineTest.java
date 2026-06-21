@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
+import dev.omatheusmesmo.qlawkus.store.pg.SoulEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -57,7 +58,7 @@ class SoulEngineTest {
   @Test
   @Transactional
   void getSystemMessage_containsMoodSection() {
-    Soul soul = Soul.findSoul();
+    SoulEntity soul = SoulEntity.findSoul();
     Mood currentMood = soul.mood;
 
     Optional<String> message = soulEngine.getSystemMessage(null);
@@ -69,8 +70,8 @@ class SoulEngineTest {
   @Test
   @Transactional
   void getSystemMessage_reflectsMoodChange() {
-    Soul soul = Soul.findSoul();
-    soul.shiftMood(Mood.CURIOUS);
+    SoulEntity soul = SoulEntity.findSoul();
+    soul.mood = Mood.CURIOUS;
 
     Optional<String> message = soulEngine.getSystemMessage(null);
     assertTrue(message.isPresent());
@@ -101,8 +102,8 @@ class SoulEngineTest {
   @Transactional
   void getSystemMessage_reflectsCurrentStateUpdate() {
     String newState = "Analyzing code repository at " + System.currentTimeMillis();
-    Soul soul = Soul.findSoul();
-    soul.shiftState(newState);
+    SoulEntity soul = SoulEntity.findSoul();
+    soul.currentState = newState;
 
     Optional<String> message = soulEngine.getSystemMessage(null);
     assertTrue(message.isPresent());

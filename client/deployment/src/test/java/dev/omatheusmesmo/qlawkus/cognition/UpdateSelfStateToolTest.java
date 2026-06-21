@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
+import dev.omatheusmesmo.qlawkus.store.pg.SoulEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -29,7 +30,7 @@ class UpdateSelfStateToolTest {
         String result = updateSelfStateTool.updateCurrentState(newState);
 
         assertTrue(result.contains("Current state updated"));
-        Soul soul = Soul.findSoul();
+        SoulEntity soul = SoulEntity.findSoul();
         assertEquals(newState, soul.currentState);
     }
 
@@ -39,7 +40,7 @@ class UpdateSelfStateToolTest {
         String result = updateSelfStateTool.updateMood("CURIOUS");
 
         assertTrue(result.contains("Mood updated to: CURIOUS"));
-        Soul soul = Soul.findSoul();
+        SoulEntity soul = SoulEntity.findSoul();
         assertEquals(Mood.CURIOUS, soul.mood);
     }
 
@@ -60,7 +61,7 @@ class UpdateSelfStateToolTest {
         String result = updateSelfStateTool.updateCoreIdentity(newIdentity);
 
         assertEquals("Core identity updated.", result);
-        Soul soul = Soul.findSoul();
+        SoulEntity soul = SoulEntity.findSoul();
         assertEquals(newIdentity, soul.coreIdentity);
     }
 
@@ -72,7 +73,7 @@ class UpdateSelfStateToolTest {
         String result = updateSelfStateTool.updateName(newName);
 
         assertTrue(result.contains("Name updated to: " + newName));
-        Soul soul = Soul.findSoul();
+        SoulEntity soul = SoulEntity.findSoul();
         assertEquals(newName, soul.name);
     }
 
@@ -82,7 +83,7 @@ class UpdateSelfStateToolTest {
         String result = updateSelfStateTool.updateMood("playful");
 
         assertTrue(result.contains("Mood updated to: PLAYFUL"));
-        Soul soul = Soul.findSoul();
+        SoulEntity soul = SoulEntity.findSoul();
         assertEquals(Mood.PLAYFUL, soul.mood);
     }
 }
