@@ -14,7 +14,8 @@ graph TB
     end
     subgraph extensions["Quarkus Extensions"]
         style extensions fill:#fff,stroke:#ccc,stroke-dasharray: 5 5
-        client["client - Core: Agent, Cognition, Skills, REST"]
+        client["client - Core: Agent, Cognition, Skills, REST (database-free)"]
+        cognitionpg["cognition-pgvector - optional Postgres/pgvector backend"]
         messaging["messaging - Discord / Telegram adapters"]
         tools["tools - Google Workspace, Brag"]
     end
@@ -100,12 +101,15 @@ graph LR
 </div>
 ++++
 
-* *Persona* - the agent's own `Soul` (mood, focus, identity), rendered into the system prompt.
-* *Owner profile* - a `UserProfile` (the single person served) injected on every turn. Maintained by the `updateUserProfile` tool and refreshed nightly by the curation job.
-* *Facts* - long-term facts, each tagged with a source (`remember-tool`, `semantic-extractor`, `episodic-consolidator`, `transcript`). The store backend is selectable via `qlawkus.cognition.backend`: `pgvector` (default), `markdown` (files plus an in-process embedding index, no database), or `hybrid` (files mirrored into pgvector). All three retrieve query-relevant top-K through the same RAG path.
+* *Persona* - the agent's own `Soul` (mood, focus, identity), rendered into the system prompt. Persisted by a pluggable `SoulStore` (markdown `soul.md` or a Postgres table) on the same `qlawkus.cognition.backend` switch.
+* *Owner profile* - a `UserProfile` (the single person served) injected on every turn. Maintained by the `updateUserProfile` tool and refreshed nightly by the curation job. Persisted by a pluggable `UserProfileStore` (markdown `owner.md` or a Postgres table).
+* *Facts* - long-term facts, each tagged with a source (`remember-tool`, `semantic-extractor`, `episodic-consolidator`, `transcript`). The store backend is selectable via `qlawkus.cognition.backend`: `markdown` (files plus an in-process embedding index, no database - the default when the pgvector extension is absent), `pgvector` (embeddings in Postgres), or `hybrid` (files mirrored into pgvector). All three retrieve query-relevant top-K through the same RAG path.
+* *Working memory* - the rolling 40-message conversation window, a pluggable `WorkingMemoryStore` (markdown `<memoryId>.jsonl` files or a Postgres table) that also serves as the langchain4j `ChatMemoryStore`.
 * *Active memory* - before each reply, relevant facts are retrieved and injected (transcripts excluded to keep it clean).
 * *Transcripts (session search)* - every message is archived and semantically searchable via the `searchTranscripts` tool, distinct from curated facts.
-* *Episodic journals* - a nightly job summarizes each day; the summary is embedded through the fact store (so it is surfaced by active memory) and the journal record is kept by an `EpisodicStore` whose backend follows the same `qlawkus.cognition.backend` switch: `pgvector` (the `Journal` table, default), `markdown` (dated `<date>.md` files, no database), or `hybrid` (files mirrored into pgvector).
+* *Episodic journals* - a nightly job summarizes each day; the summary is embedded through the fact store (so it is surfaced by active memory) and the journal record is kept by an `EpisodicStore` whose backend follows the same `qlawkus.cognition.backend` switch: `markdown` (dated `<date>.md` files, no database), `pgvector` (the `Journal` table), or `hybrid` (files mirrored into pgvector).
+
+All Postgres backends live in the optional `qlawkus-cognition-pgvector` extension; a build without it is database-free and runs entirely on the markdown stores.
 
 === Background jobs
 
@@ -156,4 +160,4 @@ The agent authors, auto-distills, curates, and ages skills on its own, and the s
 
 == Databases
 
-Three PostgreSQL databases, Flyway-managed: `qlawkus` (soul, chat history, journals, pgvector embeddings), `qlawkus_google_auth` (OAuth), and `qlawkus_brag` (career brag documents).
+Up to three PostgreSQL databases, Flyway-managed: `qlawkus` (persona, owner profile, chat history, journals, pgvector embeddings - present only when the `qlawkus-cognition-pgvector` extension is on the classpath; a markdown-only build has no default datasource), `qlawkus_google_auth` (OAuth), and `qlawkus_brag` (career brag documents).
