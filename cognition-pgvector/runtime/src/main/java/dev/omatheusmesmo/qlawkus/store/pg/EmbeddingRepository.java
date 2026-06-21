@@ -73,6 +73,22 @@ public class EmbeddingRepository {
         .getResultList();
   }
 
+  /** A stored fact in raw form, for reconciling/migrating pgvector facts back to markdown files. */
+  public record FactRow(String text, String metadataJson) {
+  }
+
+  /** Every stored fact (text + JSON metadata), used to mirror pgvector facts back to files. */
+  @Transactional
+  @SuppressWarnings("unchecked")
+  public List<FactRow> loadAllFacts() {
+    List<Object[]> rows = entityManager.createNativeQuery(
+        "SELECT text, metadata::text FROM embeddings ORDER BY embedding_id")
+        .getResultList();
+    return rows.stream()
+        .map(r -> new FactRow((String) r[0], (String) r[1]))
+        .toList();
+  }
+
   @Transactional
   public boolean existsByContentHash(String hash) {
     Object result = entityManager.createNativeQuery(
