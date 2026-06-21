@@ -13,7 +13,7 @@ import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
-import io.quarkus.arc.properties.IfBuildProperty;
+import io.quarkus.arc.DefaultBean;
 import io.quarkus.logging.Log;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -33,7 +33,7 @@ import java.util.Map;
  * like the pgvector backend - retrieved, not dumped.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "markdown")
+@DefaultBean
 public class MarkdownFactStore implements FactStore {
 
   private final MarkdownFactFiles files;
