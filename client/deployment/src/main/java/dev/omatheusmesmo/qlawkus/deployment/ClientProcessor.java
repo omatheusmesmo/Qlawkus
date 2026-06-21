@@ -20,6 +20,7 @@ import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.RunTimeConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.StaticInitConfigBuilderBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedClassBuildItem;
 import io.quarkus.logging.Log;
@@ -65,6 +66,15 @@ class ClientProcessor {
     ExcludedTypeBuildItem vetoUpstreamInMemoryChatMemoryStore() {
         return new ExcludedTypeBuildItem(
                 "io.quarkiverse.langchain4j.runtime.aiservice.InMemoryChatMemoryStoreProducer");
+    }
+
+    /**
+     * Bundles the default persona resource so {@code MarkdownSoulStore} can seed {@code soul.md} from
+     * the classpath in a native image (it reads {@code META-INF/qlawkus/default-soul.md} at runtime).
+     */
+    @BuildStep
+    NativeImageResourceBuildItem bundledDefaultSoul() {
+        return new NativeImageResourceBuildItem("META-INF/qlawkus/default-soul.md");
     }
 
     /**

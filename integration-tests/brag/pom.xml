@@ -24,6 +24,21 @@
       <artifactId>qlawkus-client</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- brag owns a Postgres-backed document store (named "brag" PU) and marks its persistence deps
+         optional, so they no longer arrive transitively now that qlawkus-client is database-free.
+         Bring them in explicitly for this IT. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-hibernate-orm-panache</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jdbc-postgresql</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-flyway</artifactId>
+    </dependency>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-testing-internal</artifactId>
