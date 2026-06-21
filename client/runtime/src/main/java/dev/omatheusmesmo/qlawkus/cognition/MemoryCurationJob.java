@@ -2,8 +2,8 @@ package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.config.MemoryCurationConfig;
+import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
-import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -25,7 +25,7 @@ public class MemoryCurationJob {
   ChatModel chatModel;
 
   @Inject
-  EmbeddingRepository embeddingRepository;
+  FactStore factStore;
 
   @Inject
   MemoryCurationConfig config;
@@ -41,7 +41,7 @@ public class MemoryCurationJob {
   }
 
   public boolean curateProfile() {
-    List<String> facts = embeddingRepository.listFactTexts(config.maxFacts());
+    List<String> facts = factStore.listFactTexts(config.maxFacts());
     if (facts.isEmpty()) {
       return false;
     }

@@ -19,6 +19,19 @@ public interface FactStore {
 
   List<String> listSources();
 
+  /**
+   * Texts of curated user facts ({@code remember-tool} + {@code semantic-extractor}), newest-leaning,
+   * capped at {@code limit}. Used by profile curation. Excludes transcripts and journals.
+   */
+  List<String> listFactTexts(int limit);
+
+  /**
+   * Removes semantically near-duplicate facts, keeping one per cluster. The write-time hash dedup
+   * only catches byte-identical facts; this catches reworded variants by cosine distance
+   * ({@code maxCosineDistance = 1 - similarity}). Returns how many were removed.
+   */
+  long purgeNearDuplicates(double maxCosineDistance);
+
   long purgeBySource(String source);
 
   long purgeAll();

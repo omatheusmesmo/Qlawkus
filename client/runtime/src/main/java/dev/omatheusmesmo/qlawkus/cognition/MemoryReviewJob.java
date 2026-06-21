@@ -1,12 +1,11 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.omatheusmesmo.qlawkus.config.MemoryReviewConfig;
-import dev.omatheusmesmo.qlawkus.store.pg.EmbeddingRepository;
+import dev.omatheusmesmo.qlawkus.store.FactStore;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 
 /**
  * Background self-review of long-term memory (inspired by Hermes' self-improvement loop). The
@@ -18,7 +17,7 @@ import jakarta.transaction.Transactional;
 public class MemoryReviewJob {
 
   @Inject
-  EmbeddingRepository embeddingRepository;
+  FactStore factStore;
 
   @Inject
   MemoryReviewConfig config;
@@ -28,11 +27,10 @@ public class MemoryReviewJob {
     reviewNow();
   }
 
-  @Transactional
   public long reviewNow() {
     double similarityThreshold = config.similarityThreshold();
     double maxCosineDistance = 1.0 - similarityThreshold;
-    long removed = embeddingRepository.deleteNearDuplicates(maxCosineDistance);
+    long removed = factStore.purgeNearDuplicates(maxCosineDistance);
     if (removed > 0) {
       Log.infof("MemoryReviewJob: removed %d near-duplicate memories (>= %.2f cosine similarity)",
           removed, similarityThreshold);
