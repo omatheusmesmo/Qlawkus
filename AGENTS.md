@@ -30,14 +30,14 @@ Three layers, all injected each turn via `SoulEngine` (the agent's `systemMessag
 
 - **Persona** - `Soul` (singleton entity) rendered into the system message by `SoulEngine`.
 - **Owner** - `UserProfile` (singleton; the single user this agent serves) injected every turn by `SoulEngine`. Maintained by `UpdateUserProfileTool`, refreshed by `MemoryCurationJob`.
-- **Facts** - `FactStore` / `PgFactStore` (pgvector). Every embedding is tagged with a `MemorySource` (`remember-tool`, `semantic-extractor`, `episodic-consolidator`, `transcript`) - the enum exists so producers and purges never drift.
+- **Facts** - `FactStore` SPI, backend selected at **build time** via `@IfBuildProperty` on `qlawkus.cognition.backend` (`markdown` | `pgvector` | `hybrid`): `store.pg.PgFactStore` (pgvector, default), `store.markdown.MarkdownFactStore` (`.md` files + in-process `InMemoryEmbeddingStore` with a JSON embedding cache, no DB; shared file logic in `MarkdownFactFiles`), `store.pg.HybridFactStore` (files source-of-truth + pg mirror). Root: `qlawkus.agent.facts.root` (default `~/.qlawkus/facts`). Every embedding is tagged with a `MemorySource` (`remember-tool`, `semantic-extractor`, `episodic-consolidator`, `transcript`) - the enum exists so producers and purges never drift.
 
 Stores & retrieval:
 
 - **Active Memory** - `ActiveMemoryAugmentor` is the AiService `retrievalAugmentor`; it runs an `EmbeddingStoreContentRetriever` before each reply and injects query-relevant facts. It filters OUT `source=transcript` so curated facts stay clean.
 - **Working memory** - `PgWorkingMemoryStore` (a langchain4j `ChatMemoryStore`), windowed to 40 messages. `updateMessages` is append-only (preserves `createdAt`; never reset it) and fires `MessagesAppendedEvent` for every new message on any channel.
 - **Transcripts (session_search)** - `TranscriptArchiveObserver` embeds each message as `source=transcript`; `SearchTranscriptsTool` searches only those.
-- **Episodic** - `EpisodicConsolidatorJob` (nightly) summarizes each day into journals (also embedded).
+- **Episodic** - `EpisodicConsolidatorJob` (nightly) summarizes each day into journals (also embedded through the `FactStore` as `source=episodic-consolidator`). The journal record is an `EpisodicStore` SPI, backend selected at build time by the same `qlawkus.cognition.backend`: `store.pg.PgEpisodicStore` (the `Journal` table, default), `store.markdown.MarkdownEpisodicStore` (dated `<date>.md` files, one per day, no DB; file logic in `MarkdownEpisodicFiles`), `store.pg.HybridEpisodicStore` (files source-of-truth + pg mirror). Pg/hybrid share Panache access via `JournalRepository`. Root: `qlawkus.agent.episodic.root` (default `~/.qlawkus/journals`).
 
 Scheduled background jobs, each with a manual `POST /api/admin/memory/*` trigger:
 
@@ -61,7 +61,7 @@ Skills are the agent's **procedural** memory (how to do a recurring task), compl
 - **Admin REST**: `GET/DELETE /api/admin/skills`, `GET /api/admin/skills/{name}`, `POST /api/admin/skills/{curate,lifecycle}`, `POST /api/admin/skills/{name}/pin`.
 - **Bundled skills (build-time)**: extensions/apps ship read-only skills as classpath resources under `META-INF/qlawkus-skills/<name>/SKILL.md`. `ClientProcessor.bundledSkills` (a `@BuildStep` + `SkillsRecorder`) scans and parses them (via the same `FileSystemSkillLoader`) at **augmentation** and bakes them into the synthetic `BundledSkills` bean - no runtime classpath scanning. Stores merge bundled (read-only) with owned skills; owned wins on a name clash.
 
-Config knobs: `qlawkus.cognition.backend`, `qlawkus.skills.*`. The broader plan (making facts/episodic/working memory pluggable too, plus a `SkillHub` capability backed by jskills/skills.sh) lives outside the repo in the owner's notes.
+Config knobs: `qlawkus.cognition.backend`, `qlawkus.skills.*`. Facts and episodic journals are already pluggable on this same switch; the broader plan (making working memory pluggable too and fully gating the datasource for a markdown-only distribution, plus a `SkillHub` capability backed by jskills/skills.sh) lives outside the repo in the owner's notes.
 
 ## Testing
 

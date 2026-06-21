@@ -280,5 +280,26 @@ endif::add-copy-button-to-env-var[]
 |string
 |`+++${user.home}/.qlawkus/facts+++`
 
+a| [[qlawkus-client_qlawkus-agent-episodic-root]] [.property-path]##link:#qlawkus-client_qlawkus-agent-episodic-root[`+++qlawkus.agent.episodic.root+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.episodic.root+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Directory holding the dated journal markdown files (one per day, `<date>.md`). Defaults to a qlawkus-owned folder, keeping journals editable and git-versionable.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_EPISODIC_ROOT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_EPISODIC_ROOT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++${user.home}/.qlawkus/journals+++`
+
 |===
 
