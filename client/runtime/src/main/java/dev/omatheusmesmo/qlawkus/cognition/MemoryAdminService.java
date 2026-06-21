@@ -9,9 +9,15 @@ import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import java.util.List;
 
+/**
+ * Backend-agnostic admin facade over the cognition stores. It injects only the SPIs
+ * ({@link FactStore}, {@link EpisodicStore}, {@link WorkingMemoryStore}), so it carries no
+ * transaction or JTA coupling: each store owns its own transaction boundary (the Postgres backends
+ * are {@code @Transactional} internally; the markdown backends need none). This keeps the client
+ * runtime free of a transaction manager for the database-free distribution.
+ */
 @ApplicationScoped
 public class MemoryAdminService {
 
@@ -24,7 +30,6 @@ public class MemoryAdminService {
   @Inject
   WorkingMemoryStore workingMemoryStore;
 
-  @Transactional
   public MemorySummary getMemorySummary() {
     List<String> sources = factStore.listSources();
     long journalCount = episodicStore.count();
@@ -32,19 +37,16 @@ public class MemoryAdminService {
     return new MemorySummary(sources, journalCount, chatMessageCount);
   }
 
-  @Transactional
   public List<JournalSummary> listJournals() {
     return episodicStore.listJournals();
   }
 
-  @Transactional
   public long purgeEmbeddingsBySource(String source) {
     long deleted = factStore.purgeBySource(source);
     Log.infof("Purged %d embeddings with source=%s", deleted, source);
     return deleted;
   }
 
-  @Transactional
   public long purgeJournals() {
     factStore.purgeBySource(MemorySource.EPISODIC_CONSOLIDATOR.value());
     long deleted = episodicStore.purgeAll();
@@ -52,7 +54,6 @@ public class MemoryAdminService {
     return deleted;
   }
 
-  @Transactional
   public void purgeAllMemory() {
     long embeddings = factStore.purgeAll();
     episodicStore.purgeAll();
