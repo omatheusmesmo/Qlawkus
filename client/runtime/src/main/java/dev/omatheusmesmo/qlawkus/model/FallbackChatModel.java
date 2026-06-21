@@ -134,8 +134,10 @@ public class FallbackChatModel implements ChatModel {
     }
 
     private ChatRequest sanitizeForOllama(ChatRequest request) {
+        // Deliberately omit modelName: the request carries the primary provider's model id (e.g.
+        // "nvidia/nemotron-3-ultra-550b-a55b"), which the Ollama fallback does not have. Leaving it
+        // unset lets the langchain4j-ollama model apply its configured chat-model.model-name instead.
         OllamaChatRequestParameters ollamaParams = OllamaChatRequestParameters.builder()
-                .modelName(request.modelName())
                 .temperature(request.temperature())
                 .topP(request.topP())
                 .topK(request.topK())
