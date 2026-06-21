@@ -13,6 +13,7 @@
 
   <modules>
     <module>cognition</module>
+    <module>markdown-only</module>
     <module>google</module>
     <module>terminal</module>
     <module>smoke</module>
