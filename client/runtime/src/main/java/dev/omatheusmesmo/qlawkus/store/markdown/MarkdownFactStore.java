@@ -12,6 +12,7 @@ import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metad
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
+import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.logging.Log;
 import jakarta.annotation.PostConstruct;
@@ -115,6 +116,73 @@ public class MarkdownFactStore implements FactStore {
   @Override
   public List<String> listSources() {
     return files.listSources();
+  }
+
+  @Override
+  public List<String> listFactTexts(int limit) {
+    List<String> texts = new ArrayList<>();
+    for (MarkdownFactFiles.FactRecord fact : files.loadAll()) {
+      String source = fact.metadata().get("source");
+      if (MemorySource.REMEMBER_TOOL.value().equals(source)
+          || MemorySource.SEMANTIC_EXTRACTOR.value().equals(source)) {
+        texts.add(fact.content());
+        if (texts.size() >= limit) {
+          break;
+        }
+      }
+    }
+    return texts;
+  }
+
+  @Override
+  public long purgeNearDuplicates(double maxCosineDistance) {
+    List<MarkdownFactFiles.FactRecord> facts = files.loadAll();
+    Map<String, float[]> cache = files.loadCache();
+    List<String> toRemove = new ArrayList<>();
+    for (int i = 0; i < facts.size(); i++) {
+      String idA = facts.get(i).id();
+      if (toRemove.contains(idA)) {
+        continue;
+      }
+      float[] a = cache.get(idA);
+      if (a == null) {
+        continue;
+      }
+      for (int j = i + 1; j < facts.size(); j++) {
+        String idB = facts.get(j).id();
+        if (toRemove.contains(idB)) {
+          continue;
+        }
+        float[] b = cache.get(idB);
+        if (b != null && cosineDistance(a, b) < maxCosineDistance) {
+          toRemove.add(idB);
+        }
+      }
+    }
+    if (!toRemove.isEmpty()) {
+      toRemove.forEach(files::delete);
+      store.removeAll(toRemove);
+      Map<String, float[]> refreshed = files.loadCache();
+      toRemove.forEach(refreshed::remove);
+      files.saveCache(refreshed);
+    }
+    return toRemove.size();
+  }
+
+  private static double cosineDistance(float[] a, float[] b) {
+    double dot = 0;
+    double normA = 0;
+    double normB = 0;
+    int len = Math.min(a.length, b.length);
+    for (int i = 0; i < len; i++) {
+      dot += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+    if (normA == 0 || normB == 0) {
+      return 1.0;
+    }
+    return 1.0 - (dot / (Math.sqrt(normA) * Math.sqrt(normB)));
   }
 
   @Override

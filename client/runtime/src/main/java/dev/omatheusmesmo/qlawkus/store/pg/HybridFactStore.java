@@ -89,6 +89,16 @@ public class HybridFactStore implements FactStore {
   }
 
   @Override
+  public List<String> listFactTexts(int limit) {
+    return embeddingRepository.listFactTexts(limit);
+  }
+
+  @Override
+  public long purgeNearDuplicates(double maxCosineDistance) {
+    return embeddingRepository.deleteNearDuplicates(maxCosineDistance);
+  }
+
+  @Override
   public long purgeBySource(String source) {
     files.loadAll().stream()
         .filter(fact -> source.equals(fact.metadata().get("source")))
