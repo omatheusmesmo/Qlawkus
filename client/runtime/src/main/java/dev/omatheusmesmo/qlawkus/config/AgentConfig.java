@@ -65,6 +65,39 @@ public interface AgentConfig {
      */
     Episodic episodic();
 
+    /**
+     * Markdown working-memory backend: where the per-conversation chat logs live. Used only when
+     * {@code qlawkus.cognition.backend=markdown}.
+     */
+    WorkingMemory workingMemory();
+
+    /**
+     * Markdown state backend: where the agent's persona ({@code soul.md}) and owner profile
+     * ({@code owner.md}) files live. Used only when {@code qlawkus.cognition.backend=markdown}.
+     */
+    State state();
+
+    interface WorkingMemory {
+
+        /**
+         * Directory holding the append-only per-conversation chat logs ({@code <memoryId>.jsonl}).
+         * Defaults to a qlawkus-owned folder.
+         */
+        @WithDefault("${user.home}/.qlawkus/working-memory")
+        String root();
+    }
+
+    interface State {
+
+        /**
+         * Directory holding the singleton persona ({@code soul.md}) and owner profile
+         * ({@code owner.md}) files. Defaults to a qlawkus-owned folder, keeping them editable and
+         * git-versionable.
+         */
+        @WithDefault("${user.home}/.qlawkus/state")
+        String root();
+    }
+
     interface Facts {
 
         /**
