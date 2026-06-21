@@ -59,6 +59,12 @@ public interface AgentConfig {
      */
     Facts facts();
 
+    /**
+     * Markdown episodic backend: where the agent's dated journal {@code .md} files live. Used only
+     * when {@code qlawkus.cognition.backend=markdown} or {@code hybrid}.
+     */
+    Episodic episodic();
+
     interface Facts {
 
         /**
@@ -67,6 +73,16 @@ public interface AgentConfig {
          * and git-versionable.
          */
         @WithDefault("${user.home}/.qlawkus/facts")
+        String root();
+    }
+
+    interface Episodic {
+
+        /**
+         * Directory holding the dated journal markdown files (one per day, {@code <date>.md}).
+         * Defaults to a qlawkus-owned folder, keeping journals editable and git-versionable.
+         */
+        @WithDefault("${user.home}/.qlawkus/journals")
         String root();
     }
 

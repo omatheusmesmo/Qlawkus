@@ -2,49 +2,46 @@ package dev.omatheusmesmo.qlawkus.store.pg;
 
 import dev.omatheusmesmo.qlawkus.dto.JournalSummary;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
+import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
+import jakarta.inject.Inject;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Postgres-backed {@link EpisodicStore}, active when {@code qlawkus.cognition.backend=pgvector} (the
+ * default). Journals are rows in the {@code Journal} table; selected at build time via
+ * {@link IfBuildProperty}, so other backends do not wire it at all.
+ */
 @ApplicationScoped
+@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "pgvector", enableIfMissing = true)
 public class PgEpisodicStore implements EpisodicStore {
 
+  @Inject
+  JournalRepository journals;
+
   @Override
-  @Transactional
   public boolean existsForDate(LocalDate date) {
-    return Journal.existsForDate(date);
+    return journals.existsForDate(date);
   }
 
   @Override
-  @Transactional(Transactional.TxType.REQUIRES_NEW)
   public void storeEpisode(LocalDate date, String summary, int messageCount) {
-    if (Journal.existsForDate(date)) return;
-    Journal journal = new Journal();
-    journal.date = date;
-    journal.summary = summary;
-    journal.messageCount = messageCount;
-    journal.persist();
+    journals.store(date, summary, messageCount);
   }
 
   @Override
-  @Transactional
   public List<JournalSummary> listJournals() {
-    return Journal.listAll().stream()
-      .map(j -> (Journal) j)
-      .map(j -> new JournalSummary(j.id, j.date, j.summary, j.messageCount, j.createdAt))
-      .toList();
+    return journals.listJournals();
   }
 
   @Override
-  @Transactional
   public long count() {
-    return Journal.count();
+    return journals.count();
   }
 
   @Override
-  @Transactional
   public long purgeAll() {
-    return Journal.deleteAll();
+    return journals.deleteAll();
   }
 }
