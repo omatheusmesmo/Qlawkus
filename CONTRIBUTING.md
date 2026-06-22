@@ -39,7 +39,7 @@ mvn install -pl client -am -DskipTests   # rebuild the changed extension(s)
 cd app && mvn quarkus:dev                # http://localhost:8080
 ```
 
-Full build: `mvn clean install`. See `docs/` (or the site) for the Docker run modes.
+Full build: `mvn clean install`. To run the containerized stack instead, `./run.sh <local|prod|native>` builds the whole reactor in-container (no host JDK/Maven needed) and starts it; see `./run.sh --help` or the site for details.
 
 ## Testing
 
