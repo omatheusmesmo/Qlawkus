@@ -24,7 +24,7 @@ git clone https://github.com/omatheusmesmo/Qlawkus.git && cd Qlawkus
 cp .env.example .env
 ```
 
-Edit `.env` and set `NVIDIA_AI_API_KEY` if you plan to run in production mode.
+Edit `.env` and set `LLM_API_KEY` if you plan to run in production mode. The Compose files ship `LLM_KIND=nvidia`; override `LLM_KIND` to use another provider.
 
 ### 2. Dev Mode (recommended for development)
 
@@ -39,29 +39,32 @@ The agent starts at `http://localhost:8080`. Chat endpoint: `POST /api/chat`.
 
 > **Note:** `client/` is a Quarkus extension — live reload only applies to `app/`. Changes to `client/` require `mvn install -pl client -am` + restart.
 
+> The containerized modes below build the whole reactor **inside** Docker (a multi-stage build on the Red Hat UBI OpenJDK image), so they need only Docker — no host JDK or Maven. `run.sh` wraps Docker Compose; run `./run.sh --help` for all modes and actions. The first in-container build downloads the full dependency tree (a few minutes); later builds reuse a cached Maven repo.
+
 ### 3. Local Docker (Ollama + PostgreSQL)
 
 Runs entirely locally with Ollama — no cloud API keys required.
 
 ```bash
-docker compose -f docker-compose.local.yml up --build
+./run.sh local
 ```
 
 First run pulls Ollama models (~7 GB), subsequent starts are instant.
 
-### 4. Production Docker (NVIDIA NIM + PostgreSQL)
+### 4. Production Docker (bring your own LLM + PostgreSQL)
 
-Uses NVIDIA NIM API for LLM inference. Requires `NVIDIA_AI_API_KEY`.
+Set `LLM_API_KEY` in `.env`. The Compose files ship `LLM_KIND=nvidia`; override `LLM_KIND` to pick another provider (the app's own default kind is `openai`).
 
 ```bash
-export NVIDIA_AI_API_KEY=nvapi-xxxx
-docker compose up --build
+echo "LLM_KIND=nvidia"        >> .env   # or openai, deepseek, mistral, groq, xai, openrouter
+echo "LLM_API_KEY=nvapi-xxxx" >> .env
+./run.sh prod
 ```
 
-For native image (faster startup, lower memory):
+For the native image (faster startup, lower memory; the native compile is heavy):
 
 ```bash
-docker compose --profile native up --build
+./run.sh native
 ```
 
 ---
@@ -81,11 +84,13 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 
 | Variable | Default | Purpose |
 |:---------|:--------|:--------|
-| `NVIDIA_AI_API_KEY` | — | Required for prod. Get yours at [build.nvidia.com](https://build.nvidia.com/) |
-| `NVIDIA_CHAT_MODEL` | — | Chat model ID on NVIDIA NIM (e.g. `z-ai/glm-5.1`) |
-| `NVIDIA_EMBEDDING_MODEL` | `nvidia/nv-embedqa-e5-v5` | Embedding model (1024 dims) |
+| `LLM_KIND` | `openai` (app default); the Compose files ship `nvidia` | Provider profile (`openai`, `nvidia`, `deepseek`, `mistral`, `groq`, `xai`, `openrouter`) — sets base URL + default chat/embedding models |
+| `LLM_API_KEY` | — | API key for the chosen provider. Required for prod. NVIDIA keys: [build.nvidia.com](https://build.nvidia.com/) |
+| `LLM_CHAT_MODEL` | provider default | Override the chat model (NVIDIA default `nvidia/nemotron-3-ultra-550b-a55b`) |
+| `LLM_EMBEDDING_MODEL` | provider default | Override the embedding model (NVIDIA default `nvidia/nv-embedqa-e5-v5`) |
+| `LLM_TIMEOUT` | `180s` | Primary model request timeout |
 | `EMBEDDING_DIMENSION` | `1024` | Must match embedding model output |
-| `OLLAMA_FALLBACK_MODEL` | `gemma4:e2b` | Ollama fallback chat model |
+| `OLLAMA_FALLBACK_MODEL` | `qwen3.5:4b` | Ollama fallback chat model |
 | `OLLAMA_FALLBACK_EMBEDDING_MODEL` | `mxbai-embed-large` | Ollama fallback embedding model |
 | `API_USER_PASSWORD` | `qlawkus` | Basic auth password for `qlawkus` user |
 | `POSTGRES_DB` | `qlawkus` | Database name (Docker Compose) |
@@ -197,10 +202,12 @@ qlawkus/                          # Parent POM (semantic versioning)
 │                                 # (store/pg/*, reconcile/migrate). Absent = database-free build.
 ├── app/                          # Deployable application (packaging = quarkus, hybrid backend)
 │   └── src/main/
-│       ├── docker/               # Dockerfiles (JVM + native) + entrypoint.sh
+│       ├── docker/               # Dockerfiles: COPY-target (.jvm/.native) + in-container
+│       │                         # build (.jvm-build/.native-build) + entrypoint.sh
 │       └── resources/            # application.properties (profile overrides)
 ├── integration-tests/ # Consumer experience tests (WireMock + real LLM via NVIDIA/Ollama)
-├── docker-compose.yml            # Prod: NVIDIA NIM + PostgreSQL
+├── run.sh                        # Build + run the stack: ./run.sh <local|prod|native>
+├── docker-compose.yml            # Prod: bring-your-own LLM + PostgreSQL + TTS
 ├── docker-compose.local.yml      # Local: Ollama + PostgreSQL
 └── .env.example                  # Environment template
 ```
@@ -253,7 +260,7 @@ public class MyTool {
 - **Ollama** (+ `ollama-init`) — local LLM fallback
 - **tts** (+ `tts-init`) — openedai-speech (Piper) for local text-to-speech, opt-in via `TTS_ENABLED`
 
-Requires `NVIDIA_AI_API_KEY`. Exposes host port `8742` → container `8080` (the Google OAuth redirect URI must match this host port).
+Requires `LLM_API_KEY` (provider chosen with `LLM_KIND`, shipped as `nvidia`). Exposes host port `8742` → container `8080` (the Google OAuth redirect URI must match this host port).
 
 ### Local (`docker-compose.local.yml`)
 
@@ -262,7 +269,7 @@ Requires `NVIDIA_AI_API_KEY`. Exposes host port `8742` → container `8080` (the
 - **Ollama** — local LLM inference
 - **ollama-init** — one-shot container that pulls models on first start
 
-No API keys needed. Exposes ports `8080` (app) and `11434` (Ollama API).
+No API keys needed. Exposes host port `8742` → container `8080` (app).
 
 ### Volume Management
 
@@ -270,10 +277,10 @@ Ollama models are large (~7 GB). To avoid re-downloading:
 
 ```bash
 # Stop and remove containers — keeps all volumes (models + data)
-docker compose -f docker-compose.local.yml down
+./run.sh local down
 
 # Reset database only — keeps Ollama models
-docker compose -f docker-compose.local.yml down && docker volume rm quarkusclaw_pgdata
+./run.sh local down && docker volume rm qlawkus_pgdata
 
 # Reset everything — WARNING: models must be re-pulled (~25 min)
 docker compose -f docker-compose.local.yml down -v

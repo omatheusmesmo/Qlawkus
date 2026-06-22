@@ -9,6 +9,10 @@ cd app && mvn quarkus:dev                 # live reload only works in app/
 
 Changing `client/` requires re-running `mvn install -pl client -am` then restarting dev mode. Hot reload does NOT apply to extension code.
 
+## Containerized Run
+
+`./run.sh <local|prod|native> [up|build|down|logs|restart|ps]` wraps Docker Compose (`./run.sh --help` for the full list). Unlike dev mode, this needs only Docker: the `app/src/main/docker/Dockerfile.{jvm,native}-build` images are **multi-stage** and compile the whole reactor in-container (build stage = the `ubi9/openjdk-25` builder, which ships Maven; runtime = `ubi9/openjdk-25-runtime`), so there is no host `mvn install` step and no stale-jar trap. Each build Dockerfile has its own `Dockerfile.*-build.dockerignore` so the standard Quarkus `.dockerignore` (for the COPY-target `Dockerfile.jvm`/`.native-micro`) stays intact. The build runs the **full** reactor (`mvn install`), not `-pl app -am`: a fresh local repo needs every `*-deployment` module built so the `extension-descriptor` check on each extension resolves. `local` -> `docker-compose.local.yml`; `prod`/`native` -> `docker-compose.yml` (native via its `native` profile).
+
 ## Architecture
 
 Multi-module Maven monorepo with a Quarkus extension pattern (`client/deployment` + `client/runtime`):
