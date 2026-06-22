@@ -13,7 +13,7 @@ public final class SkillFrontmatter {
   private SkillFrontmatter() {
   }
 
-  static String render(Skill skill) {
+  public static String render(Skill skill) {
     StringBuilder sb = new StringBuilder();
     sb.append(DELIMITER).append('\n');
     sb.append("name: ").append(skill.name()).append('\n');
