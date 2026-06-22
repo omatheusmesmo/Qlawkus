@@ -1,0 +1,36 @@
+####
+# Self-contained NATIVE image: builds the GraalVM native binary in-container, so
+# building needs only Docker (no host toolchain). Build context is the repo ROOT.
+#
+# Multi-stage build following the Quarkus Mandrel pattern
+# (https://quarkus.io/guides/building-native-image#multistage-docker). Uses its
+# own Dockerfile.native-build.dockerignore so the standard .dockerignore stays
+# untouched.
+#
+# Heavy: the native compile takes several minutes and a few GB of RAM.
+# Build + run via: ./run.sh native
+####
+
+# --- Build stage: Mandrel builder, native reactor build ----------------------
+# The Mandrel builder ships no Maven but has curl+unzip, so the mvnw wrapper works.
+# Full reactor (matches CI): a partial -pl app -am build skips the *-deployment
+# modules the extension-descriptor check needs from a fresh local repo.
+FROM quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-25 AS build
+USER root
+WORKDIR /code
+COPY . .
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw -B -e -DskipTests -DskipITs -Pnative install
+
+# --- Runtime stage: same micro base as Dockerfile.native-micro ---------------
+FROM quay.io/quarkus/ubi9-quarkus-micro-image:2.0
+WORKDIR /work/
+RUN chown 1001 /work \
+    && chmod "g+rwX" /work \
+    && chown 1001:root /work
+COPY --from=build --chown=1001:root --chmod=0755 /code/app/target/*-runner /work/application
+
+EXPOSE 8080
+USER 1001
+
+ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]

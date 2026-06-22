@@ -1,0 +1,46 @@
+####
+# Self-contained JVM image: compiles the whole reactor in-container, so building
+# needs only Docker (no host JDK or Maven). Build context is the repo ROOT.
+#
+# Unlike Dockerfile.jvm (which COPYs a pre-built target/quarkus-app), this is a
+# multi-stage build. The build stage is the same Red Hat UBI OpenJDK family as
+# the runtime stage, just the non-runtime variant that ships Maven - so there is
+# no Maven wrapper to download and checksum.
+#
+# It uses its own Dockerfile.jvm-build.dockerignore so the standard Quarkus
+# .dockerignore (tuned for the COPY-target build) stays untouched.
+#
+# Build + run via: ./run.sh prod    (or: docker compose up --build)
+# The BuildKit cache mount persists the Maven repo, so only the first build
+# downloads the full dependency tree.
+####
+
+# --- Build stage: reactor build (app + its upstream modules) -----------------
+# Runs as root in this throwaway stage; the runtime image below still runs as 185.
+FROM registry.access.redhat.com/ubi9/openjdk-25:1.24 AS build
+USER root
+WORKDIR /code
+COPY . .
+# Full reactor install (matches CI). A partial `-pl app -am` build would skip the
+# *-deployment modules, so the extension-descriptor check on qlawkus-client cannot
+# resolve qlawkus-client-deployment from a fresh local repo. The dockerignore drops
+# every target/, so there is nothing stale to clean.
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -e -DskipTests -DskipITs install
+
+# --- Runtime stage: same UBI runtime as Dockerfile.jvm -----------------------
+FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24
+
+ENV LANGUAGE='en_US:en'
+
+COPY --from=build --chown=185 /code/app/target/quarkus-app/lib/ /deployments/lib/
+COPY --from=build --chown=185 /code/app/target/quarkus-app/*.jar /deployments/
+COPY --from=build --chown=185 /code/app/target/quarkus-app/app/ /deployments/app/
+COPY --from=build --chown=185 /code/app/target/quarkus-app/quarkus/ /deployments/quarkus/
+
+EXPOSE 8080
+USER 185
+ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
+ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]

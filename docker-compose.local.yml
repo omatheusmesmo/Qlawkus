@@ -1,8 +1,8 @@
 services:
   qlawkus:
     build:
-      context: app
-      dockerfile: src/main/docker/Dockerfile.jvm
+      context: .
+      dockerfile: app/src/main/docker/Dockerfile.jvm-build
     env_file:
       - path: .env
         required: false

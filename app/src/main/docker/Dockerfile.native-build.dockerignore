@@ -1,0 +1,15 @@
+# Ignore file for the in-container native source build (Dockerfile.native-build).
+# BuildKit uses this instead of the standard .dockerignore. Patterns are relative
+# to the repo root.
+**/target
+.git
+.gitignore
+**/*.iml
+.idea
+.vscode
+node_modules
+*.log
+.env
+.env.*
+.qlawkus
+site/public
