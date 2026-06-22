@@ -20,5 +20,6 @@
         <module>qlawkus-tools-google-sheets</module>
         <module>qlawkus-tools-google-storage</module>
         <module>qlawkus-tools-brag</module>
+        <module>qlawkus-tools-skill-hub</module>
     </modules>
 </project>
