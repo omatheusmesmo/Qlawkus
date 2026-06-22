@@ -123,7 +123,7 @@ The production setup uses NVIDIA NIM as the primary LLM with a local Ollama side
 - **Triple Memory**: Working (session), Episodic (daily background journal), and Semantic (facts and preferences via pgvector)
 - **Skills (Procedural Memory)**: Reusable `SKILL.md` how-to procedures the agent authors, auto-distills, and curates itself; injected as an index each turn, loaded on demand. Pluggable storage (markdown / pgvector / hybrid). See the [Skills guide](site/content/skills.adoc)
 - **Autonomous Engineering**: Deep integration with `git` and `gh cli` for cloning, local testing, and autonomous code reviews
-- **Safe Self-Improvement**: The agent writes, validates (AST), and compiles Groovy scripts at runtime to create new dynamic tools, gated by strict Quarkus Security policies
+- **Composable Platform (roadmap, M8)**: A build-time + runtime YAML manifest selects which tools and features are plugged, with database-free encrypted secrets (via the `CredentialsProvider` SPI) and an optional Qute control-plane UI for onboarding and management
 - **Lightweight**: Native compilation via GraalVM for ultra-fast startup, designed to run cheaply on small instances
 - **Extensible**: Add tools by implementing `@QlawTool` beans — discovered automatically via CDI
 - **Google Workspace**: 6 optional extensions (Auth, Calendar, Gmail, Drive, Sheets, Storage) with 17 AI tools, Web/Loopback OAuth2, and encrypted credential vault
@@ -150,16 +150,16 @@ The production setup uses NVIDIA NIM as the primary LLM with a local Ollama side
 │ Working: PG (Session)     │  │ Life: Google Workspace │
 │ Episodic: Daily Job       │  │ Career: Brag Docs        │
 │ Semantic: pgvector        │  │ Engineering: Git / CLI   │
-└───────────────────────────┘  │ Dynamic: Groovy Engine   │
+└───────────────────────────┘  │ Skills: Procedural Mem   │
                                └──────────┬───────────────┘
                                           │
 ┌───────────────────────────────┼─────────────────────┐
 │                               │                     │
 ┌────────▼────────┐  ┌────────────────────▼──────────┐  ┌────────▼────────────┐
-│ Integrations    │  │ Execution                      │  │ Self-Improvement    │
-│ OAuth2          │  │ Sandbox                        │  │ CodeGenerator       │
-│ GitHub SDK      │  │ Test Runner                    │  │ Groovy Compiler     │
-│ Google Workspace │  │ ProcessManager                 │  │ AST Validator       │
+│ Integrations    │  │ Execution                      │  │ Skills (procedural) │
+│ OAuth2          │  │ Sandbox                        │  │ Auto-distill        │
+│ GitHub SDK      │  │ Test Runner                    │  │ Curation & lifecycle│
+│ Google Workspace │  │ ProcessManager                 │  │ Skill Hub (remote)  │
 └─────────────────┘  └───────────────────────────────┘  └─────────────────────┘
                                           │
 ┌────────────────────────▼────────────────────────────────┐
@@ -319,7 +319,6 @@ curl -X POST http://localhost:8080/api/chat \
 - [Guide: Ollama Models](https://docs.quarkiverse.io/quarkus-langchain4j/dev/guide-ollama.html)
 - [Dev Services — Automatic Testcontainers](https://quarkus.io/guides/dev-services)
 - [SmallRye Fault Tolerance](https://quarkus.io/guides/smallrye-fault-tolerance)
-- [GroovyClassLoader — Dynamic Compilation](https://docs.groovy-lang.org/latest/html/documentation/guide-integrating.html)
 
 ---
 
@@ -337,7 +336,7 @@ curl -X POST http://localhost:8080/api/chat \
 | **M5** | Career Engine (Brag Document) | Done |
 | **M6** | Sandbox & Code Review | Done |
 | **M7** | Messaging Interface (Multi-Provider: Discord, Telegram, Slack, WhatsApp) + Voice | Done |
-| **M8** | Self-Improvement Engine (Groovy) | Pending |
+| **M8** | Composable Agent Platform (composition manifest, no-DB secrets, control-plane UI, Dev UI) | Pending |
 | **M9** | Observability & Native Build | Pending |
 | **M10** | Autonomy & Job Orchestration | Pending |
 
