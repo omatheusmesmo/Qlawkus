@@ -1,8 +1,8 @@
 services:
   qlawkus:
     build:
-      context: app
-      dockerfile: src/main/docker/Dockerfile.jvm
+      context: .
+      dockerfile: app/src/main/docker/Dockerfile.jvm-build
     env_file:
       - path: .env
         required: false
@@ -53,8 +53,8 @@ services:
 
   qlawkus-native:
     build:
-      context: app
-      dockerfile: src/main/docker/Dockerfile.native-micro
+      context: .
+      dockerfile: app/src/main/docker/Dockerfile.native-build
     profiles:
       - native
     env_file:
