@@ -22,6 +22,10 @@
       <artifactId>quarkus-elytron-security-properties-file</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.smallrye.config</groupId>
+      <artifactId>smallrye-config-source-keystore</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.quarkiverse.langchain4j</groupId>
       <artifactId>quarkus-langchain4j-ollama</artifactId>
     </dependency>
