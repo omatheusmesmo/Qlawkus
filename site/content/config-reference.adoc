@@ -40,6 +40,9 @@ include::includes/qlawkus-client_qlawkus.file.adoc[]
 === Sandboxed shell
 include::includes/qlawkus-client_qlawkus.shell.adoc[]
 
+=== Secrets
+include::includes/qlawkus-client_qlawkus.secrets.adoc[]
+
 == Messaging
 
 === Core

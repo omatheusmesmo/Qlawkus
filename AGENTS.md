@@ -142,6 +142,18 @@ Resource collections:
 
 - [Quarkus Extensions Resources](https://hollycummins.com/quarkus-extensions-resources/) (Holly Cummins) - curated guides, talks, and posts
 
+## Secrets
+
+Database-free secret store, owned by `client` (no separate module - it is a thin DX wrapper over the built-in SmallRye keystore config source, not custom crypto). `client/runtime/.../META-INF/microprofile-config.properties` wires `smallrye.config.source.keystore."qlawkus"` to the Qlawkus convention `qlawkus.secrets.keystore-path` (default `~/.qlawkus/secrets.p12`) and `qlawkus.secrets.keystore-password`. Knobs are documented by `SecretsConfig` (`@ConfigMapping(prefix="qlawkus.secrets")`), rendered into the config reference under "Secrets".
+
+- **Alias = property name.** Each keystore alias is the config property it supplies, so a stored secret transparently overrides the matching env var and consumers read a plain `@ConfigProperty` (no code change). Onboard with `keytool -importpass -alias '<config.property.name>' -keystore <path> -storetype PKCS12`.
+- **On by default, lenient.** Contributed at ordinal 100 (env / `application.properties` still win) and lenient when the file is absent, so a fresh install boots on `.env` and the feature stays inert until a keystore exists. Validated by `integration-tests/markdown-only` `KeystoreSecretTest` (convention auto-wiring + the absent-keystore leniency contract), which boots with no datasource.
+- **Container.** Mount the keystore path on a persistent volume; pass `QLAWKUS_SECRETS_KEYSTORE_PASSWORD` via env. File and password stay out of the image.
+- **Managed alternative.** `quarkus-vault` on the classpath contributes a `CredentialsProvider` and resolves secrets the same way (ordinary config); use it when secrets are managed centrally.
+- **Gotcha.** The `.p12` test fixture is a real PKCS12 keystore. The global `pre-commit` hook strips trailing whitespace on non-blacklisted files and will corrupt it (DER `EOFException` at boot); commit keystore binaries with `git commit --no-verify`.
+
+User-facing guide: `site/content/secrets.adoc`.
+
 ## Databases
 
 Up to 3 PostgreSQL databases, all managed by Flyway:
