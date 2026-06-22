@@ -62,6 +62,9 @@ include::includes/qlawkus-messaging-whatsapp.adoc[]
 === Brag
 include::includes/qlawkus-tools-brag.adoc[]
 
+=== Skill Hub
+include::includes/qlawkus-tools-skill-hub.adoc[]
+
 === Google Auth
 include::includes/qlawkus-tools-google-auth.adoc[]
 
