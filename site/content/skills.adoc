@@ -105,9 +105,26 @@ All endpoints are under `/api/admin/skills` (Basic auth, same as the rest of the
 |`POST /api/admin/skills/{name}/pin` |Pin a skill so it never ages out.
 |===
 
+== Remote Skill Hub
+
+Everything above is *local* and offline. The optional `qlawkus-tools-skill-hub` extension adds the outward-facing registry client, so the agent can discover, install, and publish skills mid-conversation. It is a separate module: omit it and a locked-down distribution physically cannot reach a registry (stronger than a config flag). The default implementation is plain Java (`java.net.http`), native-friendly, with no external CLI; it is an overridable `@DefaultBean`. Qlawkus never hosts or manages a registry itself.
+
+Three tools (`@Tool`) drive it:
+
+[cols="2,3",options="header"]
+|===
+|Tool |What it does
+
+|`searchSkillHub` |Searches the registry at `<base-url>/api/search` and, for each configured `well-known-hosts` entry, the `/.well-known/agent-skills/index.json` index (the agentskills.io standard). Results are deduped and capped by `max-results`.
+|`installSkill` |Resolves an `owner/repo` slug (raw GitHub `SKILL.md`) or a direct URL, validates the name against path traversal, and saves it into the owned root - so it enters the injected index on the next turn. Only the `SKILL.md` text is fetched; executable assets are never pulled or run.
+|`publishSkill` |Renders one of your own skills to `<publish.dir>/<name>/SKILL.md`. It never runs `git`: in a container, mount `publish.dir` to a host git working copy and push from the host (credentials stay out of the container).
+|===
+
+Install and publish honor `qlawkus.skill-hub.approval-mode`: `yolo` acts immediately, while `hitl` (the default) previews first and requires a confirmed re-call. All settings live under `qlawkus.skill-hub.*` (`base-url`, `well-known-hosts`, `approval-mode`, `max-results`, `request-timeout`, `publish.enabled`, `publish.dir`); publishing is opt-in (`publish.enabled=false` by default).
+
 == Roadmap
 
-Today a skill is procedural text. Two extensions are planned.
+Today a skill is procedural text. One extension is planned.
 
 === Executable skills
 
@@ -115,11 +132,9 @@ Because a skill is already a directory (`<root>/<name>/SKILL.md`), it can carry 
 
 Note the overlap with in-process *dynamic tools* (e.g. runtime-compiled Groovy that registers a typed `@Tool`): both let the agent gain a self-authored capability. Bundled scripts win the common case - they run as a confined subprocess and work in native image - so they are the primary path for "executable skill". In-process dynamic tools remain a separate, niche axis for typed tools that need direct access to app internals (JVM-mode only, since GraalVM cannot load new bytecode at runtime).
 
-=== Skill hubs
-
-A planned `SkillHub` extension point will let the agent *search*, *install*, and *publish* skills against an existing ecosystem (https://maxandersen.github.io/jskills/[jskills] / skills.sh) rather than a Qlawkus-hosted hub. The capability is exposed as an overridable `@DefaultBean`; Qlawkus never hosts or manages a registry itself. Downloaded skills are read like any opt-in root, with the same path-traversal and trust safeguards.
+The remote Skill Hub above already ships search, install, and publish; a jskills-CLI backend (for hosts that already run the jskills tooling) remains a possible `@DefaultBean` override.
 
 == What's next?
 
 * xref:architecture.adoc[Architecture] - how skills fit the cognition subsystem, with diagrams
-* xref:config-reference.adoc#_skills[Configuration] - every `qlawkus.skills.*` and `qlawkus.cognition.backend` setting
+* xref:config-reference.adoc#_skills[Configuration] - every `qlawkus.skills.*`, `qlawkus.skill-hub.*`, and `qlawkus.cognition.backend` setting
