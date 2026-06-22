@@ -62,6 +62,11 @@
     </dependency>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-skill-hub-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-tools-google-auth-deployment</artifactId>
       <version>${project.version}</version>
     </dependency>

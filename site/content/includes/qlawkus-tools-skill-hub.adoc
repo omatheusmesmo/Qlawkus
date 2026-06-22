@@ -1,0 +1,198 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-enabled]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-enabled[`+++qlawkus.skill-hub.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the remote skill-hub tools (`searchSkillHub`, `installSkill`) are active. When `false`, both tools refuse and nothing reaches the network.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-base-url]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-base-url[`+++qlawkus.skill-hub.base-url+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.base-url+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Base URL of the remote skill registry. Search queries hit `<base-url>/api/search`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_BASE_URL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_BASE_URL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++https://skills.sh+++`
+
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-approval-mode]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-approval-mode[`+++qlawkus.skill-hub.approval-mode+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.approval-mode+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Install approval mode. `hitl` requires the owner to confirm before a fetched skill is written to the owned root (the tool previews first and installs only on a confirmed re-call); `yolo` installs immediately. Defaults to `hitl`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_APPROVAL_MODE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_APPROVAL_MODE+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`yolo`, `hitl`
+|`+++hitl+++`
+
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-max-results]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-max-results[`+++qlawkus.skill-hub.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of search hits returned to the agent in one call.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++10+++`
+
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-request-timeout]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-request-timeout[`+++qlawkus.skill-hub.request-timeout+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.request-timeout+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Timeout for a single HTTP request to the registry (search or fetch).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_REQUEST_TIMEOUT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_REQUEST_TIMEOUT+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-tools-skill-hub_qlawkus-skill-hub[icon:question-circle[title=More information about the Duration format]]
+|`+++10S+++`
+
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-well-known-hosts]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-well-known-hosts[`+++qlawkus.skill-hub.well-known-hosts+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.well-known-hosts+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Extra hosts (or base URLs) that serve a `/.well-known/agent-skills/index.json` index. Each is consulted on search in addition to the registry, and its skills become installable by their direct SKILL.md URL. Empty by default - search uses only the registry `base-url`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_WELL_KNOWN_HOSTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_WELL_KNOWN_HOSTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of string
+|
+
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-publish-enabled]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-publish-enabled[`+++qlawkus.skill-hub.publish.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.publish.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether `publishSkill` is active. Opt-in (disabled by default): publishing is an outward-facing share action.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_PUBLISH_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_PUBLISH_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-publish-dir]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-publish-dir[`+++qlawkus.skill-hub.publish.dir+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.publish.dir+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Directory where `publishSkill` writes the rendered SKILL.md (under `<dir>/<name>/SKILL.md`). In a container, mount this to a host path that is a git working copy; the owner reviews and pushes from the host. The hub never runs `git`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_PUBLISH_DIR+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_PUBLISH_DIR+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++${user.home}/.qlawkus/published+++`
+
+|===
+
+ifndef::no-duration-note[]
+[NOTE]
+[id=duration-note-anchor-qlawkus-tools-skill-hub_qlawkus-skill-hub]
+.About the Duration format
+====
+To write duration values, use the standard `java.time.Duration` format.
+See the link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html#parse(java.lang.CharSequence)[Duration#parse() Java API documentation] for more information.
+
+You can also use a simplified format, starting with a number:
+
+* If the value is only a number, it represents time in seconds.
+* If the value is a number followed by `ms`, it represents time in milliseconds.
+
+In other cases, the simplified format is translated to the `java.time.Duration` format for parsing:
+
+* If the value is a number followed by `h`, `m`, or `s`, it is prefixed with `PT`.
+* If the value is a number followed by `d`, it is prefixed with `P`.
+====
+endif::no-duration-note[]
