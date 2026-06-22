@@ -17,7 +17,7 @@ graph TB
         client["client - Core: Agent, Cognition, Skills, REST (database-free)"]
         cognitionpg["cognition-pgvector - optional Postgres/pgvector backend"]
         messaging["messaging - Discord / Telegram adapters"]
-        tools["tools - Google Workspace, Brag"]
+        tools["tools - Google Workspace, Brag, Skill Hub"]
     end
     subgraph infra["Infrastructure"]
         style infra fill:#fff,stroke:#ccc,stroke-dasharray: 5 5
@@ -154,11 +154,16 @@ graph LR
         SC[SkillCurationJob] -->|dedup redundant| SS
         SL[SkillLifecycleJob] -->|ages active to archived| SS
     end
+    subgraph SHub["Remote registry - optional skill-hub extension"]
+        Reg[(skills.sh / well-known host)] -->|search| SHT[SkillHubTool]
+        SHT -->|installSkill: SKILL.md into owned root| SS
+        SHT -.->|publishSkill: render to publish dir, no git push| Pub[/publish dir/]
+    end
     SS -.->|markdown / pgvector / hybrid| Backend[(Storage backend)]
 </div>
 ++++
 
-The agent authors, auto-distills, curates, and ages skills on its own, and the store is pluggable across three build-time backends (`markdown`, `pgvector`, `hybrid`). See xref:skills.adoc[Skills] for the full treatment: authoring a `SKILL.md`, the directory model, storage backends, lifecycle, bundled skills, and administration.
+The agent authors, auto-distills, curates, and ages skills on its own, and the store is pluggable across three build-time backends (`markdown`, `pgvector`, `hybrid`). Everything above is *local* and offline; the optional `qlawkus-tools-skill-hub` extension adds the outward-facing registry client (`searchSkillHub` / `installSkill` / `publishSkill`) so the agent can pull skills from skills.sh or any well-known host and stage its own for publishing. See xref:skills.adoc[Skills] for the full treatment: authoring a `SKILL.md`, the directory model, storage backends, lifecycle, bundled skills, the remote Skill Hub, and administration.
 
 == Databases
 
