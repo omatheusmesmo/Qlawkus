@@ -5,9 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
+import dev.omatheusmesmo.qlawkus.store.pg.UserProfileEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -21,6 +23,16 @@ class PgUserProfileStoreTest {
 
   @Inject
   UserProfileStore store;
+
+  @AfterEach
+  @Transactional
+  void resetProfile() {
+    UserProfileEntity p = UserProfileEntity.findProfile();
+    if (p != null) {
+      p.name = null;
+      p.profile = null;
+    }
+  }
 
   @Test
   @Transactional

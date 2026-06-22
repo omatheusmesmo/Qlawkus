@@ -8,6 +8,7 @@ import dev.omatheusmesmo.qlawkus.store.SoulStore;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -20,6 +21,12 @@ class PgSoulStoreTest {
 
   @Inject
   SoulStore store;
+
+  @AfterEach
+  @Transactional
+  void resetSoul() {
+    SoulResetHelper.resetToDefaults();
+  }
 
   @Test
   @Transactional
