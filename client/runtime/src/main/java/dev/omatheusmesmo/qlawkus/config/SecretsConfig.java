@@ -32,4 +32,13 @@ public interface SecretsConfig {
      * install with no keystore boots without requiring it.
      */
     Optional<String> keystorePassword();
+
+    /**
+     * Config ordinal at which keystore secrets are published. The default 350 ranks them above
+     * environment variables (300), the {@code .env} file (295) and {@code application.properties}
+     * (250), so a stored secret is authoritative; only system properties (400) still win. Lower it
+     * below 300 to let an environment variable override a stored secret instead.
+     */
+    @WithDefault("350")
+    int keystoreOrdinal();
 }
