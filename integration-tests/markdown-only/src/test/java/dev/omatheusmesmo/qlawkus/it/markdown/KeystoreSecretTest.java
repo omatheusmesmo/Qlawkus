@@ -35,4 +35,10 @@ class KeystoreSecretTest {
     void absentAliasIsLenient() {
         assertTrue(config.getOptionalValue("qlawkus.test.missing-secret", String.class).isEmpty());
     }
+
+    @Test
+    void llmApiKeyResolvesFromKeystoreThroughKindFactory() {
+        assertEquals("llm-key-from-keystore",
+                config.getValue("quarkus.langchain4j.openai.\"primary\".api-key", String.class));
+    }
 }
