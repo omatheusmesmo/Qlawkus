@@ -8,6 +8,7 @@
   <packaging>pom</packaging>
 
     <modules>
+        <module>composition-model</module>
         <module>client</module>
         <module>cognition-pgvector</module>
         <module>tools</module>

@@ -43,6 +43,9 @@ include::includes/qlawkus-client_qlawkus.shell.adoc[]
 === Secrets
 include::includes/qlawkus-client_qlawkus.secrets.adoc[]
 
+=== Composition
+include::includes/qlawkus-client_qlawkus.composition.adoc[]
+
 == Messaging
 
 === Core

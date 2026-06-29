@@ -1,0 +1,90 @@
+= Qlawkus Composition Model
+
+The shared, Quarkus-free model for the `agent.yml` composition manifest. Two very different
+processes read this manifest at two different times, and if each had its own parser they would
+drift. This module is the single parser and the single home of the policy logic, so they cannot.
+
+[cols="1,1,1,1"]
+|===
+| Section | Who reads it | When | How
+
+| `build-time`
+| the pom generator
+| before the build (outside Quarkus)
+| plain `CompositionManifestParser`
+
+| `runtime`
+| the running app
+| each boot
+| a Quarkus `ConfigSource`
+|===
+
+== Schema
+
+[source,yaml]
+----
+version: 1
+
+build-time:
+  # Posture of EVERY capability:
+  #   enabled  -> all on,  list the ones to turn OFF
+  #   disabled -> all off, list the ones to turn ON
+  default: enabled
+  # Capabilities with the OPPOSITE effect of the default. One list.
+  except:
+    - brag
+    - skill-hub
+
+runtime:
+  skill-hub.approval-mode: hitl
+  semantic-extractor.enabled: true
+----
+
+`version`:: Schema version. Only `1` is accepted today; it exists so the schema can evolve without
+breaking older files.
+
+`build-time.default`:: `enabled` or `disabled`. Sets the posture for all capabilities. Pick the
+default that makes the `except` list shortest.
+
+`build-time.except`:: The capabilities that get the *opposite* effect of `default`. A single list
+whose meaning inverts with the posture. This is the classic policy + exceptions model (firewall
+default-DENY/ALLOW, `.gitignore` + `!`, RBAC).
+
+`runtime`:: Free-form, dot-namespaced toggles applied at boot. The keys are ordinary Qlawkus config
+property suffixes (`skill-hub.approval-mode` -> `qlawkus.skill-hub.approval-mode`).
+
+== Policy semantics
+
+`BuildTime.isEnabled(capability)` resolves intent from the posture and the exception list:
+
+[cols="1,1,1"]
+|===
+| `default` | capability in `except`? | result
+
+| `enabled`  | no  | enabled
+| `enabled`  | yes | disabled
+| `disabled` | no  | disabled
+| `disabled` | yes | enabled
+|===
+
+This answers intent only. A capability whose module is absent from the classpath is never wired
+regardless of the answer here: you cannot enable what is not a dependency. The generator simply
+emits no dependency for it, and a `disabled` build-time entry keeps the dependency out of the pom
+entirely (lean by construction, not by runtime elimination).
+
+== What is deliberately not here
+
+`cognition.backend` (markdown / pgvector / hybrid):: A *valued* choice, not a boolean. It stays the
+build property `qlawkus.cognition.backend` (`@IfBuildProperty`), out of the manifest.
+
+Per-tool refinement (`only: [...]`):: YAGNI for now. Reserved for later without a schema break,
+thanks to `version`.
+
+== Paths
+
+`CompositionPaths.DEFAULT_MANIFEST`:: `qlawkus/agent.yml`, relative to the application module
+resources. The build-time input. Its location is configurable via `qlawkus.composition.manifest`
+(build-time).
+
+`CompositionPaths.DEFAULT_RUNTIME_OVERRIDE`:: `~/.qlawkus/agent.runtime.yml`. Where live runtime
+changes persist, never back into the baked artifact. Behavior owned by the runtime toggle tier.
