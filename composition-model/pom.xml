@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>dev.omatheusmesmo</groupId>
+        <artifactId>qlawkus</artifactId>
+        <version>0.8.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>qlawkus-composition-model</artifactId>
+    <name>Qlawkus Composition Model</name>
+    <description>Shared, Quarkus-free model for the agent.yml composition manifest. Read by both the
+        pom generator (build-time) and the running app (runtime) so the schema and policy logic
+        never diverge.</description>
+
+    <properties>
+        <!-- The shared parent surefire config uses @{argLine} (late replacement, normally filled by
+             the Quarkus plugin in extension modules). This plain module has no Quarkus plugin, so
+             define an empty default to keep @{argLine} from resolving to a literal JVM arg. -->
+        <argLine></argLine>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

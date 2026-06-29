@@ -17,6 +17,7 @@ Changing `client/` requires re-running `mvn install -pl client -am` then restart
 
 Multi-module Maven monorepo with a Quarkus extension pattern (`client/deployment` + `client/runtime`):
 
+- **`composition-model/`** - Thin, **Quarkus-free** module (plain records + Jackson YAML) holding the `agent.yml` composition manifest model: `CompositionManifest`/`BuildTime`/`Posture`, the single `CompositionManifestParser`, the policy+exceptions `isEnabled` logic, and the path conventions (`CompositionPaths`). Shared by the (future) pom generator that reads `build-time` before the build and the running app that reads `runtime` each boot, so the schema and policy never drift (same single-source-of-truth discipline as `KeystoreSecrets`). The `qlawkus.composition.*` location config (`CompositionConfig`, BUILD_TIME) lives in `client`.
 - **`client/`** - Quarkus extension (core agent, cognition, REST, tools). Not a runnable app. **Database-free**: depends on no datasource/JDBC/Flyway/pgvector - the markdown stores are its `@DefaultBean` backend.
 - **`cognition-pgvector/`** - Optional Quarkus extension (`deployment/` + `runtime/`) holding the entire Postgres/pgvector backend for the cognition stores (the `store.pg` package, the 7 Flyway migrations, and the datasource/pgvector config as `META-INF/microprofile-config.properties`). Present in `app/`; absent in a markdown-only distribution. `requires` the `dev.omatheusmesmo.qlawkus.agent` capability.
 - **`app/`** - Deployable Quarkus app (`packaging=quarkus`). Wires all extensions together. Only module you run.
