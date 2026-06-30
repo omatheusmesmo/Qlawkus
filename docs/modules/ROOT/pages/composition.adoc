@@ -1,0 +1,63 @@
+= Composition
+:page-title: Composition
+:page-description: Let agent.yml decide which capabilities are built into your agent, by generating the pom before the build.
+
+Qlawkus lets a single manifest, `agent.yml`, decide which capabilities are composed into your agent. The manifest is the source of truth for the build: its `build-time` section generates the application pom's dependency block, so a capability you do not ask for is never even on the classpath.
+
+[NOTE]
+====
+This feature is landing in stages. The manifest schema and the generator (`mvn qlawkus:generate`) are in place. Still being wired: the capability catalog that maps a capability name to its extension (issue #74), so until it lands the generator reads and validates the manifest but makes no change to the pom; the effect of the `runtime` toggles at boot (issue #73); and dev-mode hot reload (issue #77).
+====
+
+== Why a generator
+
+Quarkus resolves Maven dependencies *before* augmentation runs, and Maven does no tree-shaking, so a build step cannot add or drop dependencies for its own build. The only place a manifest can decide the dependencies is a step that runs *ahead* of the build. Qlawkus does this with a Maven plugin, the same idea as `quarkus extension add`:
+
+[source,text]
+----
+agent.yml  ->  mvn qlawkus:generate  ->  pom.xml  ->  mvn package (or quarkus build --native)
+----
+
+A deselected capability is left out of the pom entirely, so the result is lean by construction - not by relying on native-image dead-code elimination.
+
+== The manifest
+
+[source,yaml]
+----
+version: 1
+
+build-time:
+  # Posture of every capability:
+  #   enabled  -> all on,  list the ones to turn OFF
+  #   disabled -> all off, list the ones to turn ON
+  default: enabled
+  # Capabilities with the opposite effect of the default. One list.
+  except:
+    - brag
+    - skill-hub
+
+runtime:
+  skill-hub.approval-mode: hitl
+  semantic-extractor.enabled: true
+----
+
+`version`:: Schema version. Only `1` is accepted; it lets the schema evolve without breaking older files.
+
+`build-time.default`:: `enabled` or `disabled`. The posture for all capabilities. Pick the default that makes the `except` list shortest.
+
+`build-time.except`:: The capabilities that get the *opposite* effect of `default`. A single list whose meaning inverts with the posture (policy + exceptions, like a firewall default-DENY/ALLOW or `.gitignore` + `!`).
+
+`runtime`:: Dot-namespaced toggles applied at boot. The keys are ordinary configuration suffixes (`skill-hub.approval-mode` maps to `qlawkus.skill-hub.approval-mode`).
+
+By default the manifest lives at `src/main/resources/qlawkus/agent.yml`. Point elsewhere with the build-time property `qlawkus.composition.manifest`.
+
+== Running the generator
+
+[source,bash]
+----
+mvn qlawkus:generate
+----
+
+The plugin reads the manifest, resolves the selected capabilities, and reconciles the pom's `<dependencies>` block in place: it adds the selected capabilities, removes the deselected ones, and leaves everything else (parent, plugins, container-image - the skeleton) untouched. It is idempotent, so a pom already in sync is left byte-identical. Capability dependencies are added with no version, managed by the platform BOM in your pom skeleton, exactly as `quarkus extension add` does.
+
+In a container, run the generator in the build stage before `mvn package` or `quarkus build`. Swapping capabilities in a running production instance is a rebuild-and-redeploy, not a live toggle (the same closed-world constraint as a native image); the `runtime` section is the part meant to change without a rebuild, once that tier ships.

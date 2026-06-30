@@ -9,6 +9,7 @@
 
     <modules>
         <module>composition-model</module>
+        <module>composition-maven-plugin</module>
         <module>client</module>
         <module>cognition-pgvector</module>
         <module>tools</module>

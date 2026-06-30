@@ -50,6 +50,7 @@ xref:quickstart.adoc[Quick Start] - Get a working agent running in minutes.
 == Learn more
 
 * xref:architecture.adoc[Architecture] - How the modules fit together
+* xref:composition.adoc[Composition] - Let agent.yml decide which capabilities are built in
 * xref:skills.adoc[Skills] - Procedural memory the agent writes and curates itself
 * xref:google-workspace.adoc[Google Workspace] - Gmail, Calendar, Drive, Sheets, Storage
 * xref:messaging.adoc[Messaging] - Discord and Telegram bots with voice
