@@ -3,14 +3,14 @@ package dev.omatheusmesmo.qlawkus.composition.plugin;
 import java.util.List;
 
 /**
- * The set of capabilities the generator can compose, each mapped to its extension coordinates. This
- * is the registry side of the design (issue #74): it enumerates every known capability without the
- * generator depending on the capability modules themselves, so a deselected capability never has to
- * be on the classpath.
+ * The set of capabilities the generator can compose, each mapped to its extension coordinates. It
+ * enumerates every known capability without the generator depending on the capability modules
+ * themselves, so a deselected capability never has to be on the classpath.
  *
- * <p>The #74 implementation sources this from the Quarkus extension metadata
- * ({@code quarkus-extension.yaml}) of the Qlawkus extensions. The generator (#69) consumes the
- * interface, so the two evolve independently.
+ * <p>The default implementation, {@link ReactorCatalog}, sources this from the Quarkus extension
+ * metadata ({@code quarkus-extension.yaml}) of the reactor's Qlawkus extensions. Keeping this an
+ * interface leaves room for other resolution strategies (e.g. reading published artifacts for a
+ * consumer outside this monorepo) without touching the generator, which consumes only the interface.
  */
 public interface CapabilityCatalog {
 

@@ -61,6 +61,15 @@ Please add meaningful tests (business logic, edge cases, integration points), no
 
 - **Configuration**: prefer typed config (`@ConfigMapping` interfaces) with a JavaDoc comment on each method. The JavaDoc becomes the description in the generated configuration reference, so well-documented config is documented config.
 - **Adding a tool**: annotate a CDI bean with `@QlawTool` + `@ApplicationScoped`; `@Tool` methods are auto-discovered at build time. New tool modules must also be added to `app/pom.xml`.
+- **Declaring a capability**: an optional extension that the `agent.yml` manifest should be able to compose in or out must announce its capability name in its `src/main/resources/META-INF/quarkus-extension.yaml`:
+
+  ```yaml
+  metadata:
+    qlawkus:
+      capability: "messaging.discord"
+  ```
+
+  The `qlawkus-maven-plugin` reads that key to map the capability to the module's Maven coordinates. Omit it and the module is treated as always-present skeleton, so the manifest can never toggle it. Namespace names where natural, and reuse the same name across modules that should move as a unit (e.g. the Google modules all declare `google-workspace`).
 - **Code style**: constructor injection for required dependencies; DTOs at API boundaries; self-documenting code over comments.
 - **Commits**: Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, ...), small and atomic.
 - **Branches/merges**: feature branches; integrate by **rebase** (no merge commits).

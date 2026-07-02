@@ -1,5 +1,7 @@
 name: "Google Calendar"
 metadata:
+  qlawkus:
+    capability: "google-workspace"
   keywords:
     - "google"
     - "calendar"

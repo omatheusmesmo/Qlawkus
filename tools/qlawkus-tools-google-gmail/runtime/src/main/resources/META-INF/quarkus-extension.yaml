@@ -1,5 +1,7 @@
 name: "Google Gmail"
 metadata:
+  qlawkus:
+    capability: "google-workspace"
   keywords:
     - "google"
     - "gmail"

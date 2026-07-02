@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -73,6 +74,45 @@ class GenerateMojoTest {
         Model model = readPom(pom);
         assertTrue(has(model, "qlawkus-messaging-discord"), "selected capability added");
         assertFalse(has(model, "qlawkus-tools-brag"), "deselected capability absent");
+        assertTrue(has(model, "quarkus-arc"), "skeleton dependency preserved");
+    }
+
+    private MavenProject reactorModule(String artifactId, String capability) throws Exception {
+        Path moduleDir = dir.resolve(artifactId);
+        Path descriptor = Files.createDirectories(moduleDir.resolve("src/main/resources/META-INF"))
+                .resolve("quarkus-extension.yaml");
+        Files.writeString(descriptor, "metadata:\n  qlawkus:\n    capability: \"" + capability + "\"\n");
+        MavenProject project = new MavenProject();
+        project.setGroupId("dev.omatheusmesmo");
+        project.setArtifactId(artifactId);
+        project.setFile(moduleDir.resolve("pom.xml").toFile());
+        return project;
+    }
+
+    @Test
+    void buildsCatalogFromReactorModulesWhenNoCatalogInjected() throws Exception {
+        Path pom = Files.writeString(dir.resolve("pom.xml"), SKELETON_POM);
+        Path manifest = Files.writeString(dir.resolve("agent.yml"), """
+                version: 1
+                build-time:
+                  default: disabled
+                  except:
+                    - messaging.discord
+                """);
+
+        GenerateMojo mojo = new GenerateMojo();
+        mojo.setPom(pom.toFile());
+        mojo.manifest = manifest.toFile();
+        mojo.basedir = dir.toFile();
+        mojo.reactorProjects = List.of(
+                reactorModule("qlawkus-tools-brag", "brag"),
+                reactorModule("qlawkus-messaging-discord", "messaging.discord"));
+
+        mojo.execute();
+
+        Model model = readPom(pom);
+        assertTrue(has(model, "qlawkus-messaging-discord"), "capability read from reactor descriptor is added");
+        assertFalse(has(model, "qlawkus-tools-brag"), "deselected reactor capability absent");
         assertTrue(has(model, "quarkus-arc"), "skeleton dependency preserved");
     }
 

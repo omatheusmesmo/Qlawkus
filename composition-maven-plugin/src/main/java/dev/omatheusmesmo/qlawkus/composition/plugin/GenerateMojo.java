@@ -6,6 +6,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import dev.omatheusmesmo.qlawkus.composition.CompositionManifest;
@@ -18,6 +19,7 @@ import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
@@ -54,7 +56,15 @@ public class GenerateMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.basedir}", readonly = true, required = true)
     File basedir;
 
-    private CapabilityCatalog catalog = List::of;
+    /**
+     * All projects in the reactor. The default catalog is built from these: each module that
+     * self-describes a {@code metadata.qlawkus.capability} in its {@code quarkus-extension.yaml}
+     * contributes one capability.
+     */
+    @Parameter(defaultValue = "${reactorProjects}", readonly = true, required = true)
+    List<MavenProject> reactorProjects;
+
+    private CapabilityCatalog catalog;
 
     @Override
     public void execute() throws MojoExecutionException {
@@ -68,10 +78,25 @@ public class GenerateMojo extends AbstractMojo {
         }
 
         CompositionManifest parsed = CompositionManifestParser.parse(manifestPath);
-        Resolution resolution = new CapabilityResolver(catalog).resolve(parsed.buildTime());
+        Resolution resolution = new CapabilityResolver(effectiveCatalog()).resolve(parsed.buildTime());
         report(manifestPath, resolution);
 
         reconcilePom(resolution);
+    }
+
+    private CapabilityCatalog effectiveCatalog() {
+        if (catalog != null) {
+            return catalog;
+        }
+        List<ReactorModule> modules = new ArrayList<>();
+        if (reactorProjects != null) {
+            for (MavenProject project : reactorProjects) {
+                Path descriptor = project.getBasedir().toPath()
+                        .resolve("src/main/resources/META-INF/quarkus-extension.yaml");
+                modules.add(new ReactorModule(project.getGroupId(), project.getArtifactId(), descriptor));
+            }
+        }
+        return new ReactorCatalog(modules);
     }
 
     private void reconcilePom(Resolution resolution) throws MojoExecutionException {
@@ -110,7 +135,8 @@ public class GenerateMojo extends AbstractMojo {
                 getLog().warn("  except '" + name + "' matches no known capability"));
 
         if (resolution.selected().isEmpty() && resolution.excluded().isEmpty()) {
-            getLog().warn("Capability catalog is empty; nothing to reconcile (the catalog is issue #74).");
+            getLog().warn("Capability catalog is empty; no module declares metadata.qlawkus.capability, "
+                    + "so there is nothing to reconcile.");
         }
     }
 

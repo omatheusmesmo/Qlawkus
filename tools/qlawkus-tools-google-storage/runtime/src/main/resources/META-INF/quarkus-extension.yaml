@@ -1,5 +1,7 @@
 name: "Google Storage"
 metadata:
+  qlawkus:
+    capability: "google-workspace"
   keywords:
     - "google"
     - "storage"

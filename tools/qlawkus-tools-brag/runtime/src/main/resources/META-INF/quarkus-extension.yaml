@@ -1,5 +1,7 @@
 name: "Brag Document"
 metadata:
+  qlawkus:
+    capability: "brag"
   keywords:
     - "brag"
     - "career"
