@@ -46,6 +46,9 @@ include::includes/qlawkus-client_qlawkus.secrets.adoc[]
 === Composition
 include::includes/qlawkus-client_qlawkus.composition.adoc[]
 
+=== Runtime toggles
+include::includes/qlawkus-client_qlawkus.runtime.adoc[]
+
 == Messaging
 
 === Core
