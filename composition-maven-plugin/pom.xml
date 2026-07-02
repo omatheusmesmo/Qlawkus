@@ -22,6 +22,10 @@
         <argLine></argLine>
         <maven.version>3.9.9</maven.version>
         <maven-plugin-tools.version>3.15.2</maven-plugin-tools.version>
+        <!-- slf4j-api (test only): instantiating MavenProject in the reactor-catalog test triggers
+             its static logger init. maven-core is provided, so slf4j is not otherwise on the test cp.
+             Aligned with Maven 3.9.x; the same dependency Quarkus's own maven-plugin tests pull. -->
+        <slf4j.version>1.7.36</slf4j.version>
         <!-- The plugin descriptor mojo scans compiled classes with ASM; the version bundled with
              maven-plugin-tools predates Java 25 (class file v69), so pin a release that reads it. -->
         <asm.version>9.10.1</asm.version>
@@ -62,6 +66,12 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

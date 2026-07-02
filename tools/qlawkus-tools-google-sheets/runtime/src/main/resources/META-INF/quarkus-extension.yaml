@@ -1,5 +1,7 @@
 name: "Google Sheets"
 metadata:
+  qlawkus:
+    capability: "google-workspace"
   keywords:
     - "google"
     - "sheets"

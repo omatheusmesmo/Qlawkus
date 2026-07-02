@@ -1,5 +1,7 @@
 name: "Google Auth (Device Flow)"
 metadata:
+  qlawkus:
+    capability: "google-workspace"
   keywords:
   - "google"
   - "device-flow"

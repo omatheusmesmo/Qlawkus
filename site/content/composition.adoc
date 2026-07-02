@@ -6,7 +6,7 @@ Qlawkus lets a single manifest, `agent.yml`, decide which capabilities are compo
 
 [NOTE]
 ====
-This feature is landing in stages. The manifest schema and the generator (`mvn qlawkus:generate`) are in place. Still being wired: the capability catalog that maps a capability name to its extension (issue #74), so until it lands the generator reads and validates the manifest but makes no change to the pom; the effect of the `runtime` toggles at boot (issue #73); and dev-mode hot reload (issue #77).
+This feature is landing in stages. The manifest schema, the generator (`mvn qlawkus:generate`), and the capability catalog are in place: the generator now reconciles the pom against the capabilities the reactor's extensions declare. Still being wired: the effect of the `runtime` toggles at boot (issue #73), and dev-mode hot reload (issue #77).
 ====
 
 == Why a generator
@@ -61,3 +61,33 @@ mvn qlawkus:generate
 The plugin reads the manifest, resolves the selected capabilities, and reconciles the pom's `<dependencies>` block in place: it adds the selected capabilities, removes the deselected ones, and leaves everything else (parent, plugins, container-image - the skeleton) untouched. It is idempotent, so a pom already in sync is left byte-identical. Capability dependencies are added with no version, managed by the platform BOM in your pom skeleton, exactly as `quarkus extension add` does.
 
 In a container, run the generator in the build stage before `mvn package` or `quarkus build`. Swapping capabilities in a running production instance is a rebuild-and-redeploy, not a live toggle (the same closed-world constraint as a native image); the `runtime` section is the part meant to change without a rebuild, once that tier ships.
+
+== Capabilities and where they come from
+
+The catalog of capability names is not a central list. Each extension module *self-describes*: it declares its capability name in its own `quarkus-extension.yaml` under `metadata.qlawkus.capability`. The generator reads that key from every module in the build, so adding a new capability is just a matter of shipping a module that announces one - no central vocabulary to edit.
+
+[source,yaml]
+----
+# in an extension's src/main/resources/META-INF/quarkus-extension.yaml
+metadata:
+  qlawkus:
+    capability: "brag"
+----
+
+Names are namespaced where natural, and several modules may share one name (selecting or deselecting it moves them as a unit). The capabilities that ship today:
+
+[cols="1,3"]
+|===
+|Capability |Provided by
+
+|`cognition.pgvector` |The Postgres/pgvector backend for the cognition stores
+|`messaging.discord` |Discord adapter
+|`messaging.telegram` |Telegram adapter
+|`messaging.slack` |Slack adapter
+|`messaging.whatsapp` |WhatsApp adapter
+|`brag` |Career brag-document tool
+|`skill-hub` |Remote skill-registry client
+|`google-workspace` |The six Google modules (auth, Gmail, Calendar, Drive, Sheets, Storage)
+|===
+
+The core agent (`qlawkus-client`) is the skeleton, always present, so it declares no capability. A capability name in the manifest's `except` list that no module announces is surfaced as a warning (fail-fast policy is decided in issue #77).

@@ -1,5 +1,7 @@
 name: "Google Drive"
 metadata:
+  qlawkus:
+    capability: "google-workspace"
   keywords:
     - "google"
     - "drive"
