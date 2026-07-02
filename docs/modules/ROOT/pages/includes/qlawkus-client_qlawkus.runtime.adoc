@@ -1,0 +1,116 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-runtime-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-runtime-enabled[`+++qlawkus.runtime.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.runtime.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the runtime-toggle config sources are published. When false neither the baked-in defaults nor the external override contribute, and only ordinary configuration applies.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_RUNTIME_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_RUNTIME_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-runtime-manifest]] [.property-path]##link:#qlawkus-client_qlawkus-runtime-manifest[`+++qlawkus.runtime.manifest+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.runtime.manifest+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Classpath location of the baked-in manifest whose `runtime:` block supplies the toggle defaults. Defaults to `qlawkus/agent.yml` - the same manifest the pom generator reads.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_RUNTIME_MANIFEST+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_RUNTIME_MANIFEST+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++qlawkus/agent.yml+++`
+
+a| [[qlawkus-client_qlawkus-runtime-override-path]] [.property-path]##link:#qlawkus-client_qlawkus-runtime-override-path[`+++qlawkus.runtime.override-path+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.runtime.override-path+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Filesystem path of the external override, a standalone YAML map of toggles kept outside the artifact (mount it on a volume). A leading `~` expands to the user home; an absent file contributes nothing. Defaults to `~/.qlawkus/agent.runtime.yml`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_RUNTIME_OVERRIDE_PATH+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_RUNTIME_OVERRIDE_PATH+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++~/.qlawkus/agent.runtime.yml+++`
+
+a| [[qlawkus-client_qlawkus-runtime-baked-ordinal]] [.property-path]##link:#qlawkus-client_qlawkus-runtime-baked-ordinal[`+++qlawkus.runtime.baked-ordinal+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.runtime.baked-ordinal+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Ordinal at which the baked-in defaults publish. Kept low (default 250, the `application.properties` level) so the external override, environment variables, and `-D` system properties all win over a baked default.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_RUNTIME_BAKED_ORDINAL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_RUNTIME_BAKED_ORDINAL+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++250+++`
+
+a| [[qlawkus-client_qlawkus-runtime-override-ordinal]] [.property-path]##link:#qlawkus-client_qlawkus-runtime-override-ordinal[`+++qlawkus.runtime.override-ordinal+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.runtime.override-ordinal+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Ordinal at which the external override publishes. Default 290: above the baked-in defaults but below environment variables (300) and system properties (400), so an operator's env or `-D` still overrides a persisted toggle.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_RUNTIME_OVERRIDE_ORDINAL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_RUNTIME_OVERRIDE_ORDINAL+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++290+++`
+
+|===
+

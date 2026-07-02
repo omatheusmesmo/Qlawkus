@@ -6,7 +6,7 @@ Qlawkus lets a single manifest, `agent.yml`, decide which capabilities are compo
 
 [NOTE]
 ====
-This feature is landing in stages. The manifest schema, the generator (`mvn qlawkus:generate`), and the capability catalog are in place: the generator now reconciles the pom against the capabilities the reactor's extensions declare. Still being wired: the effect of the `runtime` toggles at boot (issue #73), and dev-mode hot reload (issue #77).
+This feature is landing in stages. The manifest schema, the generator (`mvn qlawkus:generate`), the capability catalog, and the `runtime` toggle tier are in place: the generator reconciles the pom against the capabilities the reactor's extensions declare, and the `runtime` block is applied at boot with an external override. Still being wired: dev-mode hot reload (issue #77).
 ====
 
 == Why a generator
@@ -37,8 +37,8 @@ build-time:
     - skill-hub
 
 runtime:
-  skill-hub.approval-mode: hitl
-  semantic-extractor.enabled: true
+  qlawkus.skill-hub.approval-mode: hitl
+  qlawkus.agent.semantic-extractor.enabled: true
 ----
 
 `version`:: Schema version. Only `1` is accepted; it lets the schema evolve without breaking older files.
@@ -47,7 +47,7 @@ runtime:
 
 `build-time.except`:: The capabilities that get the *opposite* effect of `default`. A single list whose meaning inverts with the posture (policy + exceptions, like a firewall default-DENY/ALLOW or `.gitignore` + `!`).
 
-`runtime`:: Dot-namespaced toggles applied at boot. The keys are ordinary configuration suffixes (`skill-hub.approval-mode` maps to `qlawkus.skill-hub.approval-mode`).
+`runtime`:: Toggles applied at boot (see <<Runtime toggles>>). Each key is a full Quarkus configuration property name, used verbatim - `qlawkus.skill-hub.approval-mode`, `qlawkus.agent.semantic-extractor.enabled` - so there is no prefix translation to guess. Only capabilities already compiled in can be toggled here; adding or removing a capability is a build-time concern.
 
 By default the manifest lives at `src/main/resources/qlawkus/agent.yml`. Point elsewhere with the build-time property `qlawkus.composition.manifest`.
 
@@ -60,7 +60,34 @@ mvn qlawkus:generate
 
 The plugin reads the manifest, resolves the selected capabilities, and reconciles the pom's `<dependencies>` block in place: it adds the selected capabilities, removes the deselected ones, and leaves everything else (parent, plugins, container-image - the skeleton) untouched. It is idempotent, so a pom already in sync is left byte-identical. Capability dependencies are added with no version, managed by the platform BOM in your pom skeleton, exactly as `quarkus extension add` does.
 
-In a container, run the generator in the build stage before `mvn package` or `quarkus build`. Swapping capabilities in a running production instance is a rebuild-and-redeploy, not a live toggle (the same closed-world constraint as a native image); the `runtime` section is the part meant to change without a rebuild, once that tier ships.
+In a container, run the generator in the build stage before `mvn package` or `quarkus build`. Swapping capabilities in a running production instance is a rebuild-and-redeploy, not a live toggle (the same closed-world constraint as a native image); the `runtime` section is the part that changes without a rebuild.
+
+== Runtime toggles
+
+The `runtime` block is the tier that changes without recompiling: it toggles among capabilities *already compiled in*, re-read each boot. It never adds or removes a capability - that is the build-time tier above - so it is the mirror of the secrets layering, with the opposite intent: secrets outrank the environment, runtime toggles yield to it.
+
+Three layers contribute a value, lowest to highest ordinal:
+
+[cols="1,1,3"]
+|===
+|Layer |Ordinal |Where
+
+|Baked-in defaults |250 |The `runtime:` block of the bundled `agent.yml`, shipped in the artifact.
+|External override |290 |A standalone YAML map of toggles on the filesystem, outside the artifact.
+|Environment / `-D` |300+ |Ordinary Quarkus configuration.
+|===
+
+So a persisted override wins over a baked default, but a deploy-time environment variable or `-D` system property still wins over both - the operator always has the last word. The external override is a plain map of the same verbatim keys, kept on a mounted volume so it survives a rebuild of the image:
+
+[source,yaml]
+----
+# ~/.qlawkus/agent.runtime.yml
+qlawkus.skill-hub.approval-mode: yolo
+----
+
+Live changes persist here, never back into the baked artifact. At boot the agent logs which overrides are in effect (or that none are), and a missing or malformed override is reported, not fatal.
+
+Knobs (`qlawkus.runtime.*`): `enabled` (default `true`), `override-path` (default `~/.qlawkus/agent.runtime.yml`), `manifest` (classpath location of the baked manifest, default `qlawkus/agent.yml`), and `baked-ordinal` / `override-ordinal` to retune the layering. Lower `override-ordinal` below 300 is already the default; raise it above 300 only if you want a persisted toggle to outrank the environment.
 
 == Capabilities and where they come from
 
