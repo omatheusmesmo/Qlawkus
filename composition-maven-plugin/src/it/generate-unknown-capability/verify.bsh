@@ -1,0 +1,10 @@
+import java.io.File;
+import java.nio.file.Files;
+
+String log = new String(Files.readAllBytes(new File(basedir, "build.log").toPath()));
+if (log.indexOf("cap.does-not-exist") < 0) {
+    throw new RuntimeException("fail-fast message must name the unknown capability");
+}
+if (log.indexOf("match no known capability") < 0) {
+    throw new RuntimeException("fail-fast message must explain the mismatch");
+}

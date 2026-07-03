@@ -1,0 +1,21 @@
+import java.io.File;
+import java.nio.file.Files;
+
+String pom = new String(Files.readAllBytes(new File(basedir, "agent-app/pom.xml").toPath()));
+if (pom.indexOf("<artifactId>cap-a</artifactId>") < 0) {
+    throw new RuntimeException("selected capability cap.a (cap-a) must be added to the reconciled pom");
+}
+if (pom.indexOf("<artifactId>cap-b</artifactId>") >= 0) {
+    throw new RuntimeException("deselected capability cap.b (cap-b) must be absent from the reconciled pom");
+}
+if (pom.indexOf("slf4j-api") < 0) {
+    throw new RuntimeException("skeleton dependency slf4j-api must be preserved");
+}
+
+String log = new String(Files.readAllBytes(new File(basedir, "build.log").toPath()));
+if (log.indexOf("Resolved capability set") < 0) {
+    throw new RuntimeException("build report must log the resolved capability set");
+}
+if (log.indexOf("+ cap.a") < 0) {
+    throw new RuntimeException("build report must list the selected capability");
+}

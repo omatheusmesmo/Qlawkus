@@ -29,6 +29,13 @@
         <!-- The plugin descriptor mojo scans compiled classes with ASM; the version bundled with
              maven-plugin-tools predates Java 25 (class file v69), so pin a release that reads it. -->
         <asm.version>9.10.1</asm.version>
+        <maven-invoker-plugin.version>3.9.0</maven-invoker-plugin.version>
+        <!-- BeanShell runs the invoker verify.bsh post-build hooks. Chosen over Groovy on purpose:
+             Groovy resolves script types by decompiling referenced classes with a shaded ASM that
+             cannot read Java 25 class files (v69); BeanShell is a reflection-based interpreter with
+             no such decompile step, so it stays green on Java 25 (same ASM>=9.8 trap as the plugin
+             descriptor, but here the ASM is shaded inside Groovy and cannot be overridden). -->
+        <bsh.version>2.0b6</bsh.version>
     </properties>
 
     <dependencies>
@@ -105,4 +112,60 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+            The maven-invoker integration test drives a real reactor (two capability modules + an
+            agent app), so ${reactorProjects} and the goal's lifecycle binding are exercised for
+            real, not stubbed. It honors the shared skipITs gate (skipped on PR CI, run when ITs are
+            enabled) and is off under the native profile: this is a pure-JVM Maven plugin, native
+            adds nothing. Enabling it needs the plugin's compile dependency (qlawkus-composition-model)
+            in the local repo, so run a reactor `mvn install` first, then `-DskipITs=false`.
+        -->
+        <profile>
+            <id>composition-invoker-it</id>
+            <activation>
+                <property>
+                    <name>!native</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-invoker-plugin</artifactId>
+                        <version>${maven-invoker-plugin.version}</version>
+                        <configuration>
+                            <skipInvocation>${skipITs}</skipInvocation>
+                            <projectsDirectory>src/it</projectsDirectory>
+                            <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
+                            <settingsFile>src/it/settings.xml</settingsFile>
+                            <localRepositoryPath>${project.build.directory}/it-repo</localRepositoryPath>
+                            <postBuildHookScript>verify</postBuildHookScript>
+                            <streamLogs>true</streamLogs>
+                            <extraArtifacts>
+                                <extraArtifact>dev.omatheusmesmo:qlawkus-composition-model:${project.version}</extraArtifact>
+                            </extraArtifacts>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>integration-test</id>
+                                <goals>
+                                    <goal>install</goal>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.apache-extras.beanshell</groupId>
+                                <artifactId>bsh</artifactId>
+                                <version>${bsh.version}</version>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
