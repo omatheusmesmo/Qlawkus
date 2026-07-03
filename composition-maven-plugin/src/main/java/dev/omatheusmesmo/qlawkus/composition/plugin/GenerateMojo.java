@@ -17,6 +17,7 @@ import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
@@ -32,8 +33,14 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
  * reconciles the pom's dependency block in place - adding selected capabilities, removing deselected
  * ones, and leaving the rest of the pom (the skeleton) untouched. It is idempotent: a pom already in
  * sync is not rewritten.
+ *
+ * <p>The default binding is {@code generate-sources}, so an {@code <execution>} in the app pom lets
+ * {@code quarkus:dev} regenerate the pom whenever {@code agent.yml} (which lives under
+ * {@code src/main/resources}, already watched by dev mode) changes; Quarkus then sees the pom change
+ * and restarts with the new capability set.
  */
-@Mojo(name = "generate", requiresProject = true, threadSafe = true)
+@Mojo(name = "generate", defaultPhase = LifecyclePhase.GENERATE_SOURCES,
+        requiresProject = true, threadSafe = true)
 public class GenerateMojo extends AbstractMojo {
 
     /**
@@ -64,6 +71,15 @@ public class GenerateMojo extends AbstractMojo {
     @Parameter(defaultValue = "${reactorProjects}", readonly = true, required = true)
     List<MavenProject> reactorProjects;
 
+    /**
+     * Whether an {@code except} entry that names no known capability fails the build. Defaults to
+     * {@code true}: a typo or a forgotten {@code metadata.qlawkus.capability} declaration otherwise
+     * drops the extension silently. Set to {@code false} to downgrade the mismatch to a warning (for
+     * a partial reactor build where not every module is present).
+     */
+    @Parameter(property = "qlawkus.composition.fail-on-unknown-capability", defaultValue = "true")
+    boolean failOnUnknownCapability;
+
     private CapabilityCatalog catalog;
 
     @Override
@@ -80,8 +96,24 @@ public class GenerateMojo extends AbstractMojo {
         CompositionManifest parsed = CompositionManifestParser.parse(manifestPath);
         Resolution resolution = new CapabilityResolver(effectiveCatalog()).resolve(parsed.buildTime());
         report(manifestPath, resolution);
+        validate(resolution);
 
         reconcilePom(resolution);
+    }
+
+    private void validate(Resolution resolution) throws MojoExecutionException {
+        if (resolution.unknownExcept().isEmpty()) {
+            return;
+        }
+        String names = String.join(", ", resolution.unknownExcept());
+        if (failOnUnknownCapability) {
+            throw new MojoExecutionException("Composition manifest lists 'except' entries that match no"
+                    + " known capability: " + names + ". Fix the name or declare"
+                    + " metadata.qlawkus.capability on the providing module. Set"
+                    + " -Dqlawkus.composition.fail-on-unknown-capability=false to downgrade to a warning.");
+        }
+        resolution.unknownExcept().forEach(name ->
+                getLog().warn("except '" + name + "' matches no known capability"));
     }
 
     private CapabilityCatalog effectiveCatalog() {
@@ -126,13 +158,11 @@ public class GenerateMojo extends AbstractMojo {
     }
 
     private void report(Path manifestPath, Resolution resolution) {
-        getLog().info("Composition manifest: " + manifestPath);
-        getLog().info("  selected " + resolution.selected().size()
-                + ", excluded " + resolution.excluded().size());
+        getLog().info("Resolved capability set from " + manifestPath);
+        getLog().info("  " + resolution.selected().size() + " selected, "
+                + resolution.excluded().size() + " excluded");
         resolution.selected().forEach(c -> getLog().info("  + " + c.name() + " (" + c.coordinates() + ")"));
         resolution.excluded().forEach(c -> getLog().info("  - " + c.name() + " (" + c.coordinates() + ")"));
-        resolution.unknownExcept().forEach(name ->
-                getLog().warn("  except '" + name + "' matches no known capability"));
 
         if (resolution.selected().isEmpty() && resolution.excluded().isEmpty()) {
             getLog().warn("Capability catalog is empty; no module declares metadata.qlawkus.capability, "

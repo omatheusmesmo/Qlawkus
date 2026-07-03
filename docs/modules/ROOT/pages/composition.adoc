@@ -6,7 +6,7 @@ Qlawkus lets a single manifest, `agent.yml`, decide which capabilities are compo
 
 [NOTE]
 ====
-This feature is landing in stages. The manifest schema, the generator (`mvn qlawkus:generate`), the capability catalog, and the `runtime` toggle tier are in place: the generator reconciles the pom against the capabilities the reactor's extensions declare, and the `runtime` block is applied at boot with an external override. Still being wired: dev-mode hot reload (issue #77).
+The manifest schema, the generator (`mvn qlawkus:generate`), the capability catalog, the `runtime` toggle tier, and dev-mode reload are all in place: the generator reconciles the pom against the capabilities the reactor's extensions declare, unknown names fail the build, the resolved set is reported, and the `runtime` block is applied at boot with an external override. Composing a capability in or out is a build-time concern by design (a rebuild, the same closed-world trade a native image makes); the `runtime` section is the part that changes without one.
 ====
 
 == Why a generator
@@ -60,7 +60,39 @@ mvn qlawkus:generate
 
 The plugin reads the manifest, resolves the selected capabilities, and reconciles the pom's `<dependencies>` block in place: it adds the selected capabilities, removes the deselected ones, and leaves everything else (parent, plugins, container-image - the skeleton) untouched. It is idempotent, so a pom already in sync is left byte-identical. Capability dependencies are added with no version, managed by the platform BOM in your pom skeleton, exactly as `quarkus extension add` does.
 
+Each run logs the resolved capability set (what it selected, what it left out), so the manifest's policy-and-exceptions shorthand never hides the full picture.
+
+If the manifest's `except` list names a capability that no module declares, the build fails: a typo would otherwise drop the extension silently, since a name nothing announces just resolves to nothing. Set `-Dqlawkus.composition.fail-on-unknown-capability=false` to downgrade that to a warning, for a partial reactor build where not every module is present.
+
 In a container, run the generator in the build stage before `mvn package` or `quarkus build`. Swapping capabilities in a running production instance is a rebuild-and-redeploy, not a live toggle (the same closed-world constraint as a native image); the `runtime` section is the part that changes without a rebuild.
+
+== Dev-mode reload
+
+Bind the goal to your app build and Quarkus dev mode keeps the pom in sync with the manifest as you edit it:
+
+[source,xml]
+----
+<plugin>
+  <groupId>dev.omatheusmesmo</groupId>
+  <artifactId>qlawkus-maven-plugin</artifactId>
+  <version>...</version>
+  <executions>
+    <execution>
+      <id>compose</id>
+      <goals>
+        <goal>generate</goal>
+      </goals>
+    </execution>
+  </executions>
+</plugin>
+----
+
+The goal's default phase is `generate-sources`. Because `agent.yml` lives under `src/main/resources`, a directory Quarkus dev mode already watches, editing it triggers a live reload; the bound goal regenerates the pom, and Quarkus, which also watches `pom.xml`, restarts with the new capability set. It reuses two watchers that already exist rather than adding one. This is heavier than a code reload (a full dev restart), but it is automatic.
+
+[NOTE]
+====
+Capability resolution reads the reactor (`${reactorProjects}`), so run dev mode from the reactor root (for example `mvn -pl app -am quarkus:dev`), not a single-module `cd app && mvn quarkus:dev`: a lone module sees an empty catalog and has nothing to compose. The `runtime` toggles below hot-reload either way, since they are configuration, not dependencies.
+====
 
 == Runtime toggles
 
@@ -117,4 +149,4 @@ Names are namespaced where natural, and several modules may share one name (sele
 |`google-workspace` |The six Google modules (auth, Gmail, Calendar, Drive, Sheets, Storage)
 |===
 
-The core agent (`qlawkus-client`) is the skeleton, always present, so it declares no capability. A capability name in the manifest's `except` list that no module announces is surfaced as a warning (fail-fast policy is decided in issue #77).
+The core agent (`qlawkus-client`) is the skeleton, always present, so it declares no capability. A capability name in the manifest's `except` list that no module announces fails the build by default (see <<Running the generator>>).

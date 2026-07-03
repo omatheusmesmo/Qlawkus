@@ -7,12 +7,14 @@ import java.util.List;
 
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GenerateMojoTest {
@@ -45,6 +47,7 @@ class GenerateMojoTest {
         mojo.setPom(pom.toFile());
         mojo.manifest = manifest.toFile();
         mojo.basedir = dir.toFile();
+        mojo.failOnUnknownCapability = true;
         return mojo;
     }
 
@@ -114,6 +117,43 @@ class GenerateMojoTest {
         assertTrue(has(model, "qlawkus-messaging-discord"), "capability read from reactor descriptor is added");
         assertFalse(has(model, "qlawkus-tools-brag"), "deselected reactor capability absent");
         assertTrue(has(model, "quarkus-arc"), "skeleton dependency preserved");
+    }
+
+    @Test
+    void unknownExceptFailsTheBuild() throws Exception {
+        Path pom = Files.writeString(dir.resolve("pom.xml"), SKELETON_POM);
+        Path manifest = Files.writeString(dir.resolve("agent.yml"), """
+                version: 1
+                build-time:
+                  default: disabled
+                  except:
+                    - messaging.discrod
+                """);
+
+        MojoExecutionException error =
+                assertThrows(MojoExecutionException.class, () -> mojoFor(pom, manifest).execute());
+        assertTrue(error.getMessage().contains("messaging.discrod"), "names the offending entry");
+        assertEquals(SKELETON_POM, Files.readString(pom), "pom is left untouched when validation fails");
+    }
+
+    @Test
+    void unknownExceptWithOptOutWarnsAndProceeds() throws Exception {
+        Path pom = Files.writeString(dir.resolve("pom.xml"), SKELETON_POM);
+        Path manifest = Files.writeString(dir.resolve("agent.yml"), """
+                version: 1
+                build-time:
+                  default: disabled
+                  except:
+                    - messaging.discord
+                    - messaging.discrod
+                """);
+
+        GenerateMojo mojo = mojoFor(pom, manifest);
+        mojo.failOnUnknownCapability = false;
+        mojo.execute();
+
+        Model model = readPom(pom);
+        assertTrue(has(model, "qlawkus-messaging-discord"), "known capability still reconciled");
     }
 
     @Test
