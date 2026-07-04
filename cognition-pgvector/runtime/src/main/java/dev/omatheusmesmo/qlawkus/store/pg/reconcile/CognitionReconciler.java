@@ -18,6 +18,7 @@ import dev.omatheusmesmo.qlawkus.dto.JournalSummary;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillState;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
+import dev.omatheusmesmo.qlawkus.store.FactChunker;
 import dev.omatheusmesmo.qlawkus.store.SoulStore;
 import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
 import dev.omatheusmesmo.qlawkus.skill.MarkdownSkillFiles;
@@ -40,6 +41,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -67,6 +69,7 @@ public class CognitionReconciler {
   private final EmbeddingRepository embeddingRepository;
   private final JournalRepository journalRepository;
   private final ObjectMapper objectMapper;
+  private final FactChunker chunker;
 
   @Inject
   public CognitionReconciler(AgentConfig config, SkillsConfig skillsConfig, SoulStore soulStore,
@@ -82,6 +85,8 @@ public class CognitionReconciler {
     this.embeddingRepository = embeddingRepository;
     this.journalRepository = journalRepository;
     this.objectMapper = objectMapper;
+    this.chunker = new FactChunker(config.facts().chunkMaxChars(),
+        config.facts().chunkOverlapChars());
   }
 
   /** Counts of records copied into each side during a reconcile/migrate pass. */
@@ -129,17 +134,23 @@ public class CognitionReconciler {
     long toFiles = 0;
     if (direction.toPg()) {
       for (FactRecord fact : files.loadAll()) {
-        if (!embeddingRepository.existsByContentHash(EmbeddingRepository.md5(fact.content()))) {
+        if (embeddingRepository.existsByContentHash(FactChunker.factHash(fact.content()))) {
+          continue;
+        }
+        try {
           addFactToPg(fact.content(), fact.metadata());
           toPg++;
+        } catch (RuntimeException e) {
+          Log.warnf(e, "Skipping fact %s that failed to mirror into pgvector; continuing reconcile",
+              fact.id());
         }
       }
     }
     if (direction.toFiles()) {
       for (FactRow row : embeddingRepository.loadAllFacts()) {
-        String id = EmbeddingRepository.md5(row.text());
+        String id = FactChunker.factHash(row.text());
         if (!files.exists(id)) {
-          files.write(id, row.text(), parseMetadata(row.metadataJson()));
+          files.write(id, row.text(), cleanMetadata(parseMetadata(row.metadataJson())));
           toFiles++;
         }
       }
@@ -300,10 +311,22 @@ public class CognitionReconciler {
   }
 
   private void addFactToPg(String content, Map<String, String> metadata) {
-    Metadata segmentMetadata = new Metadata();
-    metadata.forEach((key, value) -> segmentMetadata.put(key, value == null ? "" : value));
-    Embedding embedding = embeddingModel.embed(content).content();
-    embeddingStore.add(embedding, TextSegment.from(content, segmentMetadata));
+    for (FactChunker.Chunk chunk : chunker.chunk(content, metadata)) {
+      Metadata segmentMetadata = new Metadata();
+      chunk.metadata().forEach((key, value) -> segmentMetadata.put(key, value == null ? "" : value));
+      Embedding embedding = embeddingModel.embed(chunk.text()).content();
+      embeddingStore.add(embedding, TextSegment.from(chunk.text(), segmentMetadata));
+    }
+  }
+
+  /** Drops the chunk-bookkeeping keys so a fact mirrored back to a file keeps clean frontmatter. */
+  private static Map<String, String> cleanMetadata(Map<String, String> metadata) {
+    Map<String, String> clean = new LinkedHashMap<>(metadata);
+    clean.remove(FactChunker.FACT_HASH);
+    clean.remove(FactChunker.CHUNK_INDEX);
+    clean.remove(FactChunker.CHUNK_COUNT);
+    clean.remove(FactChunker.FACT_TEXT);
+    return clean;
   }
 
   private Map<String, String> parseMetadata(String json) {

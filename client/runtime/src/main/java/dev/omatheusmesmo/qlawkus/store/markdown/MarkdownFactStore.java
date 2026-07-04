@@ -11,6 +11,7 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
+import dev.omatheusmesmo.qlawkus.store.FactChunker;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import io.quarkus.arc.DefaultBean;
@@ -20,6 +21,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,12 @@ import java.util.Map;
  * a sibling JSON cache so restarts only re-embed changed facts. No database is used. The same
  * embedding store is read by {@code ActiveMemoryAugmentor}, so recall stays on the RAG seam exactly
  * like the pgvector backend - retrieved, not dumped.
+ *
+ * <p>A fact whose content exceeds the embedding model's token limit is split into overlapping
+ * segments by {@link FactChunker}; each segment is embedded under the entry id
+ * {@code <factHash>#<chunkIndex>}, so one {@code .md} file maps to N in-memory vectors. This keeps
+ * {@code load()} from crashing on an oversized fact (it is a {@code @PostConstruct}) and mirrors the
+ * pgvector backend's chunking.
  */
 @ApplicationScoped
 @DefaultBean
@@ -38,20 +46,27 @@ public class MarkdownFactStore implements FactStore {
 
   private final MarkdownFactFiles files;
   private final EmbeddingModel embeddingModel;
+  private final FactChunker chunker;
   private final InMemoryEmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<>();
 
   @Inject
   public MarkdownFactStore(AgentConfig config, EmbeddingModel embeddingModel) {
-    this(config.facts().root(), embeddingModel);
+    this(config.facts().root(), embeddingModel,
+        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars()));
   }
 
   public MarkdownFactStore(String root, EmbeddingModel embeddingModel) {
+    this(root, embeddingModel, new FactChunker(1200, 120));
+  }
+
+  public MarkdownFactStore(String root, EmbeddingModel embeddingModel, FactChunker chunker) {
     this.files = new MarkdownFactFiles(Path.of(root));
     this.embeddingModel = embeddingModel;
+    this.chunker = chunker;
   }
 
   /**
-   * Rebuilds the in-process embedding index from the {@code .md} files, re-embedding only facts
+   * Rebuilds the in-process embedding index from the {@code .md} files, re-embedding only segments
    * absent from the JSON cache. Runs automatically as the CDI {@code @PostConstruct}; also callable
    * directly when the store is constructed outside the container (tests).
    */
@@ -61,36 +76,42 @@ public class MarkdownFactStore implements FactStore {
     Map<String, float[]> refreshed = new LinkedHashMap<>();
     boolean changed = false;
     for (MarkdownFactFiles.FactRecord fact : files.loadAll()) {
-      float[] vector = cache.get(fact.id());
-      Embedding embedding;
-      if (vector != null) {
-        embedding = Embedding.from(vector);
-      } else {
-        embedding = embeddingModel.embed(fact.content()).content();
-        changed = true;
+      for (FactChunker.Chunk chunk : chunker.chunk(fact.content(), fact.metadata())) {
+        String entryId = entryId(fact.id(), chunk);
+        float[] vector = cache.get(entryId);
+        Embedding embedding;
+        if (vector != null) {
+          embedding = Embedding.from(vector);
+        } else {
+          embedding = embeddingModel.embed(chunk.text()).content();
+          changed = true;
+        }
+        refreshed.put(entryId, embedding.vector());
+        store.add(entryId, embedding, segment(chunk.text(), chunk.metadata()));
       }
-      refreshed.put(fact.id(), embedding.vector());
-      store.add(fact.id(), embedding, segment(fact.content(), fact.metadata()));
     }
     if (changed || refreshed.size() != cache.size()) {
       files.saveCache(refreshed);
     }
-    Log.infof("Markdown fact store loaded %d facts", refreshed.size());
+    Log.infof("Markdown fact store loaded %d segments", refreshed.size());
   }
 
   @Override
   public void store(String content, Map<String, Object> metadata) {
-    String id = MarkdownFactFiles.md5(content);
+    String id = FactChunker.factHash(content);
     if (files.exists(id)) {
       Log.debugf("Fact already exists, skipping: %s", id);
       return;
     }
     Map<String, String> stringMetadata = stringify(metadata);
     files.write(id, content, stringMetadata);
-    Embedding embedding = embeddingModel.embed(content).content();
-    store.add(id, embedding, segment(content, stringMetadata));
     Map<String, float[]> cache = files.loadCache();
-    cache.put(id, embedding.vector());
+    for (FactChunker.Chunk chunk : chunker.chunk(content, stringMetadata)) {
+      String entryId = entryId(id, chunk);
+      Embedding embedding = embeddingModel.embed(chunk.text()).content();
+      store.add(entryId, embedding, segment(chunk.text(), chunk.metadata()));
+      cache.put(entryId, embedding.vector());
+    }
     files.saveCache(cache);
   }
 
@@ -144,7 +165,7 @@ public class MarkdownFactStore implements FactStore {
       if (toRemove.contains(idA)) {
         continue;
       }
-      float[] a = cache.get(idA);
+      float[] a = cache.get(entryId(idA, 0));
       if (a == null) {
         continue;
       }
@@ -153,19 +174,13 @@ public class MarkdownFactStore implements FactStore {
         if (toRemove.contains(idB)) {
           continue;
         }
-        float[] b = cache.get(idB);
+        float[] b = cache.get(entryId(idB, 0));
         if (b != null && cosineDistance(a, b) < maxCosineDistance) {
           toRemove.add(idB);
         }
       }
     }
-    if (!toRemove.isEmpty()) {
-      toRemove.forEach(files::delete);
-      store.removeAll(toRemove);
-      Map<String, float[]> refreshed = files.loadCache();
-      toRemove.forEach(refreshed::remove);
-      files.saveCache(refreshed);
-    }
+    removeFacts(toRemove);
     return toRemove.size();
   }
 
@@ -193,13 +208,7 @@ public class MarkdownFactStore implements FactStore {
         ids.add(fact.id());
       }
     }
-    ids.forEach(files::delete);
-    if (!ids.isEmpty()) {
-      store.removeAll(ids);
-      Map<String, float[]> cache = files.loadCache();
-      ids.forEach(cache::remove);
-      files.saveCache(cache);
-    }
+    removeFacts(ids);
     return ids.size();
   }
 
@@ -215,6 +224,32 @@ public class MarkdownFactStore implements FactStore {
   /** The in-process embedding store backing this fact store; read by the active-memory augmentor. */
   public EmbeddingStore<TextSegment> embeddingStore() {
     return store;
+  }
+
+  /** Deletes the {@code .md} files and drops every segment (all {@code <id>#*} entries) they own. */
+  private void removeFacts(Collection<String> factIds) {
+    if (factIds.isEmpty()) {
+      return;
+    }
+    factIds.forEach(files::delete);
+    Map<String, float[]> cache = files.loadCache();
+    List<String> entryIds = cache.keySet().stream().filter(k -> belongsTo(k, factIds)).toList();
+    store.removeAll(entryIds);
+    entryIds.forEach(cache::remove);
+    files.saveCache(cache);
+  }
+
+  private static boolean belongsTo(String entryId, Collection<String> factIds) {
+    int hash = entryId.indexOf('#');
+    return factIds.contains(hash < 0 ? entryId : entryId.substring(0, hash));
+  }
+
+  private static String entryId(String factId, FactChunker.Chunk chunk) {
+    return factId + "#" + chunk.metadata().get(FactChunker.CHUNK_INDEX);
+  }
+
+  private static String entryId(String factId, int chunkIndex) {
+    return factId + "#" + chunkIndex;
   }
 
   private List<String> texts(EmbeddingSearchRequest request) {

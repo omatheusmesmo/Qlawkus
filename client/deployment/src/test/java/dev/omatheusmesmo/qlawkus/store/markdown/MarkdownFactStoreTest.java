@@ -8,6 +8,7 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
+import dev.omatheusmesmo.qlawkus.store.FactChunker;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -117,6 +118,25 @@ class MarkdownFactStoreTest {
 
     assertEquals(0, reader.embedCalls, "reload must hit the cache, not re-embed stored facts");
     assertEquals(List.of("the sky is blue"), second.search("the sky is blue", 1, 0.0));
+  }
+
+  @Test
+  void oversizedFactBecomesOneFileButManySegmentVectors() throws IOException {
+    FakeEmbeddingModel writer = new FakeEmbeddingModel();
+    MarkdownFactStore store = new MarkdownFactStore(tempDir.toString(), writer, new FactChunker(100, 10));
+    store.load();
+    String big = "Alpha beta gamma delta epsilon zeta eta theta iota. ".repeat(15);
+
+    store.store(big, source(MemorySource.TRANSCRIPT));
+
+    assertEquals(1, markdownFileCount(), "an oversized fact is still a single .md file");
+    assertTrue(writer.embedCalls > 1, "content over the budget is embedded as several segments");
+    assertFalse(store.search("alpha beta gamma", 3, 0.0).isEmpty(), "the chunked fact is retrievable");
+
+    FakeEmbeddingModel reader = new FakeEmbeddingModel();
+    MarkdownFactStore reloaded = new MarkdownFactStore(tempDir.toString(), reader, new FactChunker(100, 10));
+    reloaded.load();
+    assertEquals(0, reader.embedCalls, "reload hits the per-segment cache, not the model");
   }
 
   /** Deterministic, offline embedding model: same text always yields the same vector. */
