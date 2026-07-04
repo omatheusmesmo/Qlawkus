@@ -61,13 +61,18 @@ public class EmbeddingRepository {
         .executeUpdate();
   }
 
-  /** Texts of curated user facts (remember-tool + semantic-extractor), for profile curation. */
+  /**
+   * Texts of curated user facts (remember-tool + semantic-extractor), for profile curation. Facts
+   * are stored as N segments; this returns the whole fact once (segment 0 carries the full
+   * {@code factText}), never a fragment and never N duplicates.
+   */
   @Transactional
   @SuppressWarnings("unchecked")
   public List<String> listFactTexts(int limit) {
     return entityManager.createNativeQuery(
-        "SELECT text FROM embeddings "
+        "SELECT COALESCE(metadata->>'factText', text) FROM embeddings "
             + "WHERE metadata->>'source' IN ('remember-tool','semantic-extractor') "
+            + "AND COALESCE(metadata->>'chunkIndex', '0') = '0' "
             + "ORDER BY embedding_id LIMIT ?1")
         .setParameter(1, limit)
         .getResultList();
@@ -77,12 +82,17 @@ public class EmbeddingRepository {
   public record FactRow(String text, String metadataJson) {
   }
 
-  /** Every stored fact (text + JSON metadata), used to mirror pgvector facts back to files. */
+  /**
+   * Every stored fact (whole text + JSON metadata), one row per fact, used to mirror pgvector facts
+   * back to files. Only segment 0 of each fact is returned, and its full {@code factText} is
+   * reconstructed, so a chunked fact yields exactly one file (not one per segment).
+   */
   @Transactional
   @SuppressWarnings("unchecked")
   public List<FactRow> loadAllFacts() {
     List<Object[]> rows = entityManager.createNativeQuery(
-        "SELECT text, metadata::text FROM embeddings ORDER BY embedding_id")
+        "SELECT COALESCE(metadata->>'factText', text), metadata::text FROM embeddings "
+            + "WHERE COALESCE(metadata->>'chunkIndex', '0') = '0' ORDER BY embedding_id")
         .getResultList();
     return rows.stream()
         .map(r -> new FactRow((String) r[0], (String) r[1]))

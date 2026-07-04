@@ -10,6 +10,7 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
+import dev.omatheusmesmo.qlawkus.store.FactChunker;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.markdown.MarkdownFactFiles;
 import io.quarkus.arc.properties.IfBuildProperty;
@@ -35,33 +36,45 @@ public class HybridFactStore implements FactStore {
   private final EmbeddingModel embeddingModel;
   private final EmbeddingStore<TextSegment> embeddingStore;
   private final EmbeddingRepository embeddingRepository;
+  private final FactChunker chunker;
 
   @Inject
   public HybridFactStore(AgentConfig config, EmbeddingModel embeddingModel,
       EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository) {
-    this(config.facts().root(), embeddingModel, embeddingStore, embeddingRepository);
+    this(config.facts().root(), embeddingModel, embeddingStore, embeddingRepository,
+        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars()));
   }
 
   HybridFactStore(String root, EmbeddingModel embeddingModel,
       EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository) {
+    this(root, embeddingModel, embeddingStore, embeddingRepository, new FactChunker(1200, 120));
+  }
+
+  private HybridFactStore(String root, EmbeddingModel embeddingModel,
+      EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository,
+      FactChunker chunker) {
     this.files = new MarkdownFactFiles(Path.of(root));
     this.embeddingModel = embeddingModel;
     this.embeddingStore = embeddingStore;
     this.embeddingRepository = embeddingRepository;
+    this.chunker = chunker;
   }
 
   @Override
   public void store(String content, Map<String, Object> metadata) {
-    String id = EmbeddingRepository.md5(content);
-    if (embeddingRepository.existsByContentHash(id)) {
-      Log.debugf("Fact already exists, skipping: %s", id);
+    String factHash = FactChunker.factHash(content);
+    if (embeddingRepository.existsByContentHash(factHash)) {
+      Log.debugf("Fact already exists, skipping: %s", factHash);
       return;
     }
-    files.write(id, content, stringify(metadata));
-    Metadata segmentMetadata = new Metadata();
-    metadata.forEach((key, value) -> segmentMetadata.put(key, value == null ? "" : value.toString()));
-    Embedding embedding = embeddingModel.embed(content).content();
-    embeddingStore.add(embedding, TextSegment.from(content, segmentMetadata));
+    Map<String, String> base = stringify(metadata);
+    files.write(factHash, content, base);
+    for (FactChunker.Chunk chunk : chunker.chunk(content, base)) {
+      Metadata segmentMetadata = new Metadata();
+      chunk.metadata().forEach(segmentMetadata::put);
+      Embedding embedding = embeddingModel.embed(chunk.text()).content();
+      embeddingStore.add(embedding, TextSegment.from(chunk.text(), segmentMetadata));
+    }
   }
 
   @Override

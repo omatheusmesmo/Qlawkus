@@ -107,6 +107,24 @@ public interface AgentConfig {
          */
         @WithDefault("${user.home}/.qlawkus/facts")
         String root();
+
+        /**
+         * Maximum characters per embedding segment. Fact content longer than this is split into
+         * overlapping segments before embedding, so a single fact never exceeds the embedding
+         * model's token limit (for example 512 tokens for {@code nv-embedqa-e5-v5}). The budget is
+         * expressed in characters because the model's tokenizer is not on the classpath; the
+         * default is a conservative proxy for roughly 400 tokens. Raise it for prose-heavy content,
+         * lower it if a denser tokenizer (code, URLs) still overflows.
+         */
+        @WithDefault("1200")
+        int chunkMaxChars();
+
+        /**
+         * Character overlap between consecutive embedding segments, so a fact split across segments
+         * keeps context at the boundaries. Should be a small fraction of {@link #chunkMaxChars()}.
+         */
+        @WithDefault("120")
+        int chunkOverlapChars();
     }
 
     interface Episodic {

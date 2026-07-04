@@ -9,11 +9,15 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
+import dev.omatheusmesmo.qlawkus.config.AgentConfig;
+import dev.omatheusmesmo.qlawkus.store.FactChunker;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.logging.Log;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,27 +39,36 @@ public class PgFactStore implements FactStore {
   @Inject
   EmbeddingRepository embeddingRepository;
 
+  @Inject
+  AgentConfig agentConfig;
+
+  private FactChunker chunker;
+
+  @PostConstruct
+  void init() {
+    chunker = new FactChunker(agentConfig.facts().chunkMaxChars(),
+        agentConfig.facts().chunkOverlapChars());
+  }
+
   @Override
   public void store(String content, Map<String, Object> metadata) {
-    String hash = EmbeddingRepository.md5(content);
-    if (embeddingRepository.existsByContentHash(hash)) {
-      Log.debugf("Embedding already exists for text, skipping: %s", content);
+    String factHash = FactChunker.factHash(content);
+    if (embeddingRepository.existsByContentHash(factHash)) {
+      Log.debugf("Fact already exists, skipping: %s", factHash);
       return;
     }
-    Metadata langchainMetadata = new Metadata();
-    metadata.forEach((key, value) -> {
-      switch (value) {
-        case String s -> langchainMetadata.put(key, s);
-        case Integer i -> langchainMetadata.put(key, i);
-        case Long l -> langchainMetadata.put(key, l);
-        case Double d -> langchainMetadata.put(key, d);
-        case Float f -> langchainMetadata.put(key, f);
-        default -> langchainMetadata.put(key, value.toString());
-      }
-    });
-    TextSegment segment = TextSegment.from(content, langchainMetadata);
-    Embedding embedding = embeddingModel.embed(content).content();
-    embeddingStore.add(embedding, segment);
+    for (FactChunker.Chunk chunk : chunker.chunk(content, stringify(metadata))) {
+      Metadata segmentMetadata = new Metadata();
+      chunk.metadata().forEach(segmentMetadata::put);
+      Embedding embedding = embeddingModel.embed(chunk.text()).content();
+      embeddingStore.add(embedding, TextSegment.from(chunk.text(), segmentMetadata));
+    }
+  }
+
+  private static Map<String, String> stringify(Map<String, Object> metadata) {
+    Map<String, String> out = new LinkedHashMap<>();
+    metadata.forEach((key, value) -> out.put(key, value == null ? "" : value.toString()));
+    return out;
   }
 
   @Override

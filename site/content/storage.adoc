@@ -35,6 +35,10 @@ The backend is selected at build time with `qlawkus.cognition.backend`:
 
 Whichever backend is active, fact retrieval is the same query-relevant top-K RAG path - the choice trades off persistence and scale, never the recall model. Journal text is always embedded through the fact store (`source=episodic-consolidator`), so journals stay searchable regardless of where the journal record itself lives.
 
+=== Large facts are chunked
+
+Embedding models cap the tokens they accept per input (the default NVIDIA model tops out at 512), so a long fact - a full transcript message, a daily journal - would fail to embed whole. Before embedding, the fact store therefore splits any oversized fact into overlapping segments: one fact becomes several embedding rows that share a single identity (`factHash`), while the `.md` file stays one fact. Retrieval, dedup and reconcile all key on that identity, so a chunked fact still mirrors and round-trips between files and pgvector as a single fact. The segment size is configurable with `qlawkus.agent.facts.chunk-max-chars` (default `1200`, roughly 400 tokens) and `qlawkus.agent.facts.chunk-overlap-chars` (default `120`); the budget is deliberately conservative in characters to leave headroom against the model's token count.
+
 == The pgvector extension and the database-free distribution
 
 All Postgres backends live in one optional extension, `qlawkus-cognition-pgvector`: the `store.pg` package, the Flyway migrations, and the datasource/pgvector config (shipped as the extension's `META-INF/microprofile-config.properties`, so it applies only when the extension is present). `qlawkus-client` itself depends on no datasource, JDBC, Flyway or pgvector.

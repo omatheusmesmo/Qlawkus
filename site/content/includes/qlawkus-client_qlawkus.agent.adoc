@@ -280,6 +280,48 @@ endif::add-copy-button-to-env-var[]
 |string
 |`+++${user.home}/.qlawkus/facts+++`
 
+a| [[qlawkus-client_qlawkus-agent-facts-chunk-max-chars]] [.property-path]##link:#qlawkus-client_qlawkus-agent-facts-chunk-max-chars[`+++qlawkus.agent.facts.chunk-max-chars+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.facts.chunk-max-chars+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum characters per embedding segment. Fact content longer than this is split into overlapping segments before embedding, so a single fact never exceeds the embedding model's token limit (for example 512 tokens for `nv-embedqa-e5-v5`). The budget is expressed in characters because the model's tokenizer is not on the classpath; the default is a conservative proxy for roughly 400 tokens. Raise it for prose-heavy content, lower it if a denser tokenizer (code, URLs) still overflows.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_FACTS_CHUNK_MAX_CHARS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_FACTS_CHUNK_MAX_CHARS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++1200+++`
+
+a| [[qlawkus-client_qlawkus-agent-facts-chunk-overlap-chars]] [.property-path]##link:#qlawkus-client_qlawkus-agent-facts-chunk-overlap-chars[`+++qlawkus.agent.facts.chunk-overlap-chars+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.facts.chunk-overlap-chars+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Character overlap between consecutive embedding segments, so a fact split across segments keeps context at the boundaries. Should be a small fraction of `chunk-max-chars()`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_FACTS_CHUNK_OVERLAP_CHARS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_FACTS_CHUNK_OVERLAP_CHARS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++120+++`
+
 a| [[qlawkus-client_qlawkus-agent-episodic-root]] [.property-path]##link:#qlawkus-client_qlawkus-agent-episodic-root[`+++qlawkus.agent.episodic.root+++`]##
 ifdef::add-copy-button-to-config-props[]
 config_property_copy_button:+++qlawkus.agent.episodic.root+++[]
