@@ -1,0 +1,95 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-admin-username]] [.property-path]##link:#qlawkus-client_qlawkus-admin-username[`+++qlawkus.admin.username+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.admin.username+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Admin username presented over HTTP Basic. Defaults to `qlawkus`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ADMIN_USERNAME+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ADMIN_USERNAME+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++qlawkus+++`
+
+a| [[qlawkus-client_qlawkus-admin-role]] [.property-path]##link:#qlawkus-client_qlawkus-admin-role[`+++qlawkus.admin.role+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.admin.role+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Role granted to the authenticated admin identity. Defaults to `admin`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ADMIN_ROLE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ADMIN_ROLE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++admin+++`
+
+a| [[qlawkus-client_qlawkus-admin-password-hash]] [.property-path]##link:#qlawkus-client_qlawkus-admin-password-hash[`+++qlawkus.admin.password-hash+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.admin.password-hash+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+PHC Argon2id hash of the admin password, e.g. `$argon2id$v=19$m=19456,t=2,p=1$<salt>$<hash>`. Required when `qlawkus.admin.argon2.enabled` is true; the app refuses to boot without it. Generate one as described in the Secrets guide, then store it under the keystore alias `qlawkus.admin.password-hash` or the environment variable `QLAWKUS_ADMIN_PASSWORD_HASH`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ADMIN_PASSWORD_HASH+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ADMIN_PASSWORD_HASH+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-client_qlawkus-admin-argon2-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-admin-argon2-enabled[`+++qlawkus.admin.argon2.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.admin.argon2.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Turns on the database-free Argon2id admin `IdentityProvider`. Off by default so a consumer using a different realm (for example the embedded properties realm) is untouched. This is a build-time gate: it is read during augmentation to include or drop the provider bean, so changing it needs a rebuild.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ADMIN_ARGON2_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ADMIN_ARGON2_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+|===
+
