@@ -10,7 +10,7 @@ Inspired by projects like https://github.com/openclaw/openclaw[OpenClaw] and htt
 
 == The difference
 
-Most personal AI agents store memory as markdown files on disk. The model decides when to read them, which means it can forget to check. Qlawkus takes a different approach: **memory is injected into the prompt, not searched at the model's discretion.**
+Most personal AI agents store memory as markdown files on disk. The model decides when to read them, which means it can forget to check. Qlawkus takes a different approach: **memory is injected into the prompt automatically, so it never depends on the model deciding to look - and the agent can still search it on demand** when it needs to dig deeper.
 
 Every turn, the agent receives:
 

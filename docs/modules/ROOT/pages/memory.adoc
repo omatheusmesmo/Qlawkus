@@ -4,14 +4,15 @@
 
 Memory is Qlawkus's *declarative* memory: *what the agent knows* about its owner and the world. It complements the *procedural* memory described in xref:skills.adoc[Skills] (*how* the agent does recurring things). Where skills are how-to procedures, memory is facts, history, and the owner's profile.
 
-== Injected, not searched - and retrieved, not dumped
+== Injected by default, searchable on demand - and retrieved, not dumped
 
-Most agents handle long-term memory in one of two weak ways: they make the model *call a search tool* (so recall depends on the model deciding to look), or they *paste the entire memory* into the system prompt every turn (which balloons the prompt and stops scaling). Qlawkus rejects both. Two deliberate choices define the approach:
+Most agents handle long-term memory in one of two weak ways: they make recall *depend on the model calling a search tool* (so it forgets when the model does not think to look), or they *paste the entire memory* into the system prompt every turn (which balloons the prompt and stops scaling). Qlawkus rejects both failure modes without giving up search. Three deliberate choices define the approach:
 
-* *Injected, not tool-called.* Relevant memory is retrieved and added to the prompt automatically before every reply. Recall never depends on the model choosing to call a search tool - reactive recall is unreliable, and the most important memory is the kind the model does not know it should look for.
+* *Injected, not tool-dependent.* Relevant memory is retrieved and added to the prompt automatically before every reply. Recall never depends on the model choosing to search - reactive-only recall is unreliable, and the most important memory is the kind the model does not know it should look for.
 * *Retrieved, not wholesale.* Active memory uses Retrieval-Augmented Generation (RAG): each turn, only the facts relevant to the current message are selected (query-relevant top-K) and injected. The full store is never dumped into the prompt, so the per-turn token cost stays roughly constant as memory grows.
+* *Searchable on top, not instead.* None of this removes deliberate search: the `searchTranscripts` tool lets the model query the full transcript archive on demand when it needs to reach past what was injected. Automatic injection guarantees recall; tool search is a complement, never the thing recall depends on.
 
-The result is recall that is both *reliable* (always runs) and *bounded* (only what is relevant), instead of trading one off against the other.
+The result is recall that is both *reliable* (always runs) and *bounded* (only what is relevant), with on-demand search still available - instead of trading those off against each other.
 
 == What is injected each turn
 

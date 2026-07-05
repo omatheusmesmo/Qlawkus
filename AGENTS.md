@@ -31,7 +31,7 @@ Multi-module Maven monorepo with a Quarkus extension pattern (`client/deployment
 
 ## Cognition & Memory
 
-The memory subsystem (`client/runtime/.../cognition` + `.../store`) is the core of the agent. Its guiding principle: **memory is injected into the prompt, not searched** - recall must not depend on the model choosing to call a tool. Understanding it means reading several files together:
+The memory subsystem (`client/runtime/.../cognition` + `.../store`) is the core of the agent. Its guiding principle: **relevant memory is injected into the prompt automatically each turn, so recall never depends on the model remembering to search** - and the stores stay fully searchable on demand (RAG feeds the automatic injection; the `session_search` tool lets the model deliberately query transcripts). Automatic injection is the reliable default; tool-based search is available on top. Understanding it means reading several files together:
 
 Three layers, all injected each turn via `SoulEngine` (the agent's `systemMessageProviderSupplier`) and the retrieval augmentor:
 
