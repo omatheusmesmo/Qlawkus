@@ -27,7 +27,7 @@ jobs:
     env:
       LLM_API_KEY: dummy
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Reclaim Disk Space
         run: .github/ci-prerequisites.sh
