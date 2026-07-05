@@ -12,6 +12,7 @@
   <packaging>pom</packaging>
 
   <modules>
+    <module>argon2-auth</module>
     <module>cognition</module>
     <module>markdown-only</module>
     <module>skill-hub</module>
