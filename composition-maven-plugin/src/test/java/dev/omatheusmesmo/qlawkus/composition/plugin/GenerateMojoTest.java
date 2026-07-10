@@ -157,6 +157,31 @@ class GenerateMojoTest {
     }
 
     @Test
+    void emptyCatalogLeavesThePomUntouchedInsteadOfFailing() throws Exception {
+        Path pom = Files.writeString(dir.resolve("pom.xml"), SKELETON_POM);
+        Path manifest = Files.writeString(dir.resolve("agent.yml"), """
+                version: 1
+                build-time:
+                  default: disabled
+                  except:
+                    - messaging.discord
+                    - brag
+                """);
+
+        GenerateMojo mojo = new GenerateMojo();
+        mojo.setCatalog(List::of);
+        mojo.setPom(pom.toFile());
+        mojo.manifest = manifest.toFile();
+        mojo.basedir = dir.toFile();
+        mojo.failOnUnknownCapability = true;
+
+        mojo.execute();
+
+        assertEquals(SKELETON_POM, Files.readString(pom),
+                "a standalone build with an empty catalog is a no-op, not a fail-on-unknown-capability error");
+    }
+
+    @Test
     void rerunIsIdempotent() throws Exception {
         Path pom = Files.writeString(dir.resolve("pom.xml"), SKELETON_POM);
         Path manifest = Files.writeString(dir.resolve("agent.yml"), """

@@ -1,0 +1,17 @@
+# Composition manifest for the reference distribution. Declares which capabilities are
+# compiled into this app. default: disabled + an explicit opt-in list, so a capability
+# added to the reactor later is never pulled in by surprise - you name what you want.
+#
+# This mirrors the app pom's current dependency set. The pom generator (qlawkus:generate,
+# wired into the app build) reconciles the pom from here; keep the two in sync (a build
+# that reconciles means this list drifted from the pom).
+version: 1
+build-time:
+  default: disabled
+  except:
+    - cognition.pgvector
+    - messaging.discord
+    - messaging.telegram
+    - google-workspace
+    - brag
+    - skill-hub
