@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Qlawkus Console</title>
+    <link rel="stylesheet" href="/console/app.css">
+    <script src="/console/htmx.min.js" defer></script>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 32 32" width="27" height="27">
+                    <circle cx="16" cy="18.5" r="11" fill="#f5821f"/>
+                    <ellipse cx="12" cy="14.5" rx="3.2" ry="2.1" fill="#ffffff" opacity="0.22"/>
+                    <path d="M15.6 8.2 l-0.3 -3.5" stroke="#6b4a2b" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M16 7.4 c 0.5 -3 3.4 -4 5.4 -3.2 c -0.4 2.8 -2.9 3.9 -5.4 3.2 z" fill="#43a35f"/>
+                </svg>
+            </span>
+            <span class="brand-text">
+                <span class="brand-name">Qlawkus</span>
+                <span class="brand-sub">console</span>
+            </span>
+        </div>
+        <nav class="nav">
+            <a class="nav-item is-active" href="/console">Overview</a>
+            <span class="nav-item is-disabled">Memory</span>
+            <span class="nav-item is-disabled">Skills</span>
+            <span class="nav-item is-disabled">Config</span>
+            <span class="nav-item is-disabled">Schedule</span>
+        </nav>
+        <div class="sidebar-foot">Control plane</div>
+    </aside>
+    <main class="content">
+        <header class="content-head">
+            <h1>Console</h1>
+            <p class="lede">Scaffold ready. The management screens land here.</p>
+        </header>
+        <section class="panel">
+            <h2 class="panel-title">Status</h2>
+            <div class="panel-body" hx-get="/console/status" hx-trigger="load, every 5s" hx-swap="innerHTML">
+                <p class="muted">Loading status...</p>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

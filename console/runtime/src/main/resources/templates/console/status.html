@@ -1,0 +1,25 @@
+<div class="status">
+    <div class="status-line">
+        <span class="dot dot-up"></span>
+        <span class="status-key">agent</span>
+        <span class="status-val">up</span>
+    </div>
+    <dl class="status-grid">
+        <div class="status-cell">
+            <dt>version</dt>
+            <dd>{version}</dd>
+        </div>
+        <div class="status-cell">
+            <dt>composition</dt>
+            <dd>default: {posture}</dd>
+        </div>
+        <div class="status-cell">
+            <dt>enabled</dt>
+            <dd>{#for cap in capabilities}{cap}{#if cap_hasNext}, {/if}{/for}</dd>
+        </div>
+        <div class="status-cell">
+            <dt>server time</dt>
+            <dd>{serverTime}</dd>
+        </div>
+    </dl>
+</div>
