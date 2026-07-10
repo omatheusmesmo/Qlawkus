@@ -1,0 +1,23 @@
+# Reference systemd unit for the Qlawkus redeploy contract.
+#
+# Runs the fast-jar produced by the JVM build. For a native build, set ExecStart to the
+# binary (app/target/*-runner) and drop the `java -jar` wrapper. Admin credentials and
+# LLM keys come from the EnvironmentFile, never the unit itself.
+#
+# Install: copy to /etc/systemd/system/qlawkus.service, then `systemctl daemon-reload`.
+[Unit]
+Description=Qlawkus agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=qlawkus
+WorkingDirectory=/opt/qlawkus
+EnvironmentFile=/etc/qlawkus/qlawkus.env
+ExecStart=/usr/bin/java -jar /opt/qlawkus/app/target/quarkus-app/quarkus-run.jar
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
