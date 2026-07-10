@@ -20,7 +20,7 @@
     <properties>
         <!-- Plain module (no Quarkus plugin) - give the parent's @{argLine} an empty default. -->
         <argLine></argLine>
-        <maven.version>3.9.9</maven.version>
+        <maven.version>3.9.16</maven.version>
         <maven-plugin-tools.version>3.15.2</maven-plugin-tools.version>
         <!-- slf4j-api (test only): instantiating MavenProject in the reactor-catalog test triggers
              its static logger init. maven-core is provided, so slf4j is not otherwise on the test cp.
