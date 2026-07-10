@@ -1,0 +1,114 @@
+/* Qlawkus console theme. Reuses the design tokens of the docs site (site/web/app.css) so the
+   console reads as the same product, without pulling in the site's documentation-only rules. */
+:root {
+  --bg: #faf8f6;
+  --surface: #ffffff;
+  --sidebar: #17151b;
+  --sidebar-soft: #221f28;
+  --text: #232027;
+  --muted: #6c6770;
+  --faint: #9a949e;
+  --border: #ece8e3;
+  --accent: #f5821f;
+  --accent-soft: rgba(245, 130, 31, 0.12);
+  --up: #3f9a52;
+  --radius: 10px;
+  --sidebar-w: 270px;
+  --font: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", "SFMono-Regular", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.layout { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex: 0 0 var(--sidebar-w);
+  background: var(--sidebar);
+  color: #d8d4dd;
+  padding: 28px 20px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+
+.brand-mark { display: inline-flex; align-items: center; line-height: 0; }
+
+.brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+
+.brand-name { font-weight: 700; font-size: 19px; letter-spacing: -0.02em; }
+
+.brand-sub { font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--accent); font-weight: 600; }
+
+.nav { display: flex; flex-direction: column; gap: 4px; }
+
+.nav-item {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #c8c3cf;
+  text-decoration: none;
+  font-size: 15px;
+}
+
+.nav-item.is-active { background: var(--sidebar-soft); color: #fff; }
+.nav-item.is-active { box-shadow: inset 3px 0 0 var(--accent); }
+.nav-item.is-disabled { color: var(--faint); cursor: default; }
+
+.sidebar-foot { margin-top: auto; color: var(--faint); font-size: 13px; }
+
+.content {
+  flex: 1;
+  padding: 44px 56px;
+  max-width: 70rem;
+}
+
+.content-head h1 { margin: 0; font-size: 30px; letter-spacing: -0.5px; }
+.lede { margin: 6px 0 0; color: var(--muted); }
+
+.panel {
+  margin-top: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+}
+
+.panel-title { margin: 0 0 16px; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+
+.muted { color: var(--muted); }
+
+.status-line { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot-up { background: var(--up); box-shadow: 0 0 0 4px rgba(63, 154, 82, 0.15); }
+
+.status-key { color: var(--muted); }
+.status-val { color: var(--text); }
+
+.status-grid {
+  margin: 18px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px 28px;
+}
+
+.status-cell { border-left: 2px solid var(--border); padding-left: 12px; }
+.status-cell dt { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; }
+.status-cell dd { margin: 3px 0 0; font-family: var(--mono); font-size: 14px; }

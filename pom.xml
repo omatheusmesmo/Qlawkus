@@ -12,6 +12,7 @@
         <module>composition-maven-plugin</module>
         <module>client</module>
         <module>cognition-pgvector</module>
+        <module>console</module>
         <module>tools</module>
         <module>messaging</module>
         <module>app</module>
