@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.deployment;
 
 import dev.langchain4j.skills.FileSystemSkill;
 import dev.langchain4j.skills.FileSystemSkillLoader;
+import dev.omatheusmesmo.qlawkus.composition.CompositionPaths;
 import dev.omatheusmesmo.qlawkus.skill.BundledSkills;
 import dev.omatheusmesmo.qlawkus.skill.SkillsRecorder;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
@@ -75,6 +76,15 @@ class ClientProcessor {
     @BuildStep
     NativeImageResourceBuildItem bundledDefaultSoul() {
         return new NativeImageResourceBuildItem("META-INF/qlawkus/default-soul.md");
+    }
+
+    /**
+     * Bundles the app's composition manifest so {@code CompositionAdminService} can read the active
+     * {@code agent.yml} from the classpath in a native image (the admin endpoint exposes it).
+     */
+    @BuildStep
+    NativeImageResourceBuildItem bundledCompositionManifest() {
+        return new NativeImageResourceBuildItem(CompositionPaths.DEFAULT_MANIFEST);
     }
 
     /**

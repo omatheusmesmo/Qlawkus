@@ -101,8 +101,15 @@ public class GenerateMojo extends AbstractMojo {
         reconcilePom(resolution);
     }
 
+    /**
+     * Fails the build (or warns, per {@code failOnUnknownCapability}) when an {@code except} entry
+     * names no known capability. Skipped entirely when the catalog is empty: a single-module or
+     * partial build (for example the reference app built on its own, without the reactor's extension
+     * modules) cannot resolve any capability, so the guard has nothing to check against and would only
+     * produce false positives. {@link #report} already warns about the empty catalog in that case.
+     */
     private void validate(Resolution resolution) throws MojoExecutionException {
-        if (resolution.unknownExcept().isEmpty()) {
+        if (resolution.unknownExcept().isEmpty() || resolution.catalogWasEmpty()) {
             return;
         }
         String names = String.join(", ", resolution.unknownExcept());

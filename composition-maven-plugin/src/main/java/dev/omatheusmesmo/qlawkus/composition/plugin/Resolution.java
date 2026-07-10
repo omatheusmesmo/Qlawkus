@@ -28,4 +28,15 @@ public record Resolution(
     public List<Coordinates> selectedCoordinates() {
         return selected.stream().map(Capability::coordinates).toList();
     }
+
+    /**
+     * Whether the catalog contributed no capabilities at all - the case of a single-module or partial
+     * build where the reactor's extension modules are not present. Every catalog capability is either
+     * selected or excluded by the posture, so both lists being empty means the catalog itself was
+     * empty. When true, an {@code except} entry that resolves to nothing cannot be told apart from a
+     * typo, because there is nothing to contrast it against.
+     */
+    public boolean catalogWasEmpty() {
+        return selected.isEmpty() && excluded.isEmpty();
+    }
 }

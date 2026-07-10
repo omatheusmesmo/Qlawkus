@@ -66,6 +66,8 @@ If the manifest's `except` list names a capability that no module declares, the 
 
 In a container, run the generator in the build stage before `mvn package` or `quarkus build`. Swapping capabilities in a running production instance is a rebuild-and-redeploy, not a live toggle (the same closed-world constraint as a native image); the `runtime` section is the part that changes without a rebuild.
 
+Either way you need the toolchain - Maven and a JDK. The manifest decides *what* is built; it never removes the *build*, because Quarkus is closed-world. That toolchain does not have to be on your host, though: the multi-stage build images (`app/src/main/docker/Dockerfile.jvm-build` and `Dockerfile.native-build`, driven by `./run.sh`) carry Maven and the JDK in the build stage and run the generator there. So `./run.sh prod build` (or `docker compose build`) rebuilds from the manifest with only Docker installed - no host Maven. Use the host `mvn` path when you already have the toolchain; use the Docker path when you do not.
+
 == Dev-mode reload
 
 Bind the goal to your app build and Quarkus dev mode keeps the pom in sync with the manifest as you edit it:
@@ -120,6 +122,21 @@ qlawkus.skill-hub.approval-mode: yolo
 Live changes persist here, never back into the baked artifact. At boot the agent logs which overrides are in effect (or that none are), and a missing or malformed override is reported, not fatal.
 
 Knobs (`qlawkus.runtime.*`): `enabled` (default `true`), `override-path` (default `~/.qlawkus/agent.runtime.yml`), `manifest` (classpath location of the baked manifest, default `qlawkus/agent.yml`), and `baked-ordinal` / `override-ordinal` to retune the layering. Lower `override-ordinal` below 300 is already the default; raise it above 300 only if you want a persisted toggle to outrank the environment.
+
+== Staging a rebuild over the API
+
+The running app cannot rebuild itself: a native binary is frozen, a JVM app is closed-world augmented at build time, and the runtime image ships no toolchain. So the composition admin endpoint never builds. It only records *intent* - a new manifest staged for the next rebuild - which an external builder acts on. That keeps it safe by construction: authenticated, and unable to execute anything beyond writing a validated manifest.
+
+[cols="2,3"]
+|===
+|Endpoint |What it does
+
+|`POST /api/admin/composition/manifest` |Validate an `agent.yml` (same parser as the generator) and, only if valid, stage it. A malformed manifest is rejected with `400` and never staged.
+|`GET /api/admin/composition` |The `active` manifest (baked into the running app) and the `staged` one pending a rebuild.
+|`DELETE /api/admin/composition/manifest` |Discard the staged manifest.
+|===
+
+All three require authentication. The staged manifest lives in the app's own state (`qlawkus.agent.state.root`), not a shared volume: the seam to whatever rebuilds and rolls out the new image is this API, read over HTTP, rather than a filesystem both containers mount.
 
 == Capabilities and where they come from
 
