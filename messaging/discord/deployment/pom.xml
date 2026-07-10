@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.omatheusmesmo</groupId>
         <artifactId>qlawkus-messaging-discord-parent</artifactId>
-        <version>0.8.2</version>
+        <version>0.8.3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>qlawkus-messaging-discord-deployment</artifactId>
