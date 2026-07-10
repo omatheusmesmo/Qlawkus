@@ -138,6 +138,36 @@ The running app cannot rebuild itself: a native binary is frozen, a JVM app is c
 
 All three require authentication. The staged manifest lives in the app's own state (`qlawkus.agent.state.root`), not a shared volume: the seam to whatever rebuilds and rolls out the new image is this API, read over HTTP, rather than a filesystem both containers mount.
 
+== The restart contract
+
+Staging a manifest records intent; it never rebuilds. Closing the loop - turning a staged manifest into a running instance with the new capability set - is a rebuild and a restart driven from *outside* the app, because the app cannot rebuild or restart itself (a native binary is frozen, a JVM app is closed-world augmented at build time, and the runtime image ships no toolchain).
+
+Qlawkus defines that as a five-phase contract and ships reference implementations under `examples/redeploy/`. It is never a hard dependency: the consuming environment wires the actual mechanism.
+
+[cols="1,4"]
+|===
+|Phase |What happens
+
+|1. fetch |Read the staged manifest over `GET /api/admin/composition`.
+|2. promote |Write it into the source tree the builder reads (`app/src/main/resources/qlawkus/agent.yml`).
+|3. build |Regenerate the pom from the manifest (`qlawkus:generate`) and build the artifact.
+|4. restart |Swap the running instance onto the new artifact.
+|5. verify |Wait for health, then discard the consumed staged manifest (`DELETE`).
+|===
+
+The app stays passive: it only fetches (`GET`) and discards (`DELETE`); everything that executes a build or a restart lives in the redeploy tooling, never in the app. Phases 1, 2 and 5 are the environment-independent hook (`examples/redeploy/redeploy.sh`); phases 3 and 4 are the parts each reference implementation fills in:
+
+[cols="1,4"]
+|===
+|Environment |Build + restart step
+
+|docker-compose |`docker compose up -d --build --force-recreate --no-deps qlawkus` - build and recreate in one step (mirrors `run.sh restart`, standalone).
+|Kubernetes |Build and push an image, then `kubectl set image` + `kubectl rollout status` (the readiness probe gates the swap).
+|systemd |Package on the host, then `systemctl restart qlawkus`.
+|===
+
+Because the staged manifest lives inside the app's own state and is read back over the API, the redeploy tooling - not the app - is what promotes it into the source before a build. If nothing is staged, a redeploy simply rebuilds the currently committed manifest, so it is safe to run in CI on every deploy.
+
 == Capabilities and where they come from
 
 The catalog of capability names is not a central list. Each extension module *self-describes*: it declares its capability name in its own `quarkus-extension.yaml` under `metadata.qlawkus.capability`. The generator reads that key from every module in the build, so adding a new capability is just a matter of shipping a module that announces one - no central vocabulary to edit.
