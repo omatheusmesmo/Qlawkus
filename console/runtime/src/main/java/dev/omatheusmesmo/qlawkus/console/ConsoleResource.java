@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.console;
 
+import dev.omatheusmesmo.qlawkus.console.onboarding.SetupState;
 import io.quarkus.qute.Location;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.TemplateInstance;
@@ -24,19 +25,22 @@ public class ConsoleResource {
     private final Template index;
     private final Template status;
     private final ConsoleStatus consoleStatus;
+    private final SetupState setupState;
 
     public ConsoleResource(@Location("console/index.html") Template index,
                            @Location("console/status.html") Template status,
-                           ConsoleStatus consoleStatus) {
+                           ConsoleStatus consoleStatus,
+                           SetupState setupState) {
         this.index = index;
         this.status = status;
         this.consoleStatus = consoleStatus;
+        this.setupState = setupState;
     }
 
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance index() {
-        return index.instance();
+        return index.data("needsSetup", setupState.needsSetup());
     }
 
     @GET

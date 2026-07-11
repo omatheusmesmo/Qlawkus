@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Qlawkus Console - Setup</title>
+    <link rel="stylesheet" href="/console/app.css">
+    <script src="/console/htmx.min.js" defer></script>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 32 32" width="27" height="27">
+                    <circle cx="16" cy="18.5" r="11" fill="#f5821f"/>
+                    <ellipse cx="12" cy="14.5" rx="3.2" ry="2.1" fill="#ffffff" opacity="0.22"/>
+                    <path d="M15.6 8.2 l-0.3 -3.5" stroke="#6b4a2b" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M16 7.4 c 0.5 -3 3.4 -4 5.4 -3.2 c -0.4 2.8 -2.9 3.9 -5.4 3.2 z" fill="#43a35f"/>
+                </svg>
+            </span>
+            <span class="brand-text">
+                <span class="brand-name">Qlawkus</span>
+                <span class="brand-sub">setup</span>
+            </span>
+        </div>
+        <nav class="nav">
+            <a class="nav-item" href="/console">Overview</a>
+            <a class="nav-item is-active" href="/console/setup">Setup</a>
+        </nav>
+        <div class="sidebar-foot">First-run setup</div>
+    </aside>
+    <main class="content">
+        <header class="content-head">
+            <h1>First-run setup</h1>
+            <p class="lede">Point the agent at a model, choose what to build in, then rebuild and redeploy.</p>
+        </header>
+
+        <section class="step">
+            <h2 class="step-title">1. Language model {#if llmConfigured}<span class="pill pill-ok">configured</span>{/if}</h2>
+            <p class="muted">The provider and key the agent talks to. Saved to the keystore; applies on the next restart.</p>
+            <form class="form" hx-post="/console/setup/llm" hx-target="#llm-result" hx-swap="innerHTML">
+                <label>Base URL<input name="baseUrl" placeholder="https://integrate.api.nvidia.com/v1"></label>
+                <label>Chat model<input name="chatModel" placeholder="e.g. meta/llama-3.1-70b-instruct"></label>
+                <label>API key<input name="apiKey" type="password" placeholder="paste the provider API key"></label>
+                <button type="submit">Save LLM settings</button>
+            </form>
+            <div id="llm-result" class="result"></div>
+        </section>
+
+        <section class="step">
+            <h2 class="step-title">2. Capabilities</h2>
+            <p class="muted">What gets compiled into the agent. Staged as a manifest; applies on rebuild + redeploy.</p>
+            <form class="form" hx-post="/console/setup/capabilities" hx-target="#caps-result" hx-swap="innerHTML">
+                {#for c in capabilities}
+                <label class="check">
+                    <input type="checkbox" name="capability" value="{c.name}"{#if c.enabled} checked{/if}>
+                    <span class="check-label">{c.label}</span>
+                    <span class="check-desc">{c.description}</span>
+                </label>
+                {/for}
+                <button type="submit">Stage manifest</button>
+            </form>
+            <div id="caps-result" class="result">{#if staged}<p class="muted">A manifest is currently staged, pending a rebuild.</p>{/if}</div>
+        </section>
+
+        <section class="step step-note">
+            <h2 class="step-title">Applying your choices</h2>
+            <ul>
+                <li><strong>Restart</strong> applies the LLM key and any tokens - secrets take effect on the next boot.</li>
+                <li><strong>Rebuild + redeploy</strong> applies the capability manifest - the running app cannot re-augment itself. See <code>examples/redeploy</code>.</li>
+            </ul>
+        </section>
+
+        {#if phaseB}
+        <section class="step">
+            <h2 class="step-title">3. After the rebuild</h2>
+            <p class="muted">Steps unlocked by capabilities that are now compiled in.</p>
+            {#for step in phaseB}
+                {#if step.kind == 'GOOGLE_OAUTH'}
+                <div class="phaseb">
+                    <h3>{step.label}</h3>
+                    <p class="muted">Google is built in. To authorize, open the agent chat and ask it to authorize Google - it replies with a device-flow link to approve, then confirms.</p>
+                </div>
+                {#else}
+                <div class="phaseb">
+                    <h3>{step.label} token {#if step.done}<span class="pill pill-ok">saved</span>{/if}</h3>
+                    <form class="form" hx-post="/console/setup/messaging" hx-target="#msg-{step_count}" hx-swap="innerHTML">
+                        <input type="hidden" name="property" value="{step.tokenProperty}">
+                        <label>Bot token<input name="token" type="password" placeholder="paste the bot token"></label>
+                        <button type="submit">Save token</button>
+                    </form>
+                    <div id="msg-{step_count}" class="result"></div>
+                </div>
+                {/if}
+            {/for}
+        </section>
+        {/if}
+    </main>
+</div>
+</body>
+</html>
