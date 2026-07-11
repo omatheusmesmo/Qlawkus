@@ -1,0 +1,21 @@
+{#include console/base}
+{#title}Qlawkus Console - Cognition{/title}
+<header class="content-head">
+    <h1>Cognition</h1>
+    <p class="lede">Reconcile and migrate the file and pgvector representations.</p>
+</header>
+
+<section class="panel">
+    {#if available}
+    <p class="muted">The pgvector backend is composed in. Reconcile is a safe idempotent union; migrate overwrites one side.</p>
+    <div class="actions">
+        <button hx-post="/api/admin/cognition/reconcile" hx-target="#cog-result" hx-swap="innerHTML">Reconcile (union)</button>
+        <button hx-post="/api/admin/cognition/migrate?direction=files-to-pg" hx-confirm="Overwrite pgvector from files?" hx-target="#cog-result" hx-swap="innerHTML">Migrate files to pg</button>
+        <button hx-post="/api/admin/cognition/migrate?direction=pg-to-files" hx-confirm="Overwrite files from pgvector?" hx-target="#cog-result" hx-swap="innerHTML">Migrate pg to files</button>
+    </div>
+    <div id="cog-result" class="result"></div>
+    {#else}
+    <p class="result-msg result-err">Not available: the cognition-pgvector extension is not composed into this build, so there is nothing to reconcile or migrate. Compose in <span class="mono">cognition.pgvector</span> and rebuild to enable it.</p>
+    {/if}
+</section>
+{/include}

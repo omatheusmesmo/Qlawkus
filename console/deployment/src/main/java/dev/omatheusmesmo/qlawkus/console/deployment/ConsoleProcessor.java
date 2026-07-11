@@ -2,11 +2,16 @@ package dev.omatheusmesmo.qlawkus.console.deployment;
 
 import dev.omatheusmesmo.qlawkus.console.ConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.ConsoleStatus;
+import dev.omatheusmesmo.qlawkus.console.management.CognitionConsoleResource;
+import dev.omatheusmesmo.qlawkus.console.management.MemoryConsoleResource;
+import dev.omatheusmesmo.qlawkus.console.management.SkillsConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.onboarding.OnboardingResource;
 import dev.omatheusmesmo.qlawkus.console.onboarding.SetupState;
+import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 
 /**
  * Build steps for the optional {@code qlawkus-console} extension: the server-rendered admin UI.
@@ -29,8 +34,16 @@ class ConsoleProcessor {
     AdditionalBeanBuildItem consoleBeans() {
         return AdditionalBeanBuildItem.builder()
                 .addBeanClasses(ConsoleResource.class, ConsoleStatus.class, SetupState.class,
-                        OnboardingResource.class)
+                        OnboardingResource.class, MemoryConsoleResource.class, SkillsConsoleResource.class,
+                        CognitionConsoleResource.class)
                 .setUnremovable()
+                .build();
+    }
+
+    @BuildStep
+    ReflectiveClassBuildItem skillSummaryForReflection() {
+        return ReflectiveClassBuildItem.builder(SkillSummary.class.getName())
+                .methods()
                 .build();
     }
 }

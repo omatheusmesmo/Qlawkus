@@ -181,3 +181,29 @@ body {
 .result-msg { padding: 10px 14px; border-radius: 8px; font-size: 14px; }
 .result-ok { background: rgba(63, 154, 82, 0.12); color: var(--up); }
 .result-err { background: #fdeeec; color: #c0392b; }
+
+/* ---------- Management pages ---------- */
+.mono { font-family: var(--mono); font-size: 13px; }
+.mem-list { margin: 10px 0 0; padding-left: 18px; }
+.mem-list li { margin: 4px 0; font-size: 14px; }
+
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); border-bottom: 1px solid var(--border); padding: 8px 10px; }
+.tbl td { border-bottom: 1px solid var(--border); padding: 10px; vertical-align: top; }
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.row-actions { display: flex; gap: 8px; }
+.actions button, .row-actions button {
+  font: inherit;
+  font-weight: 600;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.row-actions button { padding: 5px 10px; font-size: 13px; }
+.actions button:hover, .row-actions button:hover { border-color: var(--accent); color: var(--accent-ink); }
+button.danger { border-color: #e3b7b2; color: #c0392b; }
+button.danger:hover { background: #fdeeec; border-color: #c0392b; color: #c0392b; }

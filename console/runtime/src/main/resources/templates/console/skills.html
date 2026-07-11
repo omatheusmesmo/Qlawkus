@@ -1,0 +1,38 @@
+{#include console/base}
+{#title}Qlawkus Console - Skills{/title}
+<header class="content-head">
+    <h1>Skills</h1>
+    <p class="lede">The agent's procedural memory. {skillCount} skills.</p>
+</header>
+
+<section class="panel">
+    <table class="tbl">
+        <thead><tr><th>Name</th><th>Description</th><th>Actions</th></tr></thead>
+        <tbody>
+        {#for s in skills}
+            <tr>
+                <td class="mono">{s.name}</td>
+                <td>{s.description}</td>
+                <td>
+                    <div class="row-actions">
+                        <button hx-post="/api/admin/skills/{s.name}/pin?pinned=true" hx-target="#skill-result" hx-swap="innerHTML">Pin</button>
+                        <button class="danger" hx-delete="/api/admin/skills/{s.name}" hx-confirm="Delete skill {s.name}?" hx-target="#skill-result" hx-swap="innerHTML">Delete</button>
+                    </div>
+                </td>
+            </tr>
+        {#else}
+            <tr><td colspan="3" class="muted">No skills yet.</td></tr>
+        {/for}
+        </tbody>
+    </table>
+</section>
+
+<section class="step">
+    <h2 class="step-title">Maintenance</h2>
+    <div class="actions">
+        <button hx-post="/api/admin/skills/curate" hx-target="#skill-result" hx-swap="innerHTML">Curate (remove redundant)</button>
+        <button hx-post="/api/admin/skills/lifecycle" hx-target="#skill-result" hx-swap="innerHTML">Run lifecycle aging</button>
+    </div>
+    <div id="skill-result" class="result"></div>
+</section>
+{/include}
