@@ -2,6 +2,8 @@ package dev.omatheusmesmo.qlawkus.console.deployment;
 
 import dev.omatheusmesmo.qlawkus.console.ConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.ConsoleStatus;
+import dev.omatheusmesmo.qlawkus.console.onboarding.OnboardingResource;
+import dev.omatheusmesmo.qlawkus.console.onboarding.SetupState;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
@@ -26,7 +28,8 @@ class ConsoleProcessor {
     @BuildStep
     AdditionalBeanBuildItem consoleBeans() {
         return AdditionalBeanBuildItem.builder()
-                .addBeanClasses(ConsoleResource.class, ConsoleStatus.class)
+                .addBeanClasses(ConsoleResource.class, ConsoleStatus.class, SetupState.class,
+                        OnboardingResource.class)
                 .setUnremovable()
                 .build();
     }

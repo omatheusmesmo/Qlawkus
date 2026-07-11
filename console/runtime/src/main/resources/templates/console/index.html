@@ -38,6 +38,11 @@
             <h1>Console</h1>
             <p class="lede">Scaffold ready. The management screens land here.</p>
         </header>
+        {#if needsSetup}
+        <a class="setup-banner" href="/console/setup">
+            <strong>Finish setting up your agent.</strong> The LLM is not configured yet - run first-time setup.
+        </a>
+        {/if}
         <section class="panel">
             <h2 class="panel-title">Status</h2>
             <div class="panel-body" hx-get="/console/status" hx-trigger="load, every 5s" hx-swap="innerHTML">
