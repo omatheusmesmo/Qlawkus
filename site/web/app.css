@@ -51,7 +51,7 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 18px;
 }
 
 .brand {
@@ -76,7 +76,28 @@ body {
   font-weight: 600;
 }
 
-.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sidebar-soft) transparent;
+}
+.nav::-webkit-scrollbar { width: 6px; }
+.nav::-webkit-scrollbar-thumb { background: var(--sidebar-soft); border-radius: 3px; }
+.nav-section {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--faint);
+  font-weight: 600;
+  padding: 14px 12px 4px;
+}
+.nav-section:first-child { padding-top: 0; }
 .nav a {
   display: block;
   padding: 8px 12px;
@@ -93,29 +114,24 @@ body {
   color: #fff;
   box-shadow: inset 2px 0 0 var(--accent);
 }
-.nav a.nav-external {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-top: 8px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-}
-.nav a.nav-external svg { flex: 0 0 auto; }
-
 .sidebar-foot {
-  margin-top: auto;
+  margin-top: 0;
   font-size: 12.5px;
   color: var(--faint);
   border-top: 1px solid rgba(255, 255, 255, 0.07);
   padding-top: 16px;
 }
-.sidebar-foot .foot-link {
+.foot-github {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   color: #d8d4dd;
   text-decoration: none;
   font-weight: 600;
+  font-size: 13px;
 }
-.sidebar-foot .foot-link:hover { color: #fff; }
+.foot-github:hover { color: #fff; }
+.foot-github svg { flex: 0 0 auto; }
 .sidebar-foot .foot-tag { margin: 8px 0 0; }
 
 /* ---------- Content ---------- */
