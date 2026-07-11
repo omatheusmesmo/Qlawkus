@@ -1,0 +1,32 @@
+{#include console/base}
+{#title}Qlawkus Console - Memory{/title}
+<header class="content-head">
+    <h1>Memory</h1>
+    <p class="lede">Facts, journals, and the curation jobs.</p>
+</header>
+
+<section class="panel">
+    <h2 class="panel-title">Facts (recent, up to 20)</h2>
+    {#if sources}<p class="muted">Sources: {#for s in sources}{s}{#if s_hasNext}, {/if}{/for}</p>{/if}
+    <ul class="mem-list">
+        {#for f in facts}<li>{f}</li>{#else}<li class="muted">No facts stored yet.</li>{/for}
+    </ul>
+</section>
+
+<section class="panel">
+    <h2 class="panel-title">Journals ({journalCount})</h2>
+    <ul class="mem-list">
+        {#for j in journals}<li><strong>{j.date}</strong> ({j.messageCount} msgs) {j.summary}</li>{#else}<li class="muted">No journals yet.</li>{/for}
+    </ul>
+</section>
+
+<section class="step">
+    <h2 class="step-title">Actions</h2>
+    <div class="actions">
+        <button hx-post="/api/admin/memory/review" hx-target="#mem-result" hx-swap="innerHTML" hx-indicator="#mem-result">Review (dedup facts)</button>
+        <button hx-post="/api/admin/memory/curate" hx-target="#mem-result" hx-swap="innerHTML" hx-indicator="#mem-result">Curate into profile</button>
+        <button class="danger" hx-delete="/api/admin/memory?all=true" hx-confirm="Purge ALL memory? This cannot be undone." hx-target="#mem-result" hx-swap="innerHTML">Purge all</button>
+    </div>
+    <div id="mem-result" class="result"></div>
+</section>
+{/include}
