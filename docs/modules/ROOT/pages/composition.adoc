@@ -194,6 +194,7 @@ Names are namespaced where natural, and several modules may share one name (sele
 |`brag` |Career brag-document tool
 |`skill-hub` |Remote skill-registry client
 |`google-workspace` |The six Google modules (auth, Gmail, Calendar, Drive, Sheets, Storage)
+|`console` |The optional server-rendered admin console (first-run setup wizard and the memory, skills and cognition management pages)
 |===
 
 The core agent (`qlawkus-client`) is the skeleton, always present, so it declares no capability. A capability name in the manifest's `except` list that no module announces fails the build by default (see <<Running the generator>>).
