@@ -406,7 +406,7 @@ The docs site lives in [`site/content/`](site/content/) (Roq/AsciiDoc) — `inde
 | **M5** | Career Engine (Brag Document) | Done |
 | **M6** | Sandbox & Code Review | Done |
 | **M7** | Messaging Interface (Multi-Provider: Discord, Telegram, Slack, WhatsApp) + Voice | Done |
-| **M8** | Composable Agent Platform (manifest→pom, no-DB secrets, build-and-redeploy loop, control-plane UI) | In Progress — manifest/composition, secrets, build-and-redeploy loop, and the control-plane UI (onboarding, management, config editor, scheduling) are shipped; Dev UI cards and E2E QA remain |
+| **M8** | Composable Agent Platform (manifest→pom, no-DB secrets, build-and-redeploy loop, control-plane UI, Dev UI) | In Progress — manifest/composition, secrets, build-and-redeploy loop, and the control-plane UI (onboarding, management, config editor, scheduling) are shipped; Dev UI cards and E2E QA remain |
 | **M9** | Observability & Native Build | Pending |
 | **M10** | Autonomy & Job Orchestration | Pending |
 
