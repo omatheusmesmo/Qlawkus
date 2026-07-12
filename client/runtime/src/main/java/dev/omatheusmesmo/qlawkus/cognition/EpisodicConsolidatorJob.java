@@ -30,8 +30,12 @@ public class EpisodicConsolidatorJob {
   @Inject
   EpisodicStore episodicStore;
 
-  @Scheduled(cron = "{qlawkus.consolidator.cron:0 0 3 * * ?}")
+  @Scheduled(identity = "episodic-consolidator", cron = "{qlawkus.consolidator.cron:0 0 3 * * ?}")
   void consolidate() {
+    consolidateNow();
+  }
+
+  public void consolidateNow() {
     LocalDate yesterday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
     consolidateDate(yesterday);
   }

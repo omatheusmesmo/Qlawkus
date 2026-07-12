@@ -28,6 +28,9 @@ include::includes/qlawkus-client_qlawkus.memory-review.adoc[]
 === Memory curation
 include::includes/qlawkus-client_qlawkus.memory-curation.adoc[]
 
+=== Episodic consolidation
+include::includes/qlawkus-client_qlawkus.consolidator.adoc[]
+
 === Startup thought
 include::includes/qlawkus-client_qlawkus.startup-thought.adoc[]
 

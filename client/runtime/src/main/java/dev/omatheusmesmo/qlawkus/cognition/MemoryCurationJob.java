@@ -33,7 +33,7 @@ public class MemoryCurationJob {
   @Inject
   UserProfileStore userProfileStore;
 
-  @Scheduled(cron = "{qlawkus.memory-curation.cron:0 45 3 * * ?}")
+  @Scheduled(identity = "memory-curation", cron = "{qlawkus.memory-curation.cron:0 45 3 * * ?}")
   void curate() {
     if (config.enabled()) {
       curateProfile();

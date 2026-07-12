@@ -84,6 +84,25 @@ class AdminResourceTest {
   }
 
   @Test
+  void consolidate_withoutAuth_returns401() {
+    given()
+      .when()
+      .post("/api/admin/memory/consolidate")
+      .then()
+      .statusCode(401);
+  }
+
+  @Test
+  void consolidate_returns202() {
+    given()
+      .auth().basic("qlawkus", "qlawkus-test")
+      .when()
+      .post("/api/admin/memory/consolidate")
+      .then()
+      .statusCode(202);
+  }
+
+  @Test
   void purge_all_returns204() {
     given()
       .auth().basic("qlawkus", "qlawkus-test")
