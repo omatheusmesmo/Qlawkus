@@ -201,7 +201,7 @@ class EpisodicConsolidatorJobTest {
     void scheduler_registersConsolidatorJob() {
         List<Trigger> triggers = scheduler.getScheduledJobs();
         Optional<Trigger> consolidatorJob = triggers.stream()
-                .filter(t -> t.getId() != null && t.getId().contains("EpisodicConsolidatorJob"))
+                .filter(t -> "episodic-consolidator".equals(t.getId()))
                 .findFirst();
 
         assertTrue(consolidatorJob.isPresent(),
