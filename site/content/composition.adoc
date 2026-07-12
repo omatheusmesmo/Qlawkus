@@ -138,6 +138,22 @@ The running app cannot rebuild itself: a native binary is frozen, a JVM app is c
 
 All three require authentication. The staged manifest lives in the app's own state (`qlawkus.agent.state.root`), not a shared volume: the seam to whatever rebuilds and rolls out the new image is this API, read over HTTP, rather than a filesystem both containers mount.
 
+== The configuration editor
+
+The manifest above decides *which capabilities* exist. The same admin surface also lets you edit *any documented property value* - `qlawkus.*` in full, plus a small curated allowlist of `quarkus.*` properties - from `/console/config` (when the optional `console` capability is composed in) or directly over the API. The form is generated from the same `quarkus-config-doc` metadata that builds xref:config-reference.adoc[the config reference], so there is no separate list to keep in sync, and secret properties (API keys, password hashes, tokens) never appear here - they stay in xref:secrets.adoc[the keystore].
+
+Each property is edited through one of two tiers, depending on its `ConfigPhase`:
+
+[cols="1,1,3"]
+|===
+|Phase |Applies |Endpoint
+
+|`RUN_TIME` |Live, on the next restart |`PUT`/`DELETE /api/admin/runtime-toggles` - writes straight into the runtime-toggle override file described above.
+|`BUILD_TIME` / `BUILD_AND_RUN_TIME_FIXED` |Next rebuild |`PUT`/`POST`/`DELETE /api/admin/config-overrides` - stages a `.properties` document, the same stage-then-promote pattern as the manifest.
+|===
+
+A `BUILD_TIME` write is validated (documented, in-scope, not a secret) and staged only - never applied directly - exactly like the manifest. The staged document lives in its own file, `config-overrides.properties`, parallel to `agent.yml` rather than merged into it, so promoting it can overwrite the file wholesale without ever touching a hand-written line in `application.properties`.
+
 == The restart contract
 
 Staging a manifest records intent; it never rebuilds. Closing the loop - turning a staged manifest into a running instance with the new capability set - is a rebuild and a restart driven from *outside* the app, because the app cannot rebuild or restart itself (a native binary is frozen, a JVM app is closed-world augmented at build time, and the runtime image ships no toolchain).
@@ -148,14 +164,14 @@ Qlawkus defines that as a five-phase contract and ships reference implementation
 |===
 |Phase |What happens
 
-|1. fetch |Read the staged manifest over `GET /api/admin/composition`.
-|2. promote |Write it into the source tree the builder reads (`app/src/main/resources/qlawkus/agent.yml`).
+|1. fetch |Read the staged manifest over `GET /api/admin/composition` and the staged config overrides over `GET /api/admin/config-overrides`.
+|2. promote |Write each into the source tree the builder reads (`app/src/main/resources/qlawkus/agent.yml` and `.../qlawkus/config-overrides.properties`).
 |3. build |Regenerate the pom from the manifest (`qlawkus:generate`) and build the artifact.
 |4. restart |Swap the running instance onto the new artifact.
-|5. verify |Wait for health, then discard the consumed staged manifest (`DELETE`).
+|5. verify |Wait for health, then discard whatever was consumed (`DELETE`).
 |===
 
-The app stays passive: it only fetches (`GET`) and discards (`DELETE`); everything that executes a build or a restart lives in the redeploy tooling, never in the app. Phases 1, 2 and 5 are the environment-independent hook (`examples/redeploy/redeploy.sh`); phases 3 and 4 are the parts each reference implementation fills in:
+The app stays passive: it only fetches (`GET`) and discards (`DELETE`); everything that executes a build or a restart lives in the redeploy tooling, never in the app. The two staged documents are fetched, promoted, and discarded independently - a rebuild can be driven by either one alone, or both together. Phases 1, 2 and 5 are the environment-independent hook (`examples/redeploy/redeploy.sh`); phases 3 and 4 are the parts each reference implementation fills in:
 
 [cols="1,4"]
 |===
