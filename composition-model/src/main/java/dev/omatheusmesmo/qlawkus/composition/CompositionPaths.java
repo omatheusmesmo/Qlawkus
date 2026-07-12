@@ -18,6 +18,14 @@ public final class CompositionPaths {
      */
     public static final String DEFAULT_RUNTIME_OVERRIDE = ".qlawkus/agent.runtime.yml";
 
+    /**
+     * Default location of the build-time config-overrides file, relative to the application module,
+     * bundled as a classpath resource alongside {@link #DEFAULT_MANIFEST}. Always present (empty by
+     * default) so {@code smallrye.config.locations} never points at a missing file; the redeploy
+     * promote step overwrites it wholesale from the staged overrides before each rebuild.
+     */
+    public static final String DEFAULT_CONFIG_OVERRIDES = "qlawkus/config-overrides.properties";
+
     private CompositionPaths() {
     }
 }

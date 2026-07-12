@@ -1,0 +1,12 @@
+# Curated allowlist of quarkus.* properties the config editor renders alongside the full qlawkus.*
+# surface. One exact property name per line; blank lines and lines starting with # are ignored. The
+# framework's own config surface is mostly internal tuning the agent operator does not touch day to
+# day, so this stays a short, hand-picked list rather than every quarkus.* property in
+# config-reference.adoc. Quoted-segment property names (named datasources, named model configs) are
+# intentionally left off this list - the console's per-property action URLs are not URL-encoded, so
+# a quote in the property name would break them.
+quarkus.http.port
+quarkus.http.host
+quarkus.log.level
+quarkus.datasource.jdbc.max-size
+quarkus.datasource.jdbc.min-size

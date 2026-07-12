@@ -1,0 +1,65 @@
+{#include console/base}
+{#title}Qlawkus Console - Config{/title}
+<header class="content-head">
+    <h1>Config</h1>
+    <p class="lede">Every documented property, grouped by config root.</p>
+</header>
+
+{#if rebuildPending}
+<section class="panel">
+    <p><span class="pill pill-ok">Rebuild pending</span> Build-time overrides are staged and will apply on the next rebuild.</p>
+</section>
+{/if}
+
+{#for root in roots}
+<section class="panel">
+    <h2 class="panel-title">{root.prefix}{#if root.extensionName} <span class="muted">({root.extensionName})</span>{/if}</h2>
+    <table class="tbl">
+        <thead><tr><th>Property</th><th>Phase</th><th>Effective value</th><th>Set</th></tr></thead>
+        <tbody>
+        {#for p in root.properties}
+            <tr>
+                <td class="mono">
+                    {p.property}
+                    {#if p.description}<div class="muted cfg-desc">{p.description}</div>{/if}
+                </td>
+                <td>
+                    {#if p.liveEditable}<span class="pill pill-ok">RUN_TIME</span>{#else}<span class="pill">{p.phase}</span>{/if}
+                </td>
+                <td class="mono">
+                    {p.effectiveValue ?: '(not set)'}
+                    <div class="muted">via {p.effectiveSource ?: 'default'}</div>
+                    {#if p.shadowWarning}<div class="cfg-warn">{p.shadowWarning}</div>{/if}
+                </td>
+                <td>
+                    {#if p.liveEditable}
+                    <form class="cfg-row" hx-put="/api/admin/runtime-toggles" hx-target="#cfg-result" hx-swap="innerHTML">
+                        <input type="hidden" name="property" value="{p.property}">
+                        <input type="text" name="value" value="{p.effectiveValue}" placeholder="{p.defaultValue ?: ''}">
+                        <button type="submit">Save</button>
+                    </form>
+                    <button class="danger" hx-delete="/api/admin/runtime-toggles?property={p.property}" hx-confirm="Remove the override for {p.property}?" hx-target="#cfg-result" hx-swap="innerHTML">Reset</button>
+                    {#else}
+                    <form class="cfg-row" hx-put="/api/admin/config-overrides" hx-target="#cfg-result" hx-swap="innerHTML">
+                        <input type="hidden" name="property" value="{p.property}">
+                        <input type="text" name="value" value="{p.effectiveValue}" placeholder="{p.defaultValue ?: ''}">
+                        <button type="submit">Stage</button>
+                    </form>
+                    <button class="danger" hx-delete="/api/admin/config-overrides?property={p.property}" hx-confirm="Discard the staged override for {p.property}?" hx-target="#cfg-result" hx-swap="innerHTML">Unstage</button>
+                    {/if}
+                </td>
+            </tr>
+        {/for}
+        </tbody>
+    </table>
+</section>
+{/for}
+
+<section class="step">
+    <h2 class="step-title">Staged build-time overrides</h2>
+    <div class="actions">
+        <button class="danger" hx-delete="/api/admin/config-overrides/overrides" hx-confirm="Discard ALL staged config overrides?" hx-target="#cfg-result" hx-swap="innerHTML">Discard all staged overrides</button>
+    </div>
+    <div id="cfg-result" class="result"></div>
+</section>
+{/include}

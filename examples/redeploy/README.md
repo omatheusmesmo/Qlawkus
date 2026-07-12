@@ -9,11 +9,17 @@ building or restarting anything itself.
 
 ## The 5-phase contract
 
-1. **fetch** - read the staged manifest over the authenticated composition API (`GET`).
-2. **promote** - write it into the source tree the builder reads (`app/src/main/resources/qlawkus/agent.yml`).
+1. **fetch** - read the staged manifest and config overrides over the authenticated admin API (`GET`).
+2. **promote** - write them into the source tree the builder reads (`app/src/main/resources/qlawkus/agent.yml`
+   and `app/src/main/resources/qlawkus/config-overrides.properties`).
 3. **build** - regenerate the pom from the manifest and build the artifact.
 4. **restart** - swap the running instance onto the new artifact.
-5. **verify** - wait for health, then discard the consumed staged manifest (`DELETE`).
+5. **verify** - wait for health, then discard what was staged (`DELETE`).
+
+Config overrides are a second, independent staged document (the config editor's `BUILD_TIME`/
+`BUILD_AND_RUN_TIME_FIXED` tier), fetched and promoted the same way as the manifest but never
+merged with it - each has its own file, so promotion can overwrite either wholesale without
+touching hand-written lines in `application.properties`.
 
 `redeploy.sh` is the environment-independent driver (phases 1, 2, 5). Each implementation
 supplies phases 3 and 4 by defining `build` and `restart`, then sourcing it.
@@ -52,6 +58,7 @@ Nothing here depends on `run.sh`; the compose recipe mirrors its restart step st
 | `QLAWKUS_BASE_URL` | `http://localhost:8742` | Base URL of the running agent |
 | `QLAWKUS_ADMIN_USER` / `QLAWKUS_ADMIN_PASSWORD` | (required) | Composition API credentials |
 | `QLAWKUS_SOURCE_MANIFEST` | `app/src/main/resources/qlawkus/agent.yml` | Where promotion writes the manifest |
+| `QLAWKUS_SOURCE_CONFIG_OVERRIDES` | `app/src/main/resources/qlawkus/config-overrides.properties` | Where promotion writes the config overrides |
 | `QLAWKUS_HEALTH_URL` | `${BASE_URL}/q/health/ready` | Readiness endpoint polled in phase 5 |
 | `QLAWKUS_HEALTH_TIMEOUT` | `180` | Seconds to wait for health |
 | `QLAWKUS_DRY_RUN` | `0` | `1` stops after promotion (no build/restart/discard) |
