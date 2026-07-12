@@ -29,7 +29,7 @@ public class SkillCurationJob {
   @Inject
   SkillsConfig config;
 
-  @Scheduled(cron = "{qlawkus.skills.curation.cron:0 50 3 * * ?}")
+  @Scheduled(identity = "skill-curation", cron = "{qlawkus.skills.curation.cron:0 50 3 * * ?}")
   void curate() {
     if (config.curation().enabled()) {
       curateNow();

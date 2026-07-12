@@ -1,0 +1,32 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-consolidator-cron]] [.property-path]##link:#qlawkus-client_qlawkus-consolidator-cron[`+++qlawkus.consolidator.cron+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.consolidator.cron+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cron expression for the scheduled episodic-consolidation job.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_CONSOLIDATOR_CRON+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_CONSOLIDATOR_CRON+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++0 0 3 * * ?+++`
+
+|===
+

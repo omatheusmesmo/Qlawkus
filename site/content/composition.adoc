@@ -154,6 +154,10 @@ Each property is edited through one of two tiers, depending on its `ConfigPhase`
 
 A `BUILD_TIME` write is validated (documented, in-scope, not a secret) and staged only - never applied directly - exactly like the manifest. The staged document lives in its own file, `config-overrides.properties`, parallel to `agent.yml` rather than merged into it, so promoting it can overwrite the file wholesale without ever touching a hand-written line in `application.properties`.
 
+== The schedule page
+
+`/console/schedule` lists the agent's five background jobs - memory review, memory curation, episodic consolidation, skill curation, and skill lifecycle - sourced from the live Quarkus `Scheduler` rather than a hand-maintained list, so cron and previous/next fire time always match what is actually registered. Editing a job's cron reuses the same `RUN_TIME` tier as the configuration editor above (`PUT`/`DELETE /api/admin/runtime-toggles`); triggering a job immediately hits its existing manual-trigger endpoint (`POST /api/admin/memory/{review,curate,consolidate}`, `POST /api/admin/skills/{curate,lifecycle}`).
+
 == The restart contract
 
 Staging a manifest records intent; it never rebuilds. Closing the loop - turning a staged manifest into a running instance with the new capability set - is a rebuild and a restart driven from *outside* the app, because the app cannot rebuild or restart itself (a native binary is frozen, a JVM app is closed-world augmented at build time, and the runtime image ships no toolchain).

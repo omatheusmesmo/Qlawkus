@@ -22,7 +22,7 @@ public class MemoryReviewJob {
   @Inject
   MemoryReviewConfig config;
 
-  @Scheduled(cron = "{qlawkus.memory-review.cron:0 30 3 * * ?}")
+  @Scheduled(identity = "memory-review", cron = "{qlawkus.memory-review.cron:0 30 3 * * ?}")
   void review() {
     reviewNow();
   }

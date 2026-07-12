@@ -22,7 +22,7 @@ public class SkillLifecycleJob {
   @Inject
   SkillsConfig config;
 
-  @Scheduled(cron = "{qlawkus.skills.lifecycle.cron:0 40 3 * * ?}")
+  @Scheduled(identity = "skill-lifecycle", cron = "{qlawkus.skills.lifecycle.cron:0 40 3 * * ?}")
   void sweep() {
     if (config.lifecycle().enabled()) {
       sweepNow();

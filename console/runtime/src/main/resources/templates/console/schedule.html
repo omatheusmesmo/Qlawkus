@@ -1,0 +1,36 @@
+{#include console/base}
+{#title}Qlawkus Console - Schedule{/title}
+<header class="content-head">
+    <h1>Schedule</h1>
+    <p class="lede">Background jobs, their cron, and last/next run.</p>
+</header>
+
+<section class="panel">
+    <table class="tbl">
+        <thead><tr><th>Job</th><th>Cron</th><th>Previous run</th><th>Next run</th><th>Run now</th></tr></thead>
+        <tbody>
+        {#for j in jobs}
+            <tr>
+                <td class="mono">{j.label}</td>
+                <td>
+                    <form class="cfg-row" hx-put="/api/admin/runtime-toggles" hx-target="#sched-result" hx-swap="innerHTML">
+                        <input type="hidden" name="property" value="{j.cronProperty}">
+                        <input type="text" name="value" value="{j.currentCron}">
+                        <button type="submit">Save</button>
+                    </form>
+                    <div class="muted">via {j.effectiveSource ?: 'default'}</div>
+                    {#if j.shadowWarning}<div class="cfg-warn">{j.shadowWarning}</div>{/if}
+                </td>
+                <td class="mono">{j.previousFireTime ?: 'never'}</td>
+                <td class="mono">{j.nextFireTime ?: 'not scheduled'}</td>
+                <td>
+                    <button hx-post="{j.triggerPath}" hx-target="#sched-result" hx-swap="innerHTML">Run now</button>
+                </td>
+            </tr>
+        {/for}
+        </tbody>
+    </table>
+</section>
+
+<div id="sched-result" class="result"></div>
+{/include}

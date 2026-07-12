@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.rest;
 
+import dev.omatheusmesmo.qlawkus.cognition.EpisodicConsolidatorJob;
 import dev.omatheusmesmo.qlawkus.cognition.MemoryAdminService;
 import dev.omatheusmesmo.qlawkus.cognition.MemoryCurationJob;
 import dev.omatheusmesmo.qlawkus.cognition.MemoryReviewJob;
@@ -29,6 +30,9 @@ public class AdminResource {
   @Inject
   MemoryCurationJob memoryCurationJob;
 
+  @Inject
+  EpisodicConsolidatorJob episodicConsolidatorJob;
+
   @POST
   @Path("/review")
   public Response review() {
@@ -41,6 +45,13 @@ public class AdminResource {
   public Response curate() {
     boolean refreshed = memoryCurationJob.curateProfile();
     return Response.ok(Map.of("profileRefreshed", refreshed)).build();
+  }
+
+  @POST
+  @Path("/consolidate")
+  public Response consolidate() {
+    episodicConsolidatorJob.consolidateNow();
+    return Response.accepted().build();
   }
 
   @GET
