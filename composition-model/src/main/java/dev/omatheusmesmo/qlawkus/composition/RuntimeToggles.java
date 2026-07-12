@@ -57,6 +57,21 @@ public final class RuntimeToggles {
         }
     }
 
+    /**
+     * Serializes a flat toggle map back to a standalone runtime-override YAML document, the write-side
+     * counterpart of {@link #parseOverride}. Keys are written as literal (possibly dotted) top-level
+     * scalar keys, never unflattened into nested structure - {@link #parseOverride} reads either shape
+     * identically, and flat is simpler for a writer to patch a single key in without disturbing the
+     * rest. An empty map renders to an empty document.
+     */
+    public static String renderOverride(Map<String, String> toggles) {
+        try {
+            return YAML.writeValueAsString(toggles == null ? Map.of() : toggles);
+        } catch (IOException e) {
+            throw new InvalidManifestException("Failed to render runtime override: " + e.getMessage(), e);
+        }
+    }
+
     private static void flattenInto(String prefix, Map<String, Object> node, Map<String, String> out) {
         for (Map.Entry<String, Object> entry : node.entrySet()) {
             String key = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
