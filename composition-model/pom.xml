@@ -7,7 +7,7 @@
     <parent>
         <groupId>dev.omatheusmesmo</groupId>
         <artifactId>qlawkus</artifactId>
-        <version>0.8.3-SNAPSHOT</version>
+        <version>0.8.3</version>
     </parent>
 
     <artifactId>qlawkus-composition-model</artifactId>
