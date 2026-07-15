@@ -12,14 +12,11 @@ Inspired by projects like https://github.com/openclaw/openclaw[OpenClaw] and htt
 
 Most personal AI agents store memory as markdown files on disk. The model decides when to read them, which means it can forget to check. Qlawkus takes a different approach: **memory is injected into the prompt automatically, so it never depends on the model deciding to look - and the agent can still search it on demand** when it needs to dig deeper.
 
-Every turn, the agent receives:
+Every turn, the agent receives its own `Soul` (identity, mood, behavioral bias) and a curated `UserProfile` of the person it serves, plus the facts relevant to the current message - retrieved by a vector search that runs **before each reply**, not by a tool the model has to remember to call.
 
-* A `Soul` - the agent's own identity, mood, and behavioral bias
-* A `UserProfile` - a coherent, curated record of the human it serves
+Facts are tagged by source (`semantic-extractor`, `remember-tool`, `episodic-consolidator`, `transcript`) and kept clean by background jobs: nightly deduplication merges near-duplicates, and a curation job distills scattered facts into the single `UserProfile`. Transcripts are embedded too, so the agent can semantically search what was actually said.
 
-Below the surface, a https://github.com/pgvector/pgvector[pgvector]-backed fact store holds granular memories tagged by source (`semantic-extractor`, `remember-tool`, `episodic-consolidator`, `transcript`). A retrieval step runs **before each reply**, embedding the user's query and injecting the most relevant facts into the prompt. No tool call required. No model cooperation needed.
-
-Background jobs keep the store clean: nightly deduplication merges near-duplicates, and a curation job periodically distills scattered facts into a single, coherent `UserProfile`. Transcripts are embedded too, so the agent can semantically search what was actually said.
+The store itself is pluggable, chosen at build time. Leave the Postgres extension out and the agent is genuinely **database-free** - markdown files plus an in-process embedding index (the default whenever no database backend is registered). Add https://github.com/pgvector/pgvector[pgvector] to keep the embeddings in a durable vector store instead; the bundled `app` ships the `hybrid` backend, keeping the markdown files as the source of truth and mirroring them into Postgres. The retrieval model is identical in every case.
 
 The result: an agent that always knows who it is, who its owner is, and what it has learned - regardless of channel, context length, or the model's willingness to call tools.
 
@@ -29,7 +26,7 @@ Cognition::
 A persistent `Soul` (identity, mood, focus) that shapes the agent's behavior every turn.
 
 Memory::
-pgvector-backed long-term memory with automatic retrieval, background curation, and transcript search. Always in context, never missed.
+Long-term memory with automatic retrieval, background curation, and transcript search - always in context, never missed. File-based and database-free by default, with an optional pgvector backend for durable embeddings.
 
 Skills::
 Procedural memory the agent writes, uses, and curates itself: reusable `SKILL.md` how-to procedures, injected as an index each turn and loaded on demand.
@@ -39,6 +36,9 @@ Discord and Telegram adapters with voice in and out. Slack and WhatsApp adapters
 
 Tools::
 Google Workspace (Gmail, Calendar, Drive, Sheets, Storage), a brag-document tool, and a sandboxed shell.
+
+Console::
+An optional server-rendered admin UI at `/console`: a first-run setup wizard plus memory, skills, cognition, configuration, and schedule management. No Node build, no separate frontend.
 
 Resilience::
 A primary LLM with an Ollama fallback behind a circuit breaker.
@@ -51,6 +51,7 @@ xref:quickstart.adoc[Quick Start] - Get a working agent running in minutes.
 
 * xref:architecture.adoc[Architecture] - How the modules fit together
 * xref:composition.adoc[Composition] - Let agent.yml decide which capabilities are built in
+* xref:console.adoc[Console] - The optional server-rendered admin UI
 * xref:skills.adoc[Skills] - Procedural memory the agent writes and curates itself
 * xref:google-workspace.adoc[Google Workspace] - Gmail, Calendar, Drive, Sheets, Storage
 * xref:messaging.adoc[Messaging] - Discord and Telegram bots with voice

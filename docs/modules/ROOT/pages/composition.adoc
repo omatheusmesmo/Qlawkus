@@ -6,17 +6,20 @@ Qlawkus lets a single manifest, `agent.yml`, decide which capabilities are compo
 
 [NOTE]
 ====
-The manifest schema, the generator (`mvn qlawkus:generate`), the capability catalog, the `runtime` toggle tier, and dev-mode reload are all in place: the generator reconciles the pom against the capabilities the reactor's extensions declare, unknown names fail the build, the resolved set is reported, and the `runtime` block is applied at boot with an external override. Composing a capability in or out is a build-time concern by design (a rebuild, the same closed-world trade a native image makes); the `runtime` section is the part that changes without one.
+Composing a capability in or out is a build-time concern by design: a rebuild, the same closed-world trade a native image makes. The `runtime` section is the only part that changes without one.
 ====
 
 == Why a generator
 
 Quarkus resolves Maven dependencies *before* augmentation runs, and Maven does no tree-shaking, so a build step cannot add or drop dependencies for its own build. The only place a manifest can decide the dependencies is a step that runs *ahead* of the build. Qlawkus does this with a Maven plugin, the same idea as `quarkus extension add`:
 
-[source,text]
-----
-agent.yml  ->  mvn qlawkus:generate  ->  pom.xml  ->  mvn package (or quarkus build --native)
-----
+++++
+<div class="mermaid">
+graph LR
+    M["agent.yml<br/>manifest"] -->|"mvn qlawkus:generate"| P["pom.xml"]
+    P -->|"mvn package / quarkus build --native"| A["agent artifact"]
+</div>
+++++
 
 A deselected capability is left out of the pom entirely, so the result is lean by construction - not by relying on native-image dead-code elimination.
 
@@ -140,7 +143,7 @@ All three require authentication. The staged manifest lives in the app's own sta
 
 == The configuration editor
 
-The manifest above decides *which capabilities* exist. The same admin surface also lets you edit *any documented property value* - `qlawkus.*` in full, plus a small curated allowlist of `quarkus.*` properties - from `/console/config` (when the optional `console` capability is composed in) or directly over the API. The form is generated from the same `quarkus-config-doc` metadata that builds xref:config-reference.adoc[the config reference], so there is no separate list to keep in sync, and secret properties (API keys, password hashes, tokens) never appear here - they stay in xref:secrets.adoc[the keystore].
+The manifest above decides *which capabilities* exist. The same admin surface also lets you edit *any documented property value* - `qlawkus.*` in full, plus a small curated allowlist of `quarkus.*` properties - over the API, or from the xref:console.adoc[console] at `/console/config` when the optional `console` capability is composed in. The form is generated from the same `quarkus-config-doc` metadata that builds xref:config-reference.adoc[the config reference], so there is no separate list to keep in sync, and secret properties (API keys, password hashes, tokens) never appear here - they stay in xref:secrets.adoc[the keystore].
 
 Each property is edited through one of two tiers, depending on its `ConfigPhase`:
 
@@ -148,15 +151,13 @@ Each property is edited through one of two tiers, depending on its `ConfigPhase`
 |===
 |Phase |Applies |Endpoint
 
-|`RUN_TIME` |Live, on the next restart |`PUT`/`DELETE /api/admin/runtime-toggles` - writes straight into the runtime-toggle override file described above.
+|`RUN_TIME` |On the next restart |`PUT`/`DELETE /api/admin/runtime-toggles` - writes straight into the runtime-toggle override file described above.
 |`BUILD_TIME` / `BUILD_AND_RUN_TIME_FIXED` |Next rebuild |`PUT`/`POST`/`DELETE /api/admin/config-overrides` - stages a `.properties` document, the same stage-then-promote pattern as the manifest.
 |===
 
 A `BUILD_TIME` write is validated (documented, in-scope, not a secret) and staged only - never applied directly - exactly like the manifest. The staged document lives in its own file, `config-overrides.properties`, parallel to `agent.yml` rather than merged into it, so promoting it can overwrite the file wholesale without ever touching a hand-written line in `application.properties`.
 
-== The schedule page
-
-`/console/schedule` lists the agent's five background jobs - memory review, memory curation, episodic consolidation, skill curation, and skill lifecycle - sourced from the live Quarkus `Scheduler` rather than a hand-maintained list, so cron and previous/next fire time always match what is actually registered. Editing a job's cron reuses the same `RUN_TIME` tier as the configuration editor above (`PUT`/`DELETE /api/admin/runtime-toggles`); triggering a job immediately hits its existing manual-trigger endpoint (`POST /api/admin/memory/{review,curate,consolidate}`, `POST /api/admin/skills/{curate,lifecycle}`).
+The console surfaces the same two tiers as a form, and adds a xref:console.adoc#_management_pages[schedule page] that drives the background jobs. Both are just front-ends over these endpoints.
 
 == The restart contract
 
