@@ -77,7 +77,7 @@ export QLAWKUS_GOOGLE_STORAGE_ENABLED=true
 
 == 6. Credential Vault (Optional but Recommended)
 
-By default, Qlawkus stores OAuth tokens in an encrypted PostgreSQL table using AES-256 + Argon2id. Enable with:
+The credential vault persists the Google refresh token so authorization survives restarts. It is off by default in the bundled `app`; enable it with a passphrase:
 
 [source,bash]
 ----
@@ -85,15 +85,36 @@ export QLAWKUS_VAULT_ENABLED=true
 export QLAWKUS_VAULT_PASSPHRASE=your-strong-passphrase
 ----
 
-If disabled or no passphrase provided, tokens are kept in memory and lost on restart.
+When enabled with a passphrase, the refresh token is encrypted with AES-256-GCM (the key is derived from the passphrase via Argon2id) and stored in the `qlawkus_google_auth` datasource. If the vault is disabled or no passphrase is set, tokens are kept in memory and lost on restart. Treat the passphrase as a secret: see xref:secrets.adoc[Secrets] to store it in the keystore under `qlawkus.google.vault.encryption-passphrase` instead of a plain environment variable.
 
 == 7. First Authorization Flow
 
+Authorization uses the OAuth 2.0 authorization-code (loopback) flow. The agent never sees your Google password: it hands you a consent URL, and Google redirects a one-time code back to the callback, which the agent exchanges for a refresh token.
+
 1. Start the agent (dev mode or Docker)
 2. Send a message that requires Google access (e.g., "List my emails")
-3. The agent will return an authorization URL
-4. Open the URL in a browser, sign in with your Google account, and grant permissions
-5. You'll be redirected back to the agent, which stores the tokens
+3. The agent calls its `startGoogleAuthorization` tool and returns an authorization URL
+4. Open the URL in a browser, sign in with your Google account, and grant the requested scopes
+5. Google redirects to `/api/google/oauth/callback`; the agent exchanges the code for a refresh token, stores it (see the vault above), and confirms via `checkGoogleAuthorization`
+6. Ask again - the agent retries the original request automatically
+
+++++
+<div class="mermaid">
+sequenceDiagram
+    participant U as You
+    participant A as Agent
+    participant G as Google
+    U->>A: "List my emails"
+    A-->>U: authorization URL (startGoogleAuthorization)
+    U->>G: open URL, sign in, grant scopes
+    G-->>A: redirect to /api/google/oauth/callback?code
+    A->>G: exchange code for refresh token
+    A->>A: store refresh token in the vault
+    A-->>U: authorized - retry your request
+</div>
+++++
+
+The xref:console.adoc[Console] onboarding wizard can run this same authorization from a web page instead of chat.
 
 == Available tools
 

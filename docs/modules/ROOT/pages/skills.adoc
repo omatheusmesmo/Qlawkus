@@ -60,13 +60,26 @@ Skills grow and stay clean on their own, mirroring the fact-memory subsystem:
 
 == Lifecycle
 
-Using a skill (`viewSkill`) marks it used. `SkillLifecycleJob` then ages unused skills by recency:
+Using a skill (`viewSkill`) marks it used. `SkillLifecycleJob` then ages unused skills by recency, and any use revives a skill straight back to `ACTIVE`:
 
-`ACTIVE` -> `STALE` -> `ARCHIVED`
+++++
+<div class="mermaid">
+stateDiagram-v2
+    [*] --> ACTIVE: created / distilled
+    ACTIVE --> STALE: unused 30 days
+    STALE --> ARCHIVED: unused 90 days
+    STALE --> ACTIVE: viewSkill
+    ARCHIVED --> ACTIVE: viewSkill
+    note right of ARCHIVED
+      Dropped from the injected
+      index, still loadable by name
+    end note
+</div>
+++++
 
-* Archived skills leave the injected index but stay loadable by name, so nothing is lost.
+* `STALE` skills are unused but still injected; `ARCHIVED` ones leave the injected index (to keep the prompt compact) but stay loadable by name, so nothing is lost.
 * Pinned skills never transition. Pin with `POST /api/admin/skills/{name}/pin`.
-* Thresholds are config: `qlawkus.skills.lifecycle.stale-after-days`, `archive-after-days`, and `cron`.
+* The day thresholds and the sweep cron are config: `qlawkus.skills.lifecycle.stale-after-days` (default 30), `archive-after-days` (default 90), and `cron`.
 
 Usage telemetry is stored where the backend lives: Postgres columns (`pgvector`/`hybrid`, migration `V7`) or a `.qlawkus-usage.json` sidecar next to the files (`markdown`).
 
@@ -82,9 +95,9 @@ The cognition persistence backend is chosen at **build time** with `qlawkus.cogn
 |===
 |Backend |Behavior
 
-|`markdown` |`SKILL.md` files only, no database. The whole index is injected wholesale - the Hermes/OpenClaw model.
-|`pgvector` |Skills in Postgres (the `skill` table, migration `V6`). The default; backward compatible.
-|`hybrid` |`SKILL.md` files are the source of truth, mirrored into Postgres for ranking.
+|`markdown` |`SKILL.md` files only, no database. This is the `@DefaultBean`, so it is what a build **without** the `cognition-pgvector` extension uses - a fully database-free distribution.
+|`pgvector` |Skills in Postgres (the `skill` table, migration `V6`, lifecycle columns in `V7`). Durable server-side storage; requires the `cognition-pgvector` extension on the classpath.
+|`hybrid` |`SKILL.md` files are the source of truth, mirrored into Postgres. This is what the reference `app` ships.
 |===
 
 Because the choice is build-time fixed, a markdown-only distribution carries no datasource or Flyway dependency for skills at all.
@@ -102,8 +115,10 @@ All endpoints are under `/api/admin/skills` (Basic auth, same as the rest of the
 |`DELETE /api/admin/skills/{name}` |Delete an owned skill.
 |`POST /api/admin/skills/curate` |Run curation now (dedup redundant skills).
 |`POST /api/admin/skills/lifecycle` |Run the lifecycle sweep now (age unused skills).
-|`POST /api/admin/skills/{name}/pin` |Pin a skill so it never ages out.
+|`POST /api/admin/skills/{name}/pin` |Pin a skill so it never ages out (`?pinned=false` to unpin).
 |===
+
+The optional xref:console.adoc[Console] admin UI drives all of these from a `/console/skills` page, so pinning, deleting, curating and running the lifecycle sweep are available without hand-rolling `curl`.
 
 == Remote Skill Hub
 
@@ -124,15 +139,7 @@ Install and publish honor `qlawkus.skill-hub.approval-mode`: `yolo` acts immedia
 
 == Roadmap
 
-Today a skill is procedural text. One extension is planned.
-
-=== Executable skills
-
-Because a skill is already a directory (`<root>/<name>/SKILL.md`), it can carry sibling assets - bash or Python scripts the agent runs as part of the procedure. This is the Anthropic skill model (a `SKILL.md` plus assets). It is not wired up yet: the file and shell tools are confined to the *workspace* root, while skills live in their own isolated root, so neither writing nor running a script inside a skill folder works today. The plan is to author assets through the skill API (not the workspace file tool) and stage them into the workspace for execution, without loosening either confinement boundary.
-
-Note the overlap with in-process *dynamic tools* (e.g. runtime-compiled Groovy that registers a typed `@Tool`): both let the agent gain a self-authored capability. Bundled scripts win the common case - they run as a confined subprocess and work in native image - so they are the primary path for "executable skill". In-process dynamic tools remain a separate, niche axis for typed tools that need direct access to app internals (JVM-mode only, since GraalVM cannot load new bytecode at runtime).
-
-The remote Skill Hub above already ships search, install, and publish; a jskills-CLI backend (for hosts that already run the jskills tooling) remains a possible `@DefaultBean` override.
+A skill is procedural *text* today. Because it already lives in its own directory (`<root>/<name>/SKILL.md`), a planned extension is *executable* skills that carry sibling scripts the agent runs as part of the procedure (the Anthropic `SKILL.md`-plus-assets model). It is not wired up yet, since skills and the workspace file/shell tools live behind separate confinement boundaries.
 
 == What's next?
 
