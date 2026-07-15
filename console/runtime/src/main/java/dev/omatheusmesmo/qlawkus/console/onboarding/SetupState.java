@@ -21,6 +21,7 @@ import java.util.Set;
 public class SetupState {
 
     static final String LLM_API_KEY = "quarkus.langchain4j.openai.\"primary\".api-key";
+    static final String LLM_BASE_URL = "quarkus.langchain4j.openai.\"primary\".base-url";
     private static final Set<String> PLACEHOLDERS = Set.of("", "dummy", "test-key", "changeme", "your-key");
 
     private final KeystoreSecretWriter secrets;
@@ -38,7 +39,34 @@ public class SetupState {
                 .getOptionalValue(LLM_API_KEY, String.class)
                 .orElse("")
                 .trim();
-        return !PLACEHOLDERS.contains(key.toLowerCase(Locale.ROOT));
+        if (!PLACEHOLDERS.contains(key.toLowerCase(Locale.ROOT))) {
+            return true;
+        }
+        return localEndpoint();
+    }
+
+    /**
+     * Whether the primary model points at a self-hosted, local endpoint (for example Ollama), where a
+     * placeholder API key is expected and the agent can still reach a model. Without this, a working
+     * local install (the {@code ./run.sh local} Ollama stack ships {@code LLM_API_KEY=dummy}) would be
+     * nagged by the first-run banner to configure a key it does not need.
+     */
+    private boolean localEndpoint() {
+        return isLocalEndpoint(ConfigProvider.getConfig()
+                .getOptionalValue(LLM_BASE_URL, String.class)
+                .orElse(""));
+    }
+
+    /** Whether {@code baseUrl} points at a loopback or self-hosted (Ollama) endpoint. */
+    static boolean isLocalEndpoint(String baseUrl) {
+        if (baseUrl == null) {
+            return false;
+        }
+        String normalized = baseUrl.trim().toLowerCase(Locale.ROOT);
+        return normalized.contains("localhost")
+                || normalized.contains("127.0.0.1")
+                || normalized.contains("://ollama")
+                || normalized.contains(":11434");
     }
 
     /** The first-run signal that drives the console banner: the agent cannot talk to an LLM yet. */
