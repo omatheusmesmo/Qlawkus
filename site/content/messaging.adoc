@@ -1,29 +1,43 @@
 = Messaging Setup (Discord & Telegram)
+:page-title: Messaging Setup
+:page-description: Configure the Discord and Telegram adapters, with voice, shared context, and message chunking
 
-Qlawkus includes messaging adapters for Discord and Telegram with voice support. Slack and WhatsApp adapters exist but are not wired into the default `app/` module.
+Qlawkus includes messaging adapters for Discord and Telegram with voice support. Slack and WhatsApp adapters exist but are not wired into the default `app/` module (only `qlawkus-messaging`, `qlawkus-messaging-discord`, and `qlawkus-messaging-telegram` are).
 
-== How conversation context works
+== Conversation context
 
-When you chat with the agent via any channel (REST, Discord, Telegram), it maintains a working memory of the back-and-forth conversation. By default, all channels share the same conversation context (`QLAWKUS_AGENT_SHARED_CONTEXT_ENABLED=true`), meaning the agent is continuous across Discord, Telegram, and REST — the owner is one person regardless of channel.
+When you chat with the agent via any channel (REST, Discord, Telegram), it keeps a working memory of the back-and-forth conversation. Two knobs govern that context, both on the `qlawkus.agent` root:
 
-If the conversation goes idle for too long, the working memory is automatically cleared to prevent stale context from accumulating. The default idle timeout is 60 minutes.
+*Shared context (default on).* All channels share the same conversation, so the agent stays continuous across Discord, Telegram, and REST (the owner is one person regardless of channel). Disable it to give each channel its own conversation:
 
-You can also ask the agent to clear the context at any time. Say things like "clear the context", "reset", "start over", "new topic", or "forget our conversation" — the agent will wipe the short-term conversation and start fresh on the next message. This does **not** erase long-term saved facts about you (stored in pgvector); only the running back-and-forth is cleared.
+[source,bash]
+----
+export QLAWKUS_AGENT_SHARED_CONTEXT_ENABLED=false
+----
+
+*Idle reset (default 60 minutes).* If a conversation is idle for longer than the configured window, the working memory is cleared before the next message so stale context does not accumulate. Set the window to `0` to disable:
+
+[source,bash]
+----
+export QLAWKUS_AGENT_CONTEXT_TTL_MINUTES=60
+----
+
+You can also ask the agent to clear the context at any time. Say things like "clear the context", "reset", "start over", "new topic", or "forget our conversation", and the agent wipes the short-term conversation and starts fresh on the next message. This does *not* erase long-term saved facts about you; only the running back-and-forth is cleared.
 
 == Discord Bot
 
 === 1. Create a Discord Application
 
 1. Go to https://discord.com/developers/applications
-2. Click **New Application** > name it (e.g., "Qlawkus")
-3. Go to **Bot** tab > **Add Bot**
-4. **Public Bot:** Leave unchecked if only you will use it. When checked, anyone can install the bot.
-5. Under **Privileged Gateway Intents**, enable **Message Content Intent** (required for the bot to read messages). Without this, the bot cannot see message text.
-6. Go to **OAuth2** > **General** > copy **Application ID**
+2. Click *New Application* > name it (e.g., "Qlawkus")
+3. Go to *Bot* tab > *Add Bot*
+4. *Public Bot:* Leave unchecked if only you will use it. When checked, anyone can install the bot.
+5. Under *Privileged Gateway Intents*, enable *Message Content Intent* (required for the bot to read messages). Without this, the bot cannot see message text.
+6. Go to *OAuth2* > *General* > copy *Application ID*
 
 === 2. Configure Permissions & Invite
 
-1. Go to **OAuth2** > **URL Generator**
+1. Go to *OAuth2* > *URL Generator*
 2. Scopes: `bot` + `applications.commands`
 3. Bot Permissions:
    * Send Messages
@@ -45,13 +59,17 @@ export QLAWKUS_MESSAGING_DISCORD_RESPOND_TO_ALL_MESSAGES=true
 export QLAWKUS_MESSAGING_DISCORD_STARTUP_GREETING="👋 Qlawkus online and listening"
 ----
 
-Optional auth:
+`QLAWKUS_MESSAGING_DISCORD_RESPOND_TO_ALL_MESSAGES` defaults to `true`. Set it to `false` to make the bot respond only to DMs and slash commands.
+
+Optional auth (restrict who may talk to the bot):
 
 [source,bash]
 ----
 export QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_DISCORD=*
 # or comma-separated user IDs: 12345,67890
 ----
+
+`*` (or leaving the list unset) allows everyone; a comma-separated list restricts to those user IDs.
 
 === 4. Slash Commands
 
@@ -69,12 +87,12 @@ If you set `QLAWKUS_MESSAGING_DISCORD_GUILD_ID`, commands sync instantly to that
 
 1. Open Telegram and message @BotFather
 2. Send `/newbot` and follow the prompts
-3. Copy the **Token**
+3. Copy the *Token*
 
 === 2. Choose Mode: Polling vs Webhook
 
-* **Polling** (default, simpler): Bot pulls updates. Works behind NAT, no public URL needed.
-* **Webhook**: Telegram pushes updates to your HTTPS endpoint. Requires a public HTTPS URL.
+* *Polling* (default, simpler): Bot pulls updates. Works behind NAT, no public URL needed.
+* *Webhook*: Telegram pushes updates to your HTTPS endpoint. Requires a public HTTPS URL.
 
 === 3. Environment Variables
 
@@ -94,48 +112,28 @@ Webhook:
 ----
 export QLAWKUS_MESSAGING_TELEGRAM_BOT_TOKEN=your-bot-token
 export QLAWKUS_MESSAGING_TELEGRAM_MODE=webhook
-export QLAWKUS_MESSAGING_TELEGRAM_WEBHOOK_URL=https://yourdomain.com/api/telegram/webhook
+export QLAWKUS_MESSAGING_TELEGRAM_WEBHOOK_URL=https://yourdomain.com/api/webhook/telegram
 export QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_TELEGRAM=*
 ----
 
-The webhook path is `/api/telegram/webhook`.
+The webhook path is `/api/webhook/telegram` (the Slack and WhatsApp adapters, when enabled, use `/api/webhook/slack` and `/api/webhook/whatsapp`).
 
 == Voice Support
 
 Voice messages are supported on both Discord and Telegram via file attachments (the bot does not join voice channels). When a user sends a voice message:
 
-1. Audio attachment is downloaded
-2. Audio is transcribed via STT (Whisper via Groq/OpenAI)
-3. Agent processes the text
-4. If TTS is configured, the agent can respond with voice (sent as an audio file attachment)
+1. The audio attachment is downloaded
+2. The audio is transcribed via STT (OpenAI-compatible Whisper, e.g. Groq or OpenAI)
+3. The agent processes the text
+4. If TTS is configured, the agent can reply with voice (sent as an audio file attachment)
 
-Additionally, the orchestrator detects voice intent in text messages (e.g., "manda audio", "respond with voice") and automatically triggers TTS.
+The agent decides to reply with voice by calling its `respondWithVoice` tool. Its system prompt tells it to do so whenever you ask for audio (phrases like "responde em audio", "me manda por voz", "reply by voice").
 
-For TTS setup, see xref:voice.adoc[Voice Setup].
-
-== Shared Context Across Channels
-
-By default, the agent maintains a single conversation across REST, Discord, and Telegram. The owner is one person regardless of channel.
-
-To disable (separate conversations per channel):
-
-[source,bash]
-----
-export QLAWKUS_AGENT_SHARED_CONTEXT_ENABLED=false
-----
-
-== Idle Conversation Reset
-
-If a conversation is idle for more than a configurable period, the working memory is cleared before the next message. This prevents stale context from accumulating.
-
-[source,bash]
-----
-export QLAWKUS_MESSAGING_CONTEXT_TTL_MINUTES=60
-----
+For STT/TTS setup, see xref:voice.adoc[Voice Setup].
 
 == Message Chunking
 
-Long responses are automatically split to fit platform limits:
+Long responses are automatically split to fit each platform's limit:
 
 [cols="1,1",options="header"]
 |===
@@ -155,7 +153,7 @@ Long responses are automatically split to fit platform limits:
 
 |Discord bot connects but doesn't respond |Message Content Intent not enabled in Developer Portal.
 |Slash commands not appearing |Wait up to 1 hour for global sync, or set `QLAWKUS_MESSAGING_DISCORD_GUILD_ID` for instant guild sync.
-|Telegram webhook not receiving updates |Verify HTTPS URL is accessible, check logs for `setWebhook` errors.
+|Telegram webhook not receiving updates |Verify the HTTPS URL is reachable and ends in `/api/webhook/telegram`; check logs for `setWebhook` errors.
 |Voice not working |Check STT/TTS config in xref:voice.adoc[Voice Setup].
 |===
 

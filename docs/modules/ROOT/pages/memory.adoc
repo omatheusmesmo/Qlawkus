@@ -10,7 +10,7 @@ Most agents handle long-term memory in one of two weak ways: they make recall *d
 
 * *Injected, not tool-dependent.* Relevant memory is retrieved and added to the prompt automatically before every reply. Recall never depends on the model choosing to search - reactive-only recall is unreliable, and the most important memory is the kind the model does not know it should look for.
 * *Retrieved, not wholesale.* Active memory uses Retrieval-Augmented Generation (RAG): each turn, only the facts relevant to the current message are selected (query-relevant top-K) and injected. The full store is never dumped into the prompt, so the per-turn token cost stays roughly constant as memory grows.
-* *Searchable on top, not instead.* None of this removes deliberate search: the `searchTranscripts` tool lets the model query the full transcript archive on demand when it needs to reach past what was injected. Automatic injection guarantees recall; tool search is a complement, never the thing recall depends on.
+* *Searchable on top, not instead.* None of this removes deliberate search. Two tools let the model reach past what was injected: `searchMemories` queries the curated long-term facts, and `searchTranscripts` queries the raw transcript archive (verbatim exchanges, finer-grained than distilled facts). Automatic injection guarantees recall; tool search is a complement, never the thing recall depends on.
 
 The result is recall that is both *reliable* (always runs) and *bounded* (only what is relevant), with on-demand search still available - instead of trading those off against each other.
 
@@ -44,20 +44,24 @@ The agent maintains its own memory so it does not rot:
 |===
 |Job |Schedule |What it does
 
-|Episodic consolidation |nightly |Summarizes the day into a journal that active memory can surface.
+|Episodic consolidation |nightly (`POST /api/admin/memory/consolidate`) |Summarizes the day into a journal that active memory can surface.
 |Memory review |nightly (`POST /api/admin/memory/review`) |Removes semantic near-duplicate facts.
 |Profile curation |nightly (`POST /api/admin/memory/curate`) |Folds facts into the owner profile, reconciling contradictions. Facts themselves are left untouched.
 |===
 
 == Administration
 
-* `GET /api/admin/memory` - summary of what is stored.
-* `DELETE /api/admin/memory` - purge (all, or by source).
-* `POST /api/admin/memory/review` and `POST /api/admin/memory/curate` - trigger the curation jobs manually.
+All endpoints are `@Authenticated` and sit under `/api/admin/memory`:
+
+* `GET /api/admin/memory` - summary of what is stored; `GET /api/admin/memory/journals` lists the episodic journals.
+* `DELETE /api/admin/memory` - purge, scoped by query parameter: `?all=true`, `?source=<tag>` (one of the source tags above), or `?includeJournals=true`.
+* `POST /api/admin/memory/{review,curate,consolidate}` - trigger the three background jobs manually.
+
+The same actions are available from the xref:console.adoc[Console] admin UI.
 
 == Storage backends
 
-Memory persistence is selected at build time with `qlawkus.cognition.backend` (`markdown`, `pgvector` or `hybrid`), the same switch that governs every cognition store. Whichever backend is active, fact retrieval is the same query-relevant top-K RAG path described above - the choice trades off persistence and scale, never the recall model.
+Memory persistence is selected at build time with `qlawkus.cognition.backend` (`markdown`, `pgvector` or `hybrid`), the same switch that governs every cognition store. Whichever backend is active, fact retrieval is the same query-relevant top-K RAG path described above - the choice is about how embeddings are persisted (rebuilt in-process each boot versus stored durably in Postgres), never the recall model.
 
 The full treatment - the backend table, the optional `qlawkus-cognition-pgvector` extension and the database-free distribution, file locations, and how to reconcile or migrate data between markdown and pgvector - lives in xref:storage.adoc[Storage].
 
