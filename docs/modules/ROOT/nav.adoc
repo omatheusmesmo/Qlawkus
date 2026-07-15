@@ -8,6 +8,7 @@
 
 * xref:architecture.adoc[Architecture Overview]
 * xref:composition.adoc[Composition]
+* xref:console.adoc[Console]
 * xref:memory.adoc[Memory]
 * xref:storage.adoc[Storage]
 * xref:skills.adoc[Skills]

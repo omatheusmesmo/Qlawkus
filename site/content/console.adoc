@@ -1,0 +1,51 @@
+= Console
+:page-title: Console
+:page-description: The optional server-rendered admin UI - first-run setup plus memory, skills, cognition, config and schedule management.
+
+The console is an optional server-rendered admin UI at `/console`. It is a first-run setup wizard and a set of management pages over the agent's existing admin API - memory, skills, cognition, configuration, and the background schedule. It is built with Qute templates and https://htmx.org[HTMX], so it needs no Node build and no separate frontend.
+
+The console never re-implements admin logic. Its read views inject the same SPIs the agent uses (`FactStore`, `SkillStore`, the live Quarkus `Scheduler`, the config-metadata index); every mutating action is driven from the page by HTMX against the existing `/api/admin/*` endpoints. So the UI and the API can never drift, and anything the console does is equally scriptable with `curl`.
+
+== Enabling and reaching it
+
+The console is the composition capability `console`. It ships in the reference `app` (it is in the baked `agent.yml`), so a stock build already serves it; a slimmed distribution can leave it out (see xref:composition.adoc[Composition]). When present, browse to `/console` - `http://localhost:8080/console` in dev mode, or `http://localhost:8742/console` for the containerized run.
+
+Every console page is `@Authenticated` and carries no login of its own: it reuses whatever mechanism the app already enforces on `/api/admin/*`. In the bundled distribution that is HTTP Basic over an Argon2id credential (`qlawkus` / `dev` in dev mode; see xref:secrets.adoc[Secrets]). Add `quarkus-oidc` to the app and the console is behind SSO with no console-side change.
+
+== First-run setup wizard
+
+On first boot the agent cannot yet talk to an LLM, so the Overview shows a setup banner linking to the wizard at `/console/setup`. The wizard writes nothing itself: it orchestrates the same primitives documented elsewhere - the keystore writer (secrets, applied on restart) and the composition admin service (a staged manifest, applied on the next rebuild).
+
+It is split into two phases by the closed-world boundary, because some steps only make sense once a capability has actually been compiled in:
+
+[cols="1,3",options="header"]
+|===
+|Phase |Steps
+
+|*A - before a rebuild* |The LLM base URL, chat model and API key (saved to the keystore), and the capability selection (staged as an `agent.yml` manifest). These are all you need to get the agent talking and to choose what to build next.
+|*B - after a rebuild* |The interactive steps a capability unlocks once it is baked in: a bot token for each messaging adapter that is present, and Google authorization for the Google Workspace tools. Each Phase B step is shown only for a capability the running app already carries.
+|===
+
+So a typical bring-up is: run the wizard's Phase A, rebuild and redeploy with the staged manifest (see xref:composition.adoc#_the_restart_contract[the restart contract]), then return to the wizard for Phase B on the capabilities you turned on.
+
+== Management pages
+
+[cols="1,3",options="header"]
+|===
+|Page |What it does
+
+|*Overview* (`/console`) |A live status panel - app version, the baked composition posture and capability set, and a server clock that ticks on every HTMX poll to show the refresh is live. Hosts the first-run setup banner.
+|*Memory* (`/console/memory`) |The most recent facts, the fact sources in use, and the episodic journals. Review, curate and purge are HTMX calls to `/api/admin/memory/*`. See xref:memory.adoc[Memory].
+|*Skills* (`/console/skills`) |The current skill index. Pin, delete, curate and the lifecycle sweep call `/api/admin/skills/*`. See xref:skills.adoc[Skills].
+|*Cognition* (`/console/cognition`) |Reconcile and migrate between the markdown and pgvector representations, over `/api/admin/cognition/*`. Shown only when the `cognition.pgvector` capability is baked in (the console does not depend on that extension - it reads the manifest to decide). See xref:storage.adoc[Storage].
+|*Config* (`/console/config`) |The full configuration editor: one section per documented config root, generated from the same `quarkus-config-doc` metadata that builds xref:config-reference.adoc[the config reference], never a hand-maintained list. Each property shows its live effective value and source; secrets never appear. Saving routes by config phase - `RUN_TIME` properties to `/api/admin/runtime-toggles` (apply on restart), `BUILD_TIME` ones to `/api/admin/config-overrides` (apply on the next rebuild). See xref:composition.adoc#_the_configuration_editor[Composition > the configuration editor].
+|*Schedule* (`/console/schedule`) |The five background jobs (memory review, memory curation, episodic consolidation, skill curation, skill lifecycle), sourced from the live Quarkus `Scheduler` so cron and previous/next fire times always match what is actually registered. Editing a cron reuses the `RUN_TIME` runtime-toggle path; triggering a job now hits its manual `/api/admin/*` endpoint.
+|===
+
+A note the Config and Schedule pages surface: when a property's effective value already comes from a source that outranks the runtime-toggle override file (an environment variable, `.env`, or a `-D` flag), the page warns that saving there will not take effect until that higher-priority source is removed - so a silent no-op is caught in the UI rather than by trial and error.
+
+== What's next?
+
+* xref:composition.adoc[Composition] - the manifest the setup wizard stages, and the rebuild contract that applies it
+* xref:secrets.adoc[Secrets] - the Argon2id credential the console authenticates against, and the keystore the wizard writes to
+* xref:config-reference.adoc[Configuration Reference] - every property the config editor can render
