@@ -7,13 +7,13 @@
 # long-term memory (owner profile injection or active-memory retrieval), never the chat window.
 #
 # Usage:
-#   BASE=http://localhost:8742 AUTH=qlawkus:qlawkus SLEEP=25 ./scripts/memory-benchmark.sh
+#   BASE=http://localhost:8742 AUTH=qlawkus:<admin-password> SLEEP=25 ./scripts/memory-benchmark.sh
 #
 # Requires: curl, and `docker compose exec postgres` for window wipes (override WIPE_CMD otherwise).
 set -u
 
 BASE="${BASE:-http://localhost:8742}"
-AUTH="${AUTH:-qlawkus:qlawkus}"
+AUTH="${AUTH:-qlawkus:dev}"              # dev-mode credential; for a containerized instance set your configured admin password
 SLEEP="${SLEEP:-25}"                      # throttle between LLM turns (rate-limit friendly)
 PSQL="${PSQL:-docker compose exec -T postgres psql -U qlawkus -d qlawkus}"
 

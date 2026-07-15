@@ -93,7 +93,7 @@ printf '%s' 'your-password' | argon2 "$(openssl rand -hex 8)" -id -e -t 2 -m 16 
 |:---------|:--------|
 | `QLAWKUS_ADMIN_PASSWORD_HASH` | Argon2id PHC hash for the `qlawkus` admin user (override the username with `QLAWKUS_ADMIN_USERNAME`) |
 
-`%dev` keeps a known password (`qlawkus`) for local development only. In production, store the hash via the env var above or the encrypted secrets keystore (`PUT /api/admin/secrets`, alias `qlawkus.admin.password-hash`) — see [`site/content/secrets.adoc`](site/content/secrets.adoc).
+`%dev` keeps a known password (`dev`) for local development only. In production, store the hash via the env var above or the encrypted secrets keystore (`PUT /api/admin/secrets`, alias `qlawkus.admin.password-hash`), see [`site/content/secrets.adoc`](site/content/secrets.adoc).
 
 ### Environment Variables
 
@@ -367,7 +367,7 @@ The full admin surface — including per-property config editing and the `agent.
 
 ```bash
 curl -X POST http://localhost:8080/api/chat \
-  -u qlawkus:qlawkus \
+  -u qlawkus:dev \
   -H "Content-Type: application/json" \
   -d '{"message": "Hello, who are you?"}'
 ```

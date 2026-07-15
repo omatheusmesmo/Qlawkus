@@ -28,7 +28,7 @@ TIP: The first build takes a few minutes. Subsequent starts are much faster.
 
 [source,bash]
 ----
-curl -X POST http://localhost:8080/api/chat/sync -u qlawkus:qlawkus \
+curl -X POST http://localhost:8080/api/chat/sync -u qlawkus:dev \
   -H 'Content-Type: application/json' -d '{"message":"Hello, who are you?"}'
 ----
 
@@ -77,7 +77,7 @@ TIP: `./run.sh prod logs` follows the app logs and `./run.sh prod down` stops th
 
 == Authentication
 
-All HTTP endpoints use Basic auth (`quawkus` / `qlawkus` by default, override with `API_USER_PASSWORD`).
+All HTTP endpoints require authentication. The bundled `app` verifies HTTP Basic against an *Argon2id* password hash, database-free (see xref:secrets.adoc[Secrets]). In dev mode (`quarkus:dev`) the credentials are **`qlawkus` / `dev`**, from a hash baked into the `%dev` profile. Any non-dev run is fail-closed: the app refuses to boot until you provide an Argon2id hash of your own password, under the keystore alias `qlawkus.admin.password-hash` or the environment variable `QLAWKUS_ADMIN_PASSWORD_HASH`. The username defaults to `qlawkus` (`qlawkus.admin.username`).
 
 == What's next?
 
