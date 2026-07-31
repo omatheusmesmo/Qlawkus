@@ -4,8 +4,9 @@
 # agent.yml). The readiness probe is what lets the rollout swap pods safely - it gates
 # phase 5 (verify) without the redeploy script needing to reach the pod directly.
 #
-# The probe below uses tcpSocket so it works with no extra extension. If the app bundles
-# quarkus-smallrye-health, prefer the httpGet form (commented) for a real readiness signal.
+# The probe reads the readiness endpoint the reference app bundles (quarkus-smallrye-health).
+# A distribution that leaves that extension out has to fall back to a tcpSocket probe, which
+# only proves the port is open.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -34,27 +35,34 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: QLAWKUS_ADMIN_USER
+            # The Secret holds the Argon2id hash, not the password. QLAWKUS_ADMIN_USER/PASSWORD are
+            # the redeploy script's variables and belong wherever that script runs, not here.
+            - name: QLAWKUS_ADMIN_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: qlawkus-admin
-                  key: user
-            - name: QLAWKUS_ADMIN_PASSWORD
+                  key: username
+            - name: QLAWKUS_ADMIN_PASSWORD_HASH
               valueFrom:
                 secretKeyRef:
                   name: qlawkus-admin
-                  key: password
+                  key: password-hash
+            - name: LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: qlawkus-llm
+                  key: api-key
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /q/health/ready
               port: 8080
-            # httpGet:               # with quarkus-smallrye-health on the classpath
-            #   path: /q/health/ready
-            #   port: 8080
             initialDelaySeconds: 10
             periodSeconds: 5
           volumeMounts:
+            # The runtime image runs as uid 185, whose home is /home/default - the same path the
+            # Compose stacks mount, and where the markdown stores write.
             - name: state
-              mountPath: /home/jboss/.qlawkus
+              mountPath: /home/default/.qlawkus
       volumes:
         - name: state
           persistentVolumeClaim:

@@ -47,17 +47,18 @@ curl_api() {
 }
 
 # Phase 1: fetch the staged manifest. Prints it on stdout, or nothing if none is staged.
+# Without -e, since jq exits 4 on empty output and nothing staged is the ordinary case.
 fetch_staged() {
   local body
   body="$(curl_api "${API}")" || die "cannot reach the composition API at ${API}"
-  jq -er '.staged // empty' <<<"${body}"
+  jq -r '.staged // empty' <<<"${body}"
 }
 
 # Phase 1b: fetch the staged config overrides. Prints them on stdout, or nothing if none staged.
 fetch_staged_config() {
   local body
   body="$(curl_api "${CONFIG_API}")" || die "cannot reach the config-overrides API at ${CONFIG_API}"
-  jq -er '.staged // empty' <<<"${body}"
+  jq -r '.staged // empty' <<<"${body}"
 }
 
 # Phase 2: promote the staged manifest into the source tree the builder reads.

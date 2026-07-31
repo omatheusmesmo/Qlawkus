@@ -17,8 +17,10 @@ set -euo pipefail
 UNIT="${QLAWKUS_SYSTEMD_UNIT:-qlawkus}"
 MVN="${QLAWKUS_MVN:-./mvnw}"
 
+# Full reactor, matching the Docker builds: a partial `-pl app -am` skips the *-deployment
+# modules, so the extension-descriptor check cannot resolve them from a clean local repo.
 build() {
-  "${MVN}" -q -pl app -am clean package -DskipTests
+  "${MVN}" -q -DskipTests -DskipITs install
 }
 
 restart() {

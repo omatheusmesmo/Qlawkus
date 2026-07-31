@@ -88,6 +88,11 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-security</artifactId>
     </dependency>
+    <!-- Serves /q/health/ready, which the redeploy hook polls and a k8s probe gates rollouts on. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-health</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk18on</artifactId>
