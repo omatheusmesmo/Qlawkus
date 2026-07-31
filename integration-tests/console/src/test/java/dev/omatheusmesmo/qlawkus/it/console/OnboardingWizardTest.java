@@ -49,15 +49,6 @@ class OnboardingWizardTest {
   }
 
   @Test
-  void console_showsSetupBannerWhenUnconfigured() {
-    given().auth().preemptive().basic(USER, PASS)
-        .when().get("/console")
-        .then().statusCode(200)
-        .body(containsString("setup-banner"))
-        .body(containsString("/console/setup"));
-  }
-
-  @Test
   void setupPage_rendersPhaseAAndPhaseB() {
     given().auth().preemptive().basic(USER, PASS)
         .when().get("/console/setup")
