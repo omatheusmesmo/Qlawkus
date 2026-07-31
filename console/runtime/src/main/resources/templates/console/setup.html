@@ -80,9 +80,12 @@
                 {#if step.kind == 'GOOGLE_OAUTH'}
                 <div class="phaseb">
                     <h3>{step.label}</h3>
-                    <p class="muted">Google is built in. Authorize here and you will be sent to Google's consent screen, then redirected back to a confirmation page.</p>
+                    {#if step.done}
+                    <p class="muted">Authorize here and you will be sent to Google's consent screen, then redirected back to a confirmation page. You can also ask the agent to authorize Google in chat - same flow, same result.</p>
                     <a class="button" href="/api/google/oauth/start">Authorize Google</a>
-                    <p class="muted">You can also ask the agent to authorize Google in chat - same flow, same result.</p>
+                    {#else}
+                    <p class="muted">Google is built in, and waiting on an OAuth client. It identifies this deployment rather than you, so it is set where the deployment is configured - <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> as environment variables, or the keystore aliases <code>qlawkus.google.auth.client-id</code> and <code>qlawkus.google.auth.client-secret</code>. Restart, and this step turns into an authorize button.</p>
+                    {/if}
                 </div>
                 {#else}
                 <div class="phaseb">

@@ -52,6 +52,24 @@ public class SetupState {
         return manifest != null && manifest.buildTime().isEnabled(capability);
     }
 
+    /**
+     * Whether every given property resolves to a non-blank value in the live config. Reads config
+     * rather than the keystore so a value supplied at deploy time - an environment variable, a
+     * Kubernetes secret, Vault - counts as configured just like a stored one.
+     */
+    public boolean propertiesConfigured(String... properties) {
+        for (String property : properties) {
+            String value = ConfigProvider.getConfig()
+                    .getOptionalValue(property, String.class)
+                    .orElse("")
+                    .trim();
+            if (value.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /** Whether a secret is already stored under the given alias (keystore, best-effort). */
     public boolean secretPresent(String alias) {
         try {

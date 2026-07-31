@@ -44,17 +44,16 @@ public class WhisperTranscriptionService implements VoiceTranscriptionService {
 
     @Override
     public String transcribe(byte[] audioBytes) {
-        if (config.apiKey().isBlank()) {
-            throw new IllegalStateException(
-                    "Whisper transcription requires qlawkus.messaging.transcription.api-key to be configured");
-        }
+        String apiKey = config.apiKey().filter(key -> !key.isBlank())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Whisper transcription requires qlawkus.messaging.transcription.api-key to be configured"));
 
         String boundary = "----WhisperBoundary" + UUID.randomUUID().toString().replace("-", "");
         byte[] body = buildMultipartBody(boundary, audioBytes, config.model());
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(config.baseUrl() + "/v1/audio/transcriptions"))
-                .header("Authorization", "Bearer " + config.apiKey())
+                .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(body))
                 .timeout(Duration.ofSeconds(120))

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.net.InetSocketAddress;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -77,7 +78,7 @@ class WhisperTranscriptionServiceTest {
 
     private VoiceTranscriptionConfig config(String apiKey, String model, String baseUrl) {
         return new VoiceTranscriptionConfig() {
-            @Override public String apiKey() { return apiKey; }
+            @Override public Optional<String> apiKey() { return Optional.ofNullable(apiKey); }
             @Override public String model() { return model; }
             @Override public String baseUrl() { return baseUrl; }
         };
