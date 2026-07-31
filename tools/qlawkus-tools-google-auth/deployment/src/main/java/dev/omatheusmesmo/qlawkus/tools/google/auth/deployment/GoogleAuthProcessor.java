@@ -4,8 +4,10 @@ import dev.omatheusmesmo.qlawkus.tools.google.auth.CredentialVaultService;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleApiExecutor;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleAuthHeadersFilter;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleAuthTool;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleAuthorizationUrls;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleCredential;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleOAuthCallbackResource;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleOAuthStartResource;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleOAuthState;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleOAuthStateStore;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleVaultConfig;
@@ -35,7 +37,9 @@ class GoogleAuthProcessor {
     AdditionalBeanBuildItem registerAuthBeans() {
         return AdditionalBeanBuildItem.builder()
             .addBeanClass(GoogleAuthTool.class)
+            .addBeanClass(GoogleAuthorizationUrls.class)
             .addBeanClass(GoogleOAuthCallbackResource.class)
+            .addBeanClass(GoogleOAuthStartResource.class)
         .addBeanClass(GoogleOAuthStateStore.class)
         .addBeanClass(GoogleOAuthState.class)
         .addBeanClass(GoogleCredential.class)

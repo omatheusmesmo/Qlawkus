@@ -177,6 +177,19 @@ body {
 .phaseb { padding: 12px 0; border-top: 1px solid var(--border); }
 .phaseb h3 { margin: 0 0 6px; font-size: 15px; }
 
+/* An anchor that has to read as an action: the Google step leaves the app instead of posting. */
+a.button {
+  display: inline-block;
+  font: inherit;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+}
+a.button:hover { background: var(--accent-ink); }
+
 .result { margin-top: 12px; }
 .result-msg { padding: 10px 14px; border-radius: 8px; font-size: 14px; }
 .result-ok { background: rgba(63, 154, 82, 0.12); color: var(--up); }
