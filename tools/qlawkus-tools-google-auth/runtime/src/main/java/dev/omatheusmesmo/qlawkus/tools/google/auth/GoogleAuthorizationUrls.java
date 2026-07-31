@@ -29,7 +29,7 @@ public class GoogleAuthorizationUrls {
      * sending the user to a URL Google would reject.
      */
     public boolean clientConfigured() {
-        return config.clientId() != null && !config.clientId().isBlank();
+        return config.clientConfigured();
     }
 
     /**
@@ -43,7 +43,7 @@ public class GoogleAuthorizationUrls {
         Log.infof("GoogleAuthorizationUrls: authorization URL generated, redirect_uri=%s memoryId=%s",
                 config.redirectUri(), memoryId);
         return AUTH_ENDPOINT
-                + "?client_id=" + encode(config.clientId())
+                + "?client_id=" + encode(config.requireClientId())
                 + "&redirect_uri=" + encode(config.redirectUri())
                 + "&response_type=code"
                 + "&scope=" + encode(config.scopes())

@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.it.console;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 
 import io.quarkus.test.junit.QuarkusTest;
 import java.io.IOException;
@@ -69,17 +70,17 @@ class OnboardingWizardTest {
   }
 
   /**
-   * The Google step is a link out to the tools module's kickoff endpoint, never a call into it: this
-   * module bakes {@code google-workspace} in its manifest but does not depend on the extension, so a
-   * rendered link is the whole coupling. Here the target 404s, which is the point - the console emits
-   * the same URL either way and the endpoint exists only where the capability is really compiled in.
+   * With no OAuth client configured - the state a fresh install is in - the Google step reports what
+   * the deployment still owes it instead of offering an authorize button that could only fail. The
+   * credentials identify the deployment, so the wizard never asks for them here.
    */
   @Test
-  void setupPage_linksToTheGoogleAuthorizationKickoff() {
+  void googleStep_waitsForAnOAuthClientInsteadOfOfferingToAuthorize() {
     given().auth().preemptive().basic(USER, PASS)
         .when().get("/console/setup")
         .then().statusCode(200)
-        .body(containsString("href=\"/api/google/oauth/start\""));
+        .body(containsString("GOOGLE_CLIENT_ID"))
+        .body(not(containsString("/api/google/oauth/start")));
   }
 
   @Test

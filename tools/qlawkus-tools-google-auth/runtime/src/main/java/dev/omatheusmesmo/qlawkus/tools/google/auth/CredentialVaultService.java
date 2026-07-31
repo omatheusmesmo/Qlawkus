@@ -112,8 +112,8 @@ public class CredentialVaultService {
 
         try {
             TokenResponse response = deviceFlowClient.refreshAccessToken(
-                authConfig.clientId(),
-                authConfig.clientSecret(),
+                authConfig.requireClientId(),
+                authConfig.requireClientSecret(),
                 refreshToken,
                 "refresh_token");
 
@@ -160,8 +160,8 @@ public class CredentialVaultService {
 
         try {
             TokenResponse response = deviceFlowClient.refreshAccessToken(
-                authConfig.clientId(),
-                authConfig.clientSecret(),
+                authConfig.requireClientId(),
+                authConfig.requireClientSecret(),
                 current.refreshToken(),
                 "refresh_token");
 

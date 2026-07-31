@@ -68,8 +68,8 @@ public class GoogleOAuthCallbackResource {
 
         try {
             TokenResponse response = oauthClient.exchangeAuthorizationCode(
-                    config.clientId(),
-                    config.clientSecret(),
+                    config.requireClientId(),
+                    config.requireClientSecret(),
                     code,
                     config.redirectUri(),
                     "authorization_code");

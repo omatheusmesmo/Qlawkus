@@ -37,6 +37,8 @@ public class OnboardingResource {
     private static final String LLM_BASE_URL = "quarkus.langchain4j.openai.\"primary\".base-url";
     private static final String LLM_CHAT_MODEL = "quarkus.langchain4j.openai.\"primary\".chat-model.model-name";
     private static final String CONSOLE_CAPABILITY = "console";
+    private static final String GOOGLE_CLIENT_ID = "qlawkus.google.auth.client-id";
+    private static final String GOOGLE_CLIENT_SECRET = "qlawkus.google.auth.client-secret";
 
     private final Template setup;
     private final Template result;
@@ -64,9 +66,8 @@ public class OnboardingResource {
             boolean baked = state.capabilityBaked(c.name());
             caps.add(new CapView(c.name(), c.label(), c.description(), baked));
             if (baked && c.followUp() != ConsoleCapability.FollowUp.NONE) {
-                boolean done = c.followUp() == ConsoleCapability.FollowUp.MESSAGING_TOKEN
-                        && state.secretPresent(c.tokenProperty());
-                phaseB.add(new PhaseBView(c.name(), c.label(), c.followUp().name(), c.tokenProperty(), done));
+                phaseB.add(new PhaseBView(c.name(), c.label(), c.followUp().name(), c.tokenProperty(),
+                        followUpReady(c)));
             }
         }
         return setup
@@ -127,6 +128,20 @@ public class OnboardingResource {
         } catch (RuntimeException e) {
             return err("Could not save the token: " + e.getMessage());
         }
+    }
+
+    /**
+     * Whether a Phase B step has what it needs. A messaging adapter needs its token, which the wizard
+     * itself can capture. Google needs an OAuth client, which identifies the deployment rather than
+     * the owner and so arrives with the deployment (env, keystore, Vault) - the wizard reports whether
+     * it is there and lets the owner authorize once it is, but never asks for it here.
+     */
+    private boolean followUpReady(ConsoleCapability capability) {
+        return switch (capability.followUp()) {
+            case MESSAGING_TOKEN -> state.secretPresent(capability.tokenProperty());
+            case GOOGLE_OAUTH -> state.propertiesConfigured(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
+            case NONE -> false;
+        };
     }
 
     private boolean isStaged() {
