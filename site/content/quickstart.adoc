@@ -15,8 +15,12 @@
 git clone https://github.com/omatheusmesmo/qlawkus.git
 cd qlawkus
 mvn install -pl client -am -DskipTests
-cd app && mvn quarkus:dev
+mvn -pl app -am quarkus:dev
 ----
+
+IMPORTANT: Dev mode runs from the repository root, as above. The composition generator resolves
+capabilities from the reactor, so the reactor has to be in the build for `agent.yml` to keep
+governing the pom. See xref:composition.adoc#_dev_mode_reload[Composition > dev-mode reload].
 
 Dev Services auto-provision PostgreSQL (pgvector) and Ollama via Testcontainers. No `.env` required.
 
