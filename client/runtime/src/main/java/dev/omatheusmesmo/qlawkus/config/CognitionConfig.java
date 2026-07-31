@@ -15,10 +15,14 @@ import io.smallrye.config.WithDefault;
 public interface CognitionConfig {
 
     /**
-     * The cognition persistence backend. {@code pgvector} is today's behavior (embeddings in
-     * Postgres); {@code markdown} keeps curated content in files and needs no database;
-     * {@code hybrid} uses files as the source of truth mirrored into pgvector. Defaults to
-     * {@code pgvector} for backward compatibility.
+     * The cognition persistence backend. {@code markdown} keeps curated content in files and needs no
+     * database; {@code pgvector} puts embeddings in Postgres; {@code hybrid} uses files as the source
+     * of truth mirrored into pgvector.
+     *
+     * <p>The value only selects among backends that are actually on the classpath. The markdown
+     * stores are the {@code @DefaultBean}, so a build without the {@code cognition-pgvector} extension
+     * runs on files whatever this says; with the extension present, this picks between the three. The
+     * reference {@code app} sets {@code hybrid}.
      */
     @WithDefault("pgvector")
     Backend backend();

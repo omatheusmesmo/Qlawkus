@@ -77,7 +77,7 @@ export QLAWKUS_GOOGLE_STORAGE_ENABLED=true
 
 == 6. Credential Vault (Optional but Recommended)
 
-The credential vault persists the Google refresh token so authorization survives restarts. It is off by default in the bundled `app`; enable it with a passphrase:
+The credential vault persists the Google refresh token so authorization survives restarts. The bundled `app` leaves it off, while the Compose stacks (`./run.sh prod`) turn it on -- either way it stays inert until a passphrase is set. Enable it with:
 
 [source,bash]
 ----

@@ -135,7 +135,14 @@ Three tools (`@Tool`) drive it:
 |`publishSkill` |Renders one of your own skills to `<publish.dir>/<name>/SKILL.md`. It never runs `git`: in a container, mount `publish.dir` to a host git working copy and push from the host (credentials stay out of the container).
 |===
 
-Install and publish honor `qlawkus.skill-hub.approval-mode`: `yolo` acts immediately, while `hitl` (the default) previews first and requires a confirmed re-call. All settings live under `qlawkus.skill-hub.*` (`base-url`, `well-known-hosts`, `approval-mode`, `max-results`, `request-timeout`, `publish.enabled`, `publish.dir`); publishing is opt-in (`publish.enabled=false` by default).
+Install and publish honor `qlawkus.skill-hub.approval-mode`: `yolo` acts immediately, while `hitl` previews first and requires a confirmed re-call.
+
+[IMPORTANT]
+====
+The extension defaults to `hitl`, but the reference `app` ships `yolo` - so a stock build installs a skill the moment the agent asks for one. Set `SKILL_HUB_APPROVAL_MODE=hitl` (or `qlawkus.skill-hub.approval-mode=hitl`) to be asked first.
+====
+
+All settings live under `qlawkus.skill-hub.*` (`enabled`, `base-url`, `well-known-hosts`, `approval-mode`, `max-results`, `request-timeout`, `publish.enabled`, `publish.dir`); publishing is opt-in (`publish.enabled=false` by default).
 
 == Roadmap
 
