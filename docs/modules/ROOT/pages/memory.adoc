@@ -57,7 +57,7 @@ All endpoints are `@Authenticated` and sit under `/api/admin/memory`:
 * `DELETE /api/admin/memory` - purge, scoped by query parameter: `?all=true`, `?source=<tag>` (one of the source tags above), or `?includeJournals=true`.
 * `POST /api/admin/memory/{review,curate,consolidate}` - trigger the three background jobs manually.
 
-The same actions are available from the xref:console.adoc[Console] admin UI.
+In the xref:console.adoc[Console] admin UI, `/console/memory` runs review, curation and a full purge, and `/console/schedule` runs any of the jobs on demand. The scoped purges (`?source=`, `?includeJournals=`) are API-only.
 
 == Storage backends
 

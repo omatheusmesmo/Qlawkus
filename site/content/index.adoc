@@ -50,9 +50,12 @@ xref:quickstart.adoc[Quick Start] - Get a working agent running in minutes.
 == Learn more
 
 * xref:architecture.adoc[Architecture] - How the modules fit together
+* xref:memory.adoc[Memory] - Declarative memory, injected every turn and searchable on demand
+* xref:skills.adoc[Skills] - Procedural memory the agent writes and curates itself
+* xref:storage.adoc[Storage] - Markdown, pgvector or hybrid, and how to move between them
 * xref:composition.adoc[Composition] - Let agent.yml decide which capabilities are built in
 * xref:console.adoc[Console] - The optional server-rendered admin UI
-* xref:skills.adoc[Skills] - Procedural memory the agent writes and curates itself
+* xref:secrets.adoc[Secrets] - An encrypted keystore instead of plain environment variables
 * xref:google-workspace.adoc[Google Workspace] - Gmail, Calendar, Drive, Sheets, Storage
 * xref:messaging.adoc[Messaging] - Discord and Telegram bots with voice
 * xref:voice.adoc[Voice] - Speech-to-text and text-to-speech

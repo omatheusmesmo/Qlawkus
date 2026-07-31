@@ -18,6 +18,7 @@ graph TB
         cognitionpg["cognition-pgvector - optional Postgres/pgvector backend"]
         messaging["messaging - Discord / Telegram adapters"]
         tools["tools - Google Workspace, Brag, Skill Hub"]
+        console["console - optional admin UI (Qute + HTMX)"]
     end
     subgraph infra["Infrastructure"]
         style infra fill:#fff,stroke:#ccc,stroke-dasharray: 5 5
@@ -28,11 +29,13 @@ graph TB
     app --> cognitionpg
     app --> messaging
     app --> tools
+    app --> console
     client --> llm
     cognitionpg --> client
     cognitionpg -.->|only backend that touches a DB| pg
     messaging --> client
     tools --> client
+    console -->|drives the /api/admin endpoints| client
 </div>
 ++++
 
@@ -119,10 +122,14 @@ All Postgres backends live in the optional `qlawkus-cognition-pgvector` extensio
 |===
 |Job |Schedule |Manual trigger |What it does
 
-|Episodic consolidation |nightly |- |Summarizes the day into a journal.
+|Episodic consolidation |nightly |`POST /api/admin/memory/consolidate` |Summarizes the day into a journal.
 |Memory review |nightly |`POST /api/admin/memory/review` |Removes semantic near-duplicate facts.
 |Profile curation |nightly |`POST /api/admin/memory/curate` |Folds facts into the owner profile, reconciling contradictions. Facts are left untouched.
+|Skill curation |nightly |`POST /api/admin/skills/curate` |Removes redundant skills (see xref:skills.adoc[Skills]).
+|Skill lifecycle |nightly |`POST /api/admin/skills/lifecycle` |Ages unused skills `ACTIVE` -> `STALE` -> `ARCHIVED`.
 |===
+
+All five are registered with an explicit `@Scheduled(identity = ...)`, which is what lets the console's xref:console.adoc#_management_pages[schedule page] look up each one's cron and fire times from the live scheduler.
 
 === Operational notes
 
