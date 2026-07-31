@@ -19,11 +19,15 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * The scheduling page: one row per background job, sourced from the live {@link Scheduler}
- * (cron, previous/next fire time) rather than a hand-maintained list. Cron is always
- * {@code RUN_TIME} (the only phase {@code @Scheduled} can read), so editing it is driven from the
- * page by HTMX against the same {@code /api/admin/runtime-toggles} endpoint the config editor
- * uses; triggering a job now hits its existing {@code /api/admin/*} endpoint.
+ * The scheduling page: one row per background job. The effective cron and the previous/next fire
+ * times come from the live {@link Scheduler}, looked up by the explicit {@code identity} each job
+ * declares on its {@code @Scheduled}, so what the page shows is always what is really registered.
+ * The registry below is static by necessity: nothing in the framework links a job to the config
+ * property holding its cron, so that mapping cannot be derived from the config metadata index.
+ *
+ * <p>Cron is always {@code RUN_TIME} (the only phase {@code @Scheduled} can read), so editing it is
+ * driven from the page by HTMX against the same {@code /api/admin/runtime-toggles} endpoint the
+ * config editor uses; triggering a job now hits its existing {@code /api/admin/*} endpoint.
  */
 @Path("/console/schedule")
 @Authenticated

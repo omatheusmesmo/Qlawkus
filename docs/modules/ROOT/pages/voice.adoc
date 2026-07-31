@@ -75,16 +75,22 @@ Each provider also accepts `kind`, `response-format` (default `mp3`), and `fallb
 
 === How it works
 
-1. The agent decides to reply with voice by calling its `respondWithVoice` tool (its system prompt tells it to do so when you ask for audio, e.g. "responde em audio", "reply by voice")
-2. The tool call carries the ISO 639-1 language code of the reply (e.g. `pt` or `en`)
-3. The provider for that language (`TTS_PT_*`, `TTS_EN_*`, ...) synthesizes the audio
-4. The audio is sent as a voice message on the platform (falling back to text if TTS is disabled or synthesis fails)
+A voice reply is requested in one of two ways, whichever happens first:
+
+* *The orchestrator detects voice intent in the incoming text.* Before the agent runs, a message matching the voice-intent pattern ("manda audio", "reply by voice", "me responde por voz", English or Portuguese) pre-arms a voice reply in `TTS_DEFAULT_LANGUAGE`. This is a plain regex on the message, not a model decision, so it works even when the model ignores the tool.
+* *The agent calls `respondWithVoice`.* Its system prompt tells it to do so when you ask for audio. The tool call carries the ISO 639-1 language code of the reply (e.g. `pt` or `en`), which overrides the language the detector picked.
+
+From there:
+
+1. The provider for the requested language (`TTS_PT_*`, `TTS_EN_*`, ...) synthesizes the audio; when no provider matches, `TTS_DEFAULT_LANGUAGE` is used
+2. If the provider fails and defines a `fallback`, the fallback provider is tried
+3. The audio is sent as a voice message on the platform (falling back to text if `TTS_ENABLED=false` or synthesis fails)
 
 == Testing Voice
 
 1. Configure STT and at least one TTS provider, and set `TTS_ENABLED=true`
 2. Send a voice message to the bot on Discord/Telegram
-3. The bot should transcribe, process, and reply (with voice when the agent uses the tool)
+3. The bot should transcribe, process, and reply (with voice when either the detector or the tool requests it)
 
 == Troubleshooting
 
