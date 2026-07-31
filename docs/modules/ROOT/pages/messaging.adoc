@@ -133,7 +133,12 @@ Voice messages are supported on both Discord and Telegram via file attachments (
 3. The agent processes the text
 4. If TTS is configured, the agent can reply with voice (sent as an audio file attachment)
 
-The agent decides to reply with voice by calling its `respondWithVoice` tool. Its system prompt tells it to do so whenever you ask for audio (phrases like "responde em audio", "me manda por voz", "reply by voice").
+A voice reply can be triggered two ways, and they reinforce each other:
+
+* *The agent calls `respondWithVoice`.* Its system prompt tells it to do so whenever you ask for audio (phrases like "responde em audio", "me manda por voz", "reply by voice"), passing the language code of the reply.
+* *The orchestrator detects voice intent in your text first.* Before the agent even runs, an incoming message matching a voice-intent pattern ("manda audio", "reply by voice", "me responde por voz", in English or Portuguese) pre-arms a voice reply in the configured `TTS_DEFAULT_LANGUAGE`. The agent can still override the language by calling the tool.
+
+The second path is why voice works even when the model forgets the tool - the same "don't depend on the model remembering" discipline the memory subsystem follows. Both paths need `TTS_ENABLED=true`; otherwise the request is logged and answered as text.
 
 For STT/TTS setup, see xref:voice.adoc[Voice Setup].
 
