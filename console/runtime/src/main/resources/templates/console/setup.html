@@ -80,7 +80,9 @@
                 {#if step.kind == 'GOOGLE_OAUTH'}
                 <div class="phaseb">
                     <h3>{step.label}</h3>
-                    <p class="muted">Google is built in. To authorize, open the agent chat and ask it to authorize Google - it replies with a device-flow link to approve, then confirms.</p>
+                    <p class="muted">Google is built in. Authorize here and you will be sent to Google's consent screen, then redirected back to a confirmation page.</p>
+                    <a class="button" href="/api/google/oauth/start">Authorize Google</a>
+                    <p class="muted">You can also ask the agent to authorize Google in chat - same flow, same result.</p>
                 </div>
                 {#else}
                 <div class="phaseb">

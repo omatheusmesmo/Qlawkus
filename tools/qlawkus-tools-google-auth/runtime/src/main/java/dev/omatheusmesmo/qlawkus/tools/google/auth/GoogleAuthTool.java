@@ -9,8 +9,6 @@ import jakarta.enterprise.event.ObservesAsync;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
 @QlawTool
@@ -18,13 +16,8 @@ import java.time.Instant;
 @Logged
 public class GoogleAuthTool {
 
-    private static final String AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
-
     @Inject
-    GoogleAuthConfig config;
-
-    @Inject
-    GoogleOAuthStateStore stateStore;
+    GoogleAuthorizationUrls authorizationUrls;
 
     @Inject
     CredentialVaultService vault;
@@ -80,7 +73,7 @@ public class GoogleAuthTool {
             On internal configuration errors (e.g. missing client id), this tool returns a diagnostic \
             message instead of throwing. Forward that diagnostic verbatim to the user.""")
     public String startGoogleAuthorization() {
-        if (config.clientId() == null || config.clientId().isBlank()) {
+        if (!authorizationUrls.clientConfigured()) {
             return "Google OAuth client is not configured. The operator needs to set GOOGLE_CLIENT_ID and "
                     + "GOOGLE_CLIENT_SECRET environment variables.";
         }
@@ -95,16 +88,7 @@ public class GoogleAuthTool {
             chatId = ctx.chatId();
         }
 
-        String state = stateStore.issue(memoryId, providerId, chatId);
-        String url = AUTH_ENDPOINT
-                + "?client_id=" + encode(config.clientId())
-                + "&redirect_uri=" + encode(config.redirectUri())
-                + "&response_type=code"
-                + "&scope=" + encode(config.scopes())
-                + "&prompt=consent"
-                + "&state=" + encode(state);
-
-        Log.infof("GoogleAuthTool: authorization URL generated, redirect_uri=%s memoryId=%s", config.redirectUri(), memoryId);
+        String url = authorizationUrls.issue(memoryId, providerId, chatId);
 
         return String.format(
                 "To authorize me to access your Google account, please open this URL in your browser:\n\n"
@@ -113,9 +97,5 @@ public class GoogleAuthTool {
                 + "you back automatically. You'll see a confirmation page when it's done. "
                 + "Then use checkGoogleAuthorization to verify the callback was received "
                 + "before retrying your request.", url);
-    }
-
-    private String encode(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

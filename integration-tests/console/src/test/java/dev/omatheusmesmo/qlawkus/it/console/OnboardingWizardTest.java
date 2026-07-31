@@ -68,6 +68,20 @@ class OnboardingWizardTest {
         .body(containsString("/console/setup/messaging"));
   }
 
+  /**
+   * The Google step is a link out to the tools module's kickoff endpoint, never a call into it: this
+   * module bakes {@code google-workspace} in its manifest but does not depend on the extension, so a
+   * rendered link is the whole coupling. Here the target 404s, which is the point - the console emits
+   * the same URL either way and the endpoint exists only where the capability is really compiled in.
+   */
+  @Test
+  void setupPage_linksToTheGoogleAuthorizationKickoff() {
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get("/console/setup")
+        .then().statusCode(200)
+        .body(containsString("href=\"/api/google/oauth/start\""));
+  }
+
   @Test
   void llmStep_writesTheApiKeySecret() {
     given().auth().preemptive().basic(USER, PASS)
