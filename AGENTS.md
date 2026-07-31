@@ -4,7 +4,8 @@
 
 ```bash
 mvn install -pl client -am -DskipTests   # must run first; client/ is a Quarkus extension
-cd app && mvn quarkus:dev                 # live reload only works in app/
+mvn -pl app -am quarkus:dev              # from the root: app/ is the only runnable module, and
+                                         # capability resolution needs the reactor (see below)
 ```
 
 Changing `client/` requires re-running `mvn install -pl client -am` then restarting dev mode. Hot reload does NOT apply to extension code.
