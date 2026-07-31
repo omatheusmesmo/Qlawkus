@@ -97,7 +97,7 @@ public class DiscordProviderAdapter implements MessagingProvider {
     private void setupListeners(GatewayDiscordClient gateway) {
         gateway.on(MessageCreateEvent.class)
                 .filter(this::isUserMessage)
-                .filter(ev -> config.respondToAllMessages())
+                .filter(this::isEnabledForChannel)
                 .subscribe(this::handleMessage,
                         err -> Log.errorf(err, "Discord: message listener error"));
 
@@ -110,6 +110,19 @@ public class DiscordProviderAdapter implements MessagingProvider {
         return event.getMessage().getAuthor()
                 .map(author -> !author.isBot())
                 .orElse(false);
+    }
+
+    /**
+     * Direct messages and guild channels are gated independently: a guild has many voices and going
+     * quiet there is a common ask, while the owner's DM is the private channel to the agent and
+     * silencing it as a side effect of that would be surprising.
+     */
+    boolean isEnabledForChannel(MessageCreateEvent event) {
+        return isDirectMessage(event) ? config.respondToDirectMessages() : config.respondToAllMessages();
+    }
+
+    private boolean isDirectMessage(MessageCreateEvent event) {
+        return event.getGuildId().isEmpty();
     }
 
     private void handleMessage(MessageCreateEvent event) {

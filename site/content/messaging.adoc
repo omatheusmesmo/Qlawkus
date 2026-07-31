@@ -43,7 +43,15 @@ export QLAWKUS_MESSAGING_DISCORD_GUILD_ID=optional-guild-id-for-faster-command-s
 export QLAWKUS_MESSAGING_DISCORD_STARTUP_CHANNEL_ID=optional-channel-id-for-startup-message
 export QLAWKUS_MESSAGING_DISCORD_RESPOND_TO_ALL_MESSAGES=true
 export QLAWKUS_MESSAGING_DISCORD_STARTUP_GREETING="👋 Qlawkus online and listening"
+export QLAWKUS_MESSAGING_DISCORD_RESPOND_TO_DIRECT_MESSAGES=true
 ----
+
+Channels and direct messages are gated separately, both defaulting to `true`. Setting
+`QLAWKUS_MESSAGING_DISCORD_RESPOND_TO_ALL_MESSAGES=false` keeps the bot quiet in guild channels while
+DMs and slash commands still work; `QLAWKUS_MESSAGING_DISCORD_RESPOND_TO_DIRECT_MESSAGES=false` does
+the reverse. Set both to `false` to leave only slash commands. They are separate knobs because going
+quiet in a shared server is a common ask, while the owner's DM is the private line to the agent - one
+should not silence the other.
 
 Optional auth:
 

@@ -57,7 +57,7 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-Whether the bot responds to all messages in channels it is in. When false, the bot only responds to DMs and slash commands.
+Whether the bot responds to every message in the guild channels it is in. When false, the bot stays quiet in channels and answers only direct messages and slash commands. Direct messages are governed separately by `respond-to-direct-messages`.
 
 
 ifdef::add-copy-button-to-env-var[]
@@ -65,6 +65,27 @@ Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_DISCORD_RESP
 endif::add-copy-button-to-env-var[]
 ifndef::add-copy-button-to-env-var[]
 Environment variable: `+++QLAWKUS_MESSAGING_DISCORD_RESPOND_TO_ALL_MESSAGES+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-messaging-discord_qlawkus-messaging-discord-respond-to-direct-messages]] [.property-path]##link:#qlawkus-messaging-discord_qlawkus-messaging-discord-respond-to-direct-messages[`+++qlawkus.messaging.discord.respond-to-direct-messages+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.discord.respond-to-direct-messages+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the bot responds to direct messages. Kept separate from `respond-to-all-messages` so quieting the bot in shared channels does not also cut off the owner's private conversation with it; set both to false to leave only slash commands.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_DISCORD_RESPOND_TO_DIRECT_MESSAGES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_DISCORD_RESPOND_TO_DIRECT_MESSAGES+++`
 endif::add-copy-button-to-env-var[]
 --
 |boolean
