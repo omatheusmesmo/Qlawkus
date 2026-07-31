@@ -6,6 +6,23 @@ Qlawkus supports voice interactions on messaging platforms (Discord, Telegram): 
 
 The `WHISPER_*` and `TTS_*` names below are convenience environment aliases wired in the reference `app/` distribution (`app/src/main/resources/application.properties`); they map onto the `qlawkus.messaging.transcription.*` and `qlawkus.messaging.tts.*` config properties. See xref:config-reference.adoc[Configuration] for the full property list and their auto-derived `QLAWKUS_MESSAGING_*` env names.
 
+[NOTE]
+====
+Defaults below are the ones the `app` itself carries. The Compose stacks (`./run.sh local|prod|native`) raise some of them, since that path ships a TTS service and points transcription at Groq:
+
+[cols="2,1,1",options="header"]
+!===
+!Setting !`app` !Compose
+
+!`TTS_ENABLED` !`false` !`true`
+!`WHISPER_BASE_URL` !`https://api.openai.com` !`https://api.groq.com/openai`
+!`WHISPER_MODEL` !`whisper-1` !`whisper-large-v3-turbo`
+!`WHISPER_API_KEY` / `TTS_EN_API_KEY` !unset !fed from `GROQ_API_KEY`
+!===
+
+Set any of them in `.env` to override the Compose value.
+====
+
 == Speech-to-Text (STT)
 
 Uses an OpenAI-compatible Whisper API (Groq or OpenAI). Transcription is disabled until an API key is set.

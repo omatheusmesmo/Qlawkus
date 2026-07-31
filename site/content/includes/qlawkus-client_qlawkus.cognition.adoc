@@ -15,7 +15,9 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-The cognition persistence backend. `pgvector` is today's behavior (embeddings in Postgres); `markdown` keeps curated content in files and needs no database; `hybrid` uses files as the source of truth mirrored into pgvector. Defaults to `pgvector` for backward compatibility.
+The cognition persistence backend. `markdown` keeps curated content in files and needs no database; `pgvector` puts embeddings in Postgres; `hybrid` uses files as the source of truth mirrored into pgvector.
+
+The value only selects among backends that are actually on the classpath. The markdown stores are the `@DefaultBean`, so a build without the `cognition-pgvector` extension runs on files whatever this says; with the extension present, this picks between the three. The reference `app` sets `hybrid`.
 
 
 ifdef::add-copy-button-to-env-var[]
