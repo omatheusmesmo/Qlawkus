@@ -24,6 +24,11 @@
       <artifactId>qlawkus-console</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- Serves the readiness endpoint the redeploy hook polls in phase 5. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-health</artifactId>
+    </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit</artifactId>
