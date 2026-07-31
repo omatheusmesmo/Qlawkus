@@ -25,9 +25,24 @@
   </properties>
 
   <dependencies>
+    <!--
+      Every extension whose config can appear in the reference is listed here: the config-doc plugin
+      renders exactly what these deployment artifacts bundle, so a module missing from this list
+      contributes nothing and fails silently rather than erroring.
+    -->
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-client-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-cognition-pgvector-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-console-deployment</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
