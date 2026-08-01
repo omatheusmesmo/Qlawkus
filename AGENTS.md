@@ -209,12 +209,14 @@ Embedding dimension is hardcoded to 1024 via `EMBEDDING_DIMENSION` - must match 
 
 | What | Version | Where set |
 |------|---------|-----------|
-| Quarkus platform | `3.33.2` | `quarkus.platform.version` in root `pom.xml` |
-| quarkus-langchain4j (Quarkiverse extension + BOM) | `1.11.2` | `quarkus-langchain4j.version` in root `pom.xml` |
-| Upstream `dev.langchain4j` core (transitive) | `1.16.2` | managed by `quarkus-langchain4j-bom:1.11.2` - do not set |
+| Quarkus platform | `3.37.4` | `quarkus.platform.version` in root `pom.xml` |
+| quarkus-langchain4j (Quarkiverse extension) | `1.11.2` | `io.quarkus.platform:quarkus-langchain4j-bom` - do not set |
+| Upstream `dev.langchain4j` core (transitive) | `1.16.2` | same BOM - do not set |
 | Upstream beta modules (`langchain4j-skills`, `langchain4j-pgvector`, `langchain4j-agentic`) | `1.16.2-beta26` | same BOM - do not set |
 
-The Quarkiverse **extension** version (`1.11.2`) and the upstream **library** version (`1.16.2`) are different namespaces: `1.11.2` is NOT a langchain4j-core version. `quarkus-langchain4j-bom` transitively imports the `langchain4j-bom`, which pins every `dev.langchain4j:*` artifact. So when adding an upstream module (e.g. `langchain4j-skills`, or `dev.langchain4j:langchain4j` for `InMemoryEmbeddingStore`), add it with **no `<version>`** - the BOM resolves it. Re-verify any time with:
+The Quarkiverse **extension** version (`1.11.2`) and the upstream **library** version (`1.16.2`) are different namespaces: `1.11.2` is NOT a langchain4j-core version. The `quarkus-bom` manages neither, so the root pom imports `quarkus-langchain4j-bom` at the platform version; it pins the Quarkiverse artifacts and transitively imports the `langchain4j-bom`, which pins every `dev.langchain4j:*` artifact. So when adding an upstream module (e.g. `langchain4j-skills`, or `dev.langchain4j:langchain4j` for `InMemoryEmbeddingStore`), add it with **no `<version>`** - the BOM resolves it.
+
+To move ahead of the platform's cadence, import `io.quarkiverse.langchain4j:quarkus-langchain4j-bom` at the wanted version *before* the platform one; declaration order decides which wins. Re-verify any time with:
 
 ```bash
 mvn dependency:tree -pl client/runtime -Dincludes='dev.langchain4j'
