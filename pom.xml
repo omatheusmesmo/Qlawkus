@@ -30,7 +30,6 @@
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
     <quarkus.platform.version>3.37.4</quarkus.platform.version>
-    <quarkus-langchain4j.version>1.11.2</quarkus-langchain4j.version>
     <quarkus-wiremock.version>1.6.3</quarkus-wiremock.version>
     <skipITs>true</skipITs>
     <surefire-plugin.version>3.5.4</surefire-plugin.version>
@@ -38,14 +37,14 @@
 
   <dependencyManagement>
     <dependencies>
-      <!-- Community quarkus-langchain4j BOM, declared first so its langchain4j versions win over the
-           platform-aligned ones. Pins 1.11.0 (-> langchain4j 1.16.2), newer than what the Quarkus
-           platform bundles (1.10.0 -> langchain4j 1.14.1). Needed for OpenAiEmbeddingModel.dimensions
-           and customParameters (NVIDIA input_type). -->
+      <!-- The quarkus-bom manages no langchain4j artifact, so this BOM is what pins both the
+           Quarkiverse extension and the upstream dev.langchain4j libraries. Taking it from the
+           platform keeps them on one version line; override it with the Quarkiverse BOM to move
+           ahead of the platform's cadence. -->
       <dependency>
-        <groupId>io.quarkiverse.langchain4j</groupId>
+        <groupId>${quarkus.platform.group-id}</groupId>
         <artifactId>quarkus-langchain4j-bom</artifactId>
-        <version>${quarkus-langchain4j.version}</version>
+        <version>${quarkus.platform.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
