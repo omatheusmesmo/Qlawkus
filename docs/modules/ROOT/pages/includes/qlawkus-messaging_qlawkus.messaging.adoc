@@ -36,7 +36,7 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-OpenAI API key for Whisper audio transcription. Leave empty to disable transcription.
+OpenAI API key for Whisper audio transcription. Optional: with no key the agent boots normally and transcription stays off, so voice is something a deployment adds rather than something it must supply before starting.
 
 
 ifdef::add-copy-button-to-env-var[]
@@ -47,7 +47,7 @@ Environment variable: `+++QLAWKUS_MESSAGING_TRANSCRIPTION_API_KEY+++`
 endif::add-copy-button-to-env-var[]
 --
 |string
-|required icon:exclamation-circle[title=Configuration property is required]
+|
 
 a| [[qlawkus-messaging_qlawkus-messaging-transcription-model]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-transcription-model[`+++qlawkus.messaging.transcription.model+++`]##
 ifdef::add-copy-button-to-config-props[]
