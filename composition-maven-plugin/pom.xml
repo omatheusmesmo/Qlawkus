@@ -29,7 +29,7 @@
         <!-- The plugin descriptor mojo scans compiled classes with ASM; the version bundled with
              maven-plugin-tools predates Java 25 (class file v69), so pin a release that reads it. -->
         <asm.version>9.10.1</asm.version>
-        <maven-invoker-plugin.version>3.9.0</maven-invoker-plugin.version>
+        <maven-invoker-plugin.version>3.10.1</maven-invoker-plugin.version>
         <!-- BeanShell runs the invoker verify.bsh post-build hooks. Chosen over Groovy on purpose:
              Groovy resolves script types by decompiling referenced classes with a shaded ASM that
              cannot read Java 25 class files (v69); BeanShell is a reflection-based interpreter with
