@@ -54,7 +54,11 @@
             <artifactId>quarkus-junit</artifactId>
             <scope>test</scope>
         </dependency>
-    </dependencies>
+        <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-vertx-http-dev-ui-spi</artifactId>
+    </dependency>
+</dependencies>
 
     <build>
         <plugins>
