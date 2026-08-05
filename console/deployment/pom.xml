@@ -31,7 +31,11 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest-qute-deployment</artifactId>
         </dependency>
-    </dependencies>
+        <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-vertx-http-dev-ui-spi</artifactId>
+    </dependency>
+</dependencies>
 
     <build>
         <plugins>
