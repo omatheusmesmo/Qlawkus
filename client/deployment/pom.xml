@@ -50,9 +50,25 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-hibernate-validator-deployment</artifactId>
     </dependency>
+    <!-- Card and page build items for the Dev UI. Build-time only: the pages it contributes are
+         produced under IsLocalDevelopment, so a production build carries none of it. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-vertx-http-dev-ui-spi</artifactId>
+    </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-devui-test-spi</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit-internal</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -105,6 +121,27 @@
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- Quarkus refuses to run QuarkusDevModeTest and @QuarkusTest classes in one JVM, so the
+               Dev UI tests get their own execution below. -->
+          <excludes>
+            <exclude>**/devui/*Test.java</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <id>devui-tests</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <excludes combine.self="override"/>
+              <includes>
+                <include>**/devui/*Test.java</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
