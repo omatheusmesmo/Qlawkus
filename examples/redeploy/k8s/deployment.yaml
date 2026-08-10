@@ -7,6 +7,12 @@
 # The probe reads the readiness endpoint the reference app bundles (quarkus-smallrye-health).
 # A distribution that leaves that extension out has to fall back to a tcpSocket probe, which
 # only proves the port is open.
+#
+# replicas is 1 by architecture, not by omission. The persona and owner profile are domain
+# singletons and the markdown stores write to the state volume below, so a second replica either
+# fails to schedule (ReadWriteOnce) or corrupts that state. The scheduled jobs compound it: every
+# replica would run the nightly consolidation and curation against the same stores. Issue #297
+# tracks whether to keep single-instance as a product decision or pay for leader election.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -52,12 +58,31 @@ spec:
                 secretKeyRef:
                   name: qlawkus-llm
                   key: api-key
+          # Readiness answers "should this pod get traffic". It reports on the agent itself: the
+          # persona and owner stores it reads every turn, and whether the model chain still has
+          # somewhere to go. A provider outage takes the pod out of rotation and nothing more.
           readinessProbe:
             httpGet:
               path: /q/health/ready
               port: 8080
-            initialDelaySeconds: 10
             periodSeconds: 5
+          # Liveness answers "is this process broken beyond recovery", and deliberately does not
+          # consult the model. Killing the pod because the LLM provider is down would turn their
+          # incident into an outage here, and the restarted pod would meet the same provider.
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: 8080
+            periodSeconds: 10
+          # Boot time differs by an order of magnitude between JVM and native, so the wait lives here
+          # rather than in initialDelaySeconds on the other two probes - this way a slow JVM start is
+          # not mistaken for a hung process, and a native image starts serving as soon as it is up.
+          startupProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8080
+            periodSeconds: 5
+            failureThreshold: 30
           volumeMounts:
             # The runtime image runs as uid 185, whose home is /home/default - the same path the
             # Compose stacks mount, and where the markdown stores write.

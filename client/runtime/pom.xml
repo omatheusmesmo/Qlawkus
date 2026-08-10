@@ -54,6 +54,14 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-scheduler</artifactId>
     </dependency>
+    <!-- Optional so a distribution can leave health out and probe the port instead, which is the
+         fallback the k8s reference deployment documents. The checks compile against the API here and
+         are only registered as beans when ClientProcessor sees the capability on the classpath. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-health</artifactId>
+      <optional>true</optional>
+    </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-rest-jackson</artifactId>

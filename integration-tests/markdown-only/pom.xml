@@ -24,6 +24,12 @@
       <artifactId>qlawkus-client</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- The readiness checks only register when this is present, and a build with no datasource is
+         where a vacuous /q/health/ready would go unnoticed - so this module is where it gets proven. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-health</artifactId>
+    </dependency>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-testing-internal</artifactId>
