@@ -17,6 +17,17 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Wraps the primary model with retries, a circuit breaker and a switch to the Ollama fallback.
+ *
+ * <p>Both delegates are called through {@code chat()} rather than {@code doChat()}. That distinction
+ * decides whether the platform can see the agent at all: {@code chat()} is the entry point whose
+ * default implementation wraps the call in the model's {@code listeners()}, and {@code doChat()} is
+ * the raw call underneath it. Reaching for {@code doChat()} skips every {@link
+ * dev.langchain4j.model.chat.listener.ChatModelListener} quarkus-langchain4j attaches - the token
+ * and duration meters, the estimated cost, the tracing spans - and does so silently, since the call
+ * itself works perfectly.
+ */
 @Alternative
 @Priority(1)
 @ApplicationScoped
@@ -43,19 +54,19 @@ public class FallbackChatModel implements ChatModel {
     @Override
     public ChatResponse doChat(ChatRequest request) {
         if (!config.fallbackEnabled()) {
-            return delegate.doChat(request);
+            return delegate.chat(request);
         }
 
         if (circuitBreaker.isOpen()) {
             Log.info("Circuit breaker OPEN — routing chat to Ollama fallback");
-            return fallback.doChat(sanitizeForOllama(request));
+            return fallback.chat(sanitizeForOllama(request));
         }
 
         List<Duration> delays = config.retryDelaysAsDurations();
         Exception lastException = null;
 
         try {
-            ChatResponse response = delegate.doChat(request);
+            ChatResponse response = delegate.chat(request);
             if (circuitBreaker.isHalfOpen()) {
                 circuitBreaker.recordSuccess();
             }
@@ -74,7 +85,7 @@ public class FallbackChatModel implements ChatModel {
             sleep(delay);
 
             try {
-                ChatResponse response = delegate.doChat(request);
+                ChatResponse response = delegate.chat(request);
                 if (circuitBreaker.isHalfOpen()) {
                     circuitBreaker.recordSuccess();
                 }
@@ -89,7 +100,7 @@ public class FallbackChatModel implements ChatModel {
         circuitBreaker.recordFailure();
 
         try {
-            return fallback.doChat(sanitizeForOllama(request));
+            return fallback.chat(sanitizeForOllama(request));
         } catch (Exception fallbackEx) {
             Log.errorf(fallbackEx, "Fallback Ollama chat also failed");
             throw new RuntimeException("Primary and fallback chat models both failed. Primary: "

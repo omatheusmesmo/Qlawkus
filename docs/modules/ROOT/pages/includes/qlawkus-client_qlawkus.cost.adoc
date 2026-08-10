@@ -1,0 +1,137 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-cost-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-cost-enabled[`+++qlawkus.cost.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.cost.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether to estimate the cost of model calls. Off by default: an estimate carries the authority of a measurement, and a stale price is worse than no number at all, so it is opt-in once real rates have been entered.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_COST_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_COST_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-client_qlawkus-cost-currency]] [.property-path]##link:#qlawkus-client_qlawkus-cost-currency[`+++qlawkus.cost.currency+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.cost.currency+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Currency reported alongside the estimate. Only a label - no conversion is applied, so it must match the currency the configured prices are written in.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_COST_CURRENCY+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_COST_CURRENCY+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++USD+++`
+
+a| [[qlawkus-client_qlawkus-cost-input-per-million]] [.property-path]##link:#qlawkus-client_qlawkus-cost-input-per-million[`+++qlawkus.cost.input-per-million+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.cost.input-per-million+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Price per million input (prompt) tokens, applied to any model without a specific entry in `models()`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_COST_INPUT_PER_MILLION+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_COST_INPUT_PER_MILLION+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/math/BigDecimal.html[BigDecimal]
+|`+++0+++`
+
+a| [[qlawkus-client_qlawkus-cost-output-per-million]] [.property-path]##link:#qlawkus-client_qlawkus-cost-output-per-million[`+++qlawkus.cost.output-per-million+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.cost.output-per-million+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Price per million output (completion) tokens, applied to any model without a specific entry in `models()`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_COST_OUTPUT_PER_MILLION+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_COST_OUTPUT_PER_MILLION+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/math/BigDecimal.html[BigDecimal]
+|`+++0+++`
+
+a| [[qlawkus-client_qlawkus-cost-models-models-input-per-million]] [.property-path]##link:#qlawkus-client_qlawkus-cost-models-models-input-per-million[`+++qlawkus.cost.models."models".input-per-million+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.cost.models."models".input-per-million+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Price per million input (prompt) tokens for this model.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_COST_MODELS__MODELS__INPUT_PER_MILLION+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_COST_MODELS__MODELS__INPUT_PER_MILLION+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/math/BigDecimal.html[BigDecimal]
+|required icon:exclamation-circle[title=Configuration property is required]
+
+a| [[qlawkus-client_qlawkus-cost-models-models-output-per-million]] [.property-path]##link:#qlawkus-client_qlawkus-cost-models-models-output-per-million[`+++qlawkus.cost.models."models".output-per-million+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.cost.models."models".output-per-million+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Price per million output (completion) tokens for this model.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_COST_MODELS__MODELS__OUTPUT_PER_MILLION+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_COST_MODELS__MODELS__OUTPUT_PER_MILLION+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/math/BigDecimal.html[BigDecimal]
+|required icon:exclamation-circle[title=Configuration property is required]
+
+|===
+

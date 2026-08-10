@@ -24,6 +24,16 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * The streaming counterpart of {@link FallbackChatModel}, and the one that carries the traffic: the
+ * agent's {@code chat} method returns a {@code Multi}, so SSE and every messaging adapter arrive
+ * here.
+ *
+ * <p>Delegates are called through {@code chat()} rather than {@code doChat()} for the same reason
+ * given on {@link FallbackChatModel}: {@code chat()} is what wraps the call in the model's
+ * {@code listeners()}, and going straight to {@code doChat()} silently drops every meter, cost
+ * estimate and span quarkus-langchain4j attaches there.
+ */
 @Alternative
 @Priority(1)
 @ApplicationScoped
@@ -50,20 +60,20 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
     @Override
     public void doChat(ChatRequest request, StreamingChatResponseHandler handler) {
         if (!config.fallbackEnabled()) {
-            delegate.doChat(request, handler);
+            delegate.chat(request, handler);
             return;
         }
 
         if (circuitBreaker.isOpen()) {
             Log.info("Circuit breaker OPEN — routing streaming chat to Ollama fallback");
-            fallback.doChat(sanitizeForOllama(request), handler);
+            fallback.chat(sanitizeForOllama(request), handler);
             return;
         }
 
         List<Duration> delays = config.retryDelaysAsDurations();
         StreamingChatResponseHandler retryHandler = new RetryStreamingHandler(
                 request, handler, delegate, fallback, circuitBreaker, delays, 0);
-        delegate.doChat(request, retryHandler);
+        delegate.chat(request, retryHandler);
     }
 
     @Override
@@ -161,7 +171,7 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
             if (isRetryable(error)) {
                     Log.warnf("All %d streaming attempts failed — opening circuit breaker and falling back to Ollama", delays.size() + 1);
                     circuitBreaker.recordFailure();
-                    fallback.doChat(sanitizeForOllama(request), downstream);
+                    fallback.chat(sanitizeForOllama(request), downstream);
                 } else {
                     downstream.onError(error);
                 }
@@ -182,7 +192,7 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
 
             StreamingChatResponseHandler nextHandler = new RetryStreamingHandler(
                     request, downstream, delegate, fallback, circuitBreaker, delays, attempt + 1);
-            delegate.doChat(request, nextHandler);
+            delegate.chat(request, nextHandler);
         }
 
         private boolean isRetryable(Throwable error) {

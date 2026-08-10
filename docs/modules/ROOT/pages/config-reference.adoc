@@ -13,6 +13,9 @@ include::includes/qlawkus-client_qlawkus.openai.adoc[]
 === Models
 include::includes/qlawkus-client_qlawkus.model.adoc[]
 
+=== Token cost
+include::includes/qlawkus-client_qlawkus.cost.adoc[]
+
 === Agent & memory
 include::includes/qlawkus-client_qlawkus.agent.adoc[]
 
