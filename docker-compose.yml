@@ -50,6 +50,15 @@ services:
         condition: service_healthy
     ports:
       - "8742:8080"
+    restart: unless-stopped
+    # Reads the same readiness endpoint the k8s reference deployment probes, so both deploy paths
+    # agree on what "the agent is serving" means. curl comes from the ubi9-minimal base.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/q/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
   qlawkus-native:
     build:
@@ -97,6 +106,10 @@ services:
         condition: service_healthy
     ports:
       - "8742:8080"
+    restart: unless-stopped
+    # No healthcheck here on purpose: the native runtime image (ubi9-quarkus-micro-image) ships no
+    # shell utilities, so nothing inside it can call the endpoint. Giving it one means deciding which
+    # binaries belong in the image - the same question issue #93 tracks for git and gh.
 
   postgres:
     image: pgvector/pgvector:pg17

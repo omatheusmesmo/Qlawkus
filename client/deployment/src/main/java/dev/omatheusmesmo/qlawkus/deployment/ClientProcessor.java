@@ -3,6 +3,8 @@ package dev.omatheusmesmo.qlawkus.deployment;
 import dev.langchain4j.skills.FileSystemSkill;
 import dev.langchain4j.skills.FileSystemSkillLoader;
 import dev.omatheusmesmo.qlawkus.composition.CompositionPaths;
+import dev.omatheusmesmo.qlawkus.health.CognitionReadinessCheck;
+import dev.omatheusmesmo.qlawkus.health.ModelReadinessCheck;
 import dev.omatheusmesmo.qlawkus.skill.BundledSkills;
 import dev.omatheusmesmo.qlawkus.skill.SkillsRecorder;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
@@ -11,7 +13,10 @@ import dev.omatheusmesmo.qlawkus.tool.QlawToolProviderSupplier;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.ExcludedTypeBuildItem;
 import io.quarkus.arc.deployment.SyntheticBeanBuildItem;
+import io.quarkus.arc.processor.DotNames;
 import io.quarkus.deployment.ApplicationArchive;
+import io.quarkus.deployment.Capabilities;
+import io.quarkus.deployment.Capability;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
@@ -172,6 +177,25 @@ class ClientProcessor {
                 .addBeanClass(QlawToolProviderSupplier.class)
                 .setUnremovable()
                 .build();
+    }
+
+    /**
+     * Registers the readiness checks, but only for a distribution that pulled in SmallRye Health.
+     * The checks carry {@code @Readiness} without a scope annotation so nothing discovers them on
+     * their own: without the capability the classes stay unreferenced and are never loaded, which is
+     * what lets {@code client} depend on the health API optionally.
+     */
+    @BuildStep
+    void registerHealthChecks(Capabilities capabilities, BuildProducer<AdditionalBeanBuildItem> beans) {
+        if (!capabilities.isPresent(Capability.SMALLRYE_HEALTH)) {
+            return;
+        }
+        beans.produce(AdditionalBeanBuildItem.builder()
+                .addBeanClass(CognitionReadinessCheck.class)
+                .addBeanClass(ModelReadinessCheck.class)
+                .setDefaultScope(DotNames.APPLICATION_SCOPED)
+                .setUnremovable()
+                .build());
     }
 
     @BuildStep

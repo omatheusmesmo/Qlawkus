@@ -53,6 +53,15 @@ services:
         condition: service_healthy
       ollama-init:
         condition: service_completed_successfully
+    restart: unless-stopped
+    # Same readiness endpoint the k8s reference deployment probes, so every deploy path agrees on
+    # what "the agent is serving" means. curl comes from the ubi9-minimal base.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/q/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
   postgres:
     image: pgvector/pgvector:pg17

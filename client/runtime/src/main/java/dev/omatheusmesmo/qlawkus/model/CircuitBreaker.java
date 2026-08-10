@@ -11,7 +11,12 @@ import java.util.concurrent.atomic.AtomicReference;
 @ApplicationScoped
 public class CircuitBreaker {
 
-    enum State { CLOSED, OPEN, HALF_OPEN }
+    /**
+     * Public so callers outside this package can read {@link #currentState()}, which is the only
+     * accessor that does not mutate: {@link #isOpen()} promotes an expired OPEN to HALF_OPEN as a
+     * side effect, so anything polling the breaker must not use it.
+     */
+    public enum State { CLOSED, OPEN, HALF_OPEN }
 
     private final AtomicReference<State> state = new AtomicReference<>(State.CLOSED);
     private volatile Instant openedAt = Instant.MIN;
