@@ -44,8 +44,10 @@ class ReadinessCheckTest {
     void modelCheckStaysUpWhileAFallbackExists() {
         JsonPath body = readiness();
         assertEquals("UP", statusOf(body, MODEL));
-        assertEquals("CLOSED", body.getString("checks.find { it.name == '" + MODEL + "' }.data.circuit"),
-                "a boot that has called nothing must not report a tripped breaker");
+        assertEquals("CLOSED", body.getString("checks.find { it.name == '" + MODEL + "' }.data.chatCircuit"),
+                "a boot that has called nothing must not report a tripped chat breaker");
+        assertEquals("CLOSED", body.getString("checks.find { it.name == '" + MODEL + "' }.data.embeddingCircuit"),
+                "a boot that has called nothing must not report a tripped embedding breaker");
     }
 
     @Test

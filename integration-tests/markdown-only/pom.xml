@@ -76,6 +76,28 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
+      <!-- Reruns the *IT classes against the packaged (and, under -Pnative, native) artifact - the
+           JVM-only *Test classes above cannot catch a GraalVM-specific regression, such as
+           TypedGuard's ServiceLoader-based Spi lookup failing to resolve under native reflection
+           config. Off by default (skipITs=true in the parent pom); -Pnative flips both switches. -->
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+            <maven.home>${maven.home}</maven.home>
+          </systemPropertyVariables>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 </project>
