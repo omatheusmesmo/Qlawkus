@@ -54,6 +54,13 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-scheduler</artifactId>
     </dependency>
+    <!-- Backs FallbackChatModel/FallbackStreamingChatModel/FallbackEmbeddingModel: retry, circuit
+         breaker and fallback-to-Ollama are core to the always-on provider resilience path, not an
+         optional capability, so unlike quarkus-smallrye-health above this is not <optional>. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-fault-tolerance</artifactId>
+    </dependency>
     <!-- Optional so a distribution can leave health out and probe the port instead, which is the
          fallback the k8s reference deployment documents. The checks compile against the API here and
          are only registered as beans when ClientProcessor sees the capability on the classpath. -->

@@ -13,12 +13,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
 import jakarta.inject.Inject;
 
-import java.time.Duration;
-import java.util.List;
 import java.util.Set;
 
 /**
- * Wraps the primary model with retries, a circuit breaker and a switch to the Ollama fallback.
+ * Wraps the primary model with retries, a circuit breaker and a switch to the Ollama fallback, all
+ * from {@link PrimaryChatGuard}.
  *
  * <p>Both delegates are called through {@code chat()} rather than {@code doChat()}. That distinction
  * decides whether the platform can see the agent at all: {@code chat()} is the entry point whose
@@ -35,18 +34,18 @@ public class FallbackChatModel implements ChatModel {
 
     private final ChatModel delegate;
     private final ChatModel fallback;
-    private final CircuitBreaker circuitBreaker;
+    private final PrimaryChatGuard guard;
     private final ModelFallbackConfig config;
 
     @Inject
     public FallbackChatModel(
             @ModelName("primary") ChatModel delegate,
             @ModelName("fallback") ChatModel fallback,
-            CircuitBreaker circuitBreaker,
+            PrimaryChatGuard guard,
             ModelFallbackConfig config) {
         this.delegate = delegate;
         this.fallback = fallback;
-        this.circuitBreaker = circuitBreaker;
+        this.guard = guard;
         this.config = config;
         Log.info("FallbackChatModel initialized with @ModelName(\"primary\") delegate");
     }
@@ -56,65 +55,7 @@ public class FallbackChatModel implements ChatModel {
         if (!config.fallbackEnabled()) {
             return delegate.chat(request);
         }
-
-        if (circuitBreaker.isOpen()) {
-            Log.info("Circuit breaker OPEN — routing chat to Ollama fallback");
-            return fallback.chat(sanitizeForOllama(request));
-        }
-
-        List<Duration> delays = config.retryDelaysAsDurations();
-        Exception lastException = null;
-
-        try {
-            ChatResponse response = delegate.chat(request);
-            if (circuitBreaker.isHalfOpen()) {
-                circuitBreaker.recordSuccess();
-            }
-            return response;
-        } catch (Exception e) {
-            lastException = e;
-            if (!isRetryable(e)) {
-                throw e;
-            }
-        }
-
-        for (int attempt = 0; attempt < delays.size(); attempt++) {
-            Duration delay = delays.get(attempt);
-            Log.warnf("ChatModel attempt %d/%d failed: %s — retrying in %ds",
-                    attempt + 1, delays.size() + 1, lastException.getMessage(), delay.toSeconds());
-            sleep(delay);
-
-            try {
-                ChatResponse response = delegate.chat(request);
-                if (circuitBreaker.isHalfOpen()) {
-                    circuitBreaker.recordSuccess();
-                }
-                return response;
-            } catch (Exception e) {
-                lastException = e;
-            }
-        }
-
-        Log.warnf("All %d chat attempts failed — opening circuit breaker and falling back to Ollama",
-                delays.size() + 1);
-        circuitBreaker.recordFailure();
-
-        try {
-            return fallback.chat(sanitizeForOllama(request));
-        } catch (Exception fallbackEx) {
-            Log.errorf(fallbackEx, "Fallback Ollama chat also failed");
-            throw new RuntimeException("Primary and fallback chat models both failed. Primary: "
-                    + lastException.getMessage() + ". Fallback: " + fallbackEx.getMessage(), fallbackEx);
-        }
-    }
-
-    private void sleep(Duration duration) {
-        try {
-            Thread.sleep(duration);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted during retry backoff", e);
-        }
+        return guard.call(() -> delegate.chat(request), () -> fallback.chat(sanitizeForOllama(request)));
     }
 
     @Override
@@ -127,24 +68,7 @@ public class FallbackChatModel implements ChatModel {
         return delegate.supportedCapabilities();
     }
 
-    private boolean isRetryable(Throwable error) {
-        Throwable current = error;
-        while (current != null) {
-            String className = current.getClass().getName();
-            if (className.contains("NonRetriableException")
-                    || className.contains("AuthenticationException")
-                    || className.contains("ModelNotFoundException")
-                    || className.contains("InvalidRequestException")
-                    || className.contains("ContentFilteredException")
-                    || className.contains("UnsupportedFeatureException")) {
-                return false;
-            }
-            current = current.getCause();
-        }
-        return true;
-    }
-
-    private ChatRequest sanitizeForOllama(ChatRequest request) {
+    static ChatRequest sanitizeForOllama(ChatRequest request) {
         // Deliberately omit modelName: the request carries the primary provider's model id (e.g.
         // "nvidia/nemotron-3-ultra-550b-a55b"), which the Ollama fallback does not have. Leaving it
         // unset lets the langchain4j-ollama model apply its configured chat-model.model-name instead.

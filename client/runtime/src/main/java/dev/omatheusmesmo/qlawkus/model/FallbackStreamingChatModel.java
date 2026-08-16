@@ -20,14 +20,25 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
 import jakarta.inject.Inject;
 
-import java.time.Duration;
-import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The streaming counterpart of {@link FallbackChatModel}, and the one that carries the traffic: the
  * agent's {@code chat} method returns a {@code Multi}, so SSE and every messaging adapter arrive
- * here.
+ * here. Shares {@link PrimaryChatGuard} with {@link FallbackChatModel} - same completions endpoint,
+ * so a primary outage detected on either transport opens the one breaker for both.
+ *
+ * <p>{@code StreamingChatModel.doChat} is callback-based, not blocking, so each attempt is bridged
+ * through a {@link CompletableFuture} that {@link #runBridged} resolves from the handler callbacks -
+ * that is what lets a callback API sit underneath a guard built around a blocking {@code Supplier}.
+ * Partial tokens are forwarded to the real downstream handler as they arrive, live, not buffered
+ * until the guard decides the call succeeded; once any partial has been sent, a later error can no
+ * longer be retried or silently swapped for the fallback's answer without duplicating or reordering
+ * tokens already visible to the user, so {@link #runBridged} resolves the future normally instead of
+ * exceptionally in that case - the guard sees a completed attempt, not a failure, and stops.
  *
  * <p>Delegates are called through {@code chat()} rather than {@code doChat()} for the same reason
  * given on {@link FallbackChatModel}: {@code chat()} is what wraps the call in the model's
@@ -41,18 +52,18 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
 
     private final StreamingChatModel delegate;
     private final StreamingChatModel fallback;
-    private final CircuitBreaker circuitBreaker;
+    private final PrimaryChatGuard guard;
     private final ModelFallbackConfig config;
 
     @Inject
     public FallbackStreamingChatModel(
             @ModelName("primary") StreamingChatModel delegate,
             @ModelName("fallback") StreamingChatModel fallback,
-            CircuitBreaker circuitBreaker,
+            PrimaryChatGuard guard,
             ModelFallbackConfig config) {
         this.delegate = delegate;
         this.fallback = fallback;
-        this.circuitBreaker = circuitBreaker;
+        this.guard = guard;
         this.config = config;
         Log.info("FallbackStreamingChatModel initialized with @ModelName(\"primary\") delegate");
     }
@@ -64,16 +75,18 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
             return;
         }
 
-        if (circuitBreaker.isOpen()) {
-            Log.info("Circuit breaker OPEN — routing streaming chat to Ollama fallback");
-            fallback.chat(sanitizeForOllama(request), handler);
-            return;
+        AtomicBoolean partialSent = new AtomicBoolean(false);
+        try {
+            guard.call(
+                    () -> runBridged(delegate, request, handler, partialSent),
+                    () -> runBridged(fallback, sanitizeForOllama(request), handler, partialSent));
+        } catch (RuntimeException e) {
+            if (!partialSent.get()) {
+                handler.onError(e);
+            }
+            // else: runBridged already forwarded onError to handler before resolving the future
+            // normally, precisely so the guard would not see a failure and retry into it.
         }
-
-        List<Duration> delays = config.retryDelaysAsDurations();
-        StreamingChatResponseHandler retryHandler = new RetryStreamingHandler(
-                request, handler, delegate, fallback, circuitBreaker, delays, 0);
-        delegate.chat(request, retryHandler);
     }
 
     @Override
@@ -86,130 +99,85 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
         return delegate.supportedCapabilities();
     }
 
-    private static class RetryStreamingHandler implements StreamingChatResponseHandler {
+    /**
+     * Bridges one callback-based {@code model.chat(request, ...)} attempt into a blocking call the
+     * guard can retry: every event is forwarded to {@code downstream} live, and the returned future
+     * settles once the model calls {@code onCompleteResponse} or {@code onError}.
+     */
+    private static ChatResponse runBridged(StreamingChatModel model, ChatRequest request,
+            StreamingChatResponseHandler downstream, AtomicBoolean partialSent) {
+        CompletableFuture<ChatResponse> future = new CompletableFuture<>();
+        StreamingChatResponseHandler bridge = new StreamingChatResponseHandler() {
 
-        private final ChatRequest request;
-        private final StreamingChatResponseHandler downstream;
-        private final StreamingChatModel delegate;
-        private final StreamingChatModel fallback;
-        private final CircuitBreaker circuitBreaker;
-        private final List<Duration> delays;
-        private final int attempt;
-        private volatile boolean partialSent;
-
-        RetryStreamingHandler(
-                ChatRequest request,
-                StreamingChatResponseHandler downstream,
-                StreamingChatModel delegate,
-                StreamingChatModel fallback,
-                CircuitBreaker circuitBreaker,
-                List<Duration> delays,
-                int attempt) {
-            this.request = request;
-            this.downstream = downstream;
-            this.delegate = delegate;
-            this.fallback = fallback;
-            this.circuitBreaker = circuitBreaker;
-            this.delays = delays;
-            this.attempt = attempt;
-        }
-
-        @Override
-        public void onPartialResponse(String partial) {
-            partialSent = true;
-            downstream.onPartialResponse(partial);
-        }
-
-        @Override
-        public void onPartialResponse(PartialResponse partial, PartialResponseContext context) {
-            partialSent = true;
-            downstream.onPartialResponse(partial, context);
-        }
-
-        @Override
-        public void onPartialThinking(PartialThinking thinking) {
-            downstream.onPartialThinking(thinking);
-        }
-
-        @Override
-        public void onPartialThinking(PartialThinking thinking, PartialThinkingContext context) {
-            downstream.onPartialThinking(thinking, context);
-        }
-
-        @Override
-        public void onPartialToolCall(PartialToolCall partialToolCall) {
-            downstream.onPartialToolCall(partialToolCall);
-        }
-
-        @Override
-        public void onPartialToolCall(PartialToolCall partialToolCall, PartialToolCallContext context) {
-            downstream.onPartialToolCall(partialToolCall, context);
-        }
-
-        @Override
-        public void onCompleteToolCall(CompleteToolCall completeToolCall) {
-            downstream.onCompleteToolCall(completeToolCall);
-        }
-
-        @Override
-        public void onCompleteResponse(ChatResponse response) {
-            if (circuitBreaker.isHalfOpen()) {
-                circuitBreaker.recordSuccess();
-            }
-            downstream.onCompleteResponse(response);
-        }
-
-        @Override
-        public void onError(Throwable error) {
-            if (partialSent) {
-                Log.warnf("Streaming error after partial response committed — cannot retry, forwarding error");
-                downstream.onError(error);
-                return;
+            @Override
+            public void onPartialResponse(String partial) {
+                partialSent.set(true);
+                downstream.onPartialResponse(partial);
             }
 
-            if (!isRetryable(error) || attempt >= delays.size()) {
-            if (isRetryable(error)) {
-                    Log.warnf("All %d streaming attempts failed — opening circuit breaker and falling back to Ollama", delays.size() + 1);
-                    circuitBreaker.recordFailure();
-                    fallback.chat(sanitizeForOllama(request), downstream);
-                } else {
+            @Override
+            public void onPartialResponse(PartialResponse partial, PartialResponseContext context) {
+                partialSent.set(true);
+                downstream.onPartialResponse(partial, context);
+            }
+
+            @Override
+            public void onPartialThinking(PartialThinking thinking) {
+                downstream.onPartialThinking(thinking);
+            }
+
+            @Override
+            public void onPartialThinking(PartialThinking thinking, PartialThinkingContext context) {
+                downstream.onPartialThinking(thinking, context);
+            }
+
+            @Override
+            public void onPartialToolCall(PartialToolCall partialToolCall) {
+                downstream.onPartialToolCall(partialToolCall);
+            }
+
+            @Override
+            public void onPartialToolCall(PartialToolCall partialToolCall, PartialToolCallContext context) {
+                downstream.onPartialToolCall(partialToolCall, context);
+            }
+
+            @Override
+            public void onCompleteToolCall(CompleteToolCall completeToolCall) {
+                downstream.onCompleteToolCall(completeToolCall);
+            }
+
+            @Override
+            public void onCompleteResponse(ChatResponse response) {
+                downstream.onCompleteResponse(response);
+                future.complete(response);
+            }
+
+            @Override
+            public void onError(Throwable error) {
+                if (partialSent.get()) {
+                    Log.warnf("Streaming error after partial response committed — cannot retry, forwarding error");
                     downstream.onError(error);
+                    future.complete(null);
+                } else {
+                    future.completeExceptionally(error);
                 }
-                return;
             }
+        };
 
-            Duration delay = delays.get(attempt);
-            Log.warnf("StreamingChatModel attempt %d/%d failed: %s — retrying in %ds",
-                    attempt + 1, delays.size() + 1, error.getMessage(), delay.toSeconds());
-
-            try {
-                Thread.sleep(delay);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                downstream.onError(ie);
-                return;
-            }
-
-            StreamingChatResponseHandler nextHandler = new RetryStreamingHandler(
-                    request, downstream, delegate, fallback, circuitBreaker, delays, attempt + 1);
-            delegate.chat(request, nextHandler);
+        try {
+            model.chat(request, bridge);
+        } catch (RuntimeException e) {
+            future.completeExceptionally(e);
         }
 
-        private boolean isRetryable(Throwable error) {
-            Throwable current = error;
-            while (current != null) {
-                String className = current.getClass().getName();
-                if (className.contains("NonRetriableException")
-                        || className.contains("AuthenticationException")
-                        || className.contains("ModelNotFoundException")
-                        || className.contains("InvalidRequestException")
-                        || className.contains("ContentFilteredException")
-                        || className.contains("UnsupportedFeatureException")) {
-                    return false;
-                }
-                current = current.getCause();
+        try {
+            return future.join();
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException runtimeException) {
+                throw runtimeException;
             }
-            return true;
+            throw new RuntimeException(cause);
         }
     }
 

@@ -7,26 +7,68 @@ h|[.header-title]##Configuration property##
 h|Type
 h|Default
 
-a| [[qlawkus-client_qlawkus-model-retry-delays]] [.property-path]##link:#qlawkus-client_qlawkus-model-retry-delays[`+++qlawkus.model.retry-delays+++`]##
+a| [[qlawkus-client_qlawkus-model-retry-max-attempts]] [.property-path]##link:#qlawkus-client_qlawkus-model-retry-max-attempts[`+++qlawkus.model.retry-max-attempts+++`]##
 ifdef::add-copy-button-to-config-props[]
-config_property_copy_button:+++qlawkus.model.retry-delays+++[]
+config_property_copy_button:+++qlawkus.model.retry-max-attempts+++[]
 endif::add-copy-button-to-config-props[]
 
 
 [.description]
 --
-Comma-separated retry delays in seconds between attempts before falling back.
+Number of retries against the primary model before falling back to Ollama.
 
 
 ifdef::add-copy-button-to-env-var[]
-Environment variable: env_var_with_copy_button:+++QLAWKUS_MODEL_RETRY_DELAYS+++[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MODEL_RETRY_MAX_ATTEMPTS+++[]
 endif::add-copy-button-to-env-var[]
 ifndef::add-copy-button-to-env-var[]
-Environment variable: `+++QLAWKUS_MODEL_RETRY_DELAYS+++`
+Environment variable: `+++QLAWKUS_MODEL_RETRY_MAX_ATTEMPTS+++`
 endif::add-copy-button-to-env-var[]
 --
-|list of int
-|`+++30+++`, `+++60+++`, `+++120+++`
+|int
+|`+++3+++`
+
+a| [[qlawkus-client_qlawkus-model-retry-initial-delay]] [.property-path]##link:#qlawkus-client_qlawkus-model-retry-initial-delay[`+++qlawkus.model.retry-initial-delay+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.model.retry-initial-delay+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Delay before the first retry.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MODEL_RETRY_INITIAL_DELAY+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MODEL_RETRY_INITIAL_DELAY+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-client_qlawkus-model[icon:question-circle[title=More information about the Duration format]]
+|`+++30S+++`
+
+a| [[qlawkus-client_qlawkus-model-retry-max-delay]] [.property-path]##link:#qlawkus-client_qlawkus-model-retry-max-delay[`+++qlawkus.model.retry-max-delay+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.model.retry-max-delay+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Delay cap the exponential backoff between retries will not exceed.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MODEL_RETRY_MAX_DELAY+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MODEL_RETRY_MAX_DELAY+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-client_qlawkus-model[icon:question-circle[title=More information about the Duration format]]
+|`+++120S+++`
 
 a| [[qlawkus-client_qlawkus-model-circuit-breaker-reset-timeout]] [.property-path]##link:#qlawkus-client_qlawkus-model-circuit-breaker-reset-timeout[`+++qlawkus.model.circuit-breaker-reset-timeout+++`]##
 ifdef::add-copy-button-to-config-props[]
@@ -36,7 +78,7 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-Seconds the circuit breaker stays OPEN before transitioning to HALF_OPEN.
+How long the circuit breaker stays OPEN before allowing a HALF_OPEN probe against the primary.
 
 
 ifdef::add-copy-button-to-env-var[]
@@ -46,8 +88,8 @@ ifndef::add-copy-button-to-env-var[]
 Environment variable: `+++QLAWKUS_MODEL_CIRCUIT_BREAKER_RESET_TIMEOUT+++`
 endif::add-copy-button-to-env-var[]
 --
-|int
-|`+++300+++`
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-client_qlawkus-model[icon:question-circle[title=More information about the Duration format]]
+|`+++300S+++`
 
 a| [[qlawkus-client_qlawkus-model-fallback-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-model-fallback-enabled[`+++qlawkus.model.fallback-enabled+++`]##
 ifdef::add-copy-button-to-config-props[]
