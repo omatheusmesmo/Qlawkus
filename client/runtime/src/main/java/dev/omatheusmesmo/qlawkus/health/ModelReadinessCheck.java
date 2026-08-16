@@ -24,9 +24,8 @@ import org.eclipse.microprofile.health.Readiness;
  * called anything. Startup reachability is a different question and is deliberately not answered
  * here.
  *
- * <p>State is read through {@code CircuitBreakerMaintenance.currentState(name)}, which only reads -
- * unlike the hand-written breaker this replaced, nothing here can promote a state as a side effect of
- * being polled.
+ * <p>State is read through {@code CircuitBreakerMaintenance.currentState(name)}, a read-only lookup:
+ * nothing here can promote a state as a side effect of being polled.
  */
 @Readiness
 public class ModelReadinessCheck implements HealthCheck {

@@ -28,6 +28,11 @@ import java.util.function.Supplier;
  * {@link #call} carries it through a {@link ThreadLocal}, safe because {@code TypedGuard} invokes
  * every attempt - including the fallback handler - on the calling thread; nothing here is offloaded
  * to another executor.
+ *
+ * <p>This is also why {@link dev.omatheusmesmo.qlawkus.agent.AgentService} carries no fault-tolerance
+ * annotations of its own: protecting one model call here, rather than the whole tool-calling turn at
+ * the AI service level, is what keeps a retry from replaying a tool call that already succeeded (see
+ * the javadoc on {@code AgentService}).
  */
 @ApplicationScoped
 @Startup

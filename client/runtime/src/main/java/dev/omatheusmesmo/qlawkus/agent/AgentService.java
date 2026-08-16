@@ -18,6 +18,16 @@ import io.quarkiverse.langchain4j.RegisterAiService;
 import io.smallrye.mutiny.Multi;
 import jakarta.enterprise.context.ApplicationScoped;
 
+/**
+ * Never annotate {@code chat()}/{@code chatSync()} with {@code @Retry}, {@code @CircuitBreaker} or
+ * {@code @Fallback}, even though quarkus-langchain4j's own fault-tolerance guide shows exactly that
+ * pattern. On a method with {@code tools}, those annotations protect the whole ReAct loop, so a
+ * transient failure on a later turn re-runs tool calls that already succeeded on an earlier one -
+ * silently duplicating any side effect (see quarkiverse/quarkus-langchain4j#2744, reproduced against
+ * the upstream source before filing). Retry/circuit-breaker/fallback belongs on the underlying
+ * {@code ChatModel}/{@code StreamingChatModel} instead, where a retry only replays the one failed
+ * model call - see {@link dev.omatheusmesmo.qlawkus.model.PrimaryChatGuard}.
+ */
 @RegisterAiService(
     systemMessageProviderSupplier = SoulEngine.class,
     tools = {UpdateSelfStateTool.class, UpdateUserProfileTool.class, SearchMemoriesTool.class,
