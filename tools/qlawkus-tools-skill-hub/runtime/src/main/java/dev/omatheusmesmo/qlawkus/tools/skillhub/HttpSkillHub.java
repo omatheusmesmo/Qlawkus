@@ -2,12 +2,15 @@ package dev.omatheusmesmo.qlawkus.tools.skillhub;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.omatheusmesmo.qlawkus.http.TransientHttpException;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillFrontmatter;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import io.quarkus.arc.DefaultBean;
+import io.smallrye.faulttolerance.api.ExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -16,6 +19,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -186,7 +190,17 @@ public class HttpSkillHub implements SkillHub {
         "Unrecognized skill source (expected owner/repo or a SKILL.md URL): " + source);
   }
 
-  private String get(String url) {
+  /**
+   * {@code @Retry} covers one HTTP call, not one {@link #search}/{@link #install}/{@link #publish}
+   * operation. Only {@link TransientHttpException} (429, 5xx, or a network-level failure reaching
+   * the registry at all) is retried; every other status - 404 for an unknown SKILL.md, for instance
+   * - propagates immediately since retrying it cannot succeed.
+   */
+  @Retry(maxRetries = 3, delay = 500, delayUnit = ChronoUnit.MILLIS,
+      jitter = 200, jitterDelayUnit = ChronoUnit.MILLIS,
+      retryOn = TransientHttpException.class)
+  @ExponentialBackoff(maxDelay = 8000, maxDelayUnit = ChronoUnit.MILLIS)
+  String get(String url) {
     try {
       HttpRequest request = HttpRequest.newBuilder(URI.create(url))
           .timeout(config.requestTimeout())
@@ -195,12 +209,16 @@ public class HttpSkillHub implements SkillHub {
           .build();
       HttpResponse<String> response =
           httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-      if (response.statusCode() / 100 != 2) {
-        throw new IllegalStateException("HTTP " + response.statusCode() + " from " + url);
+      int status = response.statusCode();
+      if (status / 100 != 2) {
+        if (status == 429 || status >= 500) {
+          throw new TransientHttpException(status, "from " + url);
+        }
+        throw new IllegalStateException("HTTP " + status + " from " + url);
       }
       return response.body();
     } catch (java.io.IOException e) {
-      throw new IllegalStateException("Request failed: " + url, e);
+      throw new TransientHttpException("Request failed: " + url, e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Request interrupted: " + url, e);

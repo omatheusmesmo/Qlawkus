@@ -7,7 +7,7 @@ import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingProvider;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingResponse;
 import discord4j.common.util.Snowflake;
-import discord4j.core.DiscordClient;
+import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
@@ -20,6 +20,7 @@ import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.MessageCreateSpec;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
+import discord4j.rest.response.ResponseFunction;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
@@ -61,7 +62,11 @@ public class DiscordProviderAdapter implements MessagingProvider {
                 Intent.MESSAGE_CONTENT,
                 Intent.DIRECT_MESSAGES);
 
-        DiscordClient.create(config.botToken().get())
+        DiscordClientBuilder.create(config.botToken().get())
+                // Discord4j's request queue already retries 429s automatically; 5xx needs this
+                // explicit opt-in.
+                .onClientResponse(ResponseFunction.retryOnceOnErrorStatus(500, 502, 503, 504))
+                .build()
                 .gateway()
                 .setEnabledIntents(intents)
                 .login()
