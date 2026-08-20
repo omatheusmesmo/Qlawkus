@@ -118,6 +118,8 @@ Create a CDI bean annotated with `@QlawTool` + `@ApplicationScoped`. Methods ann
 
 New tool modules must also be added as dependencies in `app/pom.xml`.
 
+A tool that makes outbound HTTP calls follows the retry contract in **Resilience & Health** below: throw `TransientHttpException` for transient failures, and annotate the single HTTP call rather than the tool method.
+
 ## Extension Development
 
 Every module here (`client`, `tools/*`, `messaging/*`) is a full Quarkus extension: a `runtime/` + `deployment/` pair. Rules that keep that pattern correct:
@@ -198,23 +200,25 @@ mvn -f docs/pom.xml verify -DskipTests   # generate includes/ into site/, then m
 
 Two named model configs via `@ModelName`, both provider-agnostic:
 - **`primary`** - Primary model (any OpenAI-compatible provider; default endpoint: NVIDIA NIM). Pointed via the neutral `LLM_*` env vars (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_CHAT_MODEL`, `LLM_EMBEDDING_MODEL`, `LLM_TIMEOUT`).
-- **`fallback`** - Fallback (Ollama, used when primary fails after retries + circuit breaker).
+- **`fallback`** - Fallback (Ollama). Reached through `PrimaryChatGuard`/`EmbeddingGuard` once the primary has exhausted its retries and the circuit breaker opens; see **Resilience & Health**.
 
 Dev mode: Dev Services auto-provisions Ollama (no `.env` needed).
 Prod: Requires `LLM_API_KEY` in `.env`.
 
 Embedding dimension is hardcoded to 1024 via `EMBEDDING_DIMENSION` - must match the model output.
 
+Cost estimation is opt-in via `qlawkus.cost.enabled`. `model/TokenPriceCostEstimator` prices the token counts quarkus-langchain4j already reports, which is what turns on its `gen_ai.client.estimated_cost` metric. Off by default on purpose: an estimate is indistinguishable from a measurement once it reaches a dashboard, so a default price would be a confident wrong number. A distribution with tiered or committed pricing supplies its own `CostEstimator` at the default priority and is consulted first.
+
 ### Dependency versions (do NOT conflate the two langchain4j namespaces)
 
 | What | Version | Where set |
 |------|---------|-----------|
-| Quarkus platform | `3.37.4` | `quarkus.platform.version` in root `pom.xml` |
-| quarkus-langchain4j (Quarkiverse extension) | `1.11.2` | `io.quarkus.platform:quarkus-langchain4j-bom` - do not set |
-| Upstream `dev.langchain4j` core (transitive) | `1.16.2` | same BOM - do not set |
-| Upstream beta modules (`langchain4j-skills`, `langchain4j-pgvector`, `langchain4j-agentic`) | `1.16.2-beta26` | same BOM - do not set |
+| Quarkus platform | `3.38.1` | `quarkus.platform.version` in root `pom.xml` |
+| quarkus-langchain4j (Quarkiverse extension) | `1.12.2` | `io.quarkus.platform:quarkus-langchain4j-bom` - do not set |
+| Upstream `dev.langchain4j` core (transitive) | `1.17.2` | same BOM - do not set |
+| Upstream beta modules (`langchain4j-skills`, `langchain4j-pgvector`, `langchain4j-agentic`) | `1.17.2-beta27` | same BOM - do not set |
 
-The Quarkiverse **extension** version (`1.11.2`) and the upstream **library** version (`1.16.2`) are different namespaces: `1.11.2` is NOT a langchain4j-core version. The `quarkus-bom` manages neither, so the root pom imports `quarkus-langchain4j-bom` at the platform version; it pins the Quarkiverse artifacts and transitively imports the `langchain4j-bom`, which pins every `dev.langchain4j:*` artifact. So when adding an upstream module (e.g. `langchain4j-skills`, or `dev.langchain4j:langchain4j` for `InMemoryEmbeddingStore`), add it with **no `<version>`** - the BOM resolves it.
+The Quarkiverse **extension** version (`1.12.2`) and the upstream **library** version (`1.17.2`) are different namespaces: `1.12.2` is NOT a langchain4j-core version. The `quarkus-bom` manages neither, so the root pom imports `quarkus-langchain4j-bom` at the platform version; it pins the Quarkiverse artifacts and transitively imports the `langchain4j-bom`, which pins every `dev.langchain4j:*` artifact. So when adding an upstream module (e.g. `langchain4j-skills`, or `dev.langchain4j:langchain4j` for `InMemoryEmbeddingStore`), add it with **no `<version>`** - the BOM resolves it.
 
 To move ahead of the platform's cadence, import `io.quarkiverse.langchain4j:quarkus-langchain4j-bom` at the wanted version *before* the platform one; declaration order decides which wins. Re-verify any time with:
 
@@ -222,12 +226,37 @@ To move ahead of the platform's cadence, import `io.quarkiverse.langchain4j:quar
 mvn dependency:tree -pl client/runtime -Dincludes='dev.langchain4j'
 ```
 
+## Resilience & Health
+
+Fault tolerance is `smallrye-fault-tolerance` throughout; no hand-written retry or breaker remains in the reactor. Where a guard is applied matters far more than which annotation it uses, and there is one hard rule.
+
+**Never put `@Retry`, `@CircuitBreaker` or `@Fallback` on `AgentService`.** The upstream quarkus-langchain4j fault-tolerance guide shows exactly that pattern, and it is wrong for a method that declares `tools`: the annotation wraps the whole ReAct loop, so a transient failure on a later turn replays tool calls that already succeeded on an earlier one, silently duplicating their side effects (quarkiverse/quarkus-langchain4j#2744). Guards belong on the underlying `ChatModel`/`StreamingChatModel`, where a retry replays only the one failed model call. The rule is repeated in the `AgentService` javadoc, but that copy only reaches someone already editing the file the annotation must stay out of.
+
+**Model resilience is programmatic, not annotated.** `model/PrimaryChatGuard` and `model/EmbeddingGuard` build a `TypedGuard` instead of using `@CircuitBreaker`, because a CDI interceptor cannot serve the streaming path: it is callback-based, so the failure never crosses the interceptor boundary. Both are `@Startup`, so the breaker is registered before first use, and both name their breaker through `ModelFallbackConfig.CIRCUIT_BREAKER_CHAT` / `_EMBEDDING`. That name is the lookup key `ModelReadinessCheck` reads.
+
+**HTTP clients retry on one exception type.** Every outbound client (the 6 Google modules, Skill Hub, the messaging clients and media downloader, code review) throws `http.TransientHttpException` for a 429, a 5xx, or a network-level failure, and retries only that:
+
+```java
+@Retry(maxRetries = 3, delay = 500, delayUnit = ChronoUnit.MILLIS,
+       jitter = 200, jitterDelayUnit = ChronoUnit.MILLIS,
+       retryOn = TransientHttpException.class)
+@ExponentialBackoff(maxDelay = 8000, maxDelayUnit = ChronoUnit.MILLIS)
+```
+
+Two rules keep that correct rather than decorative. It goes on **one HTTP call, not one logical operation**, so a multi-request `install` cannot re-run its first request because the third failed. And a permanent status (401, 403, 404) propagates immediately, since retrying something that will never resolve only delays surfacing it.
+
+**Health checks go through the store SPIs, not through storage.** `health/CognitionReadinessCheck` calls `SoulStore.load()` and `UserProfileStore.load()`, so one check is correct on `markdown`, `pgvector` and `hybrid` with no conditional: each backend resolves its own store. `health/ModelReadinessCheck` reads both breaker states through `CircuitBreakerMaintenance.currentState`, a read-only lookup, so polling readiness can never promote a breaker state as a side effect; it reports DOWN only when a breaker is OPEN **and** no fallback is configured. A check that is meaningful on only one backend belongs in that backend's own module, never as an `if` inside a shared check.
+
+**Readiness and liveness answer different questions.** Liveness deliberately does not consult the model: killing the pod because the provider is down would turn their incident into an outage here, and the restarted pod would meet the same provider. `examples/redeploy/k8s/deployment.yaml` carries the probe trio (the startup probe absorbs the order-of-magnitude gap between JVM and native boot), and the Compose stacks poll the same `/q/health/ready`, so both deploy paths agree on what "serving" means.
+
 ## Key Entry Points
 
 - `client/runtime/.../agent/AgentService.java` - `@RegisterAiService` interface (ReAct agent, `maxSequentialToolInvocations=100`); wires `systemMessageProviderSupplier`, `retrievalAugmentor` (Active Memory), tools, and `toolProviderSupplier`
 - `client/runtime/.../rest/ApiResource.java` - `POST /api/chat` (SSE) and `POST /api/chat/sync`
 - `client/runtime/.../cognition/SoulEngine.java` - Builds the dynamic system prompt: `Soul` persona + `UserProfile` owner block + execution-bias section, injected every turn
 - `client/runtime/.../deployment/ClientProcessor.java` - Build step: discovers `@QlawTool` beans + DTOs for reflection
+- `client/runtime/.../model/PrimaryChatGuard.java` - `TypedGuard` around the primary chat model: retry, circuit breaker, and the switch to the fallback provider
+- `client/runtime/.../health/` - `ModelReadinessCheck` and `CognitionReadinessCheck`, the two checks behind `/q/health/ready`
 
 ## CI / Release
 
