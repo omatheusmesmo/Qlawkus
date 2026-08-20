@@ -1,0 +1,103 @@
+= Operations
+:page-title: Operations
+:page-description: Probes, readiness checks and cost estimation - what the agent reports about itself and what it deliberately does not.
+
+Qlawkus reports on itself through the standard MicroProfile Health endpoints. This page covers what each probe answers, what each check actually asserts, and - just as importantly - what is not checked yet.
+
+== The three probes
+
+[cols="1,3"]
+|===
+|Endpoint |Answers
+
+|`/q/health/ready`
+|Should this instance receive traffic right now? Everything on this page reports here.
+
+|`/q/health/live`
+|Is this process broken beyond recovery? Deliberately narrow, see below.
+
+|`/q/health/started`
+|Has boot finished? Used as the startup probe.
+|===
+
+**Readiness and liveness are not the same question, and conflating them causes outages.** If your model provider goes down, this instance should leave the load balancer (readiness) but must not be killed (liveness): a restarted pod meets the same provider, so a liveness check that consulted the model would turn the provider's incident into a crash loop here.
+
+For that reason the model is reported on readiness only.
+
+The startup probe exists separately because JVM and native boot times differ by an order of magnitude. Putting the wait there rather than in `initialDelaySeconds` on the other probes means a slow JVM start is not mistaken for a hung process, while a native image begins serving as soon as it is up.
+
+== What each check asserts
+
+`qlawkus-model`:: Reads the state of the chat and embedding circuit breakers. Reports DOWN only when a breaker is OPEN **and** no fallback is configured - with a fallback available the agent can still answer, so it stays in rotation. The state is read through a read-only lookup, so polling readiness never generates provider traffic and can never trip or promote a breaker as a side effect.
+
+`qlawkus-cognition`:: Loads the persona and the owner profile, which the agent needs to build a system message at all. It goes through the store SPIs rather than touching files or tables, so the same check is correct on `markdown`, `pgvector` and `hybrid`. This is what catches the mistake a container makes easy and silent: a state volume mounted with the wrong ownership.
+
+`qlawkus-secrets-keystore`:: Reports whether a keystore that was meant to be present actually is. Keystore resolution is lenient by design - an absent keystore contributes nothing and the agent boots on your `.env`, which is what lets a fresh install start with no ceremony. Setting `qlawkus.secrets.keystore-password` is you stating that a keystore *is* expected, so a missing file at that point is a misconfiguration (typically a volume that did not mount) rather than a fresh install, and the check reports DOWN. With no password configured the feature is inert and the check stays UP. A wrong password needs no check: the agent fails to boot outright. The check reports how many secrets it holds and never an alias or a value, because `/q/health/ready` is unauthenticated.
+
+`qlawkus-migrations`:: Present only when the `cognition-pgvector` extension is on the classpath. Answers whether the schema is at the version this build expects, which the built-in datasource check does not: a pod pointed at a database behind on migrations connects fine, passes readiness, and then fails at query time. Under the shipped default (`quarkus.flyway.migrate-at-start=true`) the agent applies its own migrations before serving, so this reports UP on every poll. It earns its place where that is turned off - the application has no DDL rights and a DBA applies migrations out of band, or a rolling deploy puts a pod carrying newer migrations in front of a database that has not been upgraded. There the pod stays out of rotation and flips to ready on its own once the schema catches up.
+
+A database-free distribution has no `qlawkus-migrations` check at all rather than one that passes vacuously. Checks that are meaningful on only one backend ship with that backend.
+
+== What is not checked
+
+Worth stating plainly rather than leaving to be discovered:
+
+* **Writability is not proven.** The cognition check reads the persona and profile; it does not establish that the agent can write. A volume mounted read-only, or owned by the wrong uid with world-readable files, passes readiness and then fails on the first `remember`.
+* **Four of the six stores are not consulted.** Facts, skills, episodic journals and working memory are not part of readiness today. An instance that cannot write working memory currently reports ready.
+
+Both are tracked in https://github.com/omatheusmesmo/Qlawkus/issues/310[issue #310], along with the decision each needs first: how to prove writability without polluting the stores on every poll, and which stores should block readiness rather than count as degraded-but-serving.
+
+== Wiring the probes
+
+Both deploy paths read the same endpoint on purpose, so they agree on what "serving" means.
+
+Kubernetes - see `examples/redeploy/k8s/deployment.yaml`:
+
+[source,yaml]
+----
+readinessProbe:
+  httpGet: { path: /q/health/ready, port: 8080 }
+  periodSeconds: 5
+livenessProbe:
+  httpGet: { path: /q/health/live, port: 8080 }
+  periodSeconds: 10
+startupProbe:
+  httpGet: { path: /q/health/ready, port: 8080 }
+  periodSeconds: 5
+  failureThreshold: 30
+----
+
+Docker Compose:
+
+[source,yaml]
+----
+healthcheck:
+  test: ["CMD", "curl", "-fsS", "http://localhost:8080/q/health/ready"]
+  interval: 15s
+  timeout: 5s
+  retries: 3
+  start_period: 60s
+restart: unless-stopped
+----
+
+Health is an optional capability. A distribution that leaves `quarkus-smallrye-health` out has no health endpoints, and the probes fall back to a plain TCP check on the port.
+
+[NOTE]
+====
+The reference deployment runs `replicas: 1`, and that is architecture rather than an omission in the example. The persona and owner profile are singletons and the markdown stores write to one volume, so a second replica either fails to schedule or corrupts that state - and every replica would run the same nightly jobs against the same stores. See https://github.com/omatheusmesmo/Qlawkus/issues/297[issue #297].
+====
+
+== Cost estimation
+
+An agent that runs jobs overnight on its own spends money while nobody is watching, so cost per job and per channel is a number you want before the invoice rather than after.
+
+`quarkus-langchain4j` already reports token counts. Supplying a price turns them into the `gen_ai.client.estimated_cost` metric:
+
+[source,properties]
+----
+qlawkus.cost.enabled=true
+----
+
+It is **off by default on purpose**. An estimate is indistinguishable from a measurement once it reaches a dashboard, so a default price would be a confident wrong number. Enter your real rates before switching it on; see the `qlawkus.cost` section of xref:config-reference.adoc[Configuration] for the properties.
+
+If your billing is not a flat per-token rate - tiered pricing, a committed-spend contract, or a self-hosted model that costs nothing per call - supply your own `CostEstimator` bean and it is consulted first.

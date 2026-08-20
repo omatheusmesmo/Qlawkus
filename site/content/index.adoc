@@ -59,4 +59,5 @@ xref:quickstart.adoc[Quick Start] - Get a working agent running in minutes.
 * xref:google-workspace.adoc[Google Workspace] - Gmail, Calendar, Drive, Sheets, Storage
 * xref:messaging.adoc[Messaging] - Discord and Telegram bots with voice
 * xref:voice.adoc[Voice] - Speech-to-text and text-to-speech
+* xref:operations.adoc[Operations] - Probes, readiness checks and cost estimation
 * xref:config-reference.adoc[Configuration] - Every module's settings

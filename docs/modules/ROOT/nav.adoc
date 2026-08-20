@@ -2,6 +2,7 @@
 .Getting Started
 
 * xref:index.adoc[Quick start]
+* xref:quickstart.adoc[Quickstart Guide]
 
 [.list-top-item]
 .Architecture
@@ -16,7 +17,7 @@
 [.list-top-item]
 .Configuration
 
-* xref:configuration.adoc[Environment Variables Reference]
+* xref:operations.adoc[Operations]
 * xref:secrets.adoc[Secrets]
 * xref:google-workspace.adoc[Google Workspace Setup]
 * xref:messaging.adoc[Messaging Setup (Discord & Telegram)]
