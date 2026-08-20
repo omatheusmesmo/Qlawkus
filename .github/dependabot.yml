@@ -18,3 +18,7 @@ updates:
   - dependencies
   ignore:
   - dependency-name: io.quarkus:*
+  # Test-scope only, in composition-maven-plugin, and pinned to whatever Maven itself
+  # ships so the test classpath matches the runtime the plugin executes in.
+  # Maven 3.9.x carries slf4j-api 1.7.x; this tracks maven.version, not upstream slf4j.
+  - dependency-name: org.slf4j:*
