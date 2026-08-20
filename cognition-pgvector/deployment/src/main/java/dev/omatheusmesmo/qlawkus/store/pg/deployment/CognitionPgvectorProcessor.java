@@ -1,5 +1,11 @@
 package dev.omatheusmesmo.qlawkus.store.pg.deployment;
 
+import dev.omatheusmesmo.qlawkus.store.pg.health.MigrationReadinessCheck;
+import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
+import io.quarkus.arc.processor.DotNames;
+import io.quarkus.deployment.Capabilities;
+import io.quarkus.deployment.Capability;
+import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 
@@ -20,5 +26,23 @@ class CognitionPgvectorProcessor {
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
+    }
+
+    /**
+     * Registers the migration readiness check, but only for a distribution that pulled in SmallRye
+     * Health. The check carries {@code @Readiness} without a scope annotation, so nothing discovers it
+     * on its own and the class stays unreferenced without the capability - which is what lets this
+     * module depend on the health API optionally, exactly as {@code client} does.
+     */
+    @BuildStep
+    void registerHealthChecks(Capabilities capabilities, BuildProducer<AdditionalBeanBuildItem> beans) {
+        if (!capabilities.isPresent(Capability.SMALLRYE_HEALTH)) {
+            return;
+        }
+        beans.produce(AdditionalBeanBuildItem.builder()
+                .addBeanClass(MigrationReadinessCheck.class)
+                .setDefaultScope(DotNames.APPLICATION_SCOPED)
+                .setUnremovable()
+                .build());
     }
 }

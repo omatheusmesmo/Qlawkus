@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -23,6 +24,7 @@ class ReadinessCheckTest {
 
     private static final String COGNITION = "qlawkus-cognition";
     private static final String MODEL = "qlawkus-model";
+    private static final String MIGRATIONS = "qlawkus-migrations";
 
     @Test
     void readinessIsNotVacuous() {
@@ -57,6 +59,15 @@ class ReadinessCheckTest {
 
         assertTrue(names == null || !names.contains(MODEL),
                 "a provider outage must not get the pod killed, only taken out of rotation");
+    }
+
+    @Test
+    void migrationCheckIsAbsentWithoutThePgvectorExtension() {
+        List<String> names = readiness().getList("checks.name");
+
+        assertFalse(names.contains(MIGRATIONS),
+                "a database-free build has no migrations, so the check must not exist here at all "
+                        + "rather than pass vacuously; checks were " + names);
     }
 
     private static JsonPath readiness() {
