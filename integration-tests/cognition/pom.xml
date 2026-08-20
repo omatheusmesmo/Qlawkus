@@ -24,6 +24,12 @@
       <artifactId>qlawkus-cognition-pgvector</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- Brings the health capability so cognition-pgvector registers MigrationReadinessCheck. This
+         module is the only place the check can be proven: it is the one that actually runs Flyway. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-health</artifactId>
+    </dependency>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-testing-internal</artifactId>

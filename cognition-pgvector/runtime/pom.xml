@@ -34,6 +34,14 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-flyway</artifactId>
         </dependency>
+        <!-- Optional for the same reason as in client/runtime: a distribution can leave health out
+             and probe the port instead. MigrationReadinessCheck compiles against the API here and is
+             only registered as a bean when CognitionPgvectorProcessor sees the capability. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-health</artifactId>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>io.quarkiverse.langchain4j</groupId>
             <artifactId>quarkus-langchain4j-pgvector</artifactId>
