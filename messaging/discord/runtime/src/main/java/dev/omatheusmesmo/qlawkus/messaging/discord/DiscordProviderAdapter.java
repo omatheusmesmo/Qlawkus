@@ -136,7 +136,7 @@ public class DiscordProviderAdapter implements MessagingProvider {
         if (mapped.text().isBlank() && mapped.audio().isEmpty()) {
             if (hasAudioAttachment(msg)) {
                 send(msg.getChannelId().asString(),
-                        "⚠️ Não consegui processar seu áudio agora (falha ao baixar do Discord). Pode tentar enviar de novo?")
+                        "⚠️ I could not process your audio (the download from Discord failed). Could you send it again?")
                         .subscribe().with(
                                 ignored -> {},
                                 err -> Log.errorf(err, "Discord: failed to notify audio download error"));
@@ -204,12 +204,12 @@ public class DiscordProviderAdapter implements MessagingProvider {
         return """
                 **Qlawkus** - autonomous engineering agent
 
-                Comandos disponíveis:
-                - `/qlawkus ask question:<texto>` - faz uma pergunta ao agente
-                - `/qlawkus status` - mostra status do agente
-                - `/qlawkus help` - mostra esta ajuda
+                Commands:
+                - `/qlawkus ask question:<text>` - ask the agent a question
+                - `/qlawkus status` - show agent status
+                - `/qlawkus help` - show this help
 
-                Ou simplesmente envie uma mensagem no canal (se respondToAllMessages estiver ativo) ou em DM.
+                You can also just send a message in the channel (when `qlawkus.messaging.discord.respond-to-all-messages` is enabled) or in a DM.
                 """;
     }
 
