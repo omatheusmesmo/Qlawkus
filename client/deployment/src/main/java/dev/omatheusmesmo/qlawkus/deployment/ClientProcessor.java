@@ -29,6 +29,7 @@ import io.quarkus.deployment.builditem.StaticInitConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedClassBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.ServiceProviderBuildItem;
 import io.quarkus.logging.Log;
 import dev.omatheusmesmo.qlawkus.model.LlmKindConfigBuilder;
 import jakarta.inject.Singleton;
@@ -151,6 +152,35 @@ class ClientProcessor {
     RuntimeInitializedClassBuildItem runtimeInitActiveMemoryAugmentor() {
         return new RuntimeInitializedClassBuildItem(
                 "dev.omatheusmesmo.qlawkus.cognition.ActiveMemoryAugmentor");
+    }
+
+    /**
+     * {@code SpiAccess$Holder} resolves the fault-tolerance SPI through {@code ServiceLoader} and
+     * keeps only an implementation whose {@code applies()} returns true. The CDI implementation
+     * answers that by calling {@code CDI.current()}, so the lookup can only succeed once a container
+     * is running. Initializing the holder at image build time fails with "could not find
+     * implementation" instead, and whether the analysis reaches it that way varies from build to
+     * build, which surfaces as an intermittently red native build rather than a reproducible one.
+     *
+     * <p>The annotation-driven path never touches it: only the programmatic {@code TypedGuard} built
+     * by {@code PrimaryChatGuard} and {@code EmbeddingGuard} calls {@code SpiAccess.get()}, so the
+     * registration belongs to the module owning those guards.
+     */
+    @BuildStep
+    RuntimeInitializedClassBuildItem runtimeInitFaultToleranceSpi() {
+        return new RuntimeInitializedClassBuildItem(
+                "io.smallrye.faulttolerance.api.SpiAccess$Holder");
+    }
+
+    /**
+     * Deferring the holder to runtime also moves its {@code ServiceLoader} lookup there, and the
+     * native image resolves services only from explicit registrations. Register the SPI so the
+     * lookup finds the CDI implementation in the running image.
+     */
+    @BuildStep
+    ServiceProviderBuildItem registerFaultToleranceSpiProvider() {
+        return ServiceProviderBuildItem.allProvidersFromClassPath(
+                "io.smallrye.faulttolerance.api.Spi");
     }
 
     @BuildStep
