@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.tools.brag;
 
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -14,9 +15,17 @@ public class BragCleanupJob {
     @Inject
     BragConfig config;
 
-    @Scheduled(cron = "{qlawkus.brag.cleanup-cron}")
+    @Inject
+    AgentMeters meters;
+
+    @Scheduled(identity = "brag-cleanup", cron = "{qlawkus.brag.cleanup-cron}")
     @Transactional
     public void purgeExpiredEntries() {
+        meters.timeJob("brag-cleanup", this::purgeNow);
+    }
+
+    /** Returns how many entries were removed, so the job reports items like the cognition jobs. */
+    private long purgeNow() {
         Instant cutoff = Instant.now().minus(config.cleanupAgeDays(), ChronoUnit.DAYS);
 
         long deleted = BragEntry.delete("deleted = true and createdAt < ?1", cutoff);
@@ -28,6 +37,7 @@ public class BragCleanupJob {
         if (duplicates > 0) {
             Log.infof("Removed %d duplicate brag entries", duplicates);
         }
+        return deleted + duplicates;
     }
 
     private long removeDuplicates() {

@@ -12,6 +12,8 @@ import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
+import dev.omatheusmesmo.qlawkus.metrics.MeteredContentRetriever;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import dev.omatheusmesmo.qlawkus.store.markdown.MarkdownFactStore;
 import io.quarkus.arc.Arc;
@@ -72,7 +74,8 @@ public class ActiveMemoryAugmentor implements Supplier<RetrievalAugmentor> {
       retriever = query -> List.of();
     }
     return DefaultRetrievalAugmentor.builder()
-        .contentRetriever(retriever)
+        .contentRetriever(new MeteredContentRetriever(
+            retriever, Arc.container().instance(AgentMeters.class).get()))
         .contentInjector(MEMORY_INJECTOR)
         .build();
   }

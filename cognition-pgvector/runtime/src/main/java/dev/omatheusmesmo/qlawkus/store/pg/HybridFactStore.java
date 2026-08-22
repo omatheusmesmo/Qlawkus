@@ -8,8 +8,8 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.store.FactChunker;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.markdown.MarkdownFactFiles;
@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 
 /**
  * Hybrid {@link FactStore}, active when {@code qlawkus.cognition.backend=hybrid}. Facts are written
@@ -40,9 +41,10 @@ public class HybridFactStore implements FactStore {
 
   @Inject
   public HybridFactStore(AgentConfig config, EmbeddingModel embeddingModel,
-      EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository) {
+      EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository,
+      AgentMeters meters) {
     this(config.facts().root(), embeddingModel, embeddingStore, embeddingRepository,
-        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars()));
+        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars(), meters));
   }
 
   HybridFactStore(String root, EmbeddingModel embeddingModel,

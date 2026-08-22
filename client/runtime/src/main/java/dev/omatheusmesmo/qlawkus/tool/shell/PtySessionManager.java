@@ -5,13 +5,13 @@ import com.pty4j.PtyProcessBuilder;
 import dev.omatheusmesmo.qlawkus.config.ShellConfig;
 import dev.omatheusmesmo.qlawkus.dto.SessionInfo;
 import dev.omatheusmesmo.qlawkus.dto.SessionOutput;
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +30,10 @@ import java.util.regex.PatternSyntaxException;
 
 @ApplicationScoped
 public class PtySessionManager {
+
+    @Inject
+    AgentMeters meters;
+
 
     static final String NATIVE_IMAGE_UNAVAILABLE = "PTY sessions are not available in native image mode (JNA/pty4j requires JVM). Use ShellTool.runCommand instead.";
 
@@ -251,8 +255,16 @@ public class PtySessionManager {
         return result;
     }
 
-    @Scheduled(every = "60s")
+    @Scheduled(identity = "pty-session-sweep", every = "60s")
     void cleanupIdleSessions() {
+        meters.timeJob("pty-session-sweep", this::sweepIdleSessions);
+    }
+
+    /**
+     * Closes sessions that exited or went idle past the timeout, returning how many were reaped so
+     * the sweep reports items processed like every other scheduled job.
+     */
+    long sweepIdleSessions() {
         Instant threshold = Instant.now().minus(Duration.ofMinutes(idleTimeoutMinutes));
         List<String> toClose = new ArrayList<>();
 
@@ -275,6 +287,7 @@ public class PtySessionManager {
                 }
             }
         }
+        return toClose.size();
     }
 
     @PreDestroy
