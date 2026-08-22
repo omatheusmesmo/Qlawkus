@@ -30,8 +30,17 @@ class ReactorCatalogTest {
         List<Capability> all = new ReactorCatalog(List.of(brag)).all();
 
         assertEquals(
-                List.of(new Capability("brag", new Coordinates("dev.omatheusmesmo", "qlawkus-tools-brag"))),
+                List.of(new Capability("brag",
+                        new Coordinates("dev.omatheusmesmo", "qlawkus-tools-brag", "${project.version}"))),
                 all);
+    }
+
+    @Test
+    void reactorCoordinatesCarryAVersionSoTheGeneratedPomStillBuilds() {
+        assertEquals("${project.version}",
+                new Coordinates("dev.omatheusmesmo", "qlawkus-observability", "${project.version}").version(),
+                "a reactor sibling has no BOM managing it, so a versionless dependency would make the "
+                        + "pom unreadable on the next build");
     }
 
     @Test

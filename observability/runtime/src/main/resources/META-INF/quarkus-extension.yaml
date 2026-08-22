@@ -1,0 +1,13 @@
+name: Qlawkus Observability
+description: Metrics and tracing for the agent, selectable from the composition manifest.
+metadata:
+  keywords:
+    - qlawkus
+    - observability
+    - micrometer
+    - opentelemetry
+  categories:
+    - "observability"
+  status: "preview"
+  qlawkus:
+    capability: "observability"

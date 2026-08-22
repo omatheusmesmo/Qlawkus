@@ -30,11 +30,13 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-health</artifactId>
     </dependency>
-    <!-- This module already drives AgentService against WireMock stubs, so it can assert that the
-         langchain4j metrics really do appear from presence alone, rather than taking the docs word. -->
+    <!-- The observability extension rather than a registry declared here: this module drives
+         AgentService against WireMock stubs, so it is where we assert that selecting the capability
+         is what makes the langchain4j and gen_ai meters appear, rather than taking the docs word. -->
     <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-micrometer-registry-prometheus</artifactId>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-observability</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>

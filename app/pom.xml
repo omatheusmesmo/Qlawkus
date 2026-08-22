@@ -1,94 +1,90 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-
   <parent>
     <groupId>dev.omatheusmesmo</groupId>
     <artifactId>qlawkus</artifactId>
-    <relativePath>../pom.xml</relativePath>
     <version>0.9.1-SNAPSHOT</version>
   </parent>
-
   <artifactId>qlawkus-app</artifactId>
-  <name>Qlawkus App</name>
   <packaging>quarkus</packaging>
-
-    <dependencies>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-client</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-cognition-pgvector</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-console</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-tools-skill-hub</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-tools-google-auth</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-tools-google-calendar</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-tools-google-gmail</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-tools-google-drive</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-tools-google-sheets</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-tools-google-storage</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-tools-brag</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-messaging</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-messaging-discord</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.omatheusmesmo</groupId>
-            <artifactId>qlawkus-messaging-telegram</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+  <name>Qlawkus App</name>
+  <dependencies>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-cognition-pgvector</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-console</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-skill-hub</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-auth</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-calendar</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-gmail</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-drive</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-sheets</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-google-storage</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-brag</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-messaging</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-messaging-discord</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-messaging-telegram</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-security</artifactId>
     </dependency>
-    <!-- Serves /q/health/ready, which the redeploy hook polls and a k8s probe gates rollouts on. -->
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-health</artifactId>
@@ -113,8 +109,12 @@
       <artifactId>awaitility</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-observability</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
@@ -146,13 +146,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <configuration>
-          <systemPropertyVariables>
-            <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
-            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-            <maven.home>${maven.home}</maven.home>
-          </systemPropertyVariables>
-        </configuration>
         <executions>
           <execution>
             <goals>
@@ -161,6 +154,13 @@
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <systemPropertyVariables>
+            <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+            <maven.home>${maven.home}</maven.home>
+          </systemPropertyVariables>
+        </configuration>
       </plugin>
     </plugins>
   </build>

@@ -87,6 +87,60 @@ Health is an optional capability. A distribution that leaves `quarkus-smallrye-h
 The reference deployment runs `replicas: 1`, and that is architecture rather than an omission in the example. The persona and owner profile are singletons and the markdown stores write to one volume, so a second replica either fails to schedule or corrupts that state - and every replica would run the same nightly jobs against the same stores. See https://github.com/omatheusmesmo/Qlawkus/issues/297[issue #297].
 ====
 
+== Telemetry
+
+Metrics and tracing arrive as a composable capability rather than a hand-edited dependency. Select it in `agent.yml`:
+
+[source,yaml]
+----
+build-time:
+  default: disabled
+  except:
+    - observability
+----
+
+The build then puts the `qlawkus-observability` extension on the classpath, and a Prometheus scrape endpoint appears at `/q/metrics`. The agent's model meters need no instrumentation: `langchain4j_aiservices_timed` and `_counted` (tagged with the AI service, method, result and exception), plus `gen_ai_client_token_usage` split by `input` and `output`, follow the https://opentelemetry.io/docs/specs/semconv/gen-ai/[GenAI semantic conventions] and appear from the registry's presence alone.
+
+Prometheus is what this distribution ships, not a locked choice. Exclude it and add `quarkus-micrometer-registry-otlp` or any other registry the ordinary Maven way.
+
+=== Two independent levels of control
+
+Selecting the capability decides whether the code is in the binary. Whether it runs is a separate, runtime decision:
+
+[cols="1,2"]
+|===
+|`observability` in `agent.yml` |Applies at the next build - the pom generator adds or removes the dependency.
+|`quarkus.micrometer.enabled`, `quarkus.otel.sdk.disabled` |Applies at the next restart, and both are editable from the console or `PUT /api/admin/runtime-toggles`.
+|===
+
+So a locked-down distribution omits telemetry at the module level, and an operator can still silence it at runtime without a rebuild.
+
+=== Tracing ships off
+
+The extension sets `quarkus.otel.sdk.disabled=true`. Upstream enables the SDK with the traces exporter pointing at OTLP on `localhost:4317`, so selecting the capability with no collector listening would log export failures in a loop for someone who only wanted metrics. Turn it on once you have a collector:
+
+[source,properties]
+----
+quarkus.otel.sdk.disabled=false
+quarkus.otel.exporter.otlp.endpoint=http://collector:4317
+----
+
+Both are runtime properties, so this is a toggle and a restart rather than a rebuild.
+
+Metrics need no such gate: a Prometheus registry only exposes a scrape endpoint and reaches out to nothing.
+
+=== Protect the scrape endpoint
+
+The scrape output carries token usage, provider and model names, and - once cost estimation is on - what the agent is spending. This distribution keeps it behind the same credential as the admin API, while leaving health open for the probes:
+
+[source,properties]
+----
+quarkus.http.auth.permission.metrics.paths=/q/metrics
+quarkus.http.auth.permission.metrics.policy=authenticated
+----
+
+Prometheus supports `basic_auth` in its scrape configuration, so collection is unaffected. If you build your own distribution, apply the equivalent for whichever auth mechanism you wired in - the extension deliberately imposes no policy, because the mechanism is the integrator's choice.
+
 == Cost estimation
 
 An agent that runs jobs overnight on its own spends money while nobody is watching, so cost per job and per channel is a number you want before the invoice rather than after.

@@ -149,16 +149,26 @@ public class ConfigMetadataIndex {
         return merged;
     }
 
+    /**
+     * Merges one allowlist per jar, the same way {@link #loadJsonDocs} merges the config model. An
+     * optional extension could always contribute its config <em>model</em> but not its allowlist
+     * <em>entries</em>, which never mattered while every module's configurable surface was
+     * {@code qlawkus.*} - the allowlist only filters {@code quarkus.*}. It matters for an extension
+     * whose surface is entirely {@code quarkus.*}, because otherwise its properties can never reach
+     * the config editor no matter which capability selected it in.
+     */
     private static Set<String> loadAllowlist(ClassLoader loader) {
         Set<String> allowlist = new LinkedHashSet<>();
-        try (InputStream in = loader.getResourceAsStream(ALLOWLIST_LOCATION)) {
-            if (in == null) {
-                return allowlist;
-            }
-            for (String line : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\\R")) {
-                String trimmed = line.strip();
-                if (!trimmed.isEmpty() && !trimmed.startsWith("#")) {
-                    allowlist.add(trimmed);
+        try {
+            Enumeration<URL> resources = loader.getResources(ALLOWLIST_LOCATION);
+            while (resources.hasMoreElements()) {
+                try (InputStream in = resources.nextElement().openStream()) {
+                    for (String line : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\\R")) {
+                        String trimmed = line.strip();
+                        if (!trimmed.isEmpty() && !trimmed.startsWith("#")) {
+                            allowlist.add(trimmed);
+                        }
+                    }
                 }
             }
         } catch (IOException e) {

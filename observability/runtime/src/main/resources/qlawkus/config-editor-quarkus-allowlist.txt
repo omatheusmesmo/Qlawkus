@@ -1,0 +1,9 @@
+# Entries this extension contributes to the config editor's curated quarkus.* allowlist. Every other
+# module's configurable surface is qlawkus.*, which the editor renders in full; this one's is entirely
+# quarkus.*, so without these lines the OTLP endpoint could not be edited from the console and the
+# runtime half of the capability's control would not actually work.
+quarkus.micrometer.enabled
+quarkus.otel.sdk.disabled
+quarkus.otel.exporter.otlp.endpoint
+quarkus.otel.exporter.otlp.protocol
+quarkus.otel.traces.sampler

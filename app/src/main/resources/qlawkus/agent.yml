@@ -16,3 +16,4 @@ build-time:
     - brag
     - skill-hub
     - console
+    - observability

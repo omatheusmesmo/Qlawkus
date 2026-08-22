@@ -7,6 +7,7 @@ import org.apache.maven.model.Model;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -61,7 +62,22 @@ class PomComposerTest {
 
         Dependency added = model.getDependencies().get(0);
         assertEquals("qlawkus-messaging-discord", added.getArtifactId());
-        assertEquals(null, added.getVersion());
+        assertNull(added.getVersion(),
+                "a published extension is BOM-managed, so it is added without a version exactly as "
+                        + "quarkus extension add does");
+    }
+
+    @Test
+    void addedDependencyCarriesTheVersionTheCatalogSupplied() {
+        Capability reactorSibling = new Capability("observability",
+                new Coordinates("dev.omatheusmesmo", "qlawkus-observability", "${project.version}"));
+        Model model = new Model();
+
+        PomComposer.compose(model, resolution(List.of(reactorSibling), List.of()));
+
+        assertEquals("${project.version}", model.getDependencies().get(0).getVersion(),
+                "a reactor sibling has no BOM managing it, so a versionless dependency would leave the "
+                        + "pom unreadable on the next build");
     }
 
     @Test
@@ -82,4 +98,5 @@ class PomComposerTest {
         assertFalse(changed);
         assertTrue(hasDependency(model, "org.example", "not-a-capability"));
     }
+
 }

@@ -70,6 +70,9 @@ public final class PomComposer {
         Dependency dependency = new Dependency();
         dependency.setGroupId(coordinates.groupId());
         dependency.setArtifactId(coordinates.artifactId());
+        if (coordinates.version() != null) {
+            dependency.setVersion(coordinates.version());
+        }
         return dependency;
     }
 
