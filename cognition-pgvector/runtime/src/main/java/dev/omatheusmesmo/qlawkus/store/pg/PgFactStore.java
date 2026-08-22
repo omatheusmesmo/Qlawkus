@@ -8,8 +8,8 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.store.FactChunker;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import io.quarkus.arc.properties.IfBuildProperty;
@@ -20,6 +20,7 @@ import jakarta.inject.Inject;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 
 /**
  * Postgres/pgvector-backed {@link FactStore}, active when {@code qlawkus.cognition.backend=pgvector}
@@ -42,12 +43,15 @@ public class PgFactStore implements FactStore {
   @Inject
   AgentConfig agentConfig;
 
+  @Inject
+  AgentMeters meters;
+
   private FactChunker chunker;
 
   @PostConstruct
   void init() {
     chunker = new FactChunker(agentConfig.facts().chunkMaxChars(),
-        agentConfig.facts().chunkOverlapChars());
+        agentConfig.facts().chunkOverlapChars(), meters);
   }
 
   @Override
