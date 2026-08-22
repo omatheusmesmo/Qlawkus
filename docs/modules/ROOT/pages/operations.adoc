@@ -129,6 +129,50 @@ Both are runtime properties, so this is a toggle and a restart rather than a reb
 
 Metrics need no such gate: a Prometheus registry only exposes a scrape endpoint and reaches out to nothing.
 
+=== What the agent measures about itself
+
+The meters above arrive from upstream. These are the ones Qlawkus emits itself, because no upstream extension can see them: they describe the cognition subsystem, which is specific to this agent.
+
+[cols="1,2,1"]
+|===
+|Meter |What it answers |Tags
+
+|`qlawkus.retrieval.queries` +
+`qlawkus.retrieval.facts` +
+`qlawkus.retrieval.score` +
+`qlawkus.retrieval.duration`
+|Did active memory inject anything this turn, how much, and at what similarity. The score distribution is what separates "nothing relevant existed" from "everything landed just under `min-score`".
+|`outcome`
+
+|`qlawkus.embedding.facts` +
+`qlawkus.embedding.segments` +
+`qlawkus.embedding.oversized`
+|Whether facts are embedding, and how far the chunker is fanning them out. A fact that never embeds is the failure that leaves an orphaned markdown file behind.
+|`outcome`
+
+|`qlawkus.job.duration` +
+`qlawkus.job.items`
+|Whether a scheduled job is getting slower or quietly processing nothing. The console already shows cron and last run; this is the series behind it.
+|`job`, `outcome`
+
+|`qlawkus.model.fallback` +
+`qlawkus.model.circuit.state`
+|How often the primary provider was abandoned, and the breaker state right now. The gauge reports `0` closed, `1` half-open, `2` open, and is published from startup so a healthy agent still has a series.
+|`surface`
+
+|`qlawkus.tool.invocations` +
+`qlawkus.tool.duration`
+|Which tool is failing, rather than that some tool is. Covers the tool extensions; the built-in memory and skill tools are registered directly on the AI service and are not counted here.
+|`tool`, `outcome`
+
+|`qlawkus.store.operations` +
+`qlawkus.store.duration`
+|What the `markdown` / `pgvector` / `hybrid` switch actually costs, per store and per operation.
+|`store`, `backend`, `operation`, `outcome`
+|===
+
+The instrumentation lives in `qlawkus-client` and compiles against the Micrometer API, which opens no socket and exports nothing. With the `observability` capability deselected there is no registry bean, every meter call is a no-op, and nothing is published: telemetry is omitted at module level, not merely silenced by a flag.
+
 === Protect the scrape endpoint
 
 The scrape output carries token usage, provider and model names, and - once cost estimation is on - what the agent is spending. This distribution keeps it behind the same credential as the admin API, while leaving health open for the probes:

@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
 import io.quarkus.logging.Log;
@@ -19,6 +20,9 @@ import java.util.List;
  */
 @ApplicationScoped
 public class SkillCurationJob {
+  @Inject
+  AgentMeters meters;
+
 
   @Inject
   ChatModel chatModel;
@@ -32,7 +36,7 @@ public class SkillCurationJob {
   @Scheduled(identity = "skill-curation", cron = "{qlawkus.skills.curation.cron:0 50 3 * * ?}")
   void curate() {
     if (config.curation().enabled()) {
-      curateNow();
+      meters.timeJob("skill-curation", this::curateNow);
     }
   }
 

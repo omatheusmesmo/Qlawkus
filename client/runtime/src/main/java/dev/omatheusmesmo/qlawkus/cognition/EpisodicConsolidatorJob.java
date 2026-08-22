@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
@@ -17,6 +18,9 @@ import java.util.Map;
 
 @ApplicationScoped
 public class EpisodicConsolidatorJob {
+  @Inject
+  AgentMeters meters;
+
 
   @Inject
   ChatModel chatModel;
@@ -32,7 +36,7 @@ public class EpisodicConsolidatorJob {
 
   @Scheduled(identity = "episodic-consolidator", cron = "{qlawkus.consolidator.cron:0 0 3 * * ?}")
   void consolidate() {
-    consolidateNow();
+    meters.timeJob("episodic-consolidator", this::consolidateNow);
   }
 
   public void consolidateNow() {
