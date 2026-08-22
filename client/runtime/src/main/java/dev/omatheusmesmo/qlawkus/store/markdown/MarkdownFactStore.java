@@ -8,9 +8,9 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.store.FactChunker;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 
 /**
  * Markdown-backed {@link FactStore}, active when {@code qlawkus.cognition.backend=markdown}. Facts
@@ -50,9 +51,9 @@ public class MarkdownFactStore implements FactStore {
   private final InMemoryEmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<>();
 
   @Inject
-  public MarkdownFactStore(AgentConfig config, EmbeddingModel embeddingModel) {
+  public MarkdownFactStore(AgentConfig config, EmbeddingModel embeddingModel, AgentMeters meters) {
     this(config.facts().root(), embeddingModel,
-        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars()));
+        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars(), meters));
   }
 
   public MarkdownFactStore(String root, EmbeddingModel embeddingModel) {

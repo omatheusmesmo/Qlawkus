@@ -5,12 +5,16 @@ import dev.langchain4j.skills.FileSystemSkillLoader;
 import dev.omatheusmesmo.qlawkus.composition.CompositionPaths;
 import dev.omatheusmesmo.qlawkus.health.CognitionReadinessCheck;
 import dev.omatheusmesmo.qlawkus.health.ModelReadinessCheck;
+import dev.omatheusmesmo.qlawkus.metrics.Metered;
+import dev.omatheusmesmo.qlawkus.metrics.StoreMeterInterceptor;
+import dev.omatheusmesmo.qlawkus.model.LlmKindConfigBuilder;
 import dev.omatheusmesmo.qlawkus.skill.BundledSkills;
 import dev.omatheusmesmo.qlawkus.skill.SkillsRecorder;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProviderSupplier;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
+import io.quarkus.arc.deployment.AnnotationsTransformerBuildItem;
 import io.quarkus.arc.deployment.ExcludedTypeBuildItem;
 import io.quarkus.arc.deployment.SyntheticBeanBuildItem;
 import io.quarkus.arc.processor.DotNames;
@@ -31,20 +35,21 @@ import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedClassBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ServiceProviderBuildItem;
 import io.quarkus.logging.Log;
-import dev.omatheusmesmo.qlawkus.model.LlmKindConfigBuilder;
 import jakarta.inject.Singleton;
-import org.jboss.jandex.AnnotationInstance;
-import org.jboss.jandex.AnnotationTarget;
-import org.jboss.jandex.ClassInfo;
-import org.jboss.jandex.DotName;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
+import org.jboss.jandex.AnnotationInstance;
+import org.jboss.jandex.AnnotationTarget;
+import org.jboss.jandex.AnnotationTransformation;
+import org.jboss.jandex.ClassInfo;
+import org.jboss.jandex.DotName;
 
 class ClientProcessor {
 
@@ -181,6 +186,42 @@ class ClientProcessor {
     ServiceProviderBuildItem registerFaultToleranceSpiProvider() {
         return ServiceProviderBuildItem.allProvidersFromClassPath(
                 "io.smallrye.faulttolerance.api.Spi");
+    }
+
+    /**
+     * The store SPIs whose implementations are measured. Listed rather than pattern-matched so that
+     * adding telemetry to a new SPI is a deliberate edit, not an accident of naming.
+     */
+    private static final List<DotName> STORE_SPIS = List.of(
+            DotName.createSimple("dev.omatheusmesmo.qlawkus.store.FactStore"),
+            DotName.createSimple("dev.omatheusmesmo.qlawkus.store.SoulStore"),
+            DotName.createSimple("dev.omatheusmesmo.qlawkus.store.UserProfileStore"),
+            DotName.createSimple("dev.omatheusmesmo.qlawkus.store.EpisodicStore"),
+            DotName.createSimple("dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore"),
+            DotName.createSimple("dev.omatheusmesmo.qlawkus.skill.SkillStore"));
+
+    /**
+     * Applies {@link Metered} to every store implementation found in the index, whichever module it
+     * ships in, so the pgvector backends are covered without the pgvector extension knowing about
+     * telemetry. Annotating by hand would mean a new backend silently reporting nothing.
+     */
+    @BuildStep
+    void meterCognitionStores(CombinedIndexBuildItem combinedIndex,
+            BuildProducer<AnnotationsTransformerBuildItem> transformers,
+            BuildProducer<AdditionalBeanBuildItem> beans) {
+        beans.produce(new AdditionalBeanBuildItem(Metered.class, StoreMeterInterceptor.class));
+
+        Set<DotName> implementations = new HashSet<>();
+        for (DotName spi : STORE_SPIS) {
+            for (ClassInfo implementation : combinedIndex.getIndex().getAllKnownImplementors(spi)) {
+                implementations.add(implementation.name());
+            }
+        }
+        Log.debugf("Metering %d cognition store implementations", implementations.size());
+
+        transformers.produce(new AnnotationsTransformerBuildItem(AnnotationTransformation.forClasses()
+                .whenClass(clazz -> implementations.contains(clazz.name()))
+                .transform(context -> context.add(Metered.class))));
     }
 
     @BuildStep

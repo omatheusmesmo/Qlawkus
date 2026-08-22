@@ -7,6 +7,8 @@ import dev.langchain4j.service.tool.DefaultToolExecutor;
 import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.ToolProviderRequest;
 import dev.langchain4j.service.tool.ToolProviderResult;
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
+import dev.omatheusmesmo.qlawkus.metrics.MeteredToolExecutor;
 import io.quarkus.arc.ClientProxy;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -24,6 +26,9 @@ public class QlawToolProvider implements ToolProvider {
     @QlawTool
     public Instance<Object> extensionTools;
 
+    @Inject
+    AgentMeters meters;
+
     @Override
     public ToolProviderResult provideTools(ToolProviderRequest request) {
         if (extensionTools.isUnsatisfied()) {
@@ -38,7 +43,8 @@ public class QlawToolProvider implements ToolProvider {
             List<ToolSpecification> specs = ToolSpecifications.toolSpecificationsFrom(beanClass);
             for (ToolSpecification spec : specs) {
                 Method toolMethod = findToolMethod(beanClass, spec);
-                builder.add(spec, new DefaultToolExecutor(tool, toolMethod));
+                builder.add(spec, new MeteredToolExecutor(
+                        spec.name(), new DefaultToolExecutor(tool, toolMethod), meters));
                 Log.debugf("Registered extension tool: %s from %s", spec.name(), beanClass.getSimpleName());
             }
         }

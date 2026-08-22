@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.omatheusmesmo.qlawkus.config.MemoryReviewConfig;
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
@@ -15,6 +16,9 @@ import jakarta.inject.Inject;
  */
 @ApplicationScoped
 public class MemoryReviewJob {
+  @Inject
+  AgentMeters meters;
+
 
   @Inject
   FactStore factStore;
@@ -24,7 +28,7 @@ public class MemoryReviewJob {
 
   @Scheduled(identity = "memory-review", cron = "{qlawkus.memory-review.cron:0 30 3 * * ?}")
   void review() {
-    reviewNow();
+    meters.timeJob("memory-review", this::reviewNow);
   }
 
   public long reviewNow() {

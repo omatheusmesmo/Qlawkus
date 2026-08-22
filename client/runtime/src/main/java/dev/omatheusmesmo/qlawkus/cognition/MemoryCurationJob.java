@@ -2,13 +2,13 @@ package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.config.MemoryCurationConfig;
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
 import java.util.List;
 
 /**
@@ -20,6 +20,9 @@ import java.util.List;
  */
 @ApplicationScoped
 public class MemoryCurationJob {
+  @Inject
+  AgentMeters meters;
+
 
   @Inject
   ChatModel chatModel;
@@ -36,7 +39,7 @@ public class MemoryCurationJob {
   @Scheduled(identity = "memory-curation", cron = "{qlawkus.memory-curation.cron:0 45 3 * * ?}")
   void curate() {
     if (config.enabled()) {
-      curateProfile();
+      meters.timeJob("memory-curation", () -> curateProfile() ? 1L : 0L);
     }
   }
 

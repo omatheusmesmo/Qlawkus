@@ -251,6 +251,23 @@ Two rules keep that correct rather than decorative. It goes on **one HTTP call, 
 
 **Readiness and liveness answer different questions.** Liveness deliberately does not consult the model: killing the pod because the provider is down would turn their incident into an outage here, and the restarted pod would meet the same provider. `examples/redeploy/k8s/deployment.yaml` carries the probe trio (the startup probe absorbs the order-of-magnitude gap between JVM and native boot), and the Compose stacks poll the same `/q/health/ready`, so both deploy paths agree on what "serving" means.
 
+## Telemetry
+
+Model and AI-service meters come from upstream and need no code: they appear whenever a registry is present (see the `observability` capability). What `client` instruments itself is the cognition subsystem, which nothing upstream can see.
+
+`metrics/AgentMeters` is the only class that touches a `MeterRegistry` and the one place every metric name is written down. Names are constants there because a metric name is a public contract - it becomes a time series, then a panel, then an alert - so a literal spread across call sites would drift. `client` depends on `io.micrometer:micrometer-core`, which is API plus in-memory accumulators: it opens no socket, so it is not egress and does not belong behind the capability. The registry and exporter that do leave the machine stay in `qlawkus-observability`. With that extension absent the `Instance<MeterRegistry>` is unsatisfied and every meter call is a no-op.
+
+Where each measurement attaches, and why, is the part worth knowing before adding more:
+
+- **Retrieval** - `MeteredContentRetriever` wraps the retriever built in `ActiveMemoryAugmentor.get()`. Scores come from `ContentMetadata.SCORE`. This is the meter that answers "did memory work this turn?", which otherwise requires reading a log.
+- **Tools** - decorated in `QlawToolProvider`, **not** intercepted. That provider calls `ClientProxy.unwrap` before building each `DefaultToolExecutor`, so tool calls never cross a CDI proxy and no interceptor, including the project's own `@Logged`, can observe them. `MeteredToolExecutor` overrides *both* `execute` and `executeWithContext`, since `DefaultToolExecutor` implements each separately. Only `@QlawTool` extension tools flow through here; the tools declared on `@RegisterAiService(tools = {...})` are not counted.
+- **Stores** - the opposite case: stores are injected as their SPI and reached through a proxy, so interception works. `ClientProcessor.meterCognitionStores` adds `@Metered` at build time to every implementor of the six store SPIs, which covers the `cognition-pgvector` backends without that extension knowing telemetry exists. Annotating by hand would mean a new backend silently reporting nothing. `StoreMeterInterceptor` derives the `backend` tag from the implementation's name prefix, reporting `Pg*` as `pgvector` to match `qlawkus.cognition.backend`.
+- **Jobs** - `AgentMeters.timeJob` wraps the body of each `@Scheduled` method. The `job` tag reuses the existing `@Scheduled(identity = ...)`, so metric and console schedule page name the same thing.
+- **Fallback** - counted in the guards' fallback handler, which is the exact moment the primary is abandoned, so a switch is recorded even when the breaker never opens. Breaker state is a gauge bound to the `@ApplicationScoped` guard, because Micrometer holds only a weak reference to the gauged object.
+- **Embedding** - `FactChunker` records its own fan-out through an optional `AgentMeters` passed by the CDI construction paths; the convenience constructors used by tests pass none.
+
+User-facing catalog: `site/content/operations.adoc` under "What the agent measures about itself".
+
 ## Key Entry Points
 
 - `client/runtime/.../agent/AgentService.java` - `@RegisterAiService` interface (ReAct agent, `maxSequentialToolInvocations=100`); wires `systemMessageProviderSupplier`, `retrievalAugmentor` (Active Memory), tools, and `toolProviderSupplier`

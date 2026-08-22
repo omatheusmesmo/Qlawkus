@@ -2,16 +2,19 @@ package dev.omatheusmesmo.qlawkus.model;
 
 import dev.langchain4j.exception.NonRetriableException;
 import dev.langchain4j.exception.UnsupportedFeatureException;
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
+import dev.omatheusmesmo.qlawkus.metrics.CircuitStates;
 import io.quarkus.runtime.Startup;
+import io.smallrye.faulttolerance.api.CircuitBreakerMaintenance;
 import io.smallrye.faulttolerance.api.TypedGuard;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.faulttolerance.exceptions.CircuitBreakerOpenException;
-
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import org.eclipse.microprofile.faulttolerance.exceptions.CircuitBreakerOpenException;
 
 /**
  * The embedding counterpart of {@link PrimaryChatGuard}: retry + circuit breaker + fallback for
@@ -34,10 +37,12 @@ public class EmbeddingGuard {
             List.of(NonRetriableException.class, UnsupportedFeatureException.class);
 
     private final TypedGuard<Object> guard;
+    private final AgentMeters meters;
     private final ThreadLocal<Supplier<Object>> currentFallback = new ThreadLocal<>();
 
     @Inject
-    public EmbeddingGuard(ModelFallbackConfig config) {
+    public EmbeddingGuard(ModelFallbackConfig config, AgentMeters meters) {
+        this.meters = meters;
         List<Class<? extends Throwable>> abortsOn = new ArrayList<>(NON_RETRYABLE);
         abortsOn.add(CircuitBreakerOpenException.class);
 
@@ -59,9 +64,31 @@ public class EmbeddingGuard {
                 .done()
                 .withFallback()
                 .skipOn(NON_RETRYABLE)
-                .handler(cause -> currentFallback.get().get())
+                .handler(cause -> onFallback())
                 .done()
                 .build();
+    }
+
+    /**
+     * Registers the breaker state as a gauge, read on scrape through {@code CircuitBreakerMaintenance},
+     * a read-only lookup, so polling can never promote a state as a side effect. The gauge is bound to
+     * this bean because Micrometer holds only a weak reference to the gauged object, and this
+     * {@code @ApplicationScoped} instance outlives the registry.
+     */
+    @PostConstruct
+    void publishCircuitState() {
+        meters.circuitState(AgentMeters.SURFACE_EMBEDDING, this, guard -> CircuitStates.code(
+                CircuitBreakerMaintenance.get().currentState(ModelFallbackConfig.CIRCUIT_BREAKER_EMBEDDING)));
+    }
+
+    /**
+     * The fallback handler, and therefore the exact moment the primary provider is abandoned for this
+     * call. Counting here rather than inspecting the breaker means a switch is recorded even when the
+     * circuit never opens, which is the common case for a single transient failure.
+     */
+    private Object onFallback() {
+        meters.fallback(AgentMeters.SURFACE_EMBEDDING);
+        return currentFallback.get().get();
     }
 
     @SuppressWarnings("unchecked")
