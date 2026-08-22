@@ -13,6 +13,7 @@
         <module>client</module>
         <module>cognition-pgvector</module>
         <module>console</module>
+        <module>observability</module>
         <module>tools</module>
         <module>messaging</module>
         <module>app</module>

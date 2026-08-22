@@ -30,6 +30,13 @@ public final class ReactorCatalog implements CapabilityCatalog {
 
     private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
 
+    /**
+     * Reactor siblings have no BOM managing them, so they must be added with a version - the
+     * expression rather than a literal, so a release version bump does not have to rewrite every
+     * dependency the generator has ever added.
+     */
+    private static final String REACTOR_VERSION = "${project.version}";
+
     private final List<ReactorModule> modules;
 
     public ReactorCatalog(List<ReactorModule> modules) {
@@ -42,7 +49,8 @@ public final class ReactorCatalog implements CapabilityCatalog {
         for (ReactorModule module : modules) {
             String name = readCapability(module);
             if (name != null) {
-                capabilities.add(new Capability(name, new Coordinates(module.groupId(), module.artifactId())));
+                capabilities.add(new Capability(name,
+                        new Coordinates(module.groupId(), module.artifactId(), REACTOR_VERSION)));
             }
         }
         return capabilities;
