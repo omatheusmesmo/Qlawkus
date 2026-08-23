@@ -4,7 +4,6 @@ import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -36,23 +35,10 @@ public class FactChunker {
   private final DocumentSplitter splitter;
 
   public FactChunker(int maxChars, int overlapChars) {
-    this.meters = null;
     this.splitter = DocumentSplitters.recursive(maxChars, overlapChars);
   }
 
-  /**
-   * Chunker that reports its fan-out. Metrics are optional here because {@code FactChunker} is also
-   * constructed outside CDI (tests, and the convenience constructors the stores expose), where no
-   * {@code AgentMeters} exists to hand in.
-   */
-  public FactChunker(int maxChars, int overlapChars, AgentMeters meters) {
-    this(maxChars, overlapChars);
-    this.meters = meters;
-  }
-
   /** A single embedding segment: the text to embed and the metadata to store alongside it. */
-  private AgentMeters meters;
-
   public record Chunk(String text, Map<String, String> metadata) {
   }
 
@@ -90,23 +76,7 @@ public class FactChunker {
       }
       chunks.add(new Chunk(texts.get(i), metadata));
     }
-    recordFanOut(chunks.size());
     return chunks;
-  }
-
-  /**
-   * Reports how many segments one fact became. A count above one means the fact exceeded the
-   * embedding model's token budget and had to be split, which is the condition that used to fail the
-   * embed outright and leave an orphaned markdown file behind.
-   */
-  private void recordFanOut(int segments) {
-    if (meters == null) {
-      return;
-    }
-    meters.embedding(true, segments);
-    if (segments > 1) {
-      meters.embeddingOversized();
-    }
   }
 
   private List<String> split(String content) {

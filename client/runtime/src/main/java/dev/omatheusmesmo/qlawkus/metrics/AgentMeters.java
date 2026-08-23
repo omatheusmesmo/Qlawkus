@@ -74,6 +74,26 @@ public class AgentMeters {
 
     private MeterRegistry registry;
 
+    /** Constructor used by CDI, which supplies the registry through {@link #registryInstance}. */
+    public AgentMeters() {
+    }
+
+    /**
+     * Direct construction with an explicit registry, for tests and for the non-CDI constructors the
+     * fact stores expose. A {@code null} registry yields inert telemetry, same as an absent one.
+     */
+    public AgentMeters(MeterRegistry registry) {
+        this.registry = registry;
+    }
+
+    /**
+     * Telemetry that records nothing, for the convenience store constructors used outside CDI. The
+     * stores always hold a real instance, so no call site needs a null check.
+     */
+    public static AgentMeters disabled() {
+        return new AgentMeters(null);
+    }
+
     /**
      * Resolves the registry once rather than per call. Resolution is guarded because an ambiguous
      * or failed lookup must degrade to no-op telemetry, never take down the agent: nothing here is
@@ -82,7 +102,9 @@ public class AgentMeters {
     @PostConstruct
     void resolveRegistry() {
         try {
-            registry = registryInstance.isResolvable() ? registryInstance.get() : null;
+            registry = registryInstance != null && registryInstance.isResolvable()
+                    ? registryInstance.get()
+                    : null;
         } catch (RuntimeException e) {
             Log.debugf(e, "No usable MeterRegistry; agent telemetry stays disabled");
             registry = null;
@@ -113,24 +135,34 @@ public class AgentMeters {
     }
 
     /**
-     * Records one fact embedding attempt and the chunker fan-out it produced. One fact becoming N
-     * segments is normal; a fact that never embeds is the failure that used to orphan a markdown
-     * file and abort the whole reconcile on the next boot.
+     * Runs the embedding of one fact, already split into {@code segments}, and records its outcome.
+     *
+     * <p>The outcome is the point. Chunking cannot fail in any way worth measuring, but embedding
+     * can, and a fact that never embeds is the failure that orphans a markdown file and aborts the
+     * whole reconcile on the next boot. Measuring at chunk time instead would report a success
+     * before anything had been sent to the model.
+     *
+     * <p>A thrown exception is recorded as a failure and rethrown unchanged: telemetry observes the
+     * embed, it never swallows what it did.
      */
-    public void embedding(boolean succeeded, int segments) {
+    public void embedFact(int segments, Runnable embed) {
         if (registry == null) {
+            embed.run();
             return;
         }
-        registry.counter(EMBEDDING_FACTS, Tags.of(TAG_OUTCOME, succeeded ? SUCCESS : FAILURE)).increment();
-        if (succeeded) {
-            summary(EMBEDDING_SEGMENTS, Tags.empty()).record(segments);
-        }
-    }
-
-    /** Counts a fact that exceeded the embedding model's token limit before chunking rescued it. */
-    public void embeddingOversized() {
-        if (registry != null) {
-            registry.counter(EMBEDDING_OVERSIZED, Tags.empty()).increment();
+        boolean succeeded = false;
+        try {
+            embed.run();
+            succeeded = true;
+        } finally {
+            registry.counter(EMBEDDING_FACTS, Tags.of(TAG_OUTCOME, succeeded ? SUCCESS : FAILURE))
+                    .increment();
+            if (succeeded) {
+                summary(EMBEDDING_SEGMENTS, Tags.empty()).record(segments);
+                if (segments > 1) {
+                    registry.counter(EMBEDDING_OVERSIZED, Tags.empty()).increment();
+                }
+            }
         }
     }
 
