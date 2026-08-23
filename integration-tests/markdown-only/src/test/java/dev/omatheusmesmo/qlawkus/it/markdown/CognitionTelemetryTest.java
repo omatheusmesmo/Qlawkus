@@ -2,11 +2,14 @@ package dev.omatheusmesmo.qlawkus.it.markdown;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
+import dev.omatheusmesmo.qlawkus.store.FactStore;
+import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import dev.omatheusmesmo.qlawkus.testing.QlawkusWireMockStubs;
 import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.time.Duration;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +32,9 @@ class CognitionTelemetryTest {
 
     @Inject
     AgentService agentService;
+
+    @Inject
+    FactStore factStore;
 
     @BeforeEach
     void stubTheModel() {
@@ -98,6 +104,26 @@ class CognitionTelemetryTest {
                 "breaker state must be gauged; scrape was:\n" + metrics);
         assertTrue(metrics.contains("surface=\"chat\"") && metrics.contains("surface=\"embedding\""),
                 "chat and embeddings fail independently, so each needs its own series");
+    }
+
+    /**
+     * The wiring regression, and the reason it is an integration test rather than a unit one: the
+     * meter is only useful if the container actually hands an {@code AgentMeters} to the store it
+     * resolved. An earlier cut metered inside {@code FactChunker}, before anything was embedded, so
+     * the outcome was hardcoded to success and a provider outage was indistinguishable from a clean
+     * run. Storing a fact through the injected SPI is what proves the meter sits around the embed.
+     */
+    @Test
+    void embeddingAFactIsCountedWithItsOutcome() {
+        factStore.store("the telemetry regression fact",
+                Map.of("source", MemorySource.REMEMBER_TOOL.value()));
+
+        String metrics = scrape();
+
+        assertTrue(metrics.contains("qlawkus_embedding_facts_total"),
+                "embedding a fact must be counted; scrape was:\n" + metrics);
+        assertTrue(metrics.contains("outcome=\"success\""),
+                "a fact that embedded cleanly must say so, so a failure is distinguishable");
     }
 
     private void chat() {

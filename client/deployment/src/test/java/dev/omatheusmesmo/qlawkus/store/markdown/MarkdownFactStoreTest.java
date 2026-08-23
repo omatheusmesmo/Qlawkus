@@ -2,14 +2,17 @@ package dev.omatheusmesmo.qlawkus.store.markdown;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.store.FactChunker;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -137,6 +140,55 @@ class MarkdownFactStoreTest {
     MarkdownFactStore reloaded = new MarkdownFactStore(tempDir.toString(), reader, new FactChunker(100, 10));
     reloaded.load();
     assertEquals(0, reader.embedCalls, "reload hits the per-segment cache, not the model");
+  }
+
+  /**
+   * The wiring regression. Metering the fan-out inside {@link FactChunker} reported success before
+   * anything had been embedded, so a store whose model rejects every call still looked healthy. The
+   * meter belongs around the embed, and only a store-level test can prove it is actually attached
+   * there rather than merely available.
+   */
+  @Test
+  void aStoreWhoseEmbeddingModelFailsReportsAFailedFact() {
+    SimpleMeterRegistry registry = new SimpleMeterRegistry();
+    AgentMeters meters = new AgentMeters(registry);
+    MarkdownFactStore store = new MarkdownFactStore(
+        tempDir.toString(), new FailingEmbeddingModel(), new FactChunker(1200, 120), meters);
+
+    assertThrows(RuntimeException.class,
+        () -> store.store("the sky is blue", source(MemorySource.REMEMBER_TOOL)));
+
+    assertEquals(1.0, registry.get(AgentMeters.EMBEDDING_FACTS).tag("outcome", "failure")
+        .counter().count(), "the failed embed must surface as a failed fact");
+  }
+
+  /** A successful store still reports success, so the counter is not merely a failure detector. */
+  @Test
+  void aStoreThatEmbedsCleanlyReportsASuccessfulFact() {
+    SimpleMeterRegistry registry = new SimpleMeterRegistry();
+    AgentMeters meters = new AgentMeters(registry);
+    MarkdownFactStore store = new MarkdownFactStore(
+        tempDir.toString(), new FakeEmbeddingModel(), new FactChunker(1200, 120), meters);
+    store.load();
+
+    store.store("the sky is blue", source(MemorySource.REMEMBER_TOOL));
+
+    assertEquals(1.0, registry.get(AgentMeters.EMBEDDING_FACTS).tag("outcome", "success")
+        .counter().count());
+  }
+
+  /** An embedding model that always rejects, standing in for a provider outage. */
+  private static final class FailingEmbeddingModel implements EmbeddingModel {
+
+    @Override
+    public Response<List<Embedding>> embedAll(List<TextSegment> segments) {
+      throw new IllegalStateException("embedding provider is down");
+    }
+
+    @Override
+    public int dimension() {
+      return 32;
+    }
   }
 
   /** Deterministic, offline embedding model: same text always yields the same vector. */

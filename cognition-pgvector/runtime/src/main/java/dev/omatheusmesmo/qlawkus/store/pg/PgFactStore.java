@@ -51,7 +51,7 @@ public class PgFactStore implements FactStore {
   @PostConstruct
   void init() {
     chunker = new FactChunker(agentConfig.facts().chunkMaxChars(),
-        agentConfig.facts().chunkOverlapChars(), meters);
+        agentConfig.facts().chunkOverlapChars());
   }
 
   @Override
@@ -61,12 +61,15 @@ public class PgFactStore implements FactStore {
       Log.debugf("Fact already exists, skipping: %s", factHash);
       return;
     }
-    for (FactChunker.Chunk chunk : chunker.chunk(content, stringify(metadata))) {
-      Metadata segmentMetadata = new Metadata();
-      chunk.metadata().forEach(segmentMetadata::put);
-      Embedding embedding = embeddingModel.embed(chunk.text()).content();
-      embeddingStore.add(embedding, TextSegment.from(chunk.text(), segmentMetadata));
-    }
+    List<FactChunker.Chunk> chunks = chunker.chunk(content, stringify(metadata));
+    meters.embedFact(chunks.size(), () -> {
+      for (FactChunker.Chunk chunk : chunks) {
+        Metadata segmentMetadata = new Metadata();
+        chunk.metadata().forEach(segmentMetadata::put);
+        Embedding embedding = embeddingModel.embed(chunk.text()).content();
+        embeddingStore.add(embedding, TextSegment.from(chunk.text(), segmentMetadata));
+      }
+    });
   }
 
   private static Map<String, String> stringify(Map<String, Object> metadata) {

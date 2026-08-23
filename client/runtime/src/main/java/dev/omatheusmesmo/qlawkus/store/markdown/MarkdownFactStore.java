@@ -48,12 +48,13 @@ public class MarkdownFactStore implements FactStore {
   private final MarkdownFactFiles files;
   private final EmbeddingModel embeddingModel;
   private final FactChunker chunker;
+  private final AgentMeters meters;
   private final InMemoryEmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<>();
 
   @Inject
   public MarkdownFactStore(AgentConfig config, EmbeddingModel embeddingModel, AgentMeters meters) {
     this(config.facts().root(), embeddingModel,
-        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars(), meters));
+        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars()), meters);
   }
 
   public MarkdownFactStore(String root, EmbeddingModel embeddingModel) {
@@ -61,9 +62,15 @@ public class MarkdownFactStore implements FactStore {
   }
 
   public MarkdownFactStore(String root, EmbeddingModel embeddingModel, FactChunker chunker) {
+    this(root, embeddingModel, chunker, AgentMeters.disabled());
+  }
+
+  public MarkdownFactStore(String root, EmbeddingModel embeddingModel, FactChunker chunker,
+      AgentMeters meters) {
     this.files = new MarkdownFactFiles(Path.of(root));
     this.embeddingModel = embeddingModel;
     this.chunker = chunker;
+    this.meters = meters;
   }
 
   /**
@@ -107,12 +114,15 @@ public class MarkdownFactStore implements FactStore {
     Map<String, String> stringMetadata = stringify(metadata);
     files.write(id, content, stringMetadata);
     Map<String, float[]> cache = files.loadCache();
-    for (FactChunker.Chunk chunk : chunker.chunk(content, stringMetadata)) {
-      String entryId = entryId(id, chunk);
-      Embedding embedding = embeddingModel.embed(chunk.text()).content();
-      store.add(entryId, embedding, segment(chunk.text(), chunk.metadata()));
-      cache.put(entryId, embedding.vector());
-    }
+    List<FactChunker.Chunk> chunks = chunker.chunk(content, stringMetadata);
+    meters.embedFact(chunks.size(), () -> {
+      for (FactChunker.Chunk chunk : chunks) {
+        String entryId = entryId(id, chunk);
+        Embedding embedding = embeddingModel.embed(chunk.text()).content();
+        store.add(entryId, embedding, segment(chunk.text(), chunk.metadata()));
+        cache.put(entryId, embedding.vector());
+      }
+    });
     files.saveCache(cache);
   }
 

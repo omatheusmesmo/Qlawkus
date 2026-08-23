@@ -38,28 +38,31 @@ public class HybridFactStore implements FactStore {
   private final EmbeddingStore<TextSegment> embeddingStore;
   private final EmbeddingRepository embeddingRepository;
   private final FactChunker chunker;
+  private final AgentMeters meters;
 
   @Inject
   public HybridFactStore(AgentConfig config, EmbeddingModel embeddingModel,
       EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository,
       AgentMeters meters) {
     this(config.facts().root(), embeddingModel, embeddingStore, embeddingRepository,
-        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars(), meters));
+        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars()), meters);
   }
 
   HybridFactStore(String root, EmbeddingModel embeddingModel,
       EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository) {
-    this(root, embeddingModel, embeddingStore, embeddingRepository, new FactChunker(1200, 120));
+    this(root, embeddingModel, embeddingStore, embeddingRepository, new FactChunker(1200, 120),
+        AgentMeters.disabled());
   }
 
   private HybridFactStore(String root, EmbeddingModel embeddingModel,
       EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository,
-      FactChunker chunker) {
+      FactChunker chunker, AgentMeters meters) {
     this.files = new MarkdownFactFiles(Path.of(root));
     this.embeddingModel = embeddingModel;
     this.embeddingStore = embeddingStore;
     this.embeddingRepository = embeddingRepository;
     this.chunker = chunker;
+    this.meters = meters;
   }
 
   @Override
@@ -71,12 +74,15 @@ public class HybridFactStore implements FactStore {
     }
     Map<String, String> base = stringify(metadata);
     files.write(factHash, content, base);
-    for (FactChunker.Chunk chunk : chunker.chunk(content, base)) {
-      Metadata segmentMetadata = new Metadata();
-      chunk.metadata().forEach(segmentMetadata::put);
-      Embedding embedding = embeddingModel.embed(chunk.text()).content();
-      embeddingStore.add(embedding, TextSegment.from(chunk.text(), segmentMetadata));
-    }
+    List<FactChunker.Chunk> chunks = chunker.chunk(content, base);
+    meters.embedFact(chunks.size(), () -> {
+      for (FactChunker.Chunk chunk : chunks) {
+        Metadata segmentMetadata = new Metadata();
+        chunk.metadata().forEach(segmentMetadata::put);
+        Embedding embedding = embeddingModel.embed(chunk.text()).content();
+        embeddingStore.add(embedding, TextSegment.from(chunk.text(), segmentMetadata));
+      }
+    });
   }
 
   @Override
