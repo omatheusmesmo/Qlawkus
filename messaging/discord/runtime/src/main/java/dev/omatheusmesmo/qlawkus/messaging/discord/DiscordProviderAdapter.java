@@ -17,6 +17,7 @@ import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.spec.MessageCreateFields;
 import discord4j.core.spec.MessageCreateSpec;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
@@ -292,13 +293,23 @@ public class DiscordProviderAdapter implements MessagingProvider {
         return Uni.createFrom().completionStage(
                 gatewayClient.getChannelById(Snowflake.of(channelId))
                         .ofType(MessageChannel.class)
-                        .flatMap(channel -> channel.createMessage(MessageCreateSpec.builder()
-                                .addFile(filename, new ByteArrayInputStream(audio))
-                                .build()))
+                        .flatMap(channel -> channel.createMessage(voiceMessage(audio, filename)))
                         .toFuture())
                 .replaceWithVoid()
                 .onFailure().invoke(err -> Log.errorf(err,
                         "Discord: sendVoice failed channel=%s, falling back to text", channelId))
                 .onFailure().recoverWithUni(() -> send(channelId, fallbackText));
+    }
+
+    /**
+     * Builds the voice-note message. {@code MessageCreateFields.File.of} is used instead of the
+     * {@code addFile} shorthand because it keeps the same two-argument shape across discord4j 3.2 and
+     * 3.3: 3.3 replaced {@code addFile(String, InputStream)} with an overload that takes an
+     * attachment description between the name and the stream.
+     */
+    static MessageCreateSpec voiceMessage(byte[] audio, String filename) {
+        return MessageCreateSpec.builder()
+                .addFile(MessageCreateFields.File.of(filename, new ByteArrayInputStream(audio)))
+                .build();
     }
 }
