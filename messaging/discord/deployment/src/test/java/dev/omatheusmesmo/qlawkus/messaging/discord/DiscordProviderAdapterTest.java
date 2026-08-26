@@ -5,13 +5,20 @@ import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
+import discord4j.core.spec.MessageCreateFields;
+import discord4j.core.spec.MessageCreateSpec;
 import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -83,6 +90,26 @@ class DiscordProviderAdapterTest {
         adapter.config = config(true, false);
 
         assertFalse(adapter.isEnabledForChannel(event(null)));
+    }
+
+    /**
+     * The attachment name is what Discord shows and what the voice note is played back as, so it has
+     * to survive the spec building. discord4j 3.3 dropped {@code addFile(String, InputStream)} in
+     * favour of a three-argument overload that takes a description between the name and the stream,
+     * which makes an off-by-one in the argument list compile cleanly and silently rename the file.
+     */
+    @Test
+    void voiceMessage_attachesTheAudioUnderTheGivenFilename() throws IOException {
+        byte[] audio = "ogg-bytes".getBytes(StandardCharsets.UTF_8);
+
+        MessageCreateSpec spec = DiscordProviderAdapter.voiceMessage(audio, "reply.ogg");
+
+        List<MessageCreateFields.File> files = spec.files();
+        assertEquals(1, files.size());
+        assertEquals("reply.ogg", files.get(0).name());
+        try (InputStream content = files.get(0).inputStream()) {
+            assertArrayEquals(audio, content.readAllBytes());
+        }
     }
 
     private DiscordConfig config(boolean respondToAll, boolean respondToDirect) {
