@@ -46,7 +46,8 @@ public class EpisodicConsolidatorJob {
 
   public void consolidateDate(LocalDate date) {
     if (episodicStore.existsForDate(date)) {
-      Log.debugf("Journal already exists for %s, skipping", date);
+      Log.debugf("Journal already exists for %s, re-asserting its embedding", date);
+      embedExistingJournal(date);
       return;
     }
 
@@ -60,6 +61,21 @@ public class EpisodicConsolidatorJob {
     episodicStore.storeEpisode(date, summary, messages.size());
 
     embedSummary(date, summary);
+  }
+
+  /**
+   * Re-embeds the journal already stored for a date. The journal is written before it is embedded,
+   * so anything landing between the two steps - a SIGTERM during a rollout, or an embed failure that
+   * only warned - leaves an entry no retrieval can reach, and {@code existsForDate} would then skip
+   * that day for good. The fact store dedups by content hash, so this costs a hash lookup on a day
+   * that was already embedded and repairs the day that was not. It never re-summarizes: the stored
+   * text is the summary, so rebuilding it would spend a model call to recreate what already exists.
+   */
+  void embedExistingJournal(LocalDate date) {
+    episodicStore.listJournals().stream()
+        .filter(journal -> date.equals(journal.date()))
+        .findFirst()
+        .ifPresent(journal -> embedSummary(date, journal.summary()));
   }
 
   void embedSummary(LocalDate date, String summary) {

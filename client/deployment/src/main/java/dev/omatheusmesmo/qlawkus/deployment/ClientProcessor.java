@@ -13,6 +13,7 @@ import dev.omatheusmesmo.qlawkus.skill.SkillsRecorder;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProviderSupplier;
+import dev.omatheusmesmo.qlawkus.tool.shell.PtyShutdownListener;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.AnnotationsTransformerBuildItem;
 import io.quarkus.arc.deployment.ExcludedTypeBuildItem;
@@ -29,6 +30,7 @@ import io.quarkus.deployment.builditem.ApplicationArchivesBuildItem;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.RunTimeConfigBuilderBuildItem;
+import io.quarkus.deployment.builditem.ShutdownListenerBuildItem;
 import io.quarkus.deployment.builditem.StaticInitConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
@@ -186,6 +188,17 @@ class ClientProcessor {
     ServiceProviderBuildItem registerFaultToleranceSpiProvider() {
         return ServiceProviderBuildItem.allProvidersFromClassPath(
                 "io.smallrye.faulttolerance.api.Spi");
+    }
+
+    /**
+     * Registers the PTY drain with the platform's shutdown sequence rather than as a CDI observer.
+     * A {@code ShutdownListener} gets an ordered phase and an acknowledgement callback that Quarkus
+     * waits on, bounded by {@code quarkus.shutdown.timeout}; a {@code @Observes ShutdownEvent} would
+     * have to grow its own timeout, and every subsystem would grow a different one.
+     */
+    @BuildStep
+    ShutdownListenerBuildItem drainPtySessionsOnShutdown() {
+        return new ShutdownListenerBuildItem(new PtyShutdownListener());
     }
 
     /**

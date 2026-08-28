@@ -23,7 +23,6 @@ import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
 import discord4j.rest.response.ResponseFunction;
 import io.quarkus.logging.Log;
-import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -90,14 +89,6 @@ public class DiscordProviderAdapter implements MessagingProvider {
                         .subscribe(
                                 m -> Log.infof("Discord: startup greeting posted to channel=%s", channelId),
                                 err -> Log.errorf(err, "Discord: failed to post startup greeting channel=%s", channelId)));
-    }
-
-    void onStop(@Observes ShutdownEvent event) {
-        if (gatewayClient != null) {
-            gatewayClient.logout().subscribe(
-                    v -> Log.info("Discord: Gateway logged out"),
-                    err -> Log.errorf(err, "Discord: logout failed"));
-        }
     }
 
     private void setupListeners(GatewayDiscordClient gateway) {

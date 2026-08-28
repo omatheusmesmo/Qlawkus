@@ -1,7 +1,6 @@
 package dev.omatheusmesmo.qlawkus.messaging.telegram;
 
 import io.quarkus.logging.Log;
-import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
@@ -10,6 +9,7 @@ import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
+import java.time.Duration;
 import java.util.Optional;
 
 /**
@@ -53,11 +53,33 @@ public class TelegramPoller {
         Log.info("Telegram: long-polling started");
     }
 
-    void onStop(@Observes ShutdownEvent event) {
+    /**
+     * Stops the loop from starting another poll. Returns without waiting, so it can run in the
+     * shutdown phase that refuses new work; {@link #awaitStop} is what actually waits.
+     */
+    void requestStop() {
         running = false;
         if (thread != null) {
             thread.interrupt();
         }
+    }
+
+    /**
+     * Waits for the poll thread to finish, up to {@code timeout}. Returns whether it finished: a
+     * caller that gets {@code false} has a thread still inside a 25 second getUpdates call, which is
+     * worth logging rather than pretending the drain succeeded.
+     */
+    boolean awaitStop(Duration timeout) {
+        if (thread == null) {
+            return true;
+        }
+        try {
+            thread.join(timeout.toMillis());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+        return !thread.isAlive();
     }
 
     private void pollLoop(String token) {
