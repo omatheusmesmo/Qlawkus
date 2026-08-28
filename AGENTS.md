@@ -251,6 +251,20 @@ Two rules keep that correct rather than decorative. It goes on **one HTTP call, 
 
 **Readiness and liveness answer different questions.** Liveness deliberately does not consult the model: killing the pod because the provider is down would turn their incident into an outage here, and the restarted pod would meet the same provider. `examples/redeploy/k8s/deployment.yaml` carries the probe trio (the startup probe absorbs the order-of-magnitude gap between JVM and native boot), and the Compose stacks poll the same `/q/health/ready`, so both deploy paths agree on what "serving" means.
 
+## Shutdown
+
+A SIGTERM has to drain what the process is holding, and the drain has to be *waited on*. Both messaging adapters already had `@Observes ShutdownEvent` before this was addressed, and neither waited: Discord called `logout().subscribe(...)` and returned, Telegram interrupted its poll thread without joining it. Code that looks like a drain but returns immediately is worse than none, because it reads as solved.
+
+Drains are registered as `ShutdownListenerBuildItem` from each module's `*-deployment`, never as CDI observers. The platform then supplies what would otherwise be hand-written per subsystem: two ordered phases, an acknowledgement callback, and a single budget (`quarkus.shutdown.timeout`) covering all of them. A `@Observes ShutdownEvent` would need its own timeout in every bean, and they would drift.
+
+The phases carry meaning. `preShutdown` refuses new work (Telegram stops polling); `shutdown` releases resources (PTY sessions closed, Discord logout awaited, poll thread joined). Two rules keep this correct: **`done()` belongs in a `finally`** - a listener that throws before acknowledging costs the full timeout on every rollout, silently - and each listener swallows its own exception, so one broken drain cannot stop the others.
+
+The listener instance is built during augmentation, before any container exists, so it holds no bean reference and resolves what it needs from `Arc.container()` at shutdown, guarded by `isRunning()`.
+
+**Running jobs are abandoned, not awaited.** A nightly consolidation makes model calls and cannot fit any sane grace period, so the scheduler simply stops. That is only safe because the jobs are re-runnable, which was audited rather than assumed: purge, curation, skill lifecycle and cleanup all converge on a second run. `EpisodicConsolidatorJob` was the exception and was fixed here - it wrote the journal *before* embedding it while `existsForDate` guarded on the journal alone, so anything landing between the two steps (a SIGTERM, or an embed failure that only warned) left an entry unreachable by retrieval and skipped that day for good. The guard now re-asserts the embedding, which the fact store dedups by content hash.
+
+The budget is chosen end to end, not per layer: `quarkus.shutdown.delay=3s` plus `quarkus.shutdown.timeout=20s` in `app/`, against `terminationGracePeriodSeconds: 30` in `examples/redeploy/k8s/deployment.yaml`. Raising one without the other converts a clean drain into a kill. The timeout also caps in-flight HTTP, and `/api/chat` is an SSE ReAct turn that can run for minutes, so it deliberately cuts a long turn rather than holding the rollout; working memory is append-only, so a cut turn loses a reply, not state.
+
 ## Telemetry
 
 Model and AI-service meters come from upstream and need no code: they appear whenever a registry is present (see the `observability` capability). What `client` instruments itself is the cognition subsystem, which nothing upstream can see.

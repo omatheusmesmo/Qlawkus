@@ -1,7 +1,9 @@
 package dev.omatheusmesmo.qlawkus.messaging.discord.deployment;
 
+import dev.omatheusmesmo.qlawkus.messaging.discord.DiscordShutdownListener;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.builditem.ShutdownListenerBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedClassBuildItem;
 
 class DiscordProcessor {
@@ -11,6 +13,14 @@ class DiscordProcessor {
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
+    }
+
+    /**
+     * Waits for the gateway logout instead of firing it and letting the process exit underneath it.
+     */
+    @BuildStep
+    ShutdownListenerBuildItem drainGatewayOnShutdown() {
+        return new ShutdownListenerBuildItem(new DiscordShutdownListener());
     }
 
     @BuildStep

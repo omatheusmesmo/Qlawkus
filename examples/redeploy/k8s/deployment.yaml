@@ -34,6 +34,10 @@ spec:
       labels:
         app: qlawkus
     spec:
+      # Chosen against quarkus.shutdown.delay (3s) plus quarkus.shutdown.timeout (20s) in the
+      # reference app: 23s of drain, leaving margin before the kubelet sends SIGKILL. Raising the
+      # Quarkus budget without raising this one converts a clean drain into a kill.
+      terminationGracePeriodSeconds: 30
       containers:
         - name: qlawkus
           # Replaced per redeploy by `kubectl set image` (see rollout.sh).
