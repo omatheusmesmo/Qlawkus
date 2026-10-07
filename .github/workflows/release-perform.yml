@@ -102,7 +102,7 @@ jobs:
           ../mvnw -B package -Dquarkus.package.type=fast-jar -DskipTests -ntp
 
       - name: Upload app artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: qlawkus-app-${{ steps.version.outputs.version }}
           path: app/target/quarkus-app/
