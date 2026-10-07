@@ -47,7 +47,7 @@ jobs:
         run: echo ${{ github.event.number }} > site/target/roq/pr-id.txt
 
       - name: Upload site artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: docs-site
           path: site/target/roq
