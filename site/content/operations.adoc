@@ -84,7 +84,13 @@ Health is an optional capability. A distribution that leaves `quarkus-smallrye-h
 
 [NOTE]
 ====
-The reference deployment runs `replicas: 1`, and that is architecture rather than an omission in the example. The persona and owner profile are singletons and the markdown stores write to one volume, so a second replica either fails to schedule or corrupts that state - and every replica would run the same nightly jobs against the same stores. See https://github.com/omatheusmesmo/Qlawkus/issues/297[issue #297].
+Qlawkus runs as a single instance by design: one agent serving one owner. The persona and owner profile are singletons, and the scheduled jobs (consolidation, curation, skill lifecycle) assume they are the only writer, so two processes on the same state would race the stores and run every nightly job twice.
+
+The agent enforces this rather than relying on the deployment: at boot it takes an exclusive lock on `<qlawkus.agent.state.root>/.instance.lock` and holds it until shutdown. A second instance pointed at the same state fails to start, naming the process that holds it. That is also what you see when a test or dev-mode run shares the state root of a running agent; give it its own `qlawkus.agent.state.root`.
+
+That decides the rollout strategy. The reference Deployment uses `replicas: 1` with `strategy: Recreate`, because a surge rollout starts the new pod while the old one still holds the state: on another node it hangs on the volume attach, on the same node it would be a second writer. The cost is a short gap in service per rollout.
+
+The lock is per host, which matches a ReadWriteOnce volume. It does not stop two instances on different hosts that share only a database (a `pgvector` backend with no shared state volume); keep those to one instance by deployment.
 ====
 
 == Telemetry
