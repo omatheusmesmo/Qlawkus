@@ -1,8 +1,8 @@
 # Reference Deployment for the Qlawkus redeploy contract.
 #
 # A redeploy rolls this Deployment onto a freshly built image (built from the promoted
-# agent.yml). The readiness probe is what lets the rollout swap pods safely - it gates
-# phase 5 (verify) without the redeploy script needing to reach the pod directly.
+# agent.yml). The readiness probe is what tells `kubectl rollout status` the new pod is serving -
+# it gates phase 5 (verify) without the redeploy script needing to reach the pod directly.
 #
 # The probe reads the readiness endpoint the reference app bundles (quarkus-smallrye-health).
 # A distribution that leaves that extension out has to fall back to a tcpSocket probe, which
