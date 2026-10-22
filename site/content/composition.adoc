@@ -183,7 +183,7 @@ The app stays passive: it only fetches (`GET`) and discards (`DELETE`); everythi
 |Environment |Build + restart step
 
 |docker-compose |`docker compose up -d --build --force-recreate --no-deps qlawkus` - build and recreate in one step (mirrors `run.sh restart`, standalone).
-|Kubernetes |Build and push an image, then `kubectl set image` + `kubectl rollout status` (the readiness probe gates the swap).
+|Kubernetes |Build and push an image, then `kubectl set image` + `kubectl rollout status` (the old pod stops first, since the agent is single-instance; the readiness probe is what tells `rollout status` the new one is serving).
 |systemd |Package on the host, then `systemctl restart qlawkus`.
 |===
 

@@ -6,7 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -89,6 +93,34 @@ class InstanceLockTest {
     }
   }
 
+  /**
+   * Quarkus loads each application (the dev app and its continuous-testing app, every test app) in
+   * its own classloader, so anything static is per app, not per JVM. A refusal decided by a copy of
+   * the class the holder never saw must still leave the holder's lock in place.
+   */
+  @Test
+  void refusingAnInstanceLoadedByAnotherClassLoaderKeepsTheFirstLockHeld() throws Exception {
+    InstanceLock first = new InstanceLock(tempDir.toString());
+    first.acquire();
+    try {
+      Class<?> isolated = new IsolatingClassLoader().loadClass(InstanceLock.class.getName());
+      assertTrue(isolated != InstanceLock.class, "the second app must see its own copy");
+      Constructor<?> constructor = isolated.getConstructor(String.class);
+      Method acquire = isolated.getDeclaredMethod("acquire");
+      acquire.setAccessible(true);
+      Object second = constructor.newInstance(tempDir.toString());
+
+      InvocationTargetException refused =
+          assertThrows(InvocationTargetException.class, () -> acquire.invoke(second));
+      assertTrue(refused.getCause() instanceof IllegalStateException);
+
+      assertEquals("held", firstLine(probe("probe", tempDir)),
+          "a refusal from another classloader must not release the first app's POSIX lock");
+    } finally {
+      first.release();
+    }
+  }
+
   @Test
   void releasedLockCanBeTakenByTheNextInstance() {
     InstanceLock first = new InstanceLock(tempDir.toString());
@@ -122,6 +154,33 @@ class InstanceLockTest {
     String java = ProcessHandle.current().info().command().orElse("java");
     return new ProcessBuilder(java, source.toString(),
         mode, root.resolve(InstanceLock.LOCK_FILE).toString()).start();
+  }
+
+  /** Defines its own copy of {@link InstanceLock}, delegating every other class to the parent. */
+  private static final class IsolatingClassLoader extends ClassLoader {
+
+    IsolatingClassLoader() {
+      super(InstanceLockTest.class.getClassLoader());
+    }
+
+    @Override
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+      if (!name.startsWith(InstanceLock.class.getName())) {
+        return super.loadClass(name, resolve);
+      }
+      synchronized (getClassLoadingLock(name)) {
+        Class<?> loaded = findLoadedClass(name);
+        if (loaded != null) {
+          return loaded;
+        }
+        try (InputStream bytes = getParent().getResourceAsStream(name.replace('.', '/') + ".class")) {
+          byte[] code = bytes.readAllBytes();
+          return defineClass(name, code, 0, code.length);
+        } catch (Exception e) {
+          throw new ClassNotFoundException(name, e);
+        }
+      }
+    }
   }
 
   private static String firstLine(Process process) throws Exception {
