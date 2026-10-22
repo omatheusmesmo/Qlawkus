@@ -10,6 +10,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.time.Duration;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -115,7 +116,7 @@ class CognitionTelemetryTest {
      */
     @Test
     void embeddingAFactIsCountedWithItsOutcome() {
-        factStore.store("the telemetry regression fact",
+        factStore.store("the telemetry regression fact " + UUID.randomUUID(),
                 Map.of("source", MemorySource.REMEMBER_TOOL.value()));
 
         String metrics = scrape();
