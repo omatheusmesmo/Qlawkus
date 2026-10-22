@@ -281,6 +281,10 @@ The listener instance is built during augmentation, before any container exists,
 
 The budget is chosen end to end, not per layer: `quarkus.shutdown.delay=3s` plus `quarkus.shutdown.timeout=20s` in `app/`, against `terminationGracePeriodSeconds: 30` in `examples/redeploy/k8s/deployment.yaml`. Raising one without the other converts a clean drain into a kill. The timeout also caps in-flight HTTP, and `/api/chat` is an SSE ReAct turn that can run for minutes, so it deliberately cuts a long turn rather than holding the rollout; working memory is append-only, so a cut turn loses a reply, not state.
 
+## Single instance
+
+Qlawkus is single-instance by product decision (#297): one agent, one owner, and the scheduled jobs assume they are the only writer. `instance.InstanceLock` (`@Startup`) enforces it with an exclusive `FileChannel` lock on `<qlawkus.agent.state.root>/.instance.lock`, so a second process on the same state fails at boot naming the holder; the reference k8s Deployment uses `strategy: Recreate` because a surge rollout is exactly that second process. Two traps behind its shape: POSIX locks are per process and **closing any descriptor of the file drops them all**, so a refused instance in the same JVM is turned away by a static registry before it ever opens the file (otherwise its close would release the lock it was refused); and every test app needs its own `%test.qlawkus.agent.state.root`, or it collides with a running agent. The lock is per host, so it does not cover instances on different hosts sharing only a database.
+
 ## Telemetry
 
 Model and AI-service meters come from upstream and need no code: they appear whenever a registry is present (see the `observability` capability). What `client` instruments itself is the cognition subsystem, which nothing upstream can see.

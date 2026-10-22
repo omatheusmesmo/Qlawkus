@@ -8,11 +8,14 @@
 # A distribution that leaves that extension out has to fall back to a tcpSocket probe, which
 # only proves the port is open.
 #
-# replicas is 1 by architecture, not by omission. The persona and owner profile are domain
-# singletons and the markdown stores write to the state volume below, so a second replica either
-# fails to schedule (ReadWriteOnce) or corrupts that state. The scheduled jobs compound it: every
-# replica would run the nightly consolidation and curation against the same stores. Issue #297
-# tracks whether to keep single-instance as a product decision or pay for leader election.
+# Qlawkus runs as a single instance by design: one agent, one owner. The persona and owner profile
+# are domain singletons on the state volume below, and the scheduled jobs assume they are the only
+# writer, so replicas stays 1. The strategy is Recreate for the same reason: a surge rollout would
+# start the new pod while the old one still holds the state, which either hangs on a
+# Multi-Attach error (new pod on another node) or runs two writers (same node). The app enforces
+# this itself through an exclusive lock on the state root, so a second instance fails at boot
+# instead of corrupting state. The cost is a short gap in service on every rollout, and a new
+# image that never turns ready leaves nothing serving until it is rolled back.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,10 +25,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+    type: Recreate
   selector:
     matchLabels:
       app: qlawkus
