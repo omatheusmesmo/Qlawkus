@@ -43,7 +43,7 @@ esac
 
 # In native mode the profile-less jvm 'qlawkus' service must NOT start (it shares
 # port 8742), so the services are listed explicitly. local/prod use the default set.
-native_services=(qlawkus-native postgres ollama ollama-init tts tts-init)
+native_services=(qlawkus-native postgres ollama ollama-init tts tts-init lgtm)
 
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
@@ -57,7 +57,7 @@ case "$action" in
     else
       dc up -d --build
     fi
-    echo "Stack up. App on http://localhost:8742  (./run.sh $mode logs to follow)"
+    echo "Stack up. App on http://localhost:8742, Grafana on http://localhost:3000  (./run.sh $mode logs to follow)"
     ;;
   build)   dc build "$app_svc" ;;
   down)    dc down ;;

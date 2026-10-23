@@ -123,7 +123,7 @@ Selecting the capability decides whether the code is in the binary. Whether it r
 
 So a locked-down distribution omits telemetry at the module level, and an operator can still silence it at runtime without a rebuild.
 
-=== Tracing ships off
+=== Tracing ships off in the extension, on in the stack
 
 The extension sets `quarkus.otel.sdk.disabled=true`. Upstream enables the SDK with the traces exporter pointing at OTLP on `localhost:4317`, so selecting the capability with no collector listening would log export failures in a loop for someone who only wanted metrics. Turn it on once you have a collector:
 
@@ -133,9 +133,45 @@ quarkus.otel.sdk.disabled=false
 quarkus.otel.exporter.otlp.endpoint=http://collector:4317
 ----
 
-Both are runtime properties, so this is a toggle and a restart rather than a rebuild.
+Both are runtime properties, so this is a toggle and a restart rather than a rebuild. With the SDK on, log records go out over the same OTLP connection as the spans, each stamped with its trace and span (`quarkus.otel.logs.enabled`, which the extension sets because it is fixed at build time).
 
 Metrics need no such gate: a Prometheus registry only exposes a scrape endpoint and reaches out to nothing.
+
+=== The bundled stack
+
+The Compose stacks (`./run.sh prod`, `native` and `local`) bring up that collector themselves: an `lgtm` service running https://github.com/grafana/docker-otel-lgtm[`grafana/otel-lgtm`], one container holding an OpenTelemetry Collector, Prometheus, Tempo, Loki and Grafana. The agent services set the two properties above, pointing at `http://lgtm:4317`, so nothing else needs turning on.
+
+[cols="1,2"]
+|===
+|Signal |Path
+
+|Traces |OTLP to the collector, stored in Tempo
+|Logs |OTLP to the collector, stored in Loki with `trace_id` and `span_id`
+|Metrics |Prometheus scrapes `/q/metrics` on the agent's private port 9000 (see below)
+|===
+
+Grafana is on http://localhost:3000, with the Qlawkus dashboard provisioned as its home page (the same `examples/observability/grafana/qlawkus-agent.json` the build checks against the metrics, mounted rather than copied). The Tempo and Loki data sources are linked both ways, so a trace opens its logs and a log line opens its trace.
+
+Set `GRAFANA_ADMIN_PASSWORD` in `.env` before the first start:
+
+[source,bash]
+----
+echo "GRAFANA_ADMIN_PASSWORD=$(openssl rand -base64 18)" >> .env
+----
+
+The image grants every anonymous visitor the Admin role, so the stack turns anonymous access off, and the container refuses to start without the password rather than fall back to `admin`/`admin`. The agent does not depend on it: with `lgtm` down, the agent keeps serving and only the telemetry is lost. Grafana reads the password only when it first creates its database, so changing it later takes the CLI, pointed at the data directory the image uses (without `GF_PATHS_DATA` it resets a different, empty database and reports success):
+
+[source,bash]
+----
+docker compose exec -w /otel-lgtm/grafana -e GF_PATHS_DATA=/data/grafana/data lgtm \
+  ./bin/grafana cli admin reset-admin-password '<new password>'
+----
+
+Then put the same value in `.env`, which the next recreate of the container checks.
+
+Data lives on the `qlawkus_lgtm-data` volume. Upstream describes the image as meant for development, demo and testing, and points production at a managed backend; Qlawkus is single-instance by design, so one container on the same host is a fair fit. A deployment that outgrows it points `QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT` at its own collector and scrapes port 9000 from its own Prometheus, with no change to the agent.
+
+The image tag is pinned in `docker/lgtm/compose.yml` and bumped by Dependabot. `docker/lgtm/prometheus.yaml` is the image's own file plus the agent's scrape job, so a bump also means re-copying the image's version of it.
 
 === Reading a turn as a trace
 
@@ -199,29 +235,16 @@ A Grafana dashboard for all of these, plus the upstream turn and model meters, s
 
 The instrumentation lives in `qlawkus-client` and compiles against the Micrometer API, which opens no socket and exports nothing. With the `observability` capability deselected there is no registry bean, every meter call is a no-op, and nothing is published: telemetry is omitted at module level, not merely silenced by a flag.
 
-=== Protect the scrape endpoint
+=== Keep the scrape endpoint private
 
-The scrape output carries token usage, provider and model names, and - once cost estimation is on - what the agent is spending. This distribution keeps it behind the same credential as the admin API, while leaving health open for the probes:
-
-[source,properties]
-----
-quarkus.http.auth.permission.metrics.paths=/q/metrics
-quarkus.http.auth.permission.metrics.policy=authenticated
-----
-
-Prometheus supports `basic_auth` in its scrape configuration, so collection is unaffected. If you build your own distribution, apply the equivalent for whichever auth mechanism you wired in - the extension deliberately imposes no policy, because the mechanism is the integrator's choice.
-
-== Cost estimation
-
-An agent that runs jobs overnight on its own spends money while nobody is watching, so cost per job and per channel is a number you want before the invoice rather than after.
-
-`quarkus-langchain4j` already reports token counts. Supplying a price turns them into the `gen_ai.client.estimated_cost` metric:
+The scrape output carries token usage, provider and model names, and - once cost estimation is on - what the agent is spending. This distribution serves it on the Quarkus management interface, port 9000, and never on the public port, while health stays public for the probes:
 
 [source,properties]
 ----
-qlawkus.cost.enabled=true
+quarkus.management.enabled=true
+quarkus.smallrye-health.management.enabled=false
 ----
 
-It is **off by default on purpose**. An estimate is indistinguishable from a measurement once it reaches a dashboard, so a default price would be a confident wrong number. Enter your real rates before switching it on; see the `qlawkus.cost` section of xref:config-reference.adoc[Configuration] for the properties.
+Both are build-time properties. The scrape on 9000 takes no credential, deliberately: every authenticated identity in this distribution is the admin, so a credential for Prometheus would be the admin one, sitting in plaintext next to the Argon2id hash meant to protect it. The boundary is the network instead. Compose never publishes 9000, and the reference Kubernetes Deployment names it `management` so it can be kept out of any Service that leaves the cluster.
 
-If your billing is not a flat per-token rate - tiered pricing, a committed-spend contract, or a self-hosted model that costs nothing per call - supply your own `CostEstimator` bean and it is consulted first.
+If you build your own distribution, either keep the same split or put `/q/metrics` behind whichever auth mechanism you wired in. The extension deliberately imposes no policy, because the mechanism is the integrator's choice.

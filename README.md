@@ -58,8 +58,11 @@ Set `LLM_API_KEY` and a real admin credential in `.env` (see [Authentication](#a
 ```bash
 echo "LLM_KIND=nvidia"        >> .env   # or openai, deepseek, mistral, groq, xai, openrouter
 echo "LLM_API_KEY=nvapi-xxxx" >> .env
+echo "GRAFANA_ADMIN_PASSWORD=$(openssl rand -base64 18)" >> .env
 ./run.sh prod
 ```
+
+The stack includes observability: Grafana on http://localhost:3000 (user `admin`, the password above) opens on the Qlawkus dashboard, with traces in Tempo and logs in Loki linked to them. See [Operations](site/content/operations.adoc), "The bundled stack".
 
 For the native image (faster startup, lower memory; the native compile is heavy):
 
@@ -106,7 +109,8 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 | `LLM_CHAT_MODEL` | provider default | Override the chat model (NVIDIA default `nvidia/nemotron-3-ultra-550b-a55b`) |
 | `LLM_EMBEDDING_MODEL` | provider default | Override the embedding model (NVIDIA default `nvidia/nemotron-3-embed-1b`, 2048 dimensions) |
 | `LLM_TIMEOUT` | `180s` | Primary model request timeout |
-| `EMBEDDING_DIMENSION` | `1024` | Must match embedding model output |
+| `GRAFANA_ADMIN_PASSWORD` | none | Grafana admin password for the bundled `lgtm` service. Required: Grafana will not start without it |
+| `EMBEDDING_DIMENSION` | provider default (NVIDIA `2048`, others `1024`) | Must match embedding model output; a change re-embeds stored vectors at the next boot |
 | `OLLAMA_FALLBACK_MODEL` | `qwen3.5:4b` | Ollama fallback chat model |
 | `OLLAMA_FALLBACK_EMBEDDING_MODEL` | `mxbai-embed-large` | Ollama fallback embedding model |
 | `QLAWKUS_ADMIN_PASSWORD_HASH` | — (required in prod) | Argon2id hash for the admin user — see [Authentication](#authentication) |
@@ -315,6 +319,7 @@ public class MyTool {
 - **PostgreSQL 17 + pgvector** — persistent storage
 - **Ollama** (+ `ollama-init`) — local LLM fallback
 - **tts** (+ `tts-init`) — openedai-speech (Piper) for local text-to-speech, opt-in via `TTS_ENABLED`
+- **lgtm** — `grafana/otel-lgtm` (OTel Collector, Prometheus, Tempo, Loki, Grafana on `3000`); scrapes metrics from the agent's private port `9000`
 
 Requires `LLM_API_KEY` (provider chosen with `LLM_KIND`, shipped as `nvidia`) and a real admin credential (see [Authentication](#authentication)). Exposes host port `8742` → container `8080` (the Google OAuth redirect URI must match this host port).
 
@@ -324,6 +329,7 @@ Requires `LLM_API_KEY` (provider chosen with `LLM_KIND`, shipped as `nvidia`) an
 - **PostgreSQL 17 + pgvector** — persistent storage
 - **Ollama** — local LLM inference
 - **ollama-init** — one-shot container that pulls models on first start
+- **lgtm** — same observability stack as prod
 
 No API keys needed. Exposes host port `8742` → container `8080` (app).
 
