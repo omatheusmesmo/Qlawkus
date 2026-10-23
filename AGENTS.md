@@ -300,6 +300,8 @@ Where each measurement attaches, and why, is the part worth knowing before addin
 - **Fallback** - counted in the guards' fallback handler, which is the exact moment the primary is abandoned, so a switch is recorded even when the breaker never opens. Breaker state is a gauge bound to the `@ApplicationScoped` guard, because Micrometer holds only a weak reference to the gauged object.
 - **Embedding** - `AgentMeters.embedFact` wraps the embed loop in each of the three `FactStore` implementations, so the outcome recorded is the embed's own. `FactChunker` stays a pure function: chunking runs before anything reaches the model and has no outcome to report, so metering there could only ever record a success. The convenience store constructors used by tests pass `AgentMeters.disabled()`.
 
+**Logs.** `qlawkus-observability` brings `quarkus-logging-json`, so the console is JSON in prod; its `microprofile-config.properties` turns that off for `%dev` and `%test`. Correlation needs no code: quarkus-opentelemetry writes `traceId`/`spanId` into the MDC and the formatter emits it. Note that `quarkus.otel.sdk.disabled=true` (the shipped default) still creates valid spans and fills the MDC; it only stops export, so a test that compares MDC ids to a span's must also assert the span is valid, or two all-zero ids would pass it.
+
 User-facing catalog: `site/content/operations.adoc` under "What the agent measures about itself".
 
 ## Key Entry Points

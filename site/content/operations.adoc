@@ -147,6 +147,12 @@ With tracing on, every tool call in a ReAct turn is its own span under the turn,
 
 Tool arguments and results stay out of the span by default, since either can carry what the owner said. The upstream switches cover both kinds of tool: `quarkus.langchain4j.tracing.include-tool-arguments` and `quarkus.langchain4j.tracing.include-tool-result`, both runtime properties.
 
+=== Logs that join their trace
+
+Selecting the capability also switches the console to JSON, one object per line, which is what a container log pipeline can parse and query. `quarkus:dev` and test runs keep the readable format; turn JSON off in a deployment with `quarkus.log.console.json.enabled=false`, a runtime property.
+
+Each entry carries the MDC, and that is where the trace ids live: a line logged while a span is current has `mdc.traceId` and `mdc.spanId`. Find the slow turn in the trace, then filter the logs on its `traceId`, and the two are one investigation. This works on the shipped configuration, before any collector exists: `quarkus.otel.sdk.disabled=true` stops spans from being exported, not from being created, so the ids still reach the logs.
+
 === What the agent measures about itself
 
 The meters above arrive from upstream. These are the ones Qlawkus emits itself, because no upstream extension can see them: they describe the cognition subsystem, which is specific to this agent.

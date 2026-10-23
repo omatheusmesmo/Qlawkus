@@ -35,6 +35,14 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-opentelemetry</artifactId>
         </dependency>
+        <!-- JSON on the console in prod, so container logs are something an aggregator can query, and
+             the MDC rides along: that is where quarkus-opentelemetry puts traceId and spanId, which
+             turns a log line and a trace into one investigation. Dev and test keep the readable format
+             (see microprofile-config.properties). -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-logging-json</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
