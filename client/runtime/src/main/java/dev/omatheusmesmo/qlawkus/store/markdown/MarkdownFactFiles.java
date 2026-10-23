@@ -28,13 +28,27 @@ import java.util.stream.Stream;
 public class MarkdownFactFiles {
 
   private static final String CACHE_FILE = ".embeddings.json";
+  private static final String CACHE_MODEL_FILE = ".embeddings.model";
   private static final String DELIMITER = "---";
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private final Path root;
+  private final String cacheModel;
 
   public MarkdownFactFiles(Path root) {
+    this(root, null);
+  }
+
+  /**
+   * Keys the embedding cache on {@code cacheModel}, the embedding model's name. A cached vector is
+   * only comparable with vectors from the model that produced it, even at the same dimension, so a
+   * cache written by another model, or by a version that did not record one, is ignored and the
+   * facts are re-embedded. Keying on the name rather than asking the model its dimension keeps a
+   * fully cached boot offline. A null model disables the check.
+   */
+  public MarkdownFactFiles(Path root, String cacheModel) {
     this.root = root;
+    this.cacheModel = cacheModel;
   }
 
   public record FactRecord(String id, String content, Map<String, String> metadata) {
@@ -102,6 +116,10 @@ public class MarkdownFactFiles {
     if (!Files.isRegularFile(file)) {
       return new LinkedHashMap<>();
     }
+    if (cacheModel != null && !cacheModel.equals(readCacheModel())) {
+      Log.infof("Embedding cache %s was not written by %s; re-embedding the facts", file, cacheModel);
+      return new LinkedHashMap<>();
+    }
     try {
       Map<String, float[]> cache = MAPPER.readValue(Files.readString(file, StandardCharsets.UTF_8),
           new TypeReference<LinkedHashMap<String, float[]>>() {});
@@ -117,8 +135,20 @@ public class MarkdownFactFiles {
       Files.createDirectories(root);
       Files.writeString(root.resolve(CACHE_FILE), MAPPER.writeValueAsString(cache),
           StandardCharsets.UTF_8);
+      if (cacheModel != null) {
+        Files.writeString(root.resolve(CACHE_MODEL_FILE), cacheModel, StandardCharsets.UTF_8);
+      }
     } catch (IOException e) {
       Log.warnf(e, "Failed to write embedding cache");
+    }
+  }
+
+  private String readCacheModel() {
+    Path file = root.resolve(CACHE_MODEL_FILE);
+    try {
+      return Files.isRegularFile(file) ? Files.readString(file, StandardCharsets.UTF_8).strip() : null;
+    } catch (IOException e) {
+      return null;
     }
   }
 

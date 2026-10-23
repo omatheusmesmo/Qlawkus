@@ -12,15 +12,19 @@ import java.util.Optional;
  * Ollama is intentionally absent (it has its own provider namespace and serves as the fallback layer).
  *
  * <p>Chat model names move fast and are meant to be refreshed here periodically; they are always
- * overridable via {@code LLM_CHAT_MODEL}. Embedding model/dimension/input-type are stable per provider.
+ * overridable via {@code LLM_CHAT_MODEL}. Embedding model/dimension/input-type are stable per provider,
+ * but not forever: NVIDIA retired {@code nv-embedqa-e5-v5} on 2026-08-25, and its successor
+ * {@code nemotron-3-embed-1b} only produces 2048 dimensions. A dimension change re-sizes the pgvector
+ * column at the next boot ({@code R__embedding_dimension}) and re-embeds what was stored
+ * ({@code EmbeddingBackfill}).
  */
 public enum ProviderKind {
 
     // sendsDimensionsParam: only OpenAI's text-embedding-3-* accept the `dimensions` request param
-    // (Matryoshka reduction). Native-dimension models (NVIDIA nv-embedqa, mistral-embed, ollama mxbai)
+    // (Matryoshka reduction). Native-dimension models (NVIDIA nemotron-embed, mistral-embed, ollama mxbai)
     // REJECT it, so it must not be sent for them.
     OPENAI("https://api.openai.com/v1/", "gpt-5-mini", "text-embedding-3-large", 1024, null, true),
-    NVIDIA("https://integrate.api.nvidia.com/v1", "nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nv-embedqa-e5-v5", 1024, "passage", false),
+    NVIDIA("https://integrate.api.nvidia.com/v1", "nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3-embed-1b", 2048, "passage", false),
     DEEPSEEK("https://api.deepseek.com", "deepseek-v4-flash", "deepseek-embed", 1024, null, false),
     MISTRAL("https://api.mistral.ai/v1", "mistral-large-latest", "mistral-embed", 1024, null, false),
     GROQ("https://api.groq.com/openai/v1", "qwen/qwen3.6-27b", null, 0, null, false),

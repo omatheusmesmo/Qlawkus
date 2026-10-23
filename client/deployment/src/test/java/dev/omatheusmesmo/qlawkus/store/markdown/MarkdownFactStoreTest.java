@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.store.markdown;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -43,6 +44,57 @@ class MarkdownFactStoreTest {
     MarkdownFactStore store = new MarkdownFactStore(tempDir.toString(), model);
     store.load();
     return store;
+  }
+
+  /**
+   * A cache written by one embedding model holds vectors another cannot be compared with, even at the
+   * same dimension, so a model change must re-embed rather than load them. This is the markdown half
+   * of #357, where NVIDIA's retired 1024 model was replaced by a 2048 one.
+   */
+  @Test
+  void aChangedEmbeddingModelReembedsRatherThanLoadingVectorsItCannotCompareWith() {
+    MarkdownFactStore before = new MarkdownFactStore(tempDir.toString(), new FakeEmbeddingModel(), "model-a");
+    before.load();
+    before.store("the owner keeps bees on the roof", source(MemorySource.REMEMBER_TOOL));
+
+    FakeEmbeddingModel successor = new FakeEmbeddingModel(48);
+    MarkdownFactStore after = new MarkdownFactStore(tempDir.toString(), successor, "model-b");
+    after.load();
+
+    assertEquals(1, successor.embedCalls, "the cached vector belongs to another model");
+    assertFalse(after.search("bees on the roof", 5, 0.0).isEmpty(), "and the fact is still found");
+  }
+
+  /**
+   * A model change re-embeds every fact at load, which makes one provider error far more likely to
+   * land there. It must cost that fact, not the store: a load that throws leaves every caller of the
+   * fact store failing, while a skipped fact is simply retried at the next boot, since it was never
+   * cached.
+   */
+  @Test
+  void aFactThatFailsToEmbedAtLoadIsSkippedRatherThanFailingTheStore() {
+    MarkdownFactStore before = new MarkdownFactStore(tempDir.toString(), new FakeEmbeddingModel(), "model-a");
+    before.load();
+    before.store("the owner keeps bees on the roof", source(MemorySource.REMEMBER_TOOL));
+    before.store("a poison fact the provider refuses", source(MemorySource.REMEMBER_TOOL));
+
+    MarkdownFactStore after = new MarkdownFactStore(tempDir.toString(), new FakeEmbeddingModel(48, "poison"),
+        "model-b");
+
+    assertDoesNotThrow(after::load, "one fact the provider refuses must not take down the store");
+    assertFalse(after.search("bees on the roof", 5, 0.0).isEmpty(), "the other facts still load");
+  }
+
+  @Test
+  void anUnchangedEmbeddingModelReusesItsCache() {
+    MarkdownFactStore before = new MarkdownFactStore(tempDir.toString(), new FakeEmbeddingModel(), "model-a");
+    before.load();
+    before.store("the owner keeps bees on the roof", source(MemorySource.REMEMBER_TOOL));
+
+    FakeEmbeddingModel same = new FakeEmbeddingModel();
+    new MarkdownFactStore(tempDir.toString(), same, "model-a").load();
+
+    assertEquals(0, same.embedCalls, "a restart with the same model must not call the provider again");
   }
 
   private long markdownFileCount() throws IOException {
@@ -195,25 +247,43 @@ class MarkdownFactStoreTest {
   private static final class FakeEmbeddingModel implements EmbeddingModel {
 
     int embedCalls = 0;
+    private final int dimension;
+    private final String refused;
+
+    FakeEmbeddingModel() {
+      this(32);
+    }
+
+    FakeEmbeddingModel(int dimension) {
+      this(dimension, null);
+    }
+
+    FakeEmbeddingModel(int dimension, String refused) {
+      this.dimension = dimension;
+      this.refused = refused;
+    }
 
     @Override
     public Response<List<Embedding>> embedAll(List<TextSegment> segments) {
       embedCalls += segments.size();
       List<Embedding> embeddings = new ArrayList<>();
       for (TextSegment segment : segments) {
-        embeddings.add(vectorFor(segment.text()));
+        if (refused != null && segment.text().contains(refused)) {
+          throw new IllegalStateException("the provider refused this input");
+        }
+        embeddings.add(vectorFor(segment.text(), dimension));
       }
       return Response.from(embeddings);
     }
 
     @Override
     public int dimension() {
-      return 32;
+      return dimension;
     }
 
-    private static Embedding vectorFor(String text) {
+    private static Embedding vectorFor(String text, int dimension) {
       Random random = new Random(text.hashCode());
-      float[] vector = new float[32];
+      float[] vector = new float[dimension];
       for (int i = 0; i < vector.length; i++) {
         vector[i] = random.nextFloat() * 2 - 1;
       }
