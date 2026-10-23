@@ -1,9 +1,18 @@
 package dev.omatheusmesmo.qlawkus.store;
 
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingStore;
 import java.util.List;
 import java.util.Map;
 
 public interface FactStore {
+
+  /**
+   * The embedding index this store writes facts into, which active memory retrieves from. Exposing
+   * it through the SPI ties recall to the selected backend: whatever {@code FactStore} the build
+   * resolves, recall reads the index that store writes, never a sibling backend's.
+   */
+  EmbeddingStore<TextSegment> embeddingStore();
 
   /**
    * Stores the content as an embedding. Idempotent on identical content (deduplicated by hash).

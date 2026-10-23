@@ -258,7 +258,8 @@ public class MarkdownFactStore implements FactStore {
     return all.size();
   }
 
-  /** The in-process embedding store backing this fact store; read by the active-memory augmentor. */
+  /** The in-process index rebuilt from the {@code .md} files; no database is involved. */
+  @Override
   public EmbeddingStore<TextSegment> embeddingStore() {
     return store;
   }

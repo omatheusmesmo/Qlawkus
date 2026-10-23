@@ -89,6 +89,12 @@ public class HybridFactStore implements FactStore {
     });
   }
 
+  /** The pgvector mirror, not the {@code .md} files, so recall scales and persists like pgvector. */
+  @Override
+  public EmbeddingStore<TextSegment> embeddingStore() {
+    return embeddingStore;
+  }
+
   @Override
   public List<String> search(String query, int maxResults, double minScore) {
     return texts(EmbeddingSearchRequest.builder()
