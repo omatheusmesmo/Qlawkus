@@ -195,6 +195,8 @@ The meters above arrive from upstream. These are the ones Qlawkus emits itself, 
 |`store`, `backend`, `operation`, `outcome`
 |===
 
+A Grafana dashboard for all of these, plus the upstream turn and model meters, ships under `examples/observability/grafana/qlawkus-agent.json`. It is versioned with the code and checked against it: the build fails when a panel queries a series the agent does not publish, or when a meter is charted nowhere.
+
 The instrumentation lives in `qlawkus-client` and compiles against the Micrometer API, which opens no socket and exports nothing. With the `observability` capability deselected there is no registry bean, every meter call is a no-op, and nothing is published: telemetry is omitted at module level, not merely silenced by a flag.
 
 === Protect the scrape endpoint

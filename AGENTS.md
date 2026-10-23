@@ -302,7 +302,7 @@ Where each measurement attaches, and why, is the part worth knowing before addin
 
 **Logs.** `qlawkus-observability` brings `quarkus-logging-json`, so the console is JSON in prod; its `microprofile-config.properties` turns that off for `%dev` and `%test`. Correlation needs no code: quarkus-opentelemetry writes `traceId`/`spanId` into the MDC and the formatter emits it. Note that `quarkus.otel.sdk.disabled=true` (the shipped default) still creates valid spans and fills the MDC; it only stops export, so a test that compares MDC ids to a span's must also assert the span is valid, or two all-zero ids would pass it.
 
-User-facing catalog: `site/content/operations.adoc` under "What the agent measures about itself".
+User-facing catalog: `site/content/operations.adoc` under "What the agent measures about itself". The reference Grafana dashboard is `examples/observability/grafana/qlawkus-agent.json`; `DashboardMetricsTest` fails when a panel queries an unpublished series or a `qlawkus.*` constant in `AgentMeters` is charted nowhere, so **adding a meter means adding a panel**.
 
 ## Key Entry Points
 
