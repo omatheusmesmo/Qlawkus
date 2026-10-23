@@ -78,6 +78,14 @@
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-core</artifactId>
     </dependency>
+    <!-- The tracing API only, for the same reason as micrometer-core above: it holds no exporter and
+         opens no socket. The SDK and the OTLP exporter come with qlawkus-observability. Declared
+         rather than left transitive (the scheduler pulls it in today) because the tool spans compile
+         against it directly. -->
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api</artifactId>
+    </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-rest-jackson</artifactId>
