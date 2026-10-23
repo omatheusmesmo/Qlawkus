@@ -104,7 +104,7 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 | `LLM_KIND` | `openai` (app default); the Compose files ship `nvidia` | Provider profile (`openai`, `nvidia`, `deepseek`, `mistral`, `groq`, `xai`, `openrouter`) — sets base URL + default chat/embedding models |
 | `LLM_API_KEY` | — | API key for the chosen provider. Required for prod. NVIDIA keys: [build.nvidia.com](https://build.nvidia.com/) |
 | `LLM_CHAT_MODEL` | provider default | Override the chat model (NVIDIA default `nvidia/nemotron-3-ultra-550b-a55b`) |
-| `LLM_EMBEDDING_MODEL` | provider default | Override the embedding model (NVIDIA default `nvidia/nv-embedqa-e5-v5`) |
+| `LLM_EMBEDDING_MODEL` | provider default | Override the embedding model (NVIDIA default `nvidia/nemotron-3-embed-1b`, 2048 dimensions) |
 | `LLM_TIMEOUT` | `180s` | Primary model request timeout |
 | `EMBEDDING_DIMENSION` | `1024` | Must match embedding model output |
 | `OLLAMA_FALLBACK_MODEL` | `qwen3.5:4b` | Ollama fallback chat model |

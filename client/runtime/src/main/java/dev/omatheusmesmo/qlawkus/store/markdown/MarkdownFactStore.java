@@ -25,6 +25,8 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 
 /**
@@ -52,9 +54,15 @@ public class MarkdownFactStore implements FactStore {
   private final InMemoryEmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<>();
 
   @Inject
-  public MarkdownFactStore(AgentConfig config, EmbeddingModel embeddingModel, AgentMeters meters) {
+  public MarkdownFactStore(AgentConfig config, EmbeddingModel embeddingModel, AgentMeters meters,
+      @ConfigProperty(name = "qlawkus.embedding.model-name") Optional<String> embeddingModelName) {
     this(config.facts().root(), embeddingModel,
-        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars()), meters);
+        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars()), meters,
+        embeddingModelName.orElse(null));
+  }
+
+  public MarkdownFactStore(String root, EmbeddingModel embeddingModel, String embeddingModelName) {
+    this(root, embeddingModel, new FactChunker(1200, 120), AgentMeters.disabled(), embeddingModelName);
   }
 
   public MarkdownFactStore(String root, EmbeddingModel embeddingModel) {
@@ -67,7 +75,12 @@ public class MarkdownFactStore implements FactStore {
 
   public MarkdownFactStore(String root, EmbeddingModel embeddingModel, FactChunker chunker,
       AgentMeters meters) {
-    this.files = new MarkdownFactFiles(Path.of(root));
+    this(root, embeddingModel, chunker, meters, null);
+  }
+
+  private MarkdownFactStore(String root, EmbeddingModel embeddingModel, FactChunker chunker,
+      AgentMeters meters, String embeddingModelName) {
+    this.files = new MarkdownFactFiles(Path.of(root), embeddingModelName);
     this.embeddingModel = embeddingModel;
     this.chunker = chunker;
     this.meters = meters;
@@ -77,6 +90,11 @@ public class MarkdownFactStore implements FactStore {
    * Rebuilds the in-process embedding index from the {@code .md} files, re-embedding only segments
    * absent from the JSON cache. Runs automatically as the CDI {@code @PostConstruct}; also callable
    * directly when the store is constructed outside the container (tests).
+   *
+   * <p>A fact whose embedding fails is skipped whole, with a warning, instead of failing the load: a
+   * {@code @PostConstruct} that throws leaves every caller of the fact store failing, and an embedding
+   * model change re-embeds every fact here at once. The skipped fact was never cached, so the next
+   * boot retries it.
    */
   @PostConstruct
   public void load() {
@@ -84,18 +102,26 @@ public class MarkdownFactStore implements FactStore {
     Map<String, float[]> refreshed = new LinkedHashMap<>();
     boolean changed = false;
     for (MarkdownFactFiles.FactRecord fact : files.loadAll()) {
-      for (FactChunker.Chunk chunk : chunker.chunk(fact.content(), fact.metadata())) {
-        String entryId = entryId(fact.id(), chunk);
-        float[] vector = cache.get(entryId);
-        Embedding embedding;
-        if (vector != null) {
-          embedding = Embedding.from(vector);
-        } else {
-          embedding = embeddingModel.embed(chunk.text()).content();
-          changed = true;
+      List<Map.Entry<FactChunker.Chunk, Embedding>> embedded = new ArrayList<>();
+      try {
+        for (FactChunker.Chunk chunk : chunker.chunk(fact.content(), fact.metadata())) {
+          float[] vector = cache.get(entryId(fact.id(), chunk));
+          if (vector != null) {
+            embedded.add(Map.entry(chunk, Embedding.from(vector)));
+          } else {
+            embedded.add(Map.entry(chunk, embeddingModel.embed(chunk.text()).content()));
+            changed = true;
+          }
         }
-        refreshed.put(entryId, embedding.vector());
-        store.add(entryId, embedding, segment(chunk.text(), chunk.metadata()));
+      } catch (RuntimeException e) {
+        Log.warnf(e, "Could not embed fact %s; it is not retrievable until the next boot", fact.id());
+        continue;
+      }
+      for (Map.Entry<FactChunker.Chunk, Embedding> entry : embedded) {
+        FactChunker.Chunk chunk = entry.getKey();
+        String entryId = entryId(fact.id(), chunk);
+        refreshed.put(entryId, entry.getValue().vector());
+        store.add(entryId, entry.getValue(), segment(chunk.text(), chunk.metadata()));
       }
     }
     if (changed || refreshed.size() != cache.size()) {

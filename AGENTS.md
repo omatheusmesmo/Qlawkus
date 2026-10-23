@@ -56,7 +56,7 @@ Scheduled background jobs, each with a manual `POST /api/admin/memory/*` trigger
 
 Config knobs: `qlawkus.agent.memory.*`, `qlawkus.agent.active-memory.*`, `qlawkus.agent.transcript-*`, `qlawkus.agent.semantic-extractor.*`, `qlawkus.memory-review.*`, `qlawkus.memory-curation.*`. Admin REST: `GET/DELETE /api/admin/memory` (summary / purge), `POST /api/admin/memory/{review,curate}`. End-to-end check: `scripts/memory-benchmark.sh` (needs a running instance + real LLM).
 
-Gotcha when testing recall: working memory and the system prompt are both sources, so to prove a fact came from the vector store, `TRUNCATE chat_message_entity` first. The embedding model (`nvidia/nv-embedqa-e5-v5`) is retrieval-tuned and scores relevant pairs high, so a cosine `min-score` of 0.9 is not as strict as it looks - `0.7` is the default margin.
+Gotcha when testing recall: working memory and the system prompt are both sources, so to prove a fact came from the vector store, `TRUNCATE chat_message_entity` first. The NVIDIA embedding model (`nvidia/nemotron-3-embed-1b`) scores a relevant query/passage pair around 0.88 and an unrelated one around 0.61 (langchain4j's `(cos+1)/2`), so `0.7` is the default margin. Re-measure that gap whenever the embedding model changes: a new model with a lower distribution silently stops recall.
 
 ## Skills (procedural memory)
 
@@ -205,7 +205,7 @@ Two named model configs via `@ModelName`, both provider-agnostic:
 Dev mode: Dev Services auto-provisions Ollama (no `.env` needed).
 Prod: Requires `LLM_API_KEY` in `.env`.
 
-Embedding dimension is hardcoded to 1024 via `EMBEDDING_DIMENSION` - must match the model output.
+Embedding dimension comes from the provider kind (`ProviderKind`; NVIDIA `nemotron-3-embed-1b` is 2048, the others 1024) and can be overridden with `EMBEDDING_DIMENSION`. The pgvector column follows it: the repeatable `R__embedding_dimension` migration is keyed on the dimension through a Flyway placeholder (a repeatable migration is checksummed after placeholder replacement, so a new dimension re-applies it), keeps vectors that still match and clears the rest, and `store.pg.EmbeddingBackfill` re-embeds the cleared rows from their text after boot, on the `batch` workload. The markdown backend keys its `.embeddings.json` cache on the model name (`.embeddings.model` sidecar), so a model change re-embeds instead of loading incomparable vectors. NVIDIA retired the previous default, `nv-embedqa-e5-v5`, on 2026-08-25 (#357): every turn failed with 410, since active memory embeds the query first.
 
 Cost estimation is opt-in via `qlawkus.cost.enabled`. `model/TokenPriceCostEstimator` prices the token counts quarkus-langchain4j already reports, which is what turns on its `gen_ai.client.estimated_cost` metric. Off by default on purpose: an estimate is indistinguishable from a measurement once it reaches a dashboard, so a default price would be a confident wrong number. A distribution with tiered or committed pricing supplies its own `CostEstimator` at the default priority and is consulted first.
 

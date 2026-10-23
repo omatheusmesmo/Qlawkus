@@ -7,8 +7,8 @@ services:
       - path: .env
         required: false
     environment:
-      # Provider profile via kind. Default 'nvidia' => base-url + nemotron chat + nv-embedqa
-      # embedding (1024 dims, input_type). Just set LLM_API_KEY (your NVIDIA key) in .env.
+      # Provider profile via kind. Default 'nvidia' => base-url + nemotron chat + nemotron-embed
+      # embedding (2048 dims, input_type). Just set LLM_API_KEY (your NVIDIA key) in .env.
       # Switch provider with LLM_KIND (openai, deepseek, mistral, groq, xai, openrouter) or override
       # individual values with LLM_CHAT_MODEL / LLM_EMBEDDING_MODEL / EMBEDDING_DIMENSION.
       - LLM_KIND=${LLM_KIND:-nvidia}
@@ -70,8 +70,8 @@ services:
       - path: .env
         required: false
     environment:
-      # Provider profile via kind. Default 'nvidia' => base-url + nemotron chat + nv-embedqa
-      # embedding (1024 dims, input_type). Just set LLM_API_KEY (your NVIDIA key) in .env.
+      # Provider profile via kind. Default 'nvidia' => base-url + nemotron chat + nemotron-embed
+      # embedding (2048 dims, input_type). Just set LLM_API_KEY (your NVIDIA key) in .env.
       # Switch provider with LLM_KIND (openai, deepseek, mistral, groq, xai, openrouter) or override
       # individual values with LLM_CHAT_MODEL / LLM_EMBEDDING_MODEL / EMBEDDING_DIMENSION.
       - LLM_KIND=${LLM_KIND:-nvidia}

@@ -46,6 +46,25 @@ class LlmKindConfigSourceFactoryTest {
         assertEquals(NVIDIA_BASE_URL, config.getConfigValue(EMBEDDING_BASE_URL).getValue());
     }
 
+    /**
+     * The NVIDIA default must be a model the provider still serves. {@code nvidia/nv-embedqa-e5-v5}
+     * was retired on 2026-08-25 and answers 410, which failed every turn, since active memory embeds
+     * the query before each reply (#357). Its successor only produces 2048 dimensions.
+     */
+    @Test
+    void nvidiaKindDefaultsToALiveEmbeddingModelAtItsNativeDimension() {
+        SmallRyeConfig config = new SmallRyeConfigBuilder()
+                .withSources(new LlmKindConfigSourceFactory())
+                .withSources(new PropertiesConfigSource(
+                        Map.of("LLM_KIND", "nvidia"), "env", OVERRIDE_SOURCE_ORDINAL))
+                .build();
+
+        assertEquals("nvidia/nemotron-3-embed-1b",
+                config.getConfigValue("qlawkus.embedding.model-name").getValue());
+        assertEquals(2048, ProviderKind.NVIDIA.embeddingDimensions(),
+                "the model rejects any other dimension, and the pgvector column is sized from this");
+    }
+
     @Test
     void explicitNativePrimaryBaseUrlIsHonoredAndInheritedByEmbedding() {
         String wiremock = "http://localhost:8089/v1";
