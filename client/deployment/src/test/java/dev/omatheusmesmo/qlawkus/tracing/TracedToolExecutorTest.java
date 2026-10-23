@@ -8,12 +8,18 @@ import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.TracerProvider;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -124,6 +130,47 @@ class TracedToolExecutorTest {
         assertEquals("ok", traced(tool, false, false).execute(REQUEST, "memory-1"));
 
         assertEquals("langchain4j.tools.searchSkillHub", toolSpan().getName());
+    }
+
+    /**
+     * The {@code observability} extension silences {@code io.opentelemetry.usage} because Quarkus
+     * itself misuses the API at boot. That would hide a misuse of ours too, so this keeps the detector
+     * pointed at the one place this project drives the trace API, on a recording and a no-op tracer.
+     */
+    @Test
+    void aToolCallReportsNoOpenTelemetryApiUsageIssue() {
+        Logger usage = Logger.getLogger("io.opentelemetry.usage");
+        Level previous = usage.getLevel();
+        List<LogRecord> issues = new CopyOnWriteArrayList<>();
+        Handler capture = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                issues.add(record);
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        usage.setLevel(Level.ALL);
+        usage.addHandler(capture);
+        try {
+            for (Tracer each : List.of(tracer, TracerProvider.noop().get("test"))) {
+                new TracedToolExecutor(REQUEST.name(),
+                        new RecordingTool(ToolExecutionResult.builder().resultText("ok").build()), each, true, true)
+                        .executeWithContext(REQUEST, null);
+            }
+        } finally {
+            usage.removeHandler(capture);
+            usage.setLevel(previous);
+        }
+
+        assertEquals(List.of(), issues.stream().map(LogRecord::getMessage).toList(),
+                "a usage issue of ours would be hidden by the logger the observability extension silences");
     }
 
     private TracedToolExecutor traced(ToolExecutor tool, boolean arguments, boolean result) {
