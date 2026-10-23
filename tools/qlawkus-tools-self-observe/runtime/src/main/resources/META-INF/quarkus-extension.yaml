@@ -1,0 +1,11 @@
+name: "Self Observe"
+metadata:
+  qlawkus:
+    capability: "self-observe"
+  keywords:
+    - "observability"
+    - "telemetry"
+    - "self-debugging"
+  categories:
+    - "observability"
+  status: "experimental"

@@ -29,6 +29,12 @@ services:
       # while Prometheus there scrapes /q/metrics on the private management port 9000.
       - QUARKUS_OTEL_SDK_DISABLED=false
       - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+      # The agent reads its own telemetry back through the read-only query APIs of the same service
+      # (site/content/operations.adoc, "The agent reading its own telemetry").
+      - QLAWKUS_SELF_OBSERVE_ENABLED=true
+      - QLAWKUS_SELF_OBSERVE_PROMETHEUS_URL=http://lgtm:9090
+      - QLAWKUS_SELF_OBSERVE_TEMPO_URL=http://lgtm:3200
+      - QLAWKUS_SELF_OBSERVE_LOKI_URL=http://lgtm:3100
       # Below: only values that DIFFER from the application.properties defaults, or REMAP a .env var
       # to the name the app expects. Pure pass-throughs (tokens, etc.) come from env_file (.env) and
       # already default in the properties, so they are not repeated here. Likewise AGENT_*/memory-*.
@@ -102,6 +108,12 @@ services:
       # while Prometheus there scrapes /q/metrics on the private management port 9000.
       - QUARKUS_OTEL_SDK_DISABLED=false
       - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+      # The agent reads its own telemetry back through the read-only query APIs of the same service
+      # (site/content/operations.adoc, "The agent reading its own telemetry").
+      - QLAWKUS_SELF_OBSERVE_ENABLED=true
+      - QLAWKUS_SELF_OBSERVE_PROMETHEUS_URL=http://lgtm:9090
+      - QLAWKUS_SELF_OBSERVE_TEMPO_URL=http://lgtm:3200
+      - QLAWKUS_SELF_OBSERVE_LOKI_URL=http://lgtm:3100
       # Only values that DIFFER from the application.properties defaults, or REMAP a .env var.
       - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-*}
       - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-*}
