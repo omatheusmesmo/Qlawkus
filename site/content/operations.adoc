@@ -235,6 +235,52 @@ A Grafana dashboard for all of these, plus the upstream turn and model meters, s
 
 The instrumentation lives in `qlawkus-client` and compiles against the Micrometer API, which opens no socket and exports nothing. With the `observability` capability deselected there is no registry bean, every meter call is a no-op, and nothing is published: telemetry is omitted at module level, not merely silenced by a flag.
 
+=== The agent reading its own telemetry
+
+Everything above is written for a person at a dashboard. The `self-observe` capability hands the same signals to the agent, so "why was my last answer slow", "which tool failed today" or "did memory recall anything" are questions it can answer by looking rather than guessing. It adds four tools:
+
+[cols="1,1,2"]
+|===
+|Tool |Backend and API |Returns
+
+|`queryMetrics(promql, lookback)`
+|Prometheus `/api/v1/query`, or `/api/v1/query_range` when a lookback is given
+|One line per series: its value now, or over the lookback its point count and minimum, maximum and last value (at most 60 points per series are evaluated).
+
+|`findTraces(traceql, lookback)`
+|Tempo `/api/search`
+|Trace ids with root span, service, start and duration, plus the first few matching spans.
+
+|`getTrace(traceId)`
+|Tempo `/api/traces/<id>`
+|A span tree: each span's name, duration and error status, depth-first in start order. Never the raw OTLP JSON.
+
+|`queryLogs(logql, lookback)`
+|Loki `/loki/api/v1/query_range`
+|Log lines newest first, each with its timestamp and level.
+|===
+
+The tools exist to read, so the boundary is what makes them safe to hand to a model:
+
+* *Read only.* Each call is one `GET` to a backend's query API. The tools never talk to Grafana, whose API could change dashboards or users, and never follow a redirect.
+* *No SSRF.* The base URLs come from configuration only. The model supplies a query string, which travels URL-encoded as a single parameter value, so it cannot change the host, the path or the other parameters; a trace id must be hex before it becomes part of a path.
+* *Bounded.* A lookback is clamped to `max-window`, and the result says so. That alone does not bound PromQL or LogQL, whose range selectors and `offset` read back from every evaluated point, so a query whose `[range]` or `offset` exceeds `max-window`, or uses the `@` modifier, is refused before any request. At most `max-results` series, traces, spans or lines come back, with a count of what was left out; each log line is cut at 1000 characters, the whole result at `max-chars`, and a backend answer over 4 MiB is refused.
+* *Each call times out.* A request that runs past `timeout` is reported as too expensive and is not retried: against a query API a timeout means the query is heavy, and retrying it is the load the timeout prevents. A 429, a 5xx or a refused connection is retried, as for every HTTP client in the agent. A 400 is not, and the backend's own error comes back so the model can fix its query.
+* *Data, not instructions.* Logs carry text from Discord or Telegram, and span names and labels carry tool names, so every result arrives inside a `<telemetry-data source="...">` block that opens with a warning to treat it as data. Any `<telemetry-data` or `</telemetry-data` inside the data is defused first, and newlines inside a log line are flattened, so a line cannot close the block and go on as if the tool were speaking.
+* *What a span was given stays out.* `getTrace` shows only an allow-list of attributes that describe what a span did (tool and model names, token counts, HTTP method and status, database operation, error type). Tool arguments and results never appear, even when tracing is configured to record them.
+
+The capability is off unless turned on, and a tool whose backend URL is unset says so instead of failing:
+
+[source,properties]
+----
+qlawkus.self-observe.enabled=true
+qlawkus.self-observe.prometheus-url=http://lgtm:9090
+qlawkus.self-observe.tempo-url=http://lgtm:3200
+qlawkus.self-observe.loki-url=http://lgtm:3100
+----
+
+`max-window` (default `6h`), `max-results` (`50`), `max-chars` (`8000`) and `timeout` (`10s`) are the bounds above; all are runtime properties, so the console or `PUT /api/admin/runtime-toggles` can change them. The Compose stacks set the four lines above against the bundled `lgtm` service, so the tools work there with no further setup. A locked-down distribution leaves `self-observe` out of `agent.yml`, and the tools are not in the binary at all.
+
 === Keep the scrape endpoint private
 
 The scrape output carries token usage, provider and model names, and - once cost estimation is on - what the agent is spending. This distribution serves it on the Quarkus management interface, port 9000, and never on the public port, while health stays public for the probes:

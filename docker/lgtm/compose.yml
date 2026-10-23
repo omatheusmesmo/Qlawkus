@@ -33,10 +33,15 @@ services:
       - ./dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/qlawkus.yaml:ro
       - ../../examples/observability/grafana/qlawkus-agent.json:/otel-lgtm/qlawkus-dashboards/qlawkus-agent.json:ro
     # Only Grafana is published. OTLP (4317/4318) and the backends' own APIs stay on the Compose
-    # network, where the agent sends to them and Prometheus scrapes the agent.
+    # network, where the agent sends to them and Prometheus scrapes the agent. The agent's
+    # self-observation tools read back from the Prometheus (9090), Tempo (3200) and Loki (3100) query
+    # APIs, never from Grafana.
     expose:
       - "4317"
       - "4318"
+      - "9090"
+      - "3200"
+      - "3100"
     ports:
       - "3000:3000"
     restart: unless-stopped

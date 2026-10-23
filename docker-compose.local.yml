@@ -42,6 +42,12 @@ services:
       # while Prometheus there scrapes /q/metrics on the private management port 9000.
       - QUARKUS_OTEL_SDK_DISABLED=false
       - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+      # The agent reads its own telemetry back through the read-only query APIs of the same service
+      # (site/content/operations.adoc, "The agent reading its own telemetry").
+      - QLAWKUS_SELF_OBSERVE_ENABLED=true
+      - QLAWKUS_SELF_OBSERVE_PROMETHEUS_URL=http://lgtm:9090
+      - QLAWKUS_SELF_OBSERVE_TEMPO_URL=http://lgtm:3200
+      - QLAWKUS_SELF_OBSERVE_LOKI_URL=http://lgtm:3100
       # Memory tuning (AGENT_*) is read from .env via env_file above; unset keys use the
       # extension defaults, so they are not repeated here.
     volumes:
