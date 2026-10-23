@@ -20,12 +20,12 @@
     <properties>
         <!-- Plain module (no Quarkus plugin) - give the parent's @{argLine} an empty default. -->
         <argLine></argLine>
-        <maven.version>3.9.16</maven.version>
+        <maven.version>3.10.0</maven.version>
         <maven-plugin-tools.version>3.16.0</maven-plugin-tools.version>
         <!-- slf4j-api (test only): instantiating MavenProject in the reactor-catalog test triggers
              its static logger init. maven-core is provided, so slf4j is not otherwise on the test cp.
-             Aligned with Maven 3.9.x; the same dependency Quarkus's own maven-plugin tests pull. -->
-        <slf4j.version>1.7.36</slf4j.version>
+             Aligned with the slf4j Maven 3.10.x ships; the same dependency Quarkus's own maven-plugin tests pull. -->
+        <slf4j.version>2.0.19</slf4j.version>
         <!-- The plugin descriptor mojo scans compiled classes with ASM; the version bundled with
              maven-plugin-tools predates Java 25 (class file v69), so pin a release that reads it. -->
         <asm.version>9.10.1</asm.version>
