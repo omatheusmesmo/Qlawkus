@@ -14,10 +14,9 @@ import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metad
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.metrics.MeteredContentRetriever;
+import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
-import dev.omatheusmesmo.qlawkus.store.markdown.MarkdownFactStore;
 import io.quarkus.arc.Arc;
-import io.quarkus.arc.InstanceHandle;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.List;
@@ -61,7 +60,8 @@ public class ActiveMemoryAugmentor implements Supplier<RetrievalAugmentor> {
 
     ContentRetriever retriever;
     if (enabled) {
-      EmbeddingStore<TextSegment> store = resolveEmbeddingStore();
+      EmbeddingStore<TextSegment> store =
+          Arc.container().instance(FactStore.class).get().embeddingStore();
       EmbeddingModel model = Arc.container().instance(EmbeddingModel.class).get();
       retriever = EmbeddingStoreContentRetriever.builder()
           .embeddingStore(store)
@@ -78,20 +78,5 @@ public class ActiveMemoryAugmentor implements Supplier<RetrievalAugmentor> {
             retriever, Arc.container().instance(AgentMeters.class).get()))
         .contentInjector(MEMORY_INJECTOR)
         .build();
-  }
-
-  /**
-   * The embedding store to retrieve facts from, chosen by the active cognition backend. In markdown
-   * mode the {@link MarkdownFactStore} bean is present and owns an in-process index (no database);
-   * otherwise the Postgres-backed {@code EmbeddingStore} (pgvector / hybrid) is used. Both flow
-   * through the same {@code EmbeddingStoreContentRetriever}.
-   */
-  @SuppressWarnings("unchecked")
-  private EmbeddingStore<TextSegment> resolveEmbeddingStore() {
-    InstanceHandle<MarkdownFactStore> markdown = Arc.container().instance(MarkdownFactStore.class);
-    if (markdown.isAvailable()) {
-      return markdown.get().embeddingStore();
-    }
-    return Arc.container().instance(EmbeddingStore.class).get();
   }
 }

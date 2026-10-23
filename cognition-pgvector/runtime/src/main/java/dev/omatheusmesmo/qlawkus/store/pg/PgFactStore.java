@@ -82,6 +82,11 @@ public class PgFactStore implements FactStore {
   }
 
   @Override
+  public EmbeddingStore<TextSegment> embeddingStore() {
+    return embeddingStore;
+  }
+
+  @Override
   public List<String> search(String query, int maxResults, double minScore) {
     Embedding queryEmbedding = embeddingModel.embed(query).content();
     EmbeddingSearchResult<TextSegment> results = embeddingStore.search(
