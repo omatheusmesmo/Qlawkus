@@ -4,11 +4,14 @@ import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
 import dev.langchain4j.service.tool.DefaultToolExecutor;
+import dev.langchain4j.service.tool.ToolExecutor;
 import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.ToolProviderRequest;
 import dev.langchain4j.service.tool.ToolProviderResult;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.metrics.MeteredToolExecutor;
+import dev.omatheusmesmo.qlawkus.tracing.TracedToolExecutor;
+import io.opentelemetry.api.trace.Tracer;
 import io.quarkus.arc.ClientProxy;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -18,6 +21,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class QlawToolProvider implements ToolProvider {
@@ -28,6 +32,15 @@ public class QlawToolProvider implements ToolProvider {
 
     @Inject
     AgentMeters meters;
+
+    @Inject
+    Instance<Tracer> tracer;
+
+    @ConfigProperty(name = "quarkus.langchain4j.tracing.include-tool-arguments", defaultValue = "false")
+    boolean includeToolArguments;
+
+    @ConfigProperty(name = "quarkus.langchain4j.tracing.include-tool-result", defaultValue = "false")
+    boolean includeToolResult;
 
     @Override
     public ToolProviderResult provideTools(ToolProviderRequest request) {
@@ -43,12 +56,24 @@ public class QlawToolProvider implements ToolProvider {
             List<ToolSpecification> specs = ToolSpecifications.toolSpecificationsFrom(beanClass);
             for (ToolSpecification spec : specs) {
                 Method toolMethod = findToolMethod(beanClass, spec);
-                builder.add(spec, new MeteredToolExecutor(
-                        spec.name(), new DefaultToolExecutor(tool, toolMethod), meters));
+                builder.add(spec, traced(spec.name(), new MeteredToolExecutor(
+                        spec.name(), new DefaultToolExecutor(tool, toolMethod), meters)));
                 Log.debugf("Registered extension tool: %s from %s", spec.name(), beanClass.getSimpleName());
             }
         }
         return builder.build();
+    }
+
+    /**
+     * Wraps the executor in a span when a tracer exists, which is exactly when the
+     * {@code observability} capability is selected. The argument and result switches are upstream's
+     * own, so one setting covers both the AI service tools and these.
+     */
+    private ToolExecutor traced(String name, ToolExecutor executor) {
+        if (!tracer.isResolvable()) {
+            return executor;
+        }
+        return new TracedToolExecutor(name, executor, tracer.get(), includeToolArguments, includeToolResult);
     }
 
     private Class<?> resolveBeanClass(Object tool) {

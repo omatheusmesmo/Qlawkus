@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.tool;
 import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.ToolProviderRequest;
 import dev.langchain4j.service.tool.ToolProviderResult;
+import dev.omatheusmesmo.qlawkus.metrics.MeteredToolExecutor;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -40,5 +41,14 @@ class QlawToolProviderTest {
 
         assertNotNull(resolved);
         assertInstanceOf(QlawToolProvider.class, resolved);
+    }
+
+    @Test
+    void toolsAreMeteredButNotTracedWithoutATracer() {
+        ToolProviderResult result = provider.provideTools(null);
+
+        assertFalse(result.tools().isEmpty(), "the client ships its own tools, so there is one to check");
+        result.tools().values().forEach(executor -> assertInstanceOf(MeteredToolExecutor.class, executor,
+                "with no tracing extension present there is nothing to export a span to"));
     }
 }

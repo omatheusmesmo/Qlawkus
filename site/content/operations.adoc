@@ -137,6 +137,16 @@ Both are runtime properties, so this is a toggle and a restart rather than a reb
 
 Metrics need no such gate: a Prometheus registry only exposes a scrape endpoint and reaches out to nothing.
 
+=== Reading a turn as a trace
+
+With tracing on, every tool call in a ReAct turn is its own span under the turn, so a slow answer shows how many tools ran, in what order, and which one stalled, and a tool's own HTTP calls nest under it. The tools declared on the AI service get that span from quarkus-langchain4j; the `@QlawTool` extension tools (Google Workspace, Skill Hub, shell, code review and the rest) get an identical one from the agent, so both read the same and one query finds them all:
+
+* span name `langchain4j.tools.<tool name>`
+* `gen_ai.operation.name=execute_tool`, `gen_ai.tool.name`, `gen_ai.tool.call.id`, `gen_ai.tool.type=function`
+* status ERROR, with the exception recorded, when the tool throws or returns an error result
+
+Tool arguments and results stay out of the span by default, since either can carry what the owner said. The upstream switches cover both kinds of tool: `quarkus.langchain4j.tracing.include-tool-arguments` and `quarkus.langchain4j.tracing.include-tool-result`, both runtime properties.
+
 === What the agent measures about itself
 
 The meters above arrive from upstream. These are the ones Qlawkus emits itself, because no upstream extension can see them: they describe the cognition subsystem, which is specific to this agent.
