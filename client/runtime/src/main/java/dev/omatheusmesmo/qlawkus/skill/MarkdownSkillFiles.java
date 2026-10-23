@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.skills.FileSystemSkill;
 import dev.langchain4j.skills.FileSystemSkillLoader;
+import dev.omatheusmesmo.qlawkus.store.markdown.WriteProbe;
 import io.quarkus.logging.Log;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -243,5 +244,9 @@ public class MarkdownSkillFiles {
       throw new IllegalArgumentException("Invalid skill name: " + name);
     }
     return trimmed;
+  }
+
+  public void verifyWritable() {
+    WriteProbe.verify(ownedRoot());
   }
 }

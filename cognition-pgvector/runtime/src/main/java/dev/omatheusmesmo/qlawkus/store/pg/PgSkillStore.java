@@ -22,6 +22,9 @@ import java.util.Optional;
 public class PgSkillStore implements SkillStore {
 
   @Inject
+  PgWriteProbe writeProbe;
+
+  @Inject
   BundledSkills bundled;
 
   @Override
@@ -76,5 +79,10 @@ public class PgSkillStore implements SkillStore {
   @Transactional
   public int sweepLifecycle(int staleAfterDays, int archiveAfterDays) {
     return SkillEntity.sweep(staleAfterDays, archiveAfterDays);
+  }
+
+  @Override
+  public void verifyWritable() {
+    writeProbe.verify(PgWriteProbe.Table.SKILL);
   }
 }

@@ -18,6 +18,9 @@ import java.util.List;
 public class PgEpisodicStore implements EpisodicStore {
 
   @Inject
+  PgWriteProbe writeProbe;
+
+  @Inject
   JournalRepository journals;
 
   @Override
@@ -43,5 +46,10 @@ public class PgEpisodicStore implements EpisodicStore {
   @Override
   public long purgeAll() {
     return journals.deleteAll();
+  }
+
+  @Override
+  public void verifyWritable() {
+    writeProbe.verify(PgWriteProbe.Table.JOURNAL);
   }
 }

@@ -22,6 +22,9 @@ import java.util.stream.Collectors;
 public class PgWorkingMemoryStore implements WorkingMemoryStore, ChatMemoryStore {
 
   @Inject
+  PgWriteProbe writeProbe;
+
+  @Inject
   Event<MessagesAppendedEvent> messagesAppended;
 
   @Override
@@ -127,5 +130,10 @@ public class PgWorkingMemoryStore implements WorkingMemoryStore, ChatMemoryStore
   @Transactional
   public void deleteMessages(Object memoryId) {
     deleteMessages(memoryId.toString());
+  }
+
+  @Override
+  public void verifyWritable() {
+    writeProbe.verify(PgWriteProbe.Table.CHAT_MESSAGES);
   }
 }

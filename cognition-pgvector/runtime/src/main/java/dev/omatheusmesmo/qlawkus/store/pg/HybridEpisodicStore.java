@@ -24,15 +24,18 @@ public class HybridEpisodicStore implements EpisodicStore {
 
   private final MarkdownEpisodicFiles files;
   private final JournalRepository journals;
+  private final PgWriteProbe writeProbe;
 
   @Inject
-  public HybridEpisodicStore(AgentConfig config, JournalRepository journals) {
-    this(config.episodic().root(), journals);
+  public HybridEpisodicStore(AgentConfig config, JournalRepository journals,
+      PgWriteProbe writeProbe) {
+    this(config.episodic().root(), journals, writeProbe);
   }
 
-  HybridEpisodicStore(String root, JournalRepository journals) {
+  HybridEpisodicStore(String root, JournalRepository journals, PgWriteProbe writeProbe) {
     this.files = new MarkdownEpisodicFiles(Path.of(root));
     this.journals = journals;
+    this.writeProbe = writeProbe;
   }
 
   @Override
@@ -64,5 +67,11 @@ public class HybridEpisodicStore implements EpisodicStore {
   public long purgeAll() {
     files.deleteAll();
     return journals.deleteAll();
+  }
+
+  @Override
+  public void verifyWritable() {
+    files.verifyWritable();
+    writeProbe.verify(PgWriteProbe.Table.JOURNAL);
   }
 }

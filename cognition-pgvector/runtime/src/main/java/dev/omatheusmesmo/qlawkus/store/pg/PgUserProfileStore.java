@@ -4,6 +4,7 @@ import dev.omatheusmesmo.qlawkus.cognition.UserProfile;
 import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
 import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 /**
@@ -13,6 +14,9 @@ import jakarta.transaction.Transactional;
 @ApplicationScoped
 @IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "pgvector", enableIfMissing = true)
 public class PgUserProfileStore implements UserProfileStore {
+
+  @Inject
+  PgWriteProbe writeProbe;
 
   @Override
   @Transactional
@@ -29,5 +33,10 @@ public class PgUserProfileStore implements UserProfileStore {
       return;
     }
     entity.copyFrom(profile);
+  }
+
+  @Override
+  public void verifyWritable() {
+    writeProbe.verify(PgWriteProbe.Table.USER_PROFILE);
   }
 }

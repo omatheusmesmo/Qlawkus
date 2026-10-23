@@ -178,4 +178,8 @@ public class MarkdownWorkingMemoryFiles {
       return Instant.EPOCH;
     }
   }
+
+  public void verifyWritable() {
+    WriteProbe.verify(root);
+  }
 }

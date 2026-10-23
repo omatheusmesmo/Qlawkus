@@ -279,4 +279,9 @@ public class MarkdownFactStore implements FactStore {
     metadata.forEach((key, value) -> out.put(key, value == null ? "" : value.toString()));
     return out;
   }
+
+  @Override
+  public void verifyWritable() {
+    files.verifyWritable();
+  }
 }

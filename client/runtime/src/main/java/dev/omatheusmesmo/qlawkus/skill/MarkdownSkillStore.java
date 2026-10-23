@@ -61,4 +61,9 @@ public class MarkdownSkillStore implements SkillStore {
   public int sweepLifecycle(int staleAfterDays, int archiveAfterDays) {
     return files.sweepLifecycle(staleAfterDays, archiveAfterDays);
   }
+
+  @Override
+  public void verifyWritable() {
+    files.verifyWritable();
+  }
 }

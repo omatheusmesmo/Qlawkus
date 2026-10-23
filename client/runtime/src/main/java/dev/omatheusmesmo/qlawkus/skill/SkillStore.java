@@ -51,4 +51,11 @@ public interface SkillStore {
    * state changed.
    */
   int sweepLifecycle(int staleAfterDays, int archiveAfterDays);
+
+  /**
+   * Proves this store could persist a change right now, without changing anything, because readiness
+   * calls it on every poll. Throws when a write would fail: a read-only volume, a root owned by
+   * another uid, a read-only database session, or a missing table privilege.
+   */
+  void verifyWritable();
 }

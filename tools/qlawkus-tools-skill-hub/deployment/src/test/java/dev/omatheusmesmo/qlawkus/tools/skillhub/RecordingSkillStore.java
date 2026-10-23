@@ -47,4 +47,8 @@ class RecordingSkillStore implements SkillStore {
   public int sweepLifecycle(int staleAfterDays, int archiveAfterDays) {
     return 0;
   }
+
+  @Override
+  public void verifyWritable() {
+  }
 }

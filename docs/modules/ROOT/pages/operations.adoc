@@ -30,7 +30,7 @@ The startup probe exists separately because JVM and native boot times differ by 
 
 `qlawkus-model`:: Reads the state of the chat and embedding circuit breakers. Reports DOWN only when a breaker is OPEN **and** no fallback is configured - with a fallback available the agent can still answer, so it stays in rotation. The state is read through a read-only lookup, so polling readiness never generates provider traffic and can never trip or promote a breaker as a side effect.
 
-`qlawkus-cognition`:: Loads the persona and the owner profile, which the agent needs to build a system message at all. It goes through the store SPIs rather than touching files or tables, so the same check is correct on `markdown`, `pgvector` and `hybrid`. This is what catches the mistake a container makes easy and silent: a state volume mounted with the wrong ownership.
+`qlawkus-cognition`:: Checks that the agent can run a turn: it reads the persona (`soul`), the owner profile (`owner`) and the skill index (`skills`, only while `qlawkus.skills.enabled` is on), which every system message is built from, and proves working memory (`workingMemory`) is writable, since every turn appends to it. Any of those failing reports DOWN, with the reason under that key. On an instance that can serve, it also proves `facts`, `episodic` (the journals), `skills`, `soul` and `owner` can be written; when one cannot, the agent still answers but stops learning, so the check stays UP, lists the stores under `degraded` (comma-separated) and gives each reason under the store's key. The agent is single-instance, so DOWN means nobody answers, which is why only the turn path may cause it. Every probe goes through the store SPIs, so the same check is correct on `markdown` (one byte written to a dot-prefixed probe file in the store's root, then deleted), `pgvector` (the server is asked whether the session could write, without writing) and `hybrid` (both). This is what catches the mistake a container makes easy and silent: a state volume mounted read-only or with the wrong ownership, which every read passes.
 
 `qlawkus-secrets-keystore`:: Reports whether a keystore that was meant to be present actually is. Keystore resolution is lenient by design - an absent keystore contributes nothing and the agent boots on your `.env`, which is what lets a fresh install start with no ceremony. Setting `qlawkus.secrets.keystore-password` is you stating that a keystore *is* expected, so a missing file at that point is a misconfiguration (typically a volume that did not mount) rather than a fresh install, and the check reports DOWN. With no password configured the feature is inert and the check stays UP. A wrong password needs no check: the agent fails to boot outright. The check reports how many secrets it holds and never an alias or a value, because `/q/health/ready` is unauthenticated.
 
@@ -42,10 +42,12 @@ A database-free distribution has no `qlawkus-migrations` check at all rather tha
 
 Worth stating plainly rather than leaving to be discovered:
 
-* **Writability is not proven.** The cognition check reads the persona and profile; it does not establish that the agent can write. A volume mounted read-only, or owned by the wrong uid with world-readable files, passes readiness and then fails on the first `remember`.
-* **Four of the six stores are not consulted.** Facts, skills, episodic journals and working memory are not part of readiness today. An instance that cannot write working memory currently reports ready.
+* **A full disk on Postgres.** The pg probe asks whether the session may write; only an actual write would show the database is out of space.
+* **Space at flush time on the markdown stores.** The probe writes one byte but does not sync it, so a volume that only refuses at flush still passes.
+* **A volume that was never mounted.** If the deployment leaves the mount out (a Compose file without the volume, say), the store roots are created in the container's writable layer, so the probe passes on storage that will not survive the container. An empty volume and a missing one look the same from inside.
+* **Exact privileges for each statement.** The pg probe checks the DML each table's store issues (INSERT, UPDATE, DELETE as applicable); it does not exercise triggers, row-level security policies or constraints.
 
-Both are tracked in https://github.com/omatheusmesmo/Qlawkus/issues/310[issue #310], along with the decision each needs first: how to prove writability without polluting the stores on every poll, and which stores should block readiness rather than count as degraded-but-serving.
+The markdown probe creates and deletes a file in each store root on every poll. In a root that is synced or git-versioned (the hybrid facts, journals and skills), that bumps the directory's modification time and wakes inotify watchers every few seconds. The probe file is deleted in the same call; where deletes fail, the one fixed-name file is reused, so at most one is ever left.
 
 == Wiring the probes
 
@@ -173,7 +175,7 @@ The meters above arrive from upstream. These are the ones Qlawkus emits itself, 
 
 |`qlawkus.store.operations` +
 `qlawkus.store.duration`
-|What the `markdown` / `pgvector` / `hybrid` switch actually costs, per store and per operation.
+|What the `markdown` / `pgvector` / `hybrid` switch actually costs, per store and per operation. Readiness polls appear here too, as `operation="verifyWritable"` (and `load` / `index`), so a degraded store records a failure on every poll; filter on `operation` when charting traffic.
 |`store`, `backend`, `operation`, `outcome`
 |===
 

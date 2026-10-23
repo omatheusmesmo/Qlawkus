@@ -153,4 +153,8 @@ public class MarkdownEpisodicFiles {
       return null;
     }
   }
+
+  public void verifyWritable() {
+    WriteProbe.verify(root);
+  }
 }

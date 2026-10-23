@@ -2,12 +2,16 @@ package dev.omatheusmesmo.qlawkus.store.pg;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import dev.omatheusmesmo.qlawkus.dto.JournalSummary;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -28,7 +32,7 @@ class HybridEpisodicStoreTest {
   Path tempDir;
 
   private HybridEpisodicStore store(FakeJournals journals) {
-    return new HybridEpisodicStore(tempDir.toString(), journals);
+    return new HybridEpisodicStore(tempDir.toString(), journals, new RecordingWriteProbe());
   }
 
   private long markdownFileCount() throws IOException {
@@ -126,5 +130,39 @@ class HybridEpisodicStoreTest {
       rows.clear();
       return n;
     }
+  }
+
+  @Test
+  void verifyWritableAsksAboutTheMirrorTable() {
+    RecordingWriteProbe probe = new RecordingWriteProbe();
+
+    new HybridEpisodicStore(tempDir.toString(), new FakeJournals(), probe).verifyWritable();
+
+    assertEquals(List.of(PgWriteProbe.Table.JOURNAL), probe.probed,
+        "hybrid writes both sides, so readiness must ask about the table as well as the files");
+  }
+
+  @Test
+  void aRootThatCannotBeWrittenFailsTheProbe() throws IOException {
+    RecordingWriteProbe probe = new RecordingWriteProbe();
+    HybridEpisodicStore store = new HybridEpisodicStore(tempDir.toString(), new FakeJournals(), probe);
+    Files.setPosixFilePermissions(tempDir, PosixFilePermissions.fromString("r-x------"));
+    try {
+      assumeFalse(Files.isWritable(tempDir), "running as root, which ignores directory permissions");
+      assertThrows(UncheckedIOException.class, store::verifyWritable,
+          "the files are the source of truth, so a read-only root must fail even if pg is fine");
+    } finally {
+      Files.setPosixFilePermissions(tempDir, PosixFilePermissions.fromString("rwx------"));
+    }
+  }
+
+  @Test
+  void aTableThatCannotBeWrittenFailsTheProbe() {
+    RecordingWriteProbe probe = new RecordingWriteProbe("no INSERT privilege");
+
+    IllegalStateException refused = assertThrows(IllegalStateException.class,
+        new HybridEpisodicStore(tempDir.toString(), new FakeJournals(), probe)::verifyWritable);
+
+    assertEquals("no INSERT privilege", refused.getMessage());
   }
 }

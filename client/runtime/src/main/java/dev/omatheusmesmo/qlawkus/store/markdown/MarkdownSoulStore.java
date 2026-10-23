@@ -146,4 +146,9 @@ public class MarkdownSoulStore implements SoulStore {
       throw new UncheckedIOException("Failed to read default persona resource", e);
     }
   }
+
+  @Override
+  public void verifyWritable() {
+    WriteProbe.verify(root);
+  }
 }

@@ -171,4 +171,8 @@ public class MarkdownFactFiles {
     }
     return new Parsed(frontmatter, body);
   }
+
+  public void verifyWritable() {
+    WriteProbe.verify(root);
+  }
 }

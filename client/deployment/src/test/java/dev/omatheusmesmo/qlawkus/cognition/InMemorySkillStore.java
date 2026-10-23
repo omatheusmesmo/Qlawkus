@@ -78,4 +78,8 @@ class InMemorySkillStore implements SkillStore {
     }
     return changed;
   }
+
+  @Override
+  public void verifyWritable() {
+  }
 }
