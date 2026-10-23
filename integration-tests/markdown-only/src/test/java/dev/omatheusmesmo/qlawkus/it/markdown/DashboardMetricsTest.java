@@ -78,6 +78,22 @@ class DashboardMetricsTest {
         assertEquals(Set.of(), uncharted, "a meter nobody charts is one the integrator never sees");
     }
 
+    @Test
+    void everyRatioPanelIsBoundedToOne() throws IOException {
+        JsonNode dashboard = new ObjectMapper().readTree(DASHBOARD.toFile());
+        Set<String> unbounded = new TreeSet<>();
+        for (JsonNode panel : dashboard.path("panels")) {
+            JsonNode defaults = panel.path("fieldConfig").path("defaults");
+            boolean ratio = "percentunit".equals(defaults.path("unit").asText());
+            if (ratio && (defaults.path("min").asDouble(-1) != 0 || defaults.path("max").asDouble(-1) != 1)) {
+                unbounded.add(panel.path("title").asText());
+            }
+        }
+
+        assertEquals(Set.of(), unbounded,
+                "an auto-scaled ratio axis draws a perfect 100% halfway up the panel, which reads as a drop");
+    }
+
     private Set<String> queriedSeries() throws IOException {
         JsonNode dashboard = new ObjectMapper().readTree(DASHBOARD.toFile());
         Set<String> series = new TreeSet<>();
