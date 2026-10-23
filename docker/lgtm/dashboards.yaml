@@ -1,0 +1,13 @@
+# Grafana dashboard provider for grafana/otel-lgtm, added next to the image's own providers. The
+# dashboard is examples/observability/grafana/qlawkus-agent.json, mounted as is: the same file
+# DashboardMetricsTest checks against the metrics, so the bundled stack cannot chart a stale copy.
+apiVersion: 1
+
+providers:
+  - name: Qlawkus
+    folder: Qlawkus
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /otel-lgtm/qlawkus-dashboards

@@ -25,6 +25,10 @@ services:
       - QUARKUS_DATASOURCE_BRAG_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
       - OLLAMA_FALLBACK_BASE_URL=http://ollama:11434
       - QLAWKUS_WORKSPACE_ROOT=/home/default/workspace
+      # Telemetry goes to the bundled lgtm service (docker/lgtm/compose.yml): traces and logs over OTLP,
+      # while Prometheus there scrapes /q/metrics on the private management port 9000.
+      - QUARKUS_OTEL_SDK_DISABLED=false
+      - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
       # Below: only values that DIFFER from the application.properties defaults, or REMAP a .env var
       # to the name the app expects. Pure pass-throughs (tokens, etc.) come from env_file (.env) and
       # already default in the properties, so they are not repeated here. Likewise AGENT_*/memory-*.
@@ -51,6 +55,12 @@ services:
     ports:
       - "8742:8080"
     restart: unless-stopped
+    # The scrape target name in docker/lgtm/prometheus.yaml, shared by every agent service so the
+    # scrape follows whichever one is running.
+    networks:
+      default:
+        aliases:
+          - agent
     # Reads the same readiness endpoint the k8s reference deployment probes, so both deploy paths
     # agree on what "the agent is serving" means. curl comes from the ubi9-minimal base.
     healthcheck:
@@ -88,6 +98,10 @@ services:
       - QUARKUS_DATASOURCE_BRAG_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}
       - OLLAMA_FALLBACK_BASE_URL=http://ollama:11434
       - QLAWKUS_WORKSPACE_ROOT=/home/default/workspace
+      # Telemetry goes to the bundled lgtm service (docker/lgtm/compose.yml): traces and logs over OTLP,
+      # while Prometheus there scrapes /q/metrics on the private management port 9000.
+      - QUARKUS_OTEL_SDK_DISABLED=false
+      - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
       # Only values that DIFFER from the application.properties defaults, or REMAP a .env var.
       - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-*}
       - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-*}
@@ -107,9 +121,20 @@ services:
     ports:
       - "8742:8080"
     restart: unless-stopped
+    # The scrape target name in docker/lgtm/prometheus.yaml, shared by every agent service so the
+    # scrape follows whichever one is running.
+    networks:
+      default:
+        aliases:
+          - agent
     # No healthcheck here on purpose: the native runtime image (ubi9-quarkus-micro-image) ships no
     # shell utilities, so nothing inside it can call the endpoint. Giving it one means deciding which
     # binaries belong in the image - the same question issue #93 tracks for git and gh.
+
+  lgtm:
+    extends:
+      file: docker/lgtm/compose.yml
+      service: lgtm
 
   postgres:
     image: pgvector/pgvector:pg17
@@ -191,6 +216,8 @@ services:
       start_period: 30s
 
 volumes:
+  lgtm-data:
+    name: qlawkus_lgtm-data
   pgdata:
     name: qlawkus_pgdata
   ollama-data:

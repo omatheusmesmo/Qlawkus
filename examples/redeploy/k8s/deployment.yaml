@@ -44,6 +44,10 @@ spec:
           image: ghcr.io/omatheusmesmo/qlawkus:latest
           ports:
             - containerPort: 8080
+            # The management interface: /q/metrics lives here, unauthenticated, and never on 8080.
+            # Keep it out of any Service that leaves the cluster; scrape it from inside.
+            - name: management
+              containerPort: 9000
           env:
             # The Secret holds the Argon2id hash, not the password. QLAWKUS_ADMIN_USER/PASSWORD are
             # the redeploy script's variables and belong wherever that script runs, not here.
