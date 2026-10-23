@@ -63,8 +63,9 @@ spec:
                   name: qlawkus-llm
                   key: api-key
           # Readiness answers "should this pod get traffic". It reports on the agent itself: the
-          # persona and owner stores it reads every turn, and whether the model chain still has
-          # somewhere to go. A provider outage takes the pod out of rotation and nothing more.
+          # stores every turn reads, whether working memory can be written, and whether the model
+          # chain still has somewhere to go. A store the agent only learns into reports as degraded
+          # without failing. A provider outage takes the pod out of rotation and nothing more.
           readinessProbe:
             httpGet:
               path: /q/health/ready

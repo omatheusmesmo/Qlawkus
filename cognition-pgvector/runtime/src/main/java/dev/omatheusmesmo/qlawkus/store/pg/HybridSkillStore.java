@@ -27,11 +27,13 @@ public class HybridSkillStore implements SkillStore {
 
   private final MarkdownSkillFiles files;
   private final BundledSkills bundled;
+  private final PgWriteProbe writeProbe;
 
   @Inject
-  public HybridSkillStore(SkillsConfig config, BundledSkills bundled) {
+  public HybridSkillStore(SkillsConfig config, BundledSkills bundled, PgWriteProbe writeProbe) {
     this.files = new MarkdownSkillFiles(config.roots().stream().map(Path::of).toList());
     this.bundled = bundled;
+    this.writeProbe = writeProbe;
   }
 
   @Override
@@ -83,5 +85,11 @@ public class HybridSkillStore implements SkillStore {
   @Transactional
   public int sweepLifecycle(int staleAfterDays, int archiveAfterDays) {
     return SkillEntity.sweep(staleAfterDays, archiveAfterDays);
+  }
+
+  @Override
+  public void verifyWritable() {
+    files.verifyWritable();
+    writeProbe.verify(PgWriteProbe.Table.SKILL);
   }
 }

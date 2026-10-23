@@ -32,6 +32,9 @@ import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metad
 public class PgFactStore implements FactStore {
 
   @Inject
+  PgWriteProbe writeProbe;
+
+  @Inject
   EmbeddingModel embeddingModel;
 
   @Inject
@@ -135,5 +138,10 @@ public class PgFactStore implements FactStore {
   @Override
   public long purgeAll() {
     return embeddingRepository.deleteAll();
+  }
+
+  @Override
+  public void verifyWritable() {
+    writeProbe.verify(PgWriteProbe.Table.EMBEDDINGS);
   }
 }

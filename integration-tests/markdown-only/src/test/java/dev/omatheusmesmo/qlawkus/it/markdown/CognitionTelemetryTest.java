@@ -88,8 +88,10 @@ class CognitionTelemetryTest {
     void storeMetersIdentifyWhichStoreWasCalled() {
         chat();
 
-        assertTrue(scrape().contains("store=\"WorkingMemoryStore\""),
-                "a turn appends to working memory, so that store must appear by name");
+        assertTrue(scrape().lines().anyMatch(line -> line.contains("store=\"WorkingMemoryStore\"")
+                        && line.contains("operation=\"updateMessages\"")),
+                "a turn appends to working memory, so that store must appear by name; the operation"
+                        + " is pinned because a readiness poll alone would put the store name there");
     }
 
     /**

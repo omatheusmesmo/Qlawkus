@@ -4,6 +4,7 @@ import dev.omatheusmesmo.qlawkus.cognition.Soul;
 import dev.omatheusmesmo.qlawkus.store.SoulStore;
 import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 /**
@@ -13,6 +14,9 @@ import jakarta.transaction.Transactional;
 @ApplicationScoped
 @IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "pgvector", enableIfMissing = true)
 public class PgSoulStore implements SoulStore {
+
+  @Inject
+  PgWriteProbe writeProbe;
 
   @Override
   @Transactional
@@ -29,5 +33,10 @@ public class PgSoulStore implements SoulStore {
       return;
     }
     entity.copyFrom(soul);
+  }
+
+  @Override
+  public void verifyWritable() {
+    writeProbe.verify(PgWriteProbe.Table.SOUL);
   }
 }

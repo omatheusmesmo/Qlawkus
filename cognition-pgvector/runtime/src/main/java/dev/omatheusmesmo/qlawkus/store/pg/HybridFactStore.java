@@ -39,30 +39,34 @@ public class HybridFactStore implements FactStore {
   private final EmbeddingRepository embeddingRepository;
   private final FactChunker chunker;
   private final AgentMeters meters;
+  private final PgWriteProbe writeProbe;
 
   @Inject
   public HybridFactStore(AgentConfig config, EmbeddingModel embeddingModel,
       EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository,
-      AgentMeters meters) {
+      AgentMeters meters, PgWriteProbe writeProbe) {
     this(config.facts().root(), embeddingModel, embeddingStore, embeddingRepository,
-        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars()), meters);
+        new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars()), meters,
+        writeProbe);
   }
 
   HybridFactStore(String root, EmbeddingModel embeddingModel,
-      EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository) {
+      EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository,
+      PgWriteProbe writeProbe) {
     this(root, embeddingModel, embeddingStore, embeddingRepository, new FactChunker(1200, 120),
-        AgentMeters.disabled());
+        AgentMeters.disabled(), writeProbe);
   }
 
   private HybridFactStore(String root, EmbeddingModel embeddingModel,
       EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository,
-      FactChunker chunker, AgentMeters meters) {
+      FactChunker chunker, AgentMeters meters, PgWriteProbe writeProbe) {
     this.files = new MarkdownFactFiles(Path.of(root));
     this.embeddingModel = embeddingModel;
     this.embeddingStore = embeddingStore;
     this.embeddingRepository = embeddingRepository;
     this.chunker = chunker;
     this.meters = meters;
+    this.writeProbe = writeProbe;
   }
 
   @Override
@@ -142,5 +146,11 @@ public class HybridFactStore implements FactStore {
     Map<String, String> out = new LinkedHashMap<>();
     metadata.forEach((key, value) -> out.put(key, value == null ? "" : value.toString()));
     return out;
+  }
+
+  @Override
+  public void verifyWritable() {
+    files.verifyWritable();
+    writeProbe.verify(PgWriteProbe.Table.EMBEDDINGS);
   }
 }

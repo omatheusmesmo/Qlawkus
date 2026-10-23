@@ -83,4 +83,9 @@ public class MarkdownUserProfileStore implements UserProfileStore {
       throw new UncheckedIOException("Failed to write " + root.resolve(FILE), e);
     }
   }
+
+  @Override
+  public void verifyWritable() {
+    WriteProbe.verify(root);
+  }
 }

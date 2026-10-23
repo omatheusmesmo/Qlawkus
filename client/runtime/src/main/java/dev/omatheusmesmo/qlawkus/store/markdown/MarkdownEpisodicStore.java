@@ -63,4 +63,9 @@ public class MarkdownEpisodicStore implements EpisodicStore {
   public long purgeAll() {
     return files.deleteAll();
   }
+
+  @Override
+  public void verifyWritable() {
+    files.verifyWritable();
+  }
 }

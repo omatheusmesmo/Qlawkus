@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -40,6 +41,8 @@ class ReadinessCheckTest {
     void cognitionCheckPassesWhenTheStoresAnswer() {
         assertEquals("UP", statusOf(COGNITION),
                 "the markdown stores are readable in this build, so the check must pass");
+        assertNull(readiness().getString("checks.find { it.name == '" + COGNITION + "' }.data.degraded"),
+                "every store is writable in this build, so none may be reported as degraded");
     }
 
     @Test

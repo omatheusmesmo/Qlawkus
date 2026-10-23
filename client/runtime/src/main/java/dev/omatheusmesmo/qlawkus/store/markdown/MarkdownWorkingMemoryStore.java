@@ -144,4 +144,9 @@ public class MarkdownWorkingMemoryStore implements WorkingMemoryStore, ChatMemor
   public void deleteMessages(Object memoryId) {
     deleteMessages(memoryId.toString());
   }
+
+  @Override
+  public void verifyWritable() {
+    files.verifyWritable();
+  }
 }

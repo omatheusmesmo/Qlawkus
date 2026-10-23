@@ -1,19 +1,26 @@
 package dev.omatheusmesmo.qlawkus.it.cognition;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.skill.BundledSkills;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.store.pg.HybridSkillStore;
+import dev.omatheusmesmo.qlawkus.store.pg.PgWriteProbe;
 import dev.omatheusmesmo.qlawkus.store.pg.SkillEntity;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,12 +42,15 @@ class HybridSkillStoreTest {
   @Inject
   BundledSkills bundled;
 
+  @Inject
+  PgWriteProbe writeProbe;
+
   private HybridSkillStore store;
   private Path root;
 
   @BeforeEach
   void setup() {
-    store = new HybridSkillStore(config, bundled);
+    store = new HybridSkillStore(config, bundled, writeProbe);
     root = Path.of(config.roots().get(0));
   }
 
@@ -78,5 +88,23 @@ class HybridSkillStoreTest {
 
   private boolean mirrorExists(String name) {
     return QuarkusTransaction.requiringNew().call(() -> SkillEntity.findById(name) != null);
+  }
+
+  @Test
+  void verifyWritablePassesWhenTheOwnedRootAndTheSkillTableAreWritable() {
+    assertDoesNotThrow(store::verifyWritable);
+  }
+
+  @Test
+  void verifyWritableFailsOnAReadOnlyOwnedRootEvenThoughPostgresIsFine() throws IOException {
+    Files.createDirectories(root);
+    Files.setPosixFilePermissions(root, PosixFilePermissions.fromString("r-x------"));
+    try {
+      assumeFalse(Files.isWritable(root), "running as root, which ignores directory permissions");
+      assertThrows(UncheckedIOException.class, store::verifyWritable,
+          "SKILL.md files are the source of truth, so the mirror being writable is not enough");
+    } finally {
+      Files.setPosixFilePermissions(root, PosixFilePermissions.fromString("rwx------"));
+    }
   }
 }
