@@ -137,6 +137,33 @@ body {
 .status-cell dt { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; }
 .status-cell dd { margin: 3px 0 0; font-family: var(--mono); font-size: 14px; }
 
+.obs-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.obs-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.12s, background 0.12s;
+}
+.obs-link:hover { border-color: var(--accent); background: var(--accent-soft); }
+.obs-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.obs-link-title { font-weight: 600; }
+.obs-link-title::after { content: "\2197"; margin-left: 6px; color: var(--accent-ink); }
+.obs-link-desc { color: var(--muted); font-size: 13px; }
+
 /* ---------- Onboarding wizard ---------- */
 .step {
   margin-top: 26px;

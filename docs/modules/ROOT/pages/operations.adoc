@@ -152,7 +152,7 @@ The Compose stacks (`./run.sh prod`, `native` and `local`) bring up that collect
 |Metrics |Prometheus scrapes `/q/metrics` on the agent's private port 9000 (see below)
 |===
 
-Grafana is on http://localhost:3000, with the Qlawkus dashboard provisioned as its home page (the same `examples/observability/grafana/qlawkus-agent.json` the build checks against the metrics, mounted rather than copied). The Tempo and Loki data sources are linked both ways, so a trace opens its logs and a log line opens its trace.
+Grafana is on http://localhost:3000, and the console's Overview links to it (the stacks set `QLAWKUS_CONSOLE_GRAFANA_URL`, see xref:console.adoc#_observability_links[Console]), with the Qlawkus dashboard provisioned as its home page (the same `examples/observability/grafana/qlawkus-agent.json` the build checks against the metrics, mounted rather than copied). The Tempo and Loki data sources are linked both ways, so a trace opens its logs and a log line opens its trace.
 
 Set `GRAFANA_ADMIN_PASSWORD` in `.env` before the first start:
 
