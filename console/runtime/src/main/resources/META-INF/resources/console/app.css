@@ -173,6 +173,7 @@ body {
 
 .pill { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; padding: 2px 8px; border-radius: 999px; vertical-align: middle; }
 .pill-ok { background: rgba(63, 154, 82, 0.14); color: var(--up); }
+.pill-err { background: #fdeeec; color: #c0392b; }
 
 .phaseb { padding: 12px 0; border-top: 1px solid var(--border); }
 .phaseb h3 { margin: 0 0 6px; font-size: 15px; }

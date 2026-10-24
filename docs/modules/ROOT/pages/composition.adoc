@@ -176,7 +176,7 @@ Qlawkus defines that as a five-phase contract and ships reference implementation
 |5. verify |Wait for health, then discard whatever was consumed (`DELETE`).
 |===
 
-The app stays passive: it only fetches (`GET`) and discards (`DELETE`); everything that executes a build or a restart lives in the redeploy tooling, never in the app. The two staged documents are fetched, promoted, and discarded independently - a rebuild can be driven by either one alone, or both together. Phases 1, 2 and 5 are the environment-independent hook (`examples/redeploy/redeploy.sh`); phases 3 and 4 are the parts each reference implementation fills in:
+The app stays passive: it only fetches (`GET`), discards (`DELETE`) and records the report of a finished run (`POST`, see below); everything that executes a build or a restart lives in the redeploy tooling, never in the app. The two staged documents are fetched, promoted, and discarded independently - a rebuild can be driven by either one alone, or both together. Phases 1, 2 and 5 are the environment-independent hook (`examples/redeploy/redeploy.sh`); phases 3 and 4 are the parts each reference implementation fills in:
 
 [cols="1,4"]
 |===
@@ -186,6 +186,20 @@ The app stays passive: it only fetches (`GET`) and discards (`DELETE`); everythi
 |Kubernetes |Build and push an image, then `kubectl set image` + `kubectl rollout status` (the old pod stops first, since the agent is single-instance; the readiness probe is what tells `rollout status` the new one is serving).
 |systemd |Package on the host, then `systemctl restart qlawkus`.
 |===
+
+=== Reporting each run
+
+The loop restarts the process that serves the API, so the agent cannot time a redeploy itself. `redeploy.sh` times each of the five phases and, when the run ends, reports it once with `POST /api/admin/composition/redeploys`: on success to the new instance after verify, on failure (from an EXIT trap that knows the failing phase) to whatever instance answers. Reporting never changes how the run ends - if nothing answers, the record is only written to the script's log and the exit status is still the run's own. A dry run is not a redeploy and reports nothing.
+
+[source,json]
+----
+{"startedAt": "2026-10-01T12:00:00Z", "outcome": "failure", "failedPhase": "build",
+ "phases": {"fetch": 120, "promote": 8, "build": 94210}, "message": "mvn exited with status 1"}
+----
+
+The record is validated at the API boundary: `outcome` is `success` or `failure`, `failedPhase` is required on a failure and absent on a success, phase names come from the closed set `fetch|promote|build|restart|verify`, each duration is at most a day, and the message is at most 200 characters with no control characters. It is data only. Nothing in a report is executed or acted on, so the endpoint cannot become a command channel; a leaked admin credential can at most write a bounded history entry.
+
+The agent keeps the last 20 runs, plus running totals and the time of the last success (a streak of failures cannot evict it), in `redeploys.json` under `qlawkus.agent.state.root`, written atomically. `GET /api/admin/composition/redeploys` returns them, newest first, and the xref:console.adoc#_management_pages[schedule page] shows the last run read-only. The meters are listed under xref:operations.adoc#_what_the_agent_measures_about_itself[what the agent measures about itself].
 
 Because the staged manifest lives inside the app's own state and is read back over the API, the redeploy tooling - not the app - is what promotes it into the source before a build. If nothing is staged, a redeploy simply rebuilds the currently committed manifest, so it is safe to run in CI on every deploy.
 

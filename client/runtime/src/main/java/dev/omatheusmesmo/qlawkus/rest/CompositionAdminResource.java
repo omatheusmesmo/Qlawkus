@@ -1,10 +1,14 @@
 package dev.omatheusmesmo.qlawkus.rest;
 
 import dev.omatheusmesmo.qlawkus.compose.CompositionAdminService;
+import dev.omatheusmesmo.qlawkus.compose.RedeployHistoryService;
 import dev.omatheusmesmo.qlawkus.composition.InvalidManifestException;
 import dev.omatheusmesmo.qlawkus.dto.CompositionState;
+import dev.omatheusmesmo.qlawkus.dto.RedeployHistory;
+import dev.omatheusmesmo.qlawkus.dto.RedeployReport;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -20,6 +24,9 @@ import java.util.Map;
  * rebuild and read what is active/staged. The endpoint never builds - it only records intent, which
  * an external builder acts on. That keeps it safe by construction: authenticated, and unable to
  * execute anything beyond writing a validated manifest.
+ *
+ * <p>The same surface records each run the redeploy loop reports back, so a failed redeploy is
+ * readable here, not only through metrics.
  */
 @Path("/api/admin/composition")
 @Authenticated
@@ -27,6 +34,9 @@ public class CompositionAdminResource {
 
   @Inject
   CompositionAdminService service;
+
+  @Inject
+  RedeployHistoryService redeploys;
 
   @POST
   @Path("/manifest")
@@ -56,6 +66,24 @@ public class CompositionAdminResource {
         : Response.status(Response.Status.NOT_FOUND)
             .entity(Map.of("error", "no staged manifest to discard"))
             .build();
+  }
+
+  /**
+   * Records one run reported by the external redeploy loop. It stores the validated record and
+   * nothing else: no field is interpreted as an instruction, so this cannot become a way to make the
+   * app do something.
+   */
+  @POST
+  @Path("/redeploys")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Response recordRedeploy(@Valid RedeployReport report) throws IOException {
+    return Response.status(Response.Status.CREATED).entity(redeploys.record(report)).build();
+  }
+
+  @GET
+  @Path("/redeploys")
+  public RedeployHistory redeploys() {
+    return redeploys.history();
   }
 
   private static Response badRequest(String message) {

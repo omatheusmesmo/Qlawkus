@@ -33,4 +33,26 @@
 </section>
 
 <div id="sched-result" class="result"></div>
+
+<section class="panel">
+    <h2 class="panel-title">Last redeploy</h2>
+    {#if redeploy}
+        <p>
+            {#if redeploy.failed}<span class="pill pill-err">{redeploy.outcome}</span> failed in {redeploy.failedPhase}{#else}<span class="pill pill-ok">{redeploy.outcome}</span>{/if}
+            <span class="muted">reported <span class="mono">{redeploy.recordedAt}</span>, started <span class="mono">{redeploy.startedAt}</span></span>
+        </p>
+        {#if redeploy.message}<p class="mono">{redeploy.message}</p>{/if}
+        <table class="tbl">
+            <thead><tr><th>Phase</th><th>Duration</th></tr></thead>
+            <tbody>
+            {#for p in redeploy.phases}
+                <tr><td class="mono">{p.phase}{#if p.failed} <span class="pill pill-err">failed</span>{/if}</td><td class="mono">{p.duration}</td></tr>
+            {/for}
+            </tbody>
+        </table>
+        <p class="muted">Last success: <span class="mono">{redeploy.lastSuccessAt ?: 'never'}</span>. Full history at <span class="mono">GET /api/admin/composition/redeploys</span>.</p>
+    {#else}
+        <p class="muted">No redeploy has been reported yet. The redeploy loop reports each run here when it finishes.</p>
+    {/if}
+</section>
 {/include}

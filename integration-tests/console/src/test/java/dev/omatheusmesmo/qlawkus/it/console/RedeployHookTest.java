@@ -1,6 +1,10 @@
 package dev.omatheusmesmo.qlawkus.it.console;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -33,6 +37,7 @@ class RedeployHookTest {
   private static final String PASS = "qlawkus-test";
   private static final Path HOOK = Path.of("../../examples/redeploy/redeploy.sh");
   private static final Path WORK = Path.of("target/redeploy");
+  private static final String REDEPLOYS = "/api/admin/composition/redeploys";
 
   private Path manifestTarget;
   private Path configTarget;
@@ -118,6 +123,88 @@ class RedeployHookTest {
         .body("staged", org.hamcrest.Matchers.nullValue());
   }
 
+  /**
+   * The loop reports each run to the instance it just verified, so a successful run is readable on
+   * the agent afterwards with every phase timed.
+   */
+  @Test
+  void run_reportsASuccessfulRunWithEveryPhaseTimed() throws Exception {
+    Result result = runHook(Map.of());
+
+    assertEquals(0, result.exitCode(), result.output());
+    assertTrue(result.output().contains("reported the success run"), result.output());
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get(REDEPLOYS)
+        .then().statusCode(200)
+        .body("runs[0].outcome", equalTo("success"))
+        .body("runs[0].failedPhase", nullValue())
+        .body("runs[0].phases.keySet()", contains("fetch", "promote", "build", "restart", "verify"))
+        .body("lastSuccessAt", equalTo(latestRecordedAt()));
+  }
+
+  /**
+   * A failing phase is reported as the phase that failed, with the time it ran before failing, and
+   * the loop still exits with that phase's own status: reporting observes the run, it never changes
+   * how the run ended.
+   */
+  @Test
+  void aFailingPhase_isReportedAndKeepsItsExitStatus() throws Exception {
+    Path caller = WORK.resolve("failing-build.sh");
+    Files.writeString(caller, """
+        #!/usr/bin/env bash
+        set -euo pipefail
+        build() { echo "simulated build failure" >&2; return 3; }
+        source "%s"
+        redeploy_run
+        """.formatted(HOOK.toAbsolutePath()));
+
+    Result result = runScript(caller, Map.of());
+
+    assertEquals(3, result.exitCode(), result.output());
+    assertTrue(result.output().contains("reported the failure run"), result.output());
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get(REDEPLOYS)
+        .then().statusCode(200)
+        .body("runs[0].outcome", equalTo("failure"))
+        .body("runs[0].failedPhase", equalTo("build"))
+        .body("runs[0].phases.keySet()", contains("fetch", "promote", "build"))
+        .body("runs[0].message", containsString("build"));
+  }
+
+  /**
+   * When no instance answers, the report is written to the loop's own log and the run fails exactly
+   * as it would have without reporting.
+   */
+  @Test
+  void anUnreachableInstance_isLoggedLocallyAndChangesNothing() throws Exception {
+    Result result = runHook(Map.of(
+        "QLAWKUS_BASE_URL", "http://127.0.0.1:9",
+        "QLAWKUS_REPORT_TIMEOUT", "2"));
+
+    assertEquals(1, result.exitCode(), result.output());
+    assertTrue(result.output().contains("could not report the failure run"), result.output());
+    assertTrue(result.output().contains("\"failedPhase\":\"fetch\""), result.output());
+  }
+
+  /** A dry run changes nothing, so it is not a redeploy and leaves no record. */
+  @Test
+  void dryRun_reportsNothing() throws Exception {
+    runHook(Map.of());
+    String before = latestRecordedAt();
+
+    Result result = runHook(Map.of("QLAWKUS_DRY_RUN", "1"));
+
+    assertEquals(0, result.exitCode(), result.output());
+    assertEquals(before, latestRecordedAt(), "a dry run must not be recorded");
+  }
+
+  private String latestRecordedAt() {
+    return given().auth().preemptive().basic(USER, PASS)
+        .when().get(REDEPLOYS)
+        .then().statusCode(200)
+        .extract().path("runs[0].recordedAt");
+  }
+
   private void stageManifest(String yaml) {
     given().auth().preemptive().basic(USER, PASS)
         .contentType("text/plain")
@@ -134,7 +221,12 @@ class RedeployHookTest {
   }
 
   private Result runHook(Map<String, String> extraEnv) throws IOException, InterruptedException {
-    ProcessBuilder builder = new ProcessBuilder("bash", HOOK.toAbsolutePath().toString());
+    return runScript(HOOK, extraEnv);
+  }
+
+  private Result runScript(Path script, Map<String, String> extraEnv)
+      throws IOException, InterruptedException {
+    ProcessBuilder builder = new ProcessBuilder("bash", script.toAbsolutePath().toString());
     builder.redirectErrorStream(true);
     Map<String, String> env = new HashMap<>(builder.environment());
     env.put("QLAWKUS_BASE_URL", "http://localhost:" + RestAssured.port);

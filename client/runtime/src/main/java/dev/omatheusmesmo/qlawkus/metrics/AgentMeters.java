@@ -1,6 +1,9 @@
 package dev.omatheusmesmo.qlawkus.metrics;
 
 import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.FunctionTimer;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import io.quarkus.logging.Log;
@@ -10,8 +13,10 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 import java.util.function.ToDoubleFunction;
+import java.util.function.ToLongFunction;
 
 /**
  * The one place every Qlawkus metric name is written down, and the only thing in the agent that
@@ -59,6 +64,10 @@ public class AgentMeters {
     public static final String STORE_OPERATIONS = "qlawkus.store.operations";
     public static final String STORE_DURATION = "qlawkus.store.duration";
 
+    public static final String REDEPLOY_RUNS = "qlawkus.redeploy.runs";
+    public static final String REDEPLOY_PHASE_DURATION = "qlawkus.redeploy.phase.duration";
+    public static final String REDEPLOY_LAST_SUCCESS_AGE = "qlawkus.redeploy.last.success.age";
+
     private static final String TAG_OUTCOME = "outcome";
     private static final String TAG_JOB = "job";
     private static final String TAG_SURFACE = "surface";
@@ -67,11 +76,14 @@ public class AgentMeters {
     private static final String TAG_STORE = "store";
     private static final String TAG_BACKEND = "backend";
     private static final String TAG_OPERATION = "operation";
+    private static final String TAG_PHASE = "phase";
+    private static final String TAG_FAILED_PHASE = "failed_phase";
 
     private static final String HIT = "hit";
     private static final String MISS = "miss";
     private static final String SUCCESS = "success";
     private static final String FAILURE = "failure";
+    private static final String SECONDS = "seconds";
 
     @Inject
     Instance<MeterRegistry> registryInstance;
@@ -261,6 +273,43 @@ public class AgentMeters {
         Tags tags = Tags.of(TAG_STORE, store, TAG_BACKEND, backend, TAG_OPERATION, operation);
         registry.counter(STORE_OPERATIONS, tags.and(TAG_OUTCOME, succeeded ? SUCCESS : FAILURE)).increment();
         registry.timer(STORE_DURATION, tags).record(took);
+    }
+
+    /**
+     * Publishes the number of redeploy runs that ended one way. These are function meters over the
+     * persisted redeploy history rather than in-memory counters, because the run being counted
+     * restarts the process that counts it: a counter kept in memory would start again at zero on
+     * the very instance the successful run produced.
+     */
+    public <T> void redeployRuns(String outcome, String failedPhase, T source, ToDoubleFunction<T> count) {
+        if (registry != null) {
+            FunctionCounter.builder(REDEPLOY_RUNS, source, count)
+                    .tags(Tags.of(TAG_OUTCOME, outcome, TAG_FAILED_PHASE, failedPhase))
+                    .register(registry);
+        }
+    }
+
+    /**
+     * Publishes the time spent in one redeploy phase, read from the persisted totals for the same
+     * reason as {@link #redeployRuns}. The {@code outcome} tag is the phase's own: a build that
+     * failed after ten minutes is not a slow successful build.
+     */
+    public <T> void redeployPhase(String phase, String outcome, T source, ToLongFunction<T> count,
+            ToDoubleFunction<T> totalMillis) {
+        if (registry != null) {
+            FunctionTimer.builder(REDEPLOY_PHASE_DURATION, source, count, totalMillis, TimeUnit.MILLISECONDS)
+                    .tags(Tags.of(TAG_PHASE, phase, TAG_OUTCOME, outcome))
+                    .register(registry);
+        }
+    }
+
+    /** Publishes the seconds since the last successful redeploy, {@code NaN} before the first one. */
+    public <T> void redeployLastSuccessAge(T source, ToDoubleFunction<T> seconds) {
+        if (registry != null) {
+            Gauge.builder(REDEPLOY_LAST_SUCCESS_AGE, source, seconds)
+                    .baseUnit(SECONDS)
+                    .register(registry);
+        }
     }
 
     private DistributionSummary summary(String name, Tags tags) {

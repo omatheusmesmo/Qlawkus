@@ -229,6 +229,12 @@ The meters above arrive from upstream. These are the ones Qlawkus emits itself, 
 `qlawkus.store.duration`
 |What the `markdown` / `pgvector` / `hybrid` switch actually costs, per store and per operation. Readiness polls appear here too, as `operation="verifyWritable"` (and `load` / `index`), so a degraded store records a failure on every poll; filter on `operation` when charting traffic.
 |`store`, `backend`, `operation`, `outcome`
+
+|`qlawkus.redeploy.runs` +
+`qlawkus.redeploy.phase.duration` +
+`qlawkus.redeploy.last.success.age`
+|Whether redeploys are succeeding, which phase they fail in, how long each phase takes, and how long it has been since one last worked. The redeploy restarts the agent mid-run, so these are read from the persisted redeploy history (see xref:composition.adoc#_reporting_each_run[reporting each run]) rather than counted in memory; a restarted instance publishes the totals its predecessor reached. `outcome` on the duration is the phase's own, so a build that failed is not a slow successful one. The age gauge is `NaN` before the first success.
+|`outcome`, `failed_phase` (`none` on a success); `phase`, `outcome`
 |===
 
 A Grafana dashboard for all of these, plus the upstream turn and model meters, ships under `examples/observability/grafana/qlawkus-agent.json`. It is versioned with the code and checked against it: the build fails when a panel queries a series the agent does not publish, or when a meter is charted nowhere.

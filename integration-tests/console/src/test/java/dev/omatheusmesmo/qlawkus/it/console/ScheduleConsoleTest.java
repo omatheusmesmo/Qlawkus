@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.it.console;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,30 @@ class ScheduleConsoleTest {
         .body(containsString("hx-post=\"/api/admin/skills/curate\""))
         .body(containsString("hx-post=\"/api/admin/skills/lifecycle\""))
         .body(containsString("hx-put=\"/api/admin/runtime-toggles\""));
+  }
+
+  @Test
+  void page_showsTheLastReportedRedeploy() {
+    given().auth().preemptive().basic(USER, PASS)
+        .contentType("application/json")
+        .body("""
+            {"startedAt":"2026-10-01T12:00:00Z","outcome":"failure","failedPhase":"restart",
+             "phases":{"fetch":120,"promote":4,"build":61500,"restart":2300},
+             "message":"rollout <b>timed out</b>"}
+            """)
+        .when().post("/api/admin/composition/redeploys")
+        .then().statusCode(201);
+
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get("/console/schedule")
+        .then().statusCode(200)
+        .body(containsString("Last redeploy"))
+        .body(containsString("failure"))
+        .body(containsString("failed in restart"))
+        .body(containsString("61.5 s"))
+        .body(containsString("120 ms"))
+        .body(containsString("rollout &lt;b&gt;timed out&lt;/b&gt;"))
+        .body(not(containsString("hx-post=\"/api/admin/composition/redeploys\"")));
   }
 
   @Test

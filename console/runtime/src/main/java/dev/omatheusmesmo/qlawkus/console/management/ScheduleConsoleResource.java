@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.console.management;
 
+import dev.omatheusmesmo.qlawkus.compose.RedeployHistoryService;
 import dev.omatheusmesmo.qlawkus.config.RuntimeToggleConfig;
 import io.quarkus.qute.Location;
 import io.quarkus.qute.Template;
@@ -28,6 +29,9 @@ import java.util.List;
  * <p>Cron is always {@code RUN_TIME} (the only phase {@code @Scheduled} can read), so editing it is
  * driven from the page by HTMX against the same {@code /api/admin/runtime-toggles} endpoint the
  * config editor uses; triggering a job now hits its existing {@code /api/admin/*} endpoint.
+ *
+ * <p>The last redeploy run sits next to the jobs, read-only: it is reported by the external redeploy
+ * loop, so the page has nothing to trigger for it.
  */
 @Path("/console/schedule")
 @Authenticated
@@ -54,20 +58,26 @@ public class ScheduleConsoleResource {
     private final Scheduler scheduler;
     private final RuntimeToggleConfig runtimeToggleConfig;
     private final Config mpConfig;
+    private final RedeployHistoryService redeploys;
 
     public ScheduleConsoleResource(@Location("console/schedule.html") Template scheduleTemplate,
                                     Scheduler scheduler,
-                                    RuntimeToggleConfig runtimeToggleConfig) {
+                                    RuntimeToggleConfig runtimeToggleConfig,
+                                    RedeployHistoryService redeploys) {
         this.scheduleTemplate = scheduleTemplate;
         this.scheduler = scheduler;
         this.runtimeToggleConfig = runtimeToggleConfig;
+        this.redeploys = redeploys;
         this.mpConfig = ConfigProvider.getConfig();
     }
 
     @GET
     public TemplateInstance page() {
         List<ScheduledJobView> jobs = JOBS.stream().map(this::toView).toList();
-        return scheduleTemplate.data("active", "schedule").data("jobs", jobs);
+        RedeployRunView redeploy = redeploys.lastRun()
+                .map(run -> RedeployRunView.of(run, redeploys.history().lastSuccessAt()))
+                .orElse(null);
+        return scheduleTemplate.data("active", "schedule").data("jobs", jobs).data("redeploy", redeploy);
     }
 
     private ScheduledJobView toView(JobDescriptor job) {

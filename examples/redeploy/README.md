@@ -24,6 +24,21 @@ touching hand-written lines in `application.properties`.
 `redeploy.sh` is the environment-independent driver (phases 1, 2, 5). Each implementation
 supplies phases 3 and 4 by defining `build` and `restart`, then sourcing it.
 
+## Reporting back
+
+`redeploy.sh` times each phase and reports the run once, when it ends, with `POST /api/admin/composition/redeploys`
+(a JSON record of start time, outcome, failed phase and per-phase milliseconds). The app keeps the last 20 runs
+and publishes `qlawkus.redeploy.*` meters from them, because the restart in phase 4 kills any in-memory counter.
+
+- Success is reported to the new instance after phase 5. Failure is reported from an EXIT trap that knows which phase
+  failed, to whatever instance answers.
+- Reporting never changes how the run ends: if no instance answers within `QLAWKUS_REPORT_TIMEOUT`, the record is only
+  logged and the script's exit status is still the run's own.
+- A dry run (`QLAWKUS_DRY_RUN=1`) is not a redeploy and reports nothing.
+- The report is data only. The app records it and never acts on it.
+
+Read the history back with `GET /api/admin/composition/redeploys`; the console shows the last run on `/console/schedule`.
+
 ## Prerequisites
 
 - `curl` and `jq` on the machine running the redeploy (it talks to the composition API).
@@ -61,7 +76,8 @@ Nothing here depends on `run.sh`; the compose recipe mirrors its restart step st
 | `QLAWKUS_SOURCE_CONFIG_OVERRIDES` | `app/src/main/resources/qlawkus/config-overrides.properties` | Where promotion writes the config overrides |
 | `QLAWKUS_HEALTH_URL` | `${BASE_URL}/q/health/ready` | Readiness endpoint polled in phase 5 |
 | `QLAWKUS_HEALTH_TIMEOUT` | `180` | Seconds to wait for health |
-| `QLAWKUS_DRY_RUN` | `0` | `1` stops after promotion (no build/restart/discard) |
+| `QLAWKUS_DRY_RUN` | `0` | `1` stops after promotion (no build/restart/discard/report) |
+| `QLAWKUS_REPORT_TIMEOUT` | `10` | Seconds to wait for the run report to be accepted |
 
 Per-implementation knobs are documented in each script's header (`QLAWKUS_COMPOSE_SERVICE`,
 `IMAGE` / `QLAWKUS_K8S_DEPLOYMENT`, `QLAWKUS_SYSTEMD_UNIT`).
