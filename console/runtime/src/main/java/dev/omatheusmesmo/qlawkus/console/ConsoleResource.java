@@ -40,7 +40,7 @@ public class ConsoleResource {
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance index() {
-        return index.data("needsSetup", setupState.needsSetup());
+        return index.data("active", "overview").data("needsSetup", setupState.needsSetup());
     }
 
     @GET

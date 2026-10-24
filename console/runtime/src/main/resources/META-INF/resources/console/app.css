@@ -12,6 +12,13 @@
   --accent: #f5821f;
   --accent-ink: #b07219;
   --accent-soft: rgba(245, 130, 31, 0.12);
+  --accent-strong: #d4650a;
+  --accent-strong-hover: #b35208;
+  --border-strong: #d9d3cc;
+  --danger: #c0392b;
+  --danger-soft: #fdeeec;
+  --danger-border: #e3b7b2;
+  --up-soft: #e8f4ea;
   --up: #3f9a52;
   --radius: 10px;
   --sidebar-w: 270px;
@@ -70,12 +77,13 @@ body {
 
 .nav-item.is-active { background: var(--sidebar-soft); color: #fff; }
 .nav-item.is-active { box-shadow: inset 3px 0 0 var(--accent); }
-.nav-item.is-disabled { color: var(--faint); cursor: default; }
+.nav-item:hover { background: var(--sidebar-soft); color: #fff; }
 
 .sidebar-foot { margin-top: auto; color: var(--faint); font-size: 13px; }
 
 .content {
   flex: 1;
+  min-width: 0;
   padding: 44px 56px;
   max-width: 70rem;
 }
@@ -153,18 +161,7 @@ body {
   color: var(--text);
 }
 .form input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
-.form button {
-  align-self: flex-start;
-  font: inherit;
-  font-weight: 600;
-  padding: 9px 18px;
-  border: none;
-  border-radius: 8px;
-  background: var(--accent);
-  color: #fff;
-  cursor: pointer;
-}
-.form button:hover { background: var(--accent-ink); }
+.form button { align-self: flex-start; }
 
 .form label.check { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 2px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .check input { grid-column: 1; grid-row: 1; }
@@ -173,64 +170,124 @@ body {
 
 .pill { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; padding: 2px 8px; border-radius: 999px; vertical-align: middle; }
 .pill-ok { background: rgba(63, 154, 82, 0.14); color: var(--up); }
-.pill-err { background: #fdeeec; color: #c0392b; }
+.pill-err { background: var(--danger-soft); color: var(--danger); }
 
 .phaseb { padding: 12px 0; border-top: 1px solid var(--border); }
 .phaseb h3 { margin: 0 0 6px; font-size: 15px; }
 
-/* An anchor that has to read as an action: the Google step leaves the app instead of posting. */
-a.button {
-  display: inline-block;
-  font: inherit;
-  font-weight: 600;
-  padding: 9px 18px;
-  border-radius: 8px;
-  background: var(--accent);
-  color: #fff;
-  text-decoration: none;
-}
-a.button:hover { background: var(--accent-ink); }
-
 .result { margin-top: 12px; }
 .result-msg { padding: 10px 14px; border-radius: 8px; font-size: 14px; }
-.result-ok { background: rgba(63, 154, 82, 0.12); color: var(--up); }
-.result-err { background: #fdeeec; color: #c0392b; }
+.result-ok { background: var(--up-soft); color: var(--up); }
+.result-err { background: var(--danger-soft); color: var(--danger); }
+.result:empty { display: none; }
+.result-sticky { position: sticky; top: 12px; z-index: 5; margin-top: 20px; }
+.result-sticky .result-msg { box-shadow: 0 6px 18px rgba(35, 32, 39, 0.1); }
+
+/* ---------- Buttons ----------
+   One system for the whole console: primary applies or saves, secondary is a neutral action
+   (reset, run, pin), danger only where something is destroyed. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn-primary { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+.btn-primary:hover { background: var(--accent-strong-hover); border-color: var(--accent-strong-hover); }
+.btn-secondary { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent-ink); }
+.btn-danger { background: var(--surface); border-color: var(--danger-border); color: var(--danger); }
+.btn-danger:hover { background: var(--danger-soft); border-color: var(--danger); }
 
 /* ---------- Management pages ---------- */
-.mono { font-family: var(--mono); font-size: 13px; }
+.mono { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
 .mem-list { margin: 10px 0 0; padding-left: 18px; }
 .mem-list li { margin: 4px 0; font-size: 14px; }
 
 .tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .tbl th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); border-bottom: 1px solid var(--border); padding: 8px 10px; }
-.tbl td { border-bottom: 1px solid var(--border); padding: 10px; vertical-align: top; }
+.tbl td { border-bottom: 1px solid var(--border); padding: 12px 10px; vertical-align: top; overflow-wrap: anywhere; }
 
+.nowrap { white-space: nowrap; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
-.row-actions { display: flex; gap: 8px; }
-.cfg-row { display: inline-flex; gap: 6px; margin-right: 8px; }
+.row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.cfg-tbl { table-layout: fixed; }
+.cfg-col-prop { width: 36%; }
+.cfg-col-value { width: 24%; }
+.cfg-col-set { width: 40%; }
+.cfg-name { display: inline-block; margin-right: 6px; }
+.cfg-desc { margin-top: 4px; font-size: 12.5px; line-height: 1.5; font-family: var(--font); }
+.cfg-desc code { font-family: var(--mono); font-size: 12px; padding: 1px 5px; border-radius: 4px; background: var(--bg); border: 1px solid var(--border); color: var(--text); }
+.cfg-val { display: inline-block; }
+.cfg-src {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  cursor: help;
+}
+.cfg-warn { margin-top: 6px; font-size: 12px; color: var(--danger); }
+.cfg-set { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cfg-hint { margin-top: 6px; font-size: 12px; color: var(--faint); }
+.cfg-row { display: flex; gap: 8px; flex: 1 1 220px; min-width: 0; margin: 0; }
 .cfg-row input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
   font: inherit;
   font-size: 13px;
-  padding: 5px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--text);
-  width: 220px;
-}
-.cfg-desc { margin-top: 2px; font-size: 12px; font-family: var(--font); }
-.cfg-warn { margin-top: 4px; font-size: 12px; color: #c0392b; }
-.actions button, .row-actions button {
-  font: inherit;
-  font-weight: 600;
-  padding: 8px 14px;
-  border: 1px solid var(--border);
+  padding: 7px 10px;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--surface);
   color: var(--text);
-  cursor: pointer;
 }
-.row-actions button { padding: 5px 10px; font-size: 13px; }
-.actions button:hover, .row-actions button:hover { border-color: var(--accent); color: var(--accent-ink); }
-button.danger { border-color: #e3b7b2; color: #c0392b; }
-button.danger:hover { background: #fdeeec; border-color: #c0392b; color: #c0392b; }
+.cfg-row input[type="text"]:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+
+@media (max-width: 1100px) {
+  .tbl-stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tbl-stack, .tbl-stack tbody, .tbl-stack tr, .tbl-stack td { display: block; width: 100%; }
+  .tbl-stack tr { padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .tbl-stack tr:last-child { border-bottom: 0; }
+  .tbl-stack td { border: 0; padding: 6px 0; }
+  .tbl-stack td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--faint);
+  }
+  .tbl-stack td:first-child::before { display: none; }
+}
+
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  .sidebar { position: static; width: auto; flex: none; height: auto; padding: 14px 16px; gap: 12px; }
+  .nav { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  .nav-item { padding: 6px 12px; }
+  .sidebar-foot { display: none; }
+  .content { padding: 24px 16px 40px; }
+  .content-head h1 { font-size: 26px; }
+  .panel, .step { padding: 16px; margin-top: 20px; }
+}

@@ -9,9 +9,9 @@
     {#if available}
     <p class="muted">The pgvector backend is composed in. Reconcile is a safe idempotent union; migrate overwrites one side.</p>
     <div class="actions">
-        <button hx-post="/api/admin/cognition/reconcile" hx-target="#cog-result" hx-swap="innerHTML">Reconcile (union)</button>
-        <button hx-post="/api/admin/cognition/migrate?direction=files-to-pg" hx-confirm="Overwrite pgvector from files?" hx-target="#cog-result" hx-swap="innerHTML">Migrate files to pg</button>
-        <button hx-post="/api/admin/cognition/migrate?direction=pg-to-files" hx-confirm="Overwrite files from pgvector?" hx-target="#cog-result" hx-swap="innerHTML">Migrate pg to files</button>
+        <button class="btn btn-primary" hx-post="/api/admin/cognition/reconcile" hx-target="#cog-result" hx-swap="innerHTML">Reconcile (union)</button>
+        <button class="btn btn-secondary" hx-post="/api/admin/cognition/migrate?direction=files-to-pg" hx-confirm="Overwrite pgvector from files?" hx-target="#cog-result" hx-swap="innerHTML">Migrate files to pg</button>
+        <button class="btn btn-secondary" hx-post="/api/admin/cognition/migrate?direction=pg-to-files" hx-confirm="Overwrite files from pgvector?" hx-target="#cog-result" hx-swap="innerHTML">Migrate pg to files</button>
     </div>
     <div id="cog-result" class="result"></div>
     {#else}
