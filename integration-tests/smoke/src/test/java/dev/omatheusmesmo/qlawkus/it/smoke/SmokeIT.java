@@ -27,7 +27,7 @@ class SmokeIT {
     @Test
     @Timeout(value = 300, unit = TimeUnit.SECONDS)
     void nativeImage_startsAndRespondsOnApiChat() throws Exception {
-        String password = System.getProperty("test.qlawkus.password", "qlawkus-it");
+        String password = System.getProperty("test.qlawkus.password", "qlawkus-test");
         String auth = Base64.getEncoder().encodeToString(("qlawkus:" + password).getBytes());
 
         HttpClient client = HttpClient.newBuilder()
