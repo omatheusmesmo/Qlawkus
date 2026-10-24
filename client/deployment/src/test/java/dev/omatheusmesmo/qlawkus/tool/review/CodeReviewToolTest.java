@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -93,6 +95,17 @@ class CodeReviewToolTest {
         CommandResult result = codeReviewTool.runLocalTests("env mvn test");
 
         assertEquals(CodeReviewTool.INVALID_BUILD_TOOL_EXIT_CODE, result.exitCode());
+        verify(shellTool, never()).runCommand(any(), any(), any());
+    }
+
+    @Test
+    void runLocalTests_gitMissing_returnsTheMissingExecutableResultWithoutRunning() {
+        CommandResult missing = new CommandResult("", "'git' is not on the PATH", ShellTool.MISSING_EXECUTABLE_EXIT_CODE, 0L, false);
+        when(shellTool.missingExecutable("git")).thenReturn(Optional.of(missing));
+
+        CommandResult result = codeReviewTool.runLocalTests("git status");
+
+        assertSame(missing, result);
         verify(shellTool, never()).runCommand(any(), any(), any());
     }
 }

@@ -70,6 +70,8 @@ For the native image (faster startup, lower memory; the native compile is heavy)
 ./run.sh native
 ```
 
+The code-review tools need `git` and `gh`, which the base image leaves out. `QLAWKUS_IMAGE_VARIANT=devtools ./run.sh prod` (or `local`) builds the JVM image with both (175 MB more on disk than the base, 44 MB more content); see the quickstart, "Devtools image".
+
 ---
 
 ## Configuration

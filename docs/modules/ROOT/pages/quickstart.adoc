@@ -77,6 +77,28 @@ For the native image (faster startup, lower memory; the native compile is heavy 
 ./run.sh native
 ----
 
+=== Devtools image (git and gh)
+
+The code-review tools shell out to `git` and `gh` (`gh pr review`), and the base
+JVM image ships neither. Build the `devtools` variant to get both:
+
+[source,bash]
+----
+QLAWKUS_IMAGE_VARIANT=devtools ./run.sh prod   # or local; also settable in .env
+----
+
+It is the same image plus `git` (from the UBI repos) and `gh` (from GitHub's
+official RPM repo, at its latest release). That costs 175 MB on disk (791 MB
+for the base, 966 MB for devtools; 242 MB and 286 MB of content), which is why
+it is opt-in. `gh` still needs a GitHub token to act (`GH_TOKEN` in the container environment) and a checked-out
+repository in the workspace. Build tools such as Maven or npm are not included.
+
+The variant is JVM only: the native image runs on the Quarkus micro image, which
+has no package manager, so `./run.sh native` refuses it. Without the variant the
+tools do not fail silently: they answer that the binary is not on the PATH and
+point at this image. To check an image you built, run
+`scripts/check-devtools-image.sh <image>`.
+
 TIP: `./run.sh prod logs` follows the app logs and `./run.sh prod down` stops the stack.
 
 == Authentication

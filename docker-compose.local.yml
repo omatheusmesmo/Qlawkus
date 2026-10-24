@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: app/src/main/docker/Dockerfile.jvm-build
+      args:
+        # base (lean) or devtools (adds git and gh for the code-review tools).
+        QLAWKUS_IMAGE_VARIANT: ${QLAWKUS_IMAGE_VARIANT:-base}
     env_file:
       - path: .env
         required: false
