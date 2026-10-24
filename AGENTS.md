@@ -115,6 +115,7 @@ mvn -pl composition-maven-plugin install -DskipTests -DskipITs=false
 - `integration-tests/*/src/test/` - QuarkusTest integration tests; some call real LLMs, some use `@InjectMock`
 - LLM-dependent tests use `@EnabledIf("dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils#usesLLM")` - auto-skip when `NVIDIA_AI_API_KEY` is absent or "dummy"
 - Smoke tests (`integration-tests/smoke/`) hit real LLM: can take 5+ minutes per test
+- Every `integration-tests/*` module that declares a `@QuarkusIntegrationTest` class must bind `maven-failsafe-plugin` (`integration-test` + `verify`, as `brag` does), or its `*IT` classes compile and never run, JVM or native. Their runtime config (file roots, `qlawkus.startup-thought.enabled`) is unprefixed rather than `%test`, because the packaged artifact boots in the prod profile.
 
 ## Adding Tools
 

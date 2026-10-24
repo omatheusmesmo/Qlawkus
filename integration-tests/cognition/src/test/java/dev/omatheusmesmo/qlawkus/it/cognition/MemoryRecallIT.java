@@ -42,7 +42,7 @@ class MemoryRecallIT {
   }
 
   private String auth() {
-    String password = System.getProperty("test.qlawkus.password", "qlawkus-it");
+    String password = System.getProperty("test.qlawkus.password", "qlawkus-test");
     return "Basic " + Base64.getEncoder().encodeToString(("qlawkus:" + password).getBytes());
   }
 

@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.it.cognition;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.common.http.TestHTTPResource;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -14,6 +15,7 @@ import java.util.Base64;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusIntegrationTest
+@EnabledIf("dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils#usesLLM")
 class CognitionIT {
 
     @TestHTTPResource
@@ -27,7 +29,7 @@ class CognitionIT {
     }
 
     String auth() {
-        String password = System.getProperty("test.qlawkus.password", "qlawkus-it");
+        String password = System.getProperty("test.qlawkus.password", "qlawkus-test");
         return "Basic " + Base64.getEncoder().encodeToString(("qlawkus:" + password).getBytes());
     }
 
