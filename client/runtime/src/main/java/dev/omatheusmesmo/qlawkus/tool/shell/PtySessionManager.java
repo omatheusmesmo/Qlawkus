@@ -45,6 +45,12 @@ public class PtySessionManager {
     @Inject
     WorkspaceConfinement workspaceConfinement;
 
+    @Inject
+    ChildEnvironment childEnvironment;
+
+    @Inject
+    SecretRedactor secretRedactor;
+
     /**
      * Maximum number of concurrent PTY sessions. Default: 10.
      */
@@ -165,7 +171,7 @@ public class PtySessionManager {
 
         File dir = resolveDir(workdir);
 
-        Map<String, String> env = new HashMap<>(System.getenv());
+        Map<String, String> env = new HashMap<>(childEnvironment.build());
         env.put("TERM", "xterm-256color");
 
         PtyProcess process = new PtyProcessBuilder()
@@ -200,7 +206,7 @@ public class PtySessionManager {
         session.setReaderThread(readerThread);
         sessions.put(sessionId, session);
 
-        Log.infof("PTY session started: id=%s command='%s' dir=%s", sessionId, command, dir);
+        Log.infof("PTY session started: id=%s command='%s' dir=%s", sessionId, secretRedactor.redact(command), dir);
         return sessionId;
     }
 
@@ -212,7 +218,9 @@ public class PtySessionManager {
         session.updateStatus();
         session.touchActivity();
 
-        List<String> lines = session.getOutputBuffer().getLinesFrom(offset);
+        List<String> lines = session.getOutputBuffer().getLinesFrom(offset).stream()
+                .map(secretRedactor::redact)
+                .toList();
         boolean hasMore = session.getOutputBuffer().hasMoreAfter(offset + lines.size());
         boolean promptDetected = session.isPromptDetected();
         session.clearPromptDetected();
@@ -246,7 +254,7 @@ public class PtySessionManager {
             session.updateStatus();
             result.add(new SessionInfo(
                     session.getSessionId(),
-                    session.getCommand(),
+                    secretRedactor.redact(session.getCommand()),
                     session.getStatus(),
                     session.getLastActivity().toEpochMilli(),
                     session.getPromptPatternStrings()

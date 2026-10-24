@@ -28,19 +28,24 @@ public final class SecretPropertyCatalog {
             "quarkus.datasource.\"brag\".password"
     );
 
+    private static final String SHELL_SECRET_ENV = "qlawkus.shell.secret-env";
+
     private SecretPropertyCatalog() {
     }
 
     /**
      * Whether {@code property} is a known secret property. TTS provider keys
      * ({@code qlawkus.messaging.tts.providers.<id>.api-key}) are matched by suffix since {@code <id>}
-     * is dynamic.
+     * is dynamic, and so is every entry of {@code qlawkus.shell.secret-env}, whose keys are whatever
+     * environment variable names the operator hands to the shell.
      */
     public static boolean isSecret(String property) {
         if (property == null) {
             return false;
         }
         return SECRET_PROPERTIES.contains(property)
+                || property.equals(SHELL_SECRET_ENV)
+                || property.startsWith(SHELL_SECRET_ENV + ".")
                 || (property.startsWith("qlawkus.messaging.tts.providers.") && property.endsWith(".api-key"));
     }
 }
