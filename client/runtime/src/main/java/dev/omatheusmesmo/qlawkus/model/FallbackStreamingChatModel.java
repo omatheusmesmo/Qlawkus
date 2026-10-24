@@ -40,6 +40,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * tokens already visible to the user, so {@link #runBridged} resolves the future normally instead of
  * exceptionally in that case - the guard sees a completed attempt, not a failure, and stops.
  *
+ * <p>With the fallback disabled the call is bridged the same way, with no retry or fallback around
+ * it, so the primary's outcome still reaches readiness (see {@link PermanentFailures}).
+ *
  * <p>Delegates are called through {@code chat()} rather than {@code doChat()} for the same reason
  * given on {@link FallbackChatModel}: {@code chat()} is what wraps the call in the model's
  * {@code listeners()}, and going straight to {@code doChat()} silently drops every meter, cost
@@ -70,13 +73,12 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
 
     @Override
     public void doChat(ChatRequest request, StreamingChatResponseHandler handler) {
-        if (!config.fallbackEnabled()) {
-            delegate.chat(request, handler);
-            return;
-        }
-
         AtomicBoolean partialSent = new AtomicBoolean(false);
         try {
+            if (!config.fallbackEnabled()) {
+                guard.callPrimaryOnly(() -> runBridged(delegate, request, handler, partialSent));
+                return;
+            }
             guard.call(
                     () -> runBridged(delegate, request, handler, partialSent),
                     () -> runBridged(fallback, sanitizeForOllama(request), handler, partialSent));
