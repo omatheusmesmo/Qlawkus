@@ -6,6 +6,7 @@ import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 
 import java.time.Duration;
+import java.util.Set;
 
 @ConfigRoot(phase = ConfigPhase.RUN_TIME)
 @ConfigMapping(prefix = "qlawkus.model")
@@ -57,6 +58,44 @@ public interface ModelFallbackConfig {
      */
     @WithDefault("true")
     boolean fallbackEnabled();
+
+    /**
+     * When readiness treats a permanent answer from the primary provider as unable to serve.
+     */
+    PermanentFailure permanentFailure();
+
+    /**
+     * A permanent answer (a retired model, a revoked key, a wrong model name) is never retried, never
+     * opens a circuit breaker and never reaches the fallback, so without this a provider that fails
+     * every turn would leave readiness UP. Only the {@code interactive} workload decides the status;
+     * other workloads are reported as data.
+     */
+    interface PermanentFailure {
+
+        /**
+         * Consecutive permanent failures on one surface (chat or embedding) of the interactive
+         * workload after which readiness reports DOWN. One success on that surface resets the count.
+         */
+        @WithDefault("3")
+        int threshold();
+
+        /**
+         * How long a DOWN verdict holds after the last permanent failure. Past it, readiness reports
+         * UP again so traffic can reach the instance and probe the provider, the way an open breaker
+         * half-opens; the next permanent failure takes it straight back DOWN, a success clears it.
+         * Without it, an instance taken out of rotation could never see the success that clears it.
+         */
+        @WithDefault("300s")
+        Duration window();
+
+        /**
+         * HTTP statuses that count as a permanent provider failure. A plain 400 is left out on
+         * purpose: it describes one request (an oversized context, a malformed tool schema), not a
+         * provider that fails every turn.
+         */
+        @WithDefault("401,403,404,410")
+        Set<Integer> statuses();
+    }
 
     /**
      * Fallback configuration.

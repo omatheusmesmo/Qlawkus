@@ -53,7 +53,7 @@ public class FallbackChatModel implements ChatModel {
     @Override
     public ChatResponse doChat(ChatRequest request) {
         if (!config.fallbackEnabled()) {
-            return delegate.chat(request);
+            return guard.callPrimaryOnly(() -> delegate.chat(request));
         }
         return guard.call(() -> delegate.chat(request), () -> fallback.chat(sanitizeForOllama(request)));
     }

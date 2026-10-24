@@ -43,12 +43,15 @@ public class EmbeddingGuard {
     private final Map<String, TypedGuard<Object>> guards = new LinkedHashMap<>();
     private final WorkloadGuards workloads;
     private final AgentMeters meters;
+    private final PermanentFailures failures;
     private final ThreadLocal<Supplier<Object>> currentFallback = new ThreadLocal<>();
 
     @Inject
-    public EmbeddingGuard(ModelFallbackConfig config, AgentMeters meters, WorkloadGuards workloads) {
+    public EmbeddingGuard(ModelFallbackConfig config, AgentMeters meters, WorkloadGuards workloads,
+            PermanentFailures failures) {
         this.meters = meters;
         this.workloads = workloads;
+        this.failures = failures;
         for (String workload : workloads.names()) {
             guards.put(workload, buildGuard(config, workload));
         }
@@ -118,23 +121,35 @@ public class EmbeddingGuard {
         return currentFallback.get().get();
     }
 
+    /**
+     * Runs {@code primary} with retry, breaker and fallback. A permanent failure (see {@link
+     * #NON_RETRYABLE}) skips all three and propagates: a fallback vector comes from another model and
+     * lands in another vector space, so answering with it would degrade recall silently instead of
+     * failing loudly.
+     */
     @SuppressWarnings("unchecked")
     public <T> T call(Supplier<T> primary, Supplier<T> fallback) {
+        String workload = resolve(WorkloadContext.current());
         currentFallback.set((Supplier<Object>) fallback);
         try {
-            return (T) guardFor(WorkloadContext.current()).get((Supplier<Object>) primary);
+            return (T) guards.get(workload).get(
+                    () -> failures.observe(WorkloadGuards.EMBEDDING, workload, (Supplier<Object>) primary));
         } finally {
             currentFallback.remove();
         }
     }
 
+    /** See {@link PrimaryChatGuard#callPrimaryOnly}: the fallback-disabled path, still observed. */
+    public <T> T callPrimaryOnly(Supplier<T> primary) {
+        return failures.observe(WorkloadGuards.EMBEDDING, resolve(WorkloadContext.current()), primary);
+    }
+
     /** An unknown workload falls back to the interactive guard rather than failing the call. */
-    private TypedGuard<Object> guardFor(String workload) {
-        TypedGuard<Object> guard = guards.get(workload);
-        if (guard == null) {
+    private String resolve(String workload) {
+        if (!guards.containsKey(workload)) {
             Log.warnf("Unknown model workload '%s', using %s", workload, WorkloadContext.INTERACTIVE);
-            return guards.get(WorkloadContext.INTERACTIVE);
+            return WorkloadContext.INTERACTIVE;
         }
-        return guard;
+        return workload;
     }
 }

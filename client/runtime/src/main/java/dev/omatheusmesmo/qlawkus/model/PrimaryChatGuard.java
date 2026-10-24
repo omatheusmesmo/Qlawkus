@@ -64,12 +64,15 @@ public class PrimaryChatGuard {
     private final Map<String, TypedGuard<ChatResponse>> guards = new LinkedHashMap<>();
     private final WorkloadGuards workloads;
     private final AgentMeters meters;
+    private final PermanentFailures failures;
     private final ThreadLocal<Supplier<ChatResponse>> currentFallback = new ThreadLocal<>();
 
     @Inject
-    public PrimaryChatGuard(ModelFallbackConfig config, AgentMeters meters, WorkloadGuards workloads) {
+    public PrimaryChatGuard(ModelFallbackConfig config, AgentMeters meters, WorkloadGuards workloads,
+            PermanentFailures failures) {
         this.meters = meters;
         this.workloads = workloads;
+        this.failures = failures;
         for (String workload : workloads.names()) {
             guards.put(workload, buildGuard(config, workload));
         }
@@ -152,25 +155,35 @@ public class PrimaryChatGuard {
      * an auth or config error should surface, not be masked by a silent switch to Ollama.
      */
     public ChatResponse call(Supplier<ChatResponse> primary, Supplier<ChatResponse> fallback) {
+        String workload = resolve(WorkloadContext.current());
         currentFallback.set(fallback);
         try {
-            return guardFor(WorkloadContext.current()).get(primary);
+            return guards.get(workload).get(() -> failures.observe(WorkloadGuards.CHAT, workload, primary));
         } finally {
             currentFallback.remove();
         }
     }
 
     /**
+     * Runs {@code primary} once with no retry, breaker or fallback, which is what the callers do when
+     * the fallback is disabled. It still goes through here so its outcome reaches readiness: a
+     * permanent failure is no less permanent for having nowhere to fall back to.
+     */
+    public ChatResponse callPrimaryOnly(Supplier<ChatResponse> primary) {
+        return failures.observe(WorkloadGuards.CHAT, resolve(WorkloadContext.current()), primary);
+    }
+
+    /**
      * An unknown workload resolves to the interactive guard rather than failing. A name that reaches
      * here without a guard is a configuration mistake, and refusing the call would turn a typo into
-     * an outage on the path a person is waiting on.
+     * an outage on the path a person is waiting on. Outcomes are recorded under the resolved name, so
+     * they land on the workload whose guard actually ran.
      */
-    private TypedGuard<ChatResponse> guardFor(String workload) {
-        TypedGuard<ChatResponse> guard = guards.get(workload);
-        if (guard == null) {
+    private String resolve(String workload) {
+        if (!guards.containsKey(workload)) {
             Log.warnf("Unknown model workload '%s', using %s", workload, WorkloadContext.INTERACTIVE);
-            return guards.get(WorkloadContext.INTERACTIVE);
+            return WorkloadContext.INTERACTIVE;
         }
-        return guard;
+        return workload;
     }
 }

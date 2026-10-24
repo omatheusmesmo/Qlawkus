@@ -65,7 +65,7 @@ public class FallbackEmbeddingModel implements EmbeddingModel {
 
     private <T> T executeWithFallback(Supplier<T> primary, Supplier<T> fallbackCall) {
         if (!config.fallbackEnabled()) {
-            return primary.get();
+            return guard.callPrimaryOnly(primary);
         }
         return guard.call(primary, fallbackCall);
     }
