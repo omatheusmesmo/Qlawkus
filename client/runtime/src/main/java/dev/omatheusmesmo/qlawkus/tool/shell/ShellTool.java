@@ -79,6 +79,12 @@ public class ShellTool {
     @Inject
     WorkspaceConfinement workspaceConfinement;
 
+    @Inject
+    ChildEnvironment childEnvironment;
+
+    @Inject
+    SecretRedactor secretRedactor;
+
     private final Map<Long, TrackedProcess> activeProcesses = new LinkedHashMap<>();
     private final AtomicInteger runningCount = new AtomicInteger(0);
 
@@ -101,10 +107,11 @@ public class ShellTool {
             "timeoutSeconds (optional) — execution timeout in seconds (omit to run indefinitely until completion)")
     public CommandResult runCommand(String command, String workdir, Integer timeoutSeconds) {
         long start = System.currentTimeMillis();
+        String loggable = secretRedactor.redact(command);
 
         SecurityResult commandCheck = commandFilter.check(command);
         if (commandCheck.blocked()) {
-            Log.warnf("ShellTool: command blocked — %s", commandCheck);
+            Log.warnf("ShellTool: command blocked: %s", secretRedactor.redact(commandCheck.toString()));
             CommandResult result = blockedResult(commandCheck, start);
             auditLog(command, workdir, result.exitCode(), result.durationMs());
             return result;
@@ -112,7 +119,7 @@ public class ShellTool {
 
         SecurityResult pathCheck = workspaceConfinement.check(workdir);
         if (pathCheck.blocked()) {
-            Log.warnf("ShellTool: workdir blocked — %s", pathCheck);
+            Log.warnf("ShellTool: workdir blocked: %s", secretRedactor.redact(pathCheck.toString()));
             CommandResult result = blockedResult(pathCheck, start);
             auditLog(command, workdir, result.exitCode(), result.durationMs());
             return result;
@@ -120,7 +127,7 @@ public class ShellTool {
 
         if (runningCount.get() >= maxConcurrent) {
             Log.warnf("ShellTool: concurrent limit reached (%d/%d) — rejecting '%s'",
-                    runningCount.get(), maxConcurrent, command);
+                    runningCount.get(), maxConcurrent, loggable);
             CommandResult result = new CommandResult(
                     "", "Concurrent process limit reached (" + maxConcurrent + "). Wait for a process to finish or kill one with killProcess().",
                     CONCURRENT_LIMIT_EXIT_CODE, System.currentTimeMillis() - start, false);
@@ -130,14 +137,15 @@ public class ShellTool {
 
         Path dir = workspaceConfinement.resolveCanonical(workdir);
 
-        Log.debugf("ShellTool: executing '%s' in %s (timeout=%s)", command, dir,
+        Log.debugf("ShellTool: executing '%s' in %s (timeout=%s)", loggable, dir,
                 timeoutSeconds != null ? timeoutSeconds + "s" : "none");
 
         ProcessBuilder pb = new ProcessBuilder()
                 .command(shellCommand(command))
                 .directory(dir.toFile())
                 .redirectErrorStream(false);
-        pb.environment().putAll(workspaceConfinement.getWorkspaceEnv());
+        pb.environment().clear();
+        pb.environment().putAll(childEnvironment.build());
 
         Process process;
         try {
@@ -145,14 +153,14 @@ public class ShellTool {
             process = pb.start();
         } catch (IOException e) {
             runningCount.decrementAndGet();
-            Log.errorf(e, "ShellTool: failed to start command '%s'", command);
+            Log.errorf(e, "ShellTool: failed to start command '%s'", loggable);
             CommandResult result = new CommandResult("", "Failed to start command: " + e.getMessage(), -1,
                     System.currentTimeMillis() - start, false);
             auditLog(command, workdir, result.exitCode(), result.durationMs());
             return result;
         }
 
-        TrackedProcess tracked = new TrackedProcess(process.pid(), command, start, "running");
+        TrackedProcess tracked = new TrackedProcess(process.pid(), loggable, start, "running");
         activeProcesses.put(process.pid(), tracked);
 
         OutputCapture stdoutCapture = new OutputCapture(process.getInputStream(), maxOutputBytes, maxOutputLines);
@@ -174,8 +182,8 @@ public class ShellTool {
             tracked.status = "interrupted";
             runningCount.decrementAndGet();
             CommandResult result = new CommandResult(
-                    stdoutCapture.getOutput(),
-                    stderrCapture.getOutput() + "\n[Command interrupted]",
+                    redacted(stdoutCapture),
+                    redacted(stderrCapture) + "\n[Command interrupted]",
                     -1,
                     System.currentTimeMillis() - start,
                     stdoutCapture.isTruncated() || stderrCapture.isTruncated()
@@ -188,10 +196,10 @@ public class ShellTool {
             process.destroyForcibly();
             tracked.status = "timed_out";
             runningCount.decrementAndGet();
-            Log.warnf("ShellTool: command '%s' timed out after %ds", command, timeoutSeconds);
+            Log.warnf("ShellTool: command '%s' timed out after %ds", loggable, timeoutSeconds);
             CommandResult result = new CommandResult(
-                    stdoutCapture.getOutput(),
-                    stderrCapture.getOutput() + "\n[Command timed out after " + timeoutSeconds + "s]",
+                    redacted(stdoutCapture),
+                    redacted(stderrCapture) + "\n[Command timed out after " + timeoutSeconds + "s]",
                     -1,
                     System.currentTimeMillis() - start,
                     stdoutCapture.isTruncated() || stderrCapture.isTruncated()
@@ -213,11 +221,11 @@ public class ShellTool {
         boolean truncated = stdoutCapture.isTruncated() || stderrCapture.isTruncated();
 
         tracked.status = "completed";
-        Log.debugf("ShellTool: command '%s' finished with exitCode=%d in %dms", command, exitCode, duration);
+        Log.debugf("ShellTool: command '%s' finished with exitCode=%d in %dms", loggable, exitCode, duration);
 
         CommandResult result = new CommandResult(
-                stdoutCapture.getOutput(),
-                stderrCapture.getOutput(),
+                redacted(stdoutCapture),
+                redacted(stderrCapture),
                 exitCode,
                 duration,
                 truncated
@@ -407,17 +415,21 @@ public class ShellTool {
     public void auditLog(String command, String workdir, int exitCode, long durationMs) {
         String workdirStr = workdir != null ? workdir : workspaceRoot;
         Log.infof("SHELL_CMD | cmd=%s | workdir=%s | exit=%d | duration=%dms",
-                command, workdirStr, exitCode, durationMs);
+                secretRedactor.redact(command), workdirStr, exitCode, durationMs);
     }
 
     public int getRunningCount() {
         return runningCount.get();
     }
 
+    private String redacted(OutputCapture capture) {
+        return secretRedactor.redact(capture.getOutput());
+    }
+
     private CommandResult blockedResult(SecurityResult security, long start) {
         return new CommandResult(
                 "",
-                security.toString(),
+                secretRedactor.redact(security.toString()),
                 SECURITY_BLOCK_EXIT_CODE,
                 System.currentTimeMillis() - start,
                 false

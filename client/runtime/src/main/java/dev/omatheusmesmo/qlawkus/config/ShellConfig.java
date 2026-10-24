@@ -6,6 +6,7 @@ import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @ConfigRoot(phase = ConfigPhase.RUN_TIME)
@@ -65,6 +66,26 @@ public interface ShellConfig {
      */
     @WithDefault("true")
     boolean cleanProfile();
+
+    /**
+     * Names of the process environment variables a command may inherit; everything else is withheld,
+     * so a command such as {@code env} cannot read the agent's own credentials. A trailing {@code *}
+     * makes the entry a prefix match ({@code LC_*}). The workspace env file and
+     * {@link #secretEnv()} are added on top of this list.
+     */
+    @WithDefault("PATH,HOME,USER,LANG,LC_*,TZ,TERM,SHELL,JAVA_HOME,TMPDIR")
+    List<String> envAllowlist();
+
+    /**
+     * Secrets deliberately handed to commands, keyed by the environment variable name they appear
+     * under, for example {@code qlawkus.shell.secret-env."GH_TOKEN"}. Empty by default. Values resolve
+     * through normal configuration, so they can come from {@code .env} or from a keystore alias. A
+     * blank value is skipped, which lets a distribution wire an entry to an environment variable
+     * that may be unset. Every value is redacted from command output and from the audit log, and
+     * these properties are never shown or written by the config editor. Passing {@code GH_TOKEN} also
+     * configures git to authenticate to github.com through {@code gh}, with nothing written to disk.
+     */
+    Map<String, Optional<String>> secretEnv();
 
     /**
      * Regex patterns for shell prompt detection.
