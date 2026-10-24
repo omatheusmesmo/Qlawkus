@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.it.console;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,17 @@ class ConsoleScaffoldTest {
   }
 
   @Test
+  void landingPage_describesItselfAndEnablesEveryNavItem() {
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get("/console")
+        .then().statusCode(200)
+        .body(not(containsString("Scaffold ready")))
+        .body(not(containsString("is-disabled")))
+        .body(containsString("href=\"/console/config\""))
+        .body(containsString("href=\"/console/schedule\""));
+  }
+
+  @Test
   void statusFragment_reportsLiveCompositionState() {
     given().auth().preemptive().basic(USER, PASS)
         .when().get("/console/status")
@@ -49,5 +61,6 @@ class ConsoleScaffoldTest {
   void staticAssets_areServed() {
     given().when().get("/console/app.css").then().statusCode(200);
     given().when().get("/console/htmx.min.js").then().statusCode(200);
+    given().when().get("/console/console.js").then().statusCode(200);
   }
 }

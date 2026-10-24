@@ -6,6 +6,7 @@
     <title>Qlawkus Console - Setup</title>
     <link rel="stylesheet" href="/console/app.css">
     <script src="/console/htmx.min.js" defer></script>
+    <script src="/console/console.js" defer></script>
 </head>
 <body>
 <div class="layout">
@@ -43,7 +44,7 @@
                 <label>Base URL<input name="baseUrl" placeholder="https://integrate.api.nvidia.com/v1"></label>
                 <label>Chat model<input name="chatModel" placeholder="e.g. meta/llama-3.1-70b-instruct"></label>
                 <label>API key<input name="apiKey" type="password" placeholder="paste the provider API key"></label>
-                <button type="submit">Save LLM settings</button>
+                <button type="submit" class="btn btn-primary">Save LLM settings</button>
             </form>
             <div id="llm-result" class="result"></div>
         </section>
@@ -59,7 +60,7 @@
                     <span class="check-desc">{c.description}</span>
                 </label>
                 {/for}
-                <button type="submit">Stage manifest</button>
+                <button type="submit" class="btn btn-primary">Stage manifest</button>
             </form>
             <div id="caps-result" class="result">{#if staged}<p class="muted">A manifest is currently staged, pending a rebuild.</p>{/if}</div>
         </section>
@@ -82,7 +83,7 @@
                     <h3>{step.label}</h3>
                     {#if step.done}
                     <p class="muted">Authorize here and you will be sent to Google's consent screen, then redirected back to a confirmation page. You can also ask the agent to authorize Google in chat - same flow, same result.</p>
-                    <a class="button" href="/api/google/oauth/start">Authorize Google</a>
+                    <a class="btn btn-primary" href="/api/google/oauth/start">Authorize Google</a>
                     {#else}
                     <p class="muted">Google is built in, and waiting on an OAuth client. It identifies this deployment rather than you, so it is set where the deployment is configured - <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> as environment variables, or the keystore aliases <code>qlawkus.google.auth.client-id</code> and <code>qlawkus.google.auth.client-secret</code>. Restart, and this step turns into an authorize button.</p>
                     {/if}
@@ -93,7 +94,7 @@
                     <form class="form" hx-post="/console/setup/messaging" hx-target="#msg-{step_count}" hx-swap="innerHTML">
                         <input type="hidden" name="property" value="{step.tokenProperty}">
                         <label>Bot token<input name="token" type="password" placeholder="paste the bot token"></label>
-                        <button type="submit">Save token</button>
+                        <button type="submit" class="btn btn-primary">Save token</button>
                     </form>
                     <div id="msg-{step_count}" class="result"></div>
                 </div>

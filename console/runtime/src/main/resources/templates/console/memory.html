@@ -23,9 +23,9 @@
 <section class="step">
     <h2 class="step-title">Actions</h2>
     <div class="actions">
-        <button hx-post="/api/admin/memory/review" hx-target="#mem-result" hx-swap="innerHTML" hx-indicator="#mem-result">Review (dedup facts)</button>
-        <button hx-post="/api/admin/memory/curate" hx-target="#mem-result" hx-swap="innerHTML" hx-indicator="#mem-result">Curate into profile</button>
-        <button class="danger" hx-delete="/api/admin/memory?all=true" hx-confirm="Purge ALL memory? This cannot be undone." hx-target="#mem-result" hx-swap="innerHTML">Purge all</button>
+        <button class="btn btn-secondary" hx-post="/api/admin/memory/review" hx-target="#mem-result" hx-swap="innerHTML" hx-indicator="#mem-result">Review (dedup facts)</button>
+        <button class="btn btn-secondary" hx-post="/api/admin/memory/curate" hx-target="#mem-result" hx-swap="innerHTML" hx-indicator="#mem-result">Curate into profile</button>
+        <button class="btn btn-danger" hx-delete="/api/admin/memory?all=true" hx-confirm="Purge ALL memory? This cannot be undone." hx-target="#mem-result" hx-swap="innerHTML">Purge all</button>
     </div>
     <div id="mem-result" class="result"></div>
 </section>

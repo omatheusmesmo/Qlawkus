@@ -7,6 +7,7 @@ import dev.omatheusmesmo.qlawkus.config.metadata.ConfigPropertyMetadata;
 import dev.omatheusmesmo.qlawkus.config.metadata.ConfigRootMetadata;
 import dev.omatheusmesmo.qlawkus.dto.ConfigOverridesState;
 import io.quarkus.qute.Location;
+import io.quarkus.qute.RawString;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.TemplateInstance;
 import io.quarkus.runtime.annotations.ConfigPhase;
@@ -76,14 +77,20 @@ public class ConfigConsoleResource {
         String shadowWarning = liveEditable ? shadowWarning(value) : null;
         return new ConfigPropertyView(
                 metadata.property(),
-                metadata.description(),
+                descriptionOf(metadata),
                 metadata.phase().name(),
                 liveEditable,
                 metadata.typeDescription(),
                 metadata.defaultValue(),
                 value.getValue(),
                 value.getSourceName(),
+                ConfigSourceLabel.of(value.getSourceName()),
                 shadowWarning);
+    }
+
+    private static RawString descriptionOf(ConfigPropertyMetadata metadata) {
+        String html = JavadocText.toHtml(metadata.description());
+        return html.isEmpty() ? null : new RawString(html);
     }
 
     /**
@@ -97,6 +104,6 @@ public class ConfigConsoleResource {
             return null;
         }
         return "Currently set by %s (ordinal %d); a saved override here will not take effect until that is removed."
-                .formatted(value.getSourceName(), value.getSourceOrdinal());
+                .formatted(ConfigSourceLabel.of(value.getSourceName()), value.getSourceOrdinal());
     }
 }

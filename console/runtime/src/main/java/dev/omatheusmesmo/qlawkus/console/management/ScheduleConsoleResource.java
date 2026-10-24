@@ -89,6 +89,7 @@ public class ScheduleConsoleResource {
                 job.cronProperty(),
                 value.getValue(),
                 value.getSourceName(),
+                ConfigSourceLabel.of(value.getSourceName()),
                 shadowWarning(value),
                 job.triggerPath(),
                 formatInstant(trigger == null ? null : trigger.getPreviousFireTime()),
@@ -100,7 +101,7 @@ public class ScheduleConsoleResource {
             return null;
         }
         return "Currently set by %s (ordinal %d); a saved override here will not take effect until that is removed."
-                .formatted(value.getSourceName(), value.getSourceOrdinal());
+                .formatted(ConfigSourceLabel.of(value.getSourceName()), value.getSourceOrdinal());
     }
 
     private static String formatInstant(Instant instant) {

@@ -7,6 +7,7 @@ public record ScheduledJobView(
         String cronProperty,
         String currentCron,
         String effectiveSource,
+        String sourceLabel,
         String shadowWarning,
         String triggerPath,
         String previousFireTime,

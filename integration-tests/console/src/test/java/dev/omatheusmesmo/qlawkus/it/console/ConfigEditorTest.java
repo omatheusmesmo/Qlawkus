@@ -40,6 +40,36 @@ class ConfigEditorTest {
   }
 
   @Test
+  void page_rendersJavadocMarkupInDescriptions() {
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get("/console/config")
+        .then().statusCode(200)
+        .body(not(containsString("{@code")))
+        .body(not(containsString("{@link")))
+        .body(containsString("<code>"));
+  }
+
+  @Test
+  void page_showsAShortSourceLabelWithTheFullNameInATooltip() {
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get("/console/config")
+        .then().statusCode(200)
+        .body(containsString("class=\"cfg-src\" title=\"DefaultValuesConfigSource\">default<"))
+        .body(not(containsString("via PropertiesConfigSource")))
+        .body(not(containsString(">via ")));
+  }
+
+  @Test
+  void page_usesTheSharedButtonSystem() {
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get("/console/config")
+        .then().statusCode(200)
+        .body(containsString("class=\"btn btn-primary\""))
+        .body(containsString("class=\"btn btn-secondary\""))
+        .body(containsString("class=\"btn btn-danger\""));
+  }
+
+  @Test
   void sharedNav_linksTheConfigPage() {
     given().auth().preemptive().basic(USER, PASS)
         .when().get("/console/memory")
