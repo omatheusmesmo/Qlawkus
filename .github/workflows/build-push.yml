@@ -25,7 +25,8 @@ jobs:
     name: Build on main
     runs-on: ubuntu-latest
     env:
-      LLM_API_KEY: dummy
+      LLM_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+      LLM_KIND: nvidia
     steps:
       - uses: actions/checkout@v7
 
