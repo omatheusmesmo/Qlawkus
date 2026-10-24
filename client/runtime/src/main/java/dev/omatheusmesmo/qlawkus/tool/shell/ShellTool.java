@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +35,10 @@ public class ShellTool {
     public static final int SECURITY_BLOCK_EXIT_CODE = -2;
 
     public static final int CONCURRENT_LIMIT_EXIT_CODE = -3;
+
+    public static final int MISSING_EXECUTABLE_EXIT_CODE = -4;
+
+    static final Set<String> DEVTOOLS_IMAGE_EXECUTABLES = Set.of("git", "gh");
 
     @Inject
     ShellConfig shellConfig;
@@ -355,6 +360,44 @@ public class ShellTool {
             Thread.currentThread().interrupt();
             return false;
         }
+    }
+
+    /**
+     * Rejects a command up front when its executable is not on the PATH the command would run with
+     * (the workspace env file may override the process PATH), so the model gets a message naming
+     * the binary instead of a bare {@code sh: gh: not found}. A path-qualified executable such as
+     * {@code ./mvnw} resolves against the workdir, not the PATH, and is never rejected here.
+     */
+    public Optional<CommandResult> missingExecutable(String executable) {
+        String path = workspaceConfinement.getWorkspaceEnv().getOrDefault("PATH", System.getenv("PATH"));
+        if (executable.contains("/") || isOnPath(executable, path)) {
+            return Optional.empty();
+        }
+        String message = "'" + executable + "' is not on the PATH of the Qlawkus process, so the command was not run. "
+                + "Install " + executable + " where Qlawkus runs.";
+        if (DEVTOOLS_IMAGE_EXECUTABLES.contains(executable)) {
+            message += " In a container, build the devtools image (QLAWKUS_IMAGE_VARIANT=devtools), which ships git and gh.";
+        }
+        Log.warnf("ShellTool: %s", message);
+        return Optional.of(new CommandResult("", message, MISSING_EXECUTABLE_EXIT_CODE, 0L, false));
+    }
+
+    static boolean isOnPath(String executable, String pathEnv) {
+        if (pathEnv == null || pathEnv.isBlank()) {
+            return false;
+        }
+        List<String> names = IS_WINDOWS
+                ? WINDOWS_EXTENSIONS.stream().map(ext -> executable + ext).toList()
+                : List.of(executable);
+        for (String dir : pathEnv.split(File.pathSeparator)) {
+            for (String name : names) {
+                Path candidate = Path.of(dir.isEmpty() ? "." : dir, name);
+                if (Files.isRegularFile(candidate) && (IS_WINDOWS || Files.isExecutable(candidate))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

@@ -13,7 +13,13 @@
 # Build + run via: ./run.sh prod    (or: docker compose up --build)
 # The BuildKit cache mount persists the Maven repo, so only the first build
 # downloads the full dependency tree.
+#
+# QLAWKUS_IMAGE_VARIANT picks the runtime stage: 'base' (default, lean) or
+# 'devtools', which adds git and gh for the code-review tools. Select it with
+# QLAWKUS_IMAGE_VARIANT=devtools ./run.sh prod, or --build-arg on docker build.
 ####
+
+ARG QLAWKUS_IMAGE_VARIANT=base
 
 # --- Build stage: reactor build (app + its upstream modules) -----------------
 # Runs as root in this throwaway stage; the runtime image below still runs as 185.
@@ -28,8 +34,25 @@ COPY . .
 RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -e -DskipTests -DskipITs install
 
-# --- Runtime stage: same UBI runtime as Dockerfile.jvm -----------------------
-FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24
+# --- Runtime base: same UBI runtime as Dockerfile.jvm ------------------------
+FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24 AS runtime-base
+
+# --- Devtools: runtime base plus git and gh -----------------------------------
+# git-core (the git binary, without the perl/email extras of the 'git' package)
+# comes from the UBI repos. gh is not in UBI, so it comes from GitHub's official
+# RPM repo, which serves only the latest release: pinning a version there would
+# break the build on the next gh release, so the installed version is whatever
+# is current at build time (gh --version reports it). microdnf does not import
+# the repo's signing key on its own, so rpm --import does it first.
+FROM runtime-base AS runtime-devtools
+USER root
+RUN curl -fsSL -o /etc/yum.repos.d/gh-cli.repo https://cli.github.com/packages/rpm/gh-cli.repo \
+    && rpm --import https://cli.github.com/packages/githubcli-archive-keyring.asc \
+    && microdnf install -y --nodocs --setopt=install_weak_deps=0 git-core gh \
+    && microdnf clean all
+
+# --- Runtime stage: the variant chosen by QLAWKUS_IMAGE_VARIANT ---------------
+FROM runtime-${QLAWKUS_IMAGE_VARIANT}
 
 ENV LANGUAGE='en_US:en'
 

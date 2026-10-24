@@ -9,6 +9,7 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -68,6 +69,11 @@ public class CodeReviewTool {
         String firstToken = firstToken(buildToolCommand);
         if (!ALLOWED_BUILD_TOOLS.contains(firstToken)) {
             return reject("Build tool '" + firstToken + "' is not in the allowlist " + ALLOWED_BUILD_TOOLS);
+        }
+
+        Optional<CommandResult> missing = shellTool.missingExecutable(firstToken);
+        if (missing.isPresent()) {
+            return missing.get();
         }
 
         Log.infof("REVIEW_TEST | starting cmd='%s' timeout=%ds", buildToolCommand, DEFAULT_TIMEOUT_SECONDS);

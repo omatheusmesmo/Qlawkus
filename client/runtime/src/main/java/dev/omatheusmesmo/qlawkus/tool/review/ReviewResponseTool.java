@@ -13,6 +13,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.faulttolerance.Retry;
 
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -69,6 +70,11 @@ public class ReviewResponseTool {
 
         if (type == ReviewType.REQUEST_CHANGES && (body == null || body.isBlank())) {
             return reject("A review body is required when reviewType is REQUEST_CHANGES.");
+        }
+
+        Optional<CommandResult> missing = shellTool.missingExecutable("gh");
+        if (missing.isPresent()) {
+            return missing.get();
         }
 
         String command = buildCommand(prNumber, type, body);

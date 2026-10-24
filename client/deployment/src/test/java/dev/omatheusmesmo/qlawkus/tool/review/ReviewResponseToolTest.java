@@ -6,6 +6,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -90,6 +92,17 @@ class ReviewResponseToolTest {
         CommandResult result = tool.submitReview(5, "approve", null);
 
         assertSame(ok, result);
+    }
+
+    @Test
+    void submitReview_ghMissing_returnsTheMissingExecutableResultWithoutRunning() {
+        CommandResult missing = new CommandResult("", "'gh' is not on the PATH", ShellTool.MISSING_EXECUTABLE_EXIT_CODE, 0L, false);
+        when(shellTool.missingExecutable("gh")).thenReturn(Optional.of(missing));
+
+        CommandResult result = tool.submitReview(42, "APPROVE", null);
+
+        assertSame(missing, result);
+        verify(shellTool, never()).runCommand(any(), any(), any());
     }
 
     @Test

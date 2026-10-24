@@ -22,11 +22,16 @@ Actions (default: up):
   restart  Rebuild and recreate just the app container.
   ps       Show stack status.
 
+Environment:
+  QLAWKUS_IMAGE_VARIANT  base (default) or devtools: the JVM image plus git and gh,
+                         which the code-review tools shell out to. local/prod only.
+
 Examples:
   ./run.sh prod            # build + start the production stack
   ./run.sh local up
   ./run.sh native build
   ./run.sh prod logs
+  QLAWKUS_IMAGE_VARIANT=devtools ./run.sh prod   # JVM image with git and gh
 EOF
 }
 
@@ -40,6 +45,13 @@ case "$mode" in
   -h|--help|"") usage; exit 0 ;;
   *) echo "Unknown mode: $mode" >&2; echo; usage; exit 1 ;;
 esac
+
+# The devtools variant exists only for the JVM image: the native runtime is the
+# micro image, which has no package manager to install git and gh with.
+if [ "$mode" = native ] && [ "${QLAWKUS_IMAGE_VARIANT:-base}" != base ]; then
+  echo "QLAWKUS_IMAGE_VARIANT=${QLAWKUS_IMAGE_VARIANT} is JVM only; use ./run.sh prod for it." >&2
+  exit 1
+fi
 
 # In native mode the profile-less jvm 'qlawkus' service must NOT start (it shares
 # port 8742), so the services are listed explicitly. local/prod use the default set.
