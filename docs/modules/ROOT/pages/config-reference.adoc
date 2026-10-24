@@ -58,6 +58,10 @@ include::includes/qlawkus-client_qlawkus.composition.adoc[]
 === Runtime toggles
 include::includes/qlawkus-client_qlawkus.runtime.adoc[]
 
+== Console (qlawkus-console)
+
+include::includes/qlawkus-console_qlawkus.console.adoc[]
+
 == Messaging
 
 === Core

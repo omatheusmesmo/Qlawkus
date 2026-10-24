@@ -51,6 +51,8 @@ services:
       - QLAWKUS_SELF_OBSERVE_PROMETHEUS_URL=http://lgtm:9090
       - QLAWKUS_SELF_OBSERVE_TEMPO_URL=http://lgtm:3200
       - QLAWKUS_SELF_OBSERVE_LOKI_URL=http://lgtm:3100
+      # The console links to Grafana from the browser, so this is the published port, not the in-network lgtm address.
+      - QLAWKUS_CONSOLE_GRAFANA_URL=${QLAWKUS_CONSOLE_GRAFANA_URL:-http://localhost:3000}
       # Memory tuning (AGENT_*) is read from .env via env_file above; unset keys use the
       # extension defaults, so they are not repeated here.
     volumes:
