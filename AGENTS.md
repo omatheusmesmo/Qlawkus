@@ -96,8 +96,8 @@ mvn test -pl client/deployment
 # Integration tests (LLM-dependent tests auto-skip if no API key)
 mvn test -pl integration-tests/smoke
 
-# Integration tests with real LLM (requires NVIDIA_AI_API_KEY env var)
-NVIDIA_AI_API_KEY=your-key mvn test -pl integration-tests/smoke
+# The live provider contract test (requires a real LLM_API_KEY)
+LLM_API_KEY=your-key mvn test -pl client/deployment,integration-tests/live-provider -am -Dtest=LiveProviderContractTest -Dsurefire.failIfNoSpecifiedTests=false
 
 # Full build (skip ITs by default - skipITs=true in parent pom)
 mvn verify
@@ -113,9 +113,10 @@ mvn -pl composition-maven-plugin install -DskipTests -DskipITs=false
 
 - `client/deployment/src/test/` - Extension build-time tests with WireMock-mocked LLM
 - `integration-tests/*/src/test/` - QuarkusTest integration tests; some call real LLMs, some use `@InjectMock`
-- LLM-dependent tests use `@EnabledIf("dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils#usesLLM")` - auto-skip when `NVIDIA_AI_API_KEY` is absent or "dummy"
+- LLM-dependent tests use `@EnabledIf("dev.omatheusmesmo.qlawkus.testing.QlawkusTestUtils#usesLLM")` - auto-skip when `LLM_API_KEY` is absent or "dummy", or when the module forces `qlawkus.test.mock-mode`
 - Smoke tests (`integration-tests/smoke/`) hit real LLM: can take 5+ minutes per test
 - Every `integration-tests/*` module that declares a `@QuarkusIntegrationTest` class must bind `maven-failsafe-plugin` (`integration-test` + `verify`, as `brag` does), or its `*IT` classes compile and never run, JVM or native. Their runtime config (file roots, `qlawkus.startup-thought.enabled`) is unprefixed rather than `%test`, because the packaged artifact boots in the prod profile.
+- `integration-tests/live-provider/` is the only module that calls the real provider: one embedding call (asserting the configured dimension) and one minimal chat call, with no WireMock and no `mock-mode`, so a model the provider retires fails it where every WireMock-backed test stays green (#359). It reads the provider from the `LLM_*` environment and skips unless `LLM_API_KEY` is a real key (`LLM_KIND` and the model overrides when not on the default provider). The push and nightly builds export the `NVIDIA_API_KEY` repository secret as `LLM_API_KEY` (with `LLM_KIND: nvidia`); while that secret holds `dummy` the test skips. JVM-only: it keeps jar packaging under `-Pnative`.
 
 ## Adding Tools
 
@@ -333,8 +334,8 @@ User-facing catalog: `site/content/operations.adoc` under "What the agent measur
 6 GitHub Actions workflows:
 
 - **`build-pull-request.yml`** - On PR: quick build → JVM test matrix (per module) → native IT matrix (per IT module) → build report. No API key passed → LLM tests auto-skip
-- **`build-push.yml`** - On push to main: full `mvn clean install` with `NVIDIA_AI_API_KEY` → all tests run
-- **`build-nightly.yml`** - Cron seg-sex 02:00 UTC + dispatch: JVM + native build with `NVIDIA_AI_API_KEY` → all tests run
+- **`build-push.yml`** - On push to main: full `mvn clean install` with the `NVIDIA_API_KEY` secret as `LLM_API_KEY` (only `integration-tests/live-provider` reaches the real provider; the other modules force mock mode)
+- **`build-nightly.yml`** - Cron seg-sex 02:00 UTC + dispatch: JVM + native build, same `NVIDIA_API_KEY` secret
 - **`pre-release.yml`** - On PR that changes `.github/project.yml`: validates version is not SNAPSHOT, blocks forks
 - **`release-prepare.yml`** - On PR merge that changes `.github/project.yml`: sets POM version, tags (no `v` prefix), pushes tag, bumps to next SNAPSHOT
 - **`release-perform.yml`** - On tag push: builds artifacts, creates draft GitHub Release with PR-based changelog

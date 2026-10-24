@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>dev.omatheusmesmo</groupId>
+    <artifactId>qlawkus-integration-tests</artifactId>
+    <version>0.9.4-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>qlawkus-integration-tests-live-provider</artifactId>
+  <packaging>quarkus</packaging>
+
+  <!--
+    Contract test against the real provider: no WireMock anywhere in this module, so the embedding and
+    chat endpoints it calls are the ones a deployment calls. It is JVM-only on purpose: it checks the
+    provider, not the native image, so it keeps the jar packaging even under -Pnative rather than
+    paying for a native build that adds nothing.
+  -->
+  <properties>
+    <quarkus.native.enabled>false</quarkus.native.enabled>
+    <quarkus.package.jar.enabled>true</quarkus.package.jar.enabled>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-testing-internal</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+        <extensions>true</extensions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>
