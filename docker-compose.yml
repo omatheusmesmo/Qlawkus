@@ -38,6 +38,8 @@ services:
       - QLAWKUS_SELF_OBSERVE_PROMETHEUS_URL=http://lgtm:9090
       - QLAWKUS_SELF_OBSERVE_TEMPO_URL=http://lgtm:3200
       - QLAWKUS_SELF_OBSERVE_LOKI_URL=http://lgtm:3100
+      # The console links to Grafana from the browser, so this is the published port, not the in-network lgtm address.
+      - QLAWKUS_CONSOLE_GRAFANA_URL=${QLAWKUS_CONSOLE_GRAFANA_URL:-http://localhost:3000}
       # Below: only values that DIFFER from the application.properties defaults, or REMAP a .env var
       # to the name the app expects. Pure pass-throughs (tokens, etc.) come from env_file (.env) and
       # already default in the properties, so they are not repeated here. Likewise AGENT_*/memory-*.
@@ -117,6 +119,8 @@ services:
       - QLAWKUS_SELF_OBSERVE_PROMETHEUS_URL=http://lgtm:9090
       - QLAWKUS_SELF_OBSERVE_TEMPO_URL=http://lgtm:3200
       - QLAWKUS_SELF_OBSERVE_LOKI_URL=http://lgtm:3100
+      # The console links to Grafana from the browser, so this is the published port, not the in-network lgtm address.
+      - QLAWKUS_CONSOLE_GRAFANA_URL=${QLAWKUS_CONSOLE_GRAFANA_URL:-http://localhost:3000}
       # Only values that DIFFER from the application.properties defaults, or REMAP a .env var.
       - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-*}
       - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-*}

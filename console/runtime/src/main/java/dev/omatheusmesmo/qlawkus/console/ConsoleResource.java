@@ -10,6 +10,8 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
+import java.util.List;
+
 /**
  * Serves the Qlawkus admin console: a server-rendered landing frame and a live status fragment
  * that HTMX polls. The whole resource sits behind {@link Authenticated}, reusing the app's
@@ -26,21 +28,27 @@ public class ConsoleResource {
     private final Template status;
     private final ConsoleStatus consoleStatus;
     private final SetupState setupState;
+    private final List<ObservabilityLink> observabilityLinks;
 
     public ConsoleResource(@Location("console/index.html") Template index,
                            @Location("console/status.html") Template status,
                            ConsoleStatus consoleStatus,
-                           SetupState setupState) {
+                           SetupState setupState,
+                           ConsoleConfig config) {
         this.index = index;
         this.status = status;
         this.consoleStatus = consoleStatus;
         this.setupState = setupState;
+        this.observabilityLinks = ObservabilityLinks.from(config.grafanaUrl());
     }
 
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance index() {
-        return index.data("active", "overview").data("needsSetup", setupState.needsSetup());
+        return index
+                .data("active", "overview")
+                .data("needsSetup", setupState.needsSetup())
+                .data("observability", observabilityLinks);
     }
 
     @GET

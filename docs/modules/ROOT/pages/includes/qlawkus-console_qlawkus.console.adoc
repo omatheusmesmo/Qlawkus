@@ -1,0 +1,32 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-console_qlawkus-console-grafana-url]] [.property-path]##link:#qlawkus-console_qlawkus-console-grafana-url[`+++qlawkus.console.grafana-url+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.console.grafana-url+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Browser-reachable base URL of Grafana (for example `http://localhost:3000`), not the in-network address the agent uses. When set, the overview shows an Observability card linking the Qlawkus dashboard and Grafana Explore on Prometheus, Tempo and Loki, which are all reached through Grafana. Only a plain http or https URL is accepted: anything else is ignored with a warning. When unset, the console shows no links.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_CONSOLE_GRAFANA_URL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_CONSOLE_GRAFANA_URL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+|===
+

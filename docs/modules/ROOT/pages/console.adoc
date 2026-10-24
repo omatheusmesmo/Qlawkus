@@ -34,13 +34,22 @@ So a typical bring-up is: run the wizard's Phase A, rebuild and redeploy with th
 |===
 |Page |What it does
 
-|*Overview* (`/console`) |A live status panel - app version, the baked composition posture and capability set, and a server clock that ticks on every HTMX poll to show the refresh is live. Hosts the first-run setup banner.
+|*Overview* (`/console`) |A live status panel - app version, the baked composition posture and capability set, and a server clock that ticks on every HTMX poll to show the refresh is live. Hosts the first-run setup banner, and, once `qlawkus.console.grafana-url` is set, an Observability card (see below).
 |*Memory* (`/console/memory`) |The most recent facts, the fact sources in use, and the episodic journals. Review, curate and purge are HTMX calls to `/api/admin/memory/*`. See xref:memory.adoc[Memory].
 |*Skills* (`/console/skills`) |The current skill index. Pin, delete, curate and the lifecycle sweep call `/api/admin/skills/*`. See xref:skills.adoc[Skills].
 |*Cognition* (`/console/cognition`) |Reconcile and migrate between the markdown and pgvector representations, over `/api/admin/cognition/*`. Shown only when the `cognition.pgvector` capability is baked in (the console does not depend on that extension - it reads the manifest to decide). See xref:storage.adoc[Storage].
 |*Config* (`/console/config`) |The full configuration editor: one section per documented config root, generated from the same `quarkus-config-doc` metadata that builds xref:config-reference.adoc[the config reference], never a hand-maintained list. Each property shows its live effective value and a short source label (`application.properties`, `env`, `keystore`, `default`, ...; the full source name is the tooltip); secrets never appear. Apply routes by config phase - `RUN_TIME` properties to `/api/admin/runtime-toggles` (apply on restart), `BUILD_TIME` ones to `/api/admin/config-overrides` (staged, apply on the next rebuild) - and the outcome shows in a banner at the top of the page. See xref:composition.adoc#_the_configuration_editor[Composition > the configuration editor].
 |*Schedule* (`/console/schedule`) |The five background jobs (memory review, memory curation, episodic consolidation, skill curation, skill lifecycle). Each row's effective cron and previous/next fire times come from the live Quarkus `Scheduler`, looked up by the explicit `@Scheduled(identity = ...)` each job declares, so the schedule shown always matches what is actually registered. The job list itself - label, cron property, trigger endpoint - is a static registry in the page: nothing in the framework links a job to the config property holding its cron. Editing a cron reuses the `RUN_TIME` runtime-toggle path; triggering a job now hits its manual `/api/admin/*` endpoint. Below the jobs, a read-only panel shows the last redeploy the external loop reported (outcome, failed phase, per-phase durations, last success); there is nothing to trigger there, since the redeploy runs outside the app.
 |===
+
+== Observability links
+
+The console does not embed telemetry, it links to it. Set `qlawkus.console.grafana-url` (environment variable `QLAWKUS_CONSOLE_GRAFANA_URL`) to the address Grafana has *from the operator's browser* - not the in-network `lgtm:3000` the agent uses - and the Overview gains an Observability card with four links, each opening in a new tab:
+
+* the Qlawkus dashboard, `<grafana-url>/d/qlawkus-agent` (the uid of `examples/observability/grafana/qlawkus-agent.json`, which a test pins);
+* Grafana Explore on Prometheus, Tempo and Loki, selecting the data sources the `grafana/otel-lgtm` image provisions under the uids `prometheus`, `tempo` and `loki`. They are reached through Grafana because it is the only port the bundled stack publishes.
+
+With nothing configured the card is absent. Only a plain `http` or `https` URL is accepted, without credentials, query or fragment: anything else is ignored with a warning (the value is not echoed, since a URL can carry credentials) and the agent still boots, because a cosmetic link must not take a single-instance agent down. A sub-path such as `https://ops.example.com/grafana` is kept. The Compose stacks set it to `http://localhost:3000`; override it in `.env` when Grafana is reached by another name.
 
 A note the Config and Schedule pages surface: when a property's effective value already comes from a source that outranks the runtime-toggle override file (an environment variable, `.env`, or a `-D` flag), the page warns that saving there will not take effect until that higher-priority source is removed - so a silent no-op is caught in the UI rather than by trial and error.
 
