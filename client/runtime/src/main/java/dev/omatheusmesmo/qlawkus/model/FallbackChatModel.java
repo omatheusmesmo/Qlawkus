@@ -63,10 +63,11 @@ public class FallbackChatModel implements ChatModel {
     @Override
     public ChatResponse doChat(ChatRequest request) {
         if (!config.fallbackEnabled()) {
-            return guard.callPrimaryOnly(() -> delegate.chat(request));
+            return guard.callPrimaryOnly(() -> ServedTier.answered(ServedTier.PRIMARY, delegate.chat(request)));
         }
         String next = config.secondaryEnabled() ? AgentMeters.TIER_SECONDARY : AgentMeters.TIER_FALLBACK;
-        return guard.call(() -> delegate.chat(request), next, () -> afterPrimary(request));
+        return guard.call(() -> ServedTier.answered(ServedTier.PRIMARY, delegate.chat(request)), next,
+                () -> afterPrimary(request));
     }
 
     private ChatResponse afterPrimary(ChatRequest request) {
@@ -74,12 +75,12 @@ public class FallbackChatModel implements ChatModel {
             return ollama(request);
         }
         return secondaryGuard.call(
-                () -> secondary.chat(FallbackRequests.forFallback(request)),
+                () -> ServedTier.answered(ServedTier.SECONDARY, secondary.chat(FallbackRequests.forFallback(request))),
                 () -> ollama(request));
     }
 
     private ChatResponse ollama(ChatRequest request) {
-        return fallback.chat(sanitizeForOllama(request));
+        return ServedTier.answered(ServedTier.FALLBACK, fallback.chat(sanitizeForOllama(request)));
     }
 
     @Override

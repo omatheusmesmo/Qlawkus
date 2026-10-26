@@ -81,7 +81,8 @@ public class CommandFilter {
                 }
             }
             if (!allowed) {
-                Log.warnf("CommandFilter: blocked by allowlist — '%s'", trimmed);
+                Log.warn("CommandFilter: blocked by allowlist");
+                Log.debugf("CommandFilter: blocked command '%s'", trimmed);
                 return new SecurityResult(true, "Command not in allowlist", "allowlist", trimmed);
             }
             return new SecurityResult(false, "", "", trimmed);
@@ -90,7 +91,8 @@ public class CommandFilter {
         for (String pattern : denylist) {
             String p = pattern.trim();
             if (!p.isEmpty() && globMatch(p, trimmed)) {
-                Log.warnf("CommandFilter: blocked by denylist pattern '%s' — '%s'", p, trimmed);
+                Log.warnf("CommandFilter: blocked by denylist pattern '%s'", p);
+                Log.debugf("CommandFilter: blocked command '%s'", trimmed);
                 return new SecurityResult(true, "Command matches denied pattern", p, trimmed);
             }
         }

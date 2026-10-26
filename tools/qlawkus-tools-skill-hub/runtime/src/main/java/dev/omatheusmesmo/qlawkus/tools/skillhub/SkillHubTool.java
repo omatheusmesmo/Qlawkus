@@ -60,7 +60,8 @@ public class SkillHubTool {
               .map(h -> "- " + h.name() + " (source: " + h.source() + ") - " + h.description())
               .collect(Collectors.joining("\n"));
     } catch (RuntimeException e) {
-      Log.warnf(e, "searchSkillHub failed for query '%s'", query);
+      Log.warnf(e, "searchSkillHub failed");
+      Log.debugf("searchSkillHub query: '%s'", query);
       return "Skill search failed: " + e.getMessage();
     }
   }
@@ -89,7 +90,8 @@ public class SkillHubTool {
       Skill saved = skillHub.install(source.strip());
       return "Installed skill: " + saved.name();
     } catch (RuntimeException e) {
-      Log.warnf(e, "installSkill failed for source '%s'", source);
+      Log.warnf(e, "installSkill failed");
+      Log.debugf("installSkill source: '%s'", source);
       return "Install failed for '" + source + "': " + e.getMessage();
     }
   }

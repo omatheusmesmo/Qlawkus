@@ -336,7 +336,8 @@ public class CognitionReconciler {
     try {
       return objectMapper.readValue(json, new TypeReference<Map<String, String>>() {});
     } catch (Exception e) {
-      Log.warnf(e, "Failed to parse fact metadata JSON, writing fact without metadata: %s", json);
+      Log.warnf(e, "Failed to parse fact metadata JSON, writing fact without metadata");
+      Log.debugf("Unparseable fact metadata: %s", json);
       return Map.of();
     }
   }

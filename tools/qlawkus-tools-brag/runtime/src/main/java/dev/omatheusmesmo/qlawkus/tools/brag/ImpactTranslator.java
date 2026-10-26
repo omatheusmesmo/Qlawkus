@@ -29,7 +29,8 @@ public class ImpactTranslator {
         try {
             return chatModel.chat(prompt);
         } catch (Exception e) {
-            Log.warnf(e, "Impact translation LLM call failed for: %s", achievement);
+            Log.warnf(e, "Impact translation LLM call failed");
+            Log.debugf("Impact translation failed for achievement: %s", achievement);
             throw e;
         }
     }

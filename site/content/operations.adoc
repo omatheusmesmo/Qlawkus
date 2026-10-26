@@ -191,6 +191,36 @@ Selecting the capability also switches the console to JSON, one object per line,
 
 Each entry carries the MDC, and that is where the trace ids live: a line logged while a span is current has `mdc.traceId` and `mdc.spanId`. Find the slow turn in the trace, then filter the logs on its `traceId`, and the two are one investigation. This works on the shipped configuration, before any collector exists: `quarkus.otel.sdk.disabled=true` stops spans from being exported, not from being created, so the ids still reach the logs.
 
+=== What the INFO log says
+
+At INFO the agent writes a short account of what it did, and never what was said. The startup summary comes first: three lines naming the provider, the primary, secondary and Ollama fallback models, the embedding model and dimension, the cognition backend, observability and self-observation switches, and the messaging channels whose token is configured (a channel is named, its token never is).
+
+Each turn ends with one line, whatever channel it came from (REST, Discord, Telegram, the startup reflection):
+
+----
+Agent turn channel=telegram conversation=qlawkus-shared workload=interactive outcome=ok tier=primary duration=2310ms tools=2 [searchMemories,remember] facts=3 tokens=1204/233
+----
+
+`tier` is the model that produced the reply (`primary`, `secondary` or `fallback`), or `unknown` when the path does not report it. `tools` is the count and the names, `facts` is how many memories active memory injected, and `tokens` is `unknown` when the provider did not report them. A turn that was cut short by an error or a disconnect ends with `outcome=error` or `outcome=cancelled`.
+
+Each `@QlawTool` call ends with one line that names the tool and says how it went:
+
+----
+Tool call searchMemories outcome=ok duration=41ms
+----
+
+Background jobs (memory review, memory curation, episodic consolidation, skill curation and lifecycle) log a start and an end with their counts, whether the scheduler or the admin endpoint started them:
+
+----
+Job memory-review finished duration=812ms removed=3 threshold=0.92
+----
+
+A job that fails logs one warning with the exception class, not its message.
+
+The turn and tool lines also carry `channel`, `conversation`, `workload` or `tool` as MDC fields, which the JSON console writes as `mdc.channel`, `mdc.conversation`, `mdc.workload` and `mdc.tool` next to `mdc.traceId`. The fields are set for the duration of the turn or tool call and cleared afterwards, and the same values appear in the message text, so a plain-text search finds them too (`|= "channel=telegram"`, `|= "Tool call searchMemories"`).
+
+What the agent writes at INFO never includes message text, reply text, prompts, extracted facts, skill bodies, tool arguments or tool results. Those go to DEBUG only, so turning on DEBUG for a category is a deliberate act that brings the content back into the log. Structured identifiers (a conversation id, a tool name, a skill name, a count) are INFO; anything the owner or the model wrote is not.
+
 === What the agent measures about itself
 
 The meters above arrive from upstream. These are the ones Qlawkus emits itself, because no upstream extension can see them: they describe the cognition subsystem, which is specific to this agent.

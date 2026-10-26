@@ -39,7 +39,8 @@ public class StartupThoughtObserver {
     void logSoulState() {
         Soul soul = soulStore.load();
         if (soul != null) {
-            Log.infof("Soul initialized: %s [%s] — %s", soul.name, soul.mood, soul.currentState);
+            Log.infof("Soul initialized: %s [%s]", soul.name, soul.mood);
+            Log.debugf("Soul state: %s", soul.currentState);
         } else {
             Log.warn("No Soul found in database at startup");
         }
@@ -57,9 +58,10 @@ public class StartupThoughtObserver {
                     .atMost(Duration.ofSeconds(300))
                     .toString();
 
-            Log.infof("Thought ▸ Startup reflection: %s", thought.trim());
+            Log.info("Thought ▸ Startup reflection written");
+            Log.debugf("Thought ▸ Startup reflection: %s", thought.trim());
         } catch (Exception e) {
-            Log.warnf("Could not generate startup thought: %s", e.getMessage());
+            Log.warnf("Could not generate startup thought (%s)", e.getClass().getSimpleName());
         }
     }
 }

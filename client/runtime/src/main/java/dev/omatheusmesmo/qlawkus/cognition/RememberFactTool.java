@@ -40,7 +40,8 @@ public class RememberFactTool {
             factStore.store(fact, Map.of(
                     "source", MemorySource.REMEMBER_TOOL.value(),
                     "stored_at", Instant.now().toString()));
-            Log.infof("RememberFactTool: stored fact='%s'", fact);
+            Log.info("RememberFactTool: stored a fact");
+            Log.debugf("RememberFactTool: stored fact='%s'", fact);
             return "Stored in long-term memory: " + fact;
         } catch (Exception e) {
             Log.errorf(e, "RememberFactTool: failed to store fact");

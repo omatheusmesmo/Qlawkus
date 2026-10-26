@@ -6,7 +6,6 @@ import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
-import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -47,7 +46,21 @@ public class MemoryCurationJob {
   }
 
   public boolean curateProfile() {
+    JobLog.Run run = JobLog.start("memory-curation");
+    try {
+      boolean refreshed = refreshProfile(run);
+      run.count("refreshed", refreshed ? 1 : 0);
+      run.finish();
+      return refreshed;
+    } catch (RuntimeException e) {
+      run.fail(e);
+      throw e;
+    }
+  }
+
+  private boolean refreshProfile(JobLog.Run run) {
     List<String> facts = factStore.listFactTexts(config.maxFacts());
+    run.count("facts", facts.size());
     if (facts.isEmpty()) {
       return false;
     }
@@ -82,10 +95,9 @@ public class MemoryCurationJob {
       }
       profile.rewriteProfile(updated.trim());
       userProfileStore.save(profile);
-      Log.infof("MemoryCurationJob: refreshed owner profile from %d facts", facts.size());
       return true;
     } catch (Exception e) {
-      Log.warnf(e, "MemoryCurationJob: profile curation failed");
+      run.fail(e);
       return false;
     }
   }

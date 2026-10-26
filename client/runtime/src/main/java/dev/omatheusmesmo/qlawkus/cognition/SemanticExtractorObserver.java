@@ -52,17 +52,23 @@ public class SemanticExtractorObserver {
           () -> chatModel.chat(extractionPrompt));
       if (response == null || response.isBlank()) return;
 
+      int stored = 0;
+      int failed = 0;
       for (String line : response.split("\n")) {
         String fact = line.trim().replaceAll("^-\\s*", "");
         if (fact.isEmpty()) continue;
 
         try {
           factStore.store(fact, Map.of("source", MemorySource.SEMANTIC_EXTRACTOR.value()));
-          Log.infof("Semantic fact extracted: %s", fact);
+          stored++;
+          Log.debugf("Semantic fact extracted: %s", fact);
         } catch (Exception e) {
-          Log.warnf(e, "Failed to store semantic fact: %s", fact);
+          failed++;
+          Log.warnf("Failed to store a semantic fact (%s)", e.getClass().getSimpleName());
+          Log.debugf(e, "Failed to store semantic fact: %s", fact);
         }
       }
+      Log.infof("Semantic extraction: %d facts stored, %d failed", stored, failed);
     } catch (Exception e) {
       Log.errorf(e, "Failed to extract semantic facts");
     }
