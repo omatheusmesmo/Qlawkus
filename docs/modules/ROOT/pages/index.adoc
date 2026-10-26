@@ -41,7 +41,7 @@ Console::
 An optional server-rendered admin UI at `/console`: a first-run setup wizard plus memory, skills, cognition, configuration, and schedule management. No Node build, no separate frontend.
 
 Resilience::
-A primary LLM with an Ollama fallback behind a circuit breaker.
+A primary LLM, a same-provider secondary and a local Ollama fallback, each behind its own circuit breaker.
 
 == Get started
 

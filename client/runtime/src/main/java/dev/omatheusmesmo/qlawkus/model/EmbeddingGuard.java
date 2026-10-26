@@ -117,7 +117,7 @@ public class EmbeddingGuard {
      * circuit never opens, which is the common case for a single transient failure.
      */
     private Object onFallback() {
-        meters.fallback(AgentMeters.SURFACE_EMBEDDING);
+        meters.fallback(AgentMeters.SURFACE_EMBEDDING, AgentMeters.TIER_FALLBACK);
         return currentFallback.get().get();
     }
 

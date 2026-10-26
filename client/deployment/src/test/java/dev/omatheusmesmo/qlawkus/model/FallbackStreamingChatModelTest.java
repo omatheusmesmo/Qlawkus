@@ -38,9 +38,13 @@ class FallbackStreamingChatModelTest {
     @Inject
     ModelFallbackConfig config;
 
+    @Inject
+    SecondaryChatGuard secondaryGuard;
+
     @BeforeEach
     void resetCircuit() {
         CircuitBreakerMaintenance.get().reset(ModelFallbackConfig.CIRCUIT_BREAKER_CHAT);
+        CircuitBreakerMaintenance.get().reset(ModelFallbackConfig.CIRCUIT_BREAKER_SECONDARY_CHAT);
     }
 
     @Test
@@ -53,7 +57,7 @@ class FallbackStreamingChatModelTest {
         });
         StreamingChatModel fallback = failIfInvoked(fallbackCalls);
 
-        FallbackStreamingChatModel model = new FallbackStreamingChatModel(delegate, fallback, guard, config);
+        FallbackStreamingChatModel model = new FallbackStreamingChatModel(delegate, fallback, fallback, guard, secondaryGuard, config);
         RecordingHandler downstream = new RecordingHandler();
 
         model.doChat(request(), downstream);
@@ -73,7 +77,7 @@ class FallbackStreamingChatModelTest {
         });
         StreamingChatModel fallback = scripted((request, handler) -> handler.onCompleteResponse(response("from-ollama")));
 
-        FallbackStreamingChatModel model = new FallbackStreamingChatModel(delegate, fallback, guard, config);
+        FallbackStreamingChatModel model = new FallbackStreamingChatModel(delegate, fallback, fallback, guard, secondaryGuard, config);
         RecordingHandler downstream = new RecordingHandler();
 
         model.doChat(request(), downstream);
@@ -94,7 +98,7 @@ class FallbackStreamingChatModelTest {
         });
         StreamingChatModel fallback = failIfInvoked(fallbackCalls);
 
-        FallbackStreamingChatModel model = new FallbackStreamingChatModel(delegate, fallback, guard, config);
+        FallbackStreamingChatModel model = new FallbackStreamingChatModel(delegate, fallback, fallback, guard, secondaryGuard, config);
         RecordingHandler downstream = new RecordingHandler();
 
         model.doChat(request(), downstream);

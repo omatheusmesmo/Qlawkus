@@ -45,16 +45,16 @@ import org.eclipse.microprofile.faulttolerance.exceptions.CircuitBreakerOpenExce
 @Startup
 public class PrimaryChatGuard {
 
-    private static final List<Class<? extends Throwable>> NON_RETRYABLE =
+    static final List<Class<? extends Throwable>> NON_RETRYABLE =
             List.of(NonRetriableException.class, UnsupportedFeatureException.class);
 
     /**
      * {@code abortOn} also covers an already-open circuit: retrying into a breaker that just rejected
      * the call wastes the backoff budget on certain rejections, so this aborts straight to fallback.
      */
-    private static final List<Class<? extends Throwable>> RETRY_ABORTS_ON = concat(NON_RETRYABLE, CircuitBreakerOpenException.class);
+    static final List<Class<? extends Throwable>> RETRY_ABORTS_ON = concat(NON_RETRYABLE, CircuitBreakerOpenException.class);
 
-    private static List<Class<? extends Throwable>> concat(
+    static List<Class<? extends Throwable>> concat(
             List<Class<? extends Throwable>> base, Class<? extends Throwable> extra) {
         List<Class<? extends Throwable>> combined = new ArrayList<>(base);
         combined.add(extra);
@@ -65,7 +65,11 @@ public class PrimaryChatGuard {
     private final WorkloadGuards workloads;
     private final AgentMeters meters;
     private final PermanentFailures failures;
-    private final ThreadLocal<Supplier<ChatResponse>> currentFallback = new ThreadLocal<>();
+    private final ThreadLocal<Tier> currentFallback = new ThreadLocal<>();
+
+    /** The next tier for the call in flight: its meter tag and the attempt that serves it. */
+    record Tier(String name, Supplier<ChatResponse> serve) {
+    }
 
     @Inject
     public PrimaryChatGuard(ModelFallbackConfig config, AgentMeters meters, WorkloadGuards workloads,
@@ -145,18 +149,27 @@ public class PrimaryChatGuard {
      * circuit never opens, which is the common case for a single transient failure.
      */
     private ChatResponse onFallback() {
-        meters.fallback(AgentMeters.SURFACE_CHAT);
-        return currentFallback.get().get();
+        Tier tier = currentFallback.get();
+        meters.fallback(AgentMeters.SURFACE_CHAT, tier.name());
+        return tier.serve().get();
     }
 
     /**
      * Runs {@code primary}, retrying and eventually falling back to {@code fallback} per the policy
      * above. Exceptions in {@link #NON_RETRYABLE} skip both retry and fallback and propagate as-is -
-     * an auth or config error should surface, not be masked by a silent switch to Ollama.
+     * an auth or config error should surface, not be masked by a silent switch to the next tier.
      */
     public ChatResponse call(Supplier<ChatResponse> primary, Supplier<ChatResponse> fallback) {
+        return call(primary, AgentMeters.TIER_FALLBACK, fallback);
+    }
+
+    /**
+     * As {@link #call(Supplier, Supplier)}, naming the tier {@code fallback} serves so the switch is
+     * metered as that tier.
+     */
+    public ChatResponse call(Supplier<ChatResponse> primary, String tier, Supplier<ChatResponse> fallback) {
         String workload = resolve(WorkloadContext.current());
-        currentFallback.set(fallback);
+        currentFallback.set(new Tier(tier, fallback));
         try {
             return guards.get(workload).get(() -> failures.observe(WorkloadGuards.CHAT, workload, primary));
         } finally {

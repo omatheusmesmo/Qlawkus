@@ -81,7 +81,7 @@ The code-review tools need `git` and `gh`, which the base image leaves out. `QLA
 | Profile | LLM | Database | When |
 |:--------|:----|:---------|:-----|
 | **dev** | Ollama (Dev Services) | PostgreSQL (Dev Services) | `quarkus dev` |
-| **prod** | NVIDIA NIM (primary) + Ollama (fallback) | External PostgreSQL | Docker / VM deployment |
+| **prod** | NVIDIA NIM (GLM-5.3 primary, Nemotron Ultra secondary) + Ollama (last resort) | External PostgreSQL | Docker / VM deployment |
 
 A build without the `cognition-pgvector` capability is **database-free**: memory, skills, and episodic journals fall back to plain markdown files under `~/.qlawkus/`. `app/` ships with `cognition-pgvector` composed in; see [Composable Platform](#composable-platform) to build a markdown-only distribution instead.
 
@@ -108,7 +108,9 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 |:---------|:--------|:--------|
 | `LLM_KIND` | `openai` (app default); the Compose files ship `nvidia` | Provider profile (`openai`, `nvidia`, `deepseek`, `mistral`, `groq`, `xai`, `openrouter`) — sets base URL + default chat/embedding models |
 | `LLM_API_KEY` | — | API key for the chosen provider. Required for prod. NVIDIA keys: [build.nvidia.com](https://build.nvidia.com/) |
-| `LLM_CHAT_MODEL` | provider default | Override the chat model (NVIDIA default `nvidia/nemotron-3-ultra-550b-a55b`) |
+| `LLM_CHAT_MODEL` | provider default | Override the primary chat model (NVIDIA default `z-ai/glm-5.3`) |
+| `LLM_SECONDARY_CHAT_MODEL` | provider default | Override the secondary chat model (NVIDIA default `nvidia/nemotron-3-ultra-550b-a55b`, on the primary endpoint and key). Setting it enables the secondary tier for any kind |
+| `LLM_SECONDARY_BASE_URL` / `LLM_SECONDARY_API_KEY` | primary endpoint / primary key | Point the secondary at another endpoint or key |
 | `LLM_EMBEDDING_MODEL` | provider default | Override the embedding model (NVIDIA default `nvidia/nemotron-3-embed-1b`, 2048 dimensions) |
 | `LLM_TIMEOUT` | `180s` | Primary model request timeout |
 | `GRAFANA_ADMIN_PASSWORD` | none | Grafana admin password for the bundled `lgtm` service. Required: Grafana will not start without it |
@@ -124,16 +126,23 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 
 ### Model Fallback & Circuit Breaker
 
-The production setup uses NVIDIA NIM as the primary LLM with a local Ollama sidecar as automatic fallback:
+The production setup uses three chat tiers, tried in order when the one before fails:
 
-- **Retry with backoff**: on transient errors (rate limits, timeouts), retries up to 3 times with configurable delays (default: 30s, 60s, 120s)
-- **Circuit breaker**: after all retries fail, the circuit opens and all subsequent calls go directly to Ollama for a configurable period (default: 300s), then a half-open probe tests NVIDIA again
-- **Applies to**: ChatModel, StreamingChatModel, and EmbeddingModel
-- **Named models**: uses `@ModelName("primary")` for the primary and `@ModelName("fallback")` for the Ollama fallback, following quarkus-langchain4j named model pattern
+1. **Primary**: `z-ai/glm-5.3` on NVIDIA NIM.
+2. **Secondary**: `nvidia/nemotron-3-ultra-550b-a55b` on the same NIM endpoint and key. It has its own circuit breaker, so an outage that opens the primary's breaker sends calls straight to the next tier once the secondary's breaker opens too.
+3. **Fallback**: a local Ollama sidecar. It stays last on purpose: a same-provider model does not survive a provider outage, a revoked key or a NIM-wide incident, so the local model is the only tier that does.
+
+Kinds without a same-provider model skip tier 2, so their chain is primary then Ollama. The local Compose stack runs with no external key this way.
+
+- **Retry with backoff**: on transient errors (rate limits, timeouts), the primary retries up to 3 times with configurable delays (default: 30s, 60s, 120s); the secondary retries once
+- **Circuit breaker**: after all retries fail, the circuit opens and calls go directly to the next tier for a configurable period (default: 300s), then a half-open probe tests the primary again
+- **Applies to**: ChatModel, StreamingChatModel, and EmbeddingModel (the embedding fallback is Ollama only)
+- **Named models**: `@ModelName("primary")`, `@ModelName("secondary")` and `@ModelName("fallback")` (Ollama), following the quarkus-langchain4j named model pattern
 
 | Config | Default | Purpose |
 |:------|:--------|:--------|
 | `qlawkus.model.fallback-enabled` | `true` | Enable fallback system |
+| `qlawkus.model.secondary-enabled` | `false` (set by the provider kind) | Enable the same-provider secondary tier |
 | `qlawkus.model.retry-delays` | `30,60,120` | Retry delays in seconds |
 | `qlawkus.model.circuit-breaker-timeout` | `300` | Seconds before half-open probe |
 
@@ -205,7 +214,7 @@ The optional `qlawkus-console` extension (server-rendered Qute + HTMX, no Node) 
                                           │
 ┌────────────────────────▼────────────────────────────────┐
 │ LLM Engine (Ollama in Dev / NVIDIA NIM in Prod)          │
-│ Retry + circuit breaker → Ollama fallback                │
+│ Retry + circuit breaker → secondary → Ollama fallback    │
 └─────────────────────────────────────────────────────────┘
 ```
 

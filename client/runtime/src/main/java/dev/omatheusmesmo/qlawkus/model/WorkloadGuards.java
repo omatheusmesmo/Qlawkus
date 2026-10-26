@@ -23,6 +23,12 @@ public class WorkloadGuards {
     /** The embedding surface. Separate from chat because a failure on one implies nothing about the other. */
     public static final String EMBEDDING = "embedding";
 
+    /**
+     * The secondary chat tier: a same-provider model tried after the primary and before the Ollama
+     * fallback. Its own surface so its breaker is isolated per workload like the others.
+     */
+    public static final String CHAT_SECONDARY = "chat-secondary";
+
     @Inject
     WorkloadConfig config;
 
@@ -52,9 +58,13 @@ public class WorkloadGuards {
      */
     public String breakerName(String surface, String workload) {
         if (WorkloadContext.INTERACTIVE.equals(workload)) {
-            return CHAT.equals(surface)
-                    ? ModelFallbackConfig.CIRCUIT_BREAKER_CHAT
-                    : ModelFallbackConfig.CIRCUIT_BREAKER_EMBEDDING;
+            if (CHAT.equals(surface)) {
+                return ModelFallbackConfig.CIRCUIT_BREAKER_CHAT;
+            }
+            if (CHAT_SECONDARY.equals(surface)) {
+                return ModelFallbackConfig.CIRCUIT_BREAKER_SECONDARY_CHAT;
+            }
+            return ModelFallbackConfig.CIRCUIT_BREAKER_EMBEDDING;
         }
         return "qlawkus-" + workload + "-" + surface;
     }

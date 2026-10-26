@@ -947,7 +947,7 @@
     {
       "type": "timeseries",
       "title": "Fallbacks to the secondary model",
-      "description": "Calls answered by the fallback provider. Counted even when the breaker never opens.",
+      "description": "Switches away from the primary model, by the tier switched to: secondary (same-provider model) or fallback (Ollama). Counted even when the breaker never opens.",
       "id": 25,
       "datasource": {
         "type": "prometheus",
@@ -980,8 +980,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (surface) (rate(qlawkus_model_fallback_total[$__rate_interval]))",
-          "legendFormat": "{{surface}}",
+          "expr": "sum by (surface, tier) (rate(qlawkus_model_fallback_total[$__rate_interval]))",
+          "legendFormat": "{{surface}} to {{tier}}",
           "refId": "A"
         }
       ]

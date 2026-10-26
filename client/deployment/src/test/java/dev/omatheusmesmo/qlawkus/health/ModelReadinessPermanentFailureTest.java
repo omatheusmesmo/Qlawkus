@@ -18,6 +18,7 @@ import dev.langchain4j.model.output.Response;
 import dev.omatheusmesmo.qlawkus.model.EmbeddingGuard;
 import dev.omatheusmesmo.qlawkus.model.FallbackChatModel;
 import dev.omatheusmesmo.qlawkus.model.FallbackEmbeddingModel;
+import dev.omatheusmesmo.qlawkus.model.SecondaryChatGuard;
 import dev.omatheusmesmo.qlawkus.model.FallbackStreamingChatModel;
 import dev.omatheusmesmo.qlawkus.model.ModelFallbackConfig;
 import dev.omatheusmesmo.qlawkus.model.PrimaryChatGuard;
@@ -60,6 +61,9 @@ class ModelReadinessPermanentFailureTest {
 
     @Inject
     PrimaryChatGuard chatGuard;
+
+    @Inject
+    SecondaryChatGuard secondaryGuard;
 
     @Inject
     EmbeddingGuard embeddingGuard;
@@ -172,7 +176,7 @@ class ModelReadinessPermanentFailureTest {
                 throw permanent(410);
             }
         };
-        FallbackChatModel model = new FallbackChatModel(primary, primary, chatGuard, fallbackDisabled());
+        FallbackChatModel model = new FallbackChatModel(primary, primary, primary, chatGuard, secondaryGuard, fallbackDisabled());
 
         for (int i = 0; i < THRESHOLD; i++) {
             assertThrows(InvalidRequestException.class, () -> model.chat(request()));
@@ -190,7 +194,7 @@ class ModelReadinessPermanentFailureTest {
             }
         };
         FallbackStreamingChatModel model =
-                new FallbackStreamingChatModel(primary, primary, chatGuard, fallbackDisabled());
+                new FallbackStreamingChatModel(primary, primary, primary, chatGuard, secondaryGuard, fallbackDisabled());
 
         for (int i = 0; i < THRESHOLD; i++) {
             AtomicReference<Throwable> error = new AtomicReference<>();

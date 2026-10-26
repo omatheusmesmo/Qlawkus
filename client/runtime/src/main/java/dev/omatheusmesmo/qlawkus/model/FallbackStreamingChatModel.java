@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.model;
 
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -40,6 +41,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * tokens already visible to the user, so {@link #runBridged} resolves the future normally instead of
  * exceptionally in that case - the guard sees a completed attempt, not a failure, and stops.
  *
+ * <p>The tiers match {@link FallbackChatModel}: primary, then the same-provider secondary behind its
+ * own {@link SecondaryChatGuard} when enabled, then the Ollama fallback.
+ *
  * <p>With the fallback disabled the call is bridged the same way, with no retry or fallback around
  * it, so the primary's outcome still reaches readiness (see {@link PermanentFailures}).
  *
@@ -54,19 +58,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class FallbackStreamingChatModel implements StreamingChatModel {
 
     private final StreamingChatModel delegate;
+    private final StreamingChatModel secondary;
     private final StreamingChatModel fallback;
     private final PrimaryChatGuard guard;
+    private final SecondaryChatGuard secondaryGuard;
     private final ModelFallbackConfig config;
 
     @Inject
     public FallbackStreamingChatModel(
             @ModelName("primary") StreamingChatModel delegate,
+            @ModelName("secondary") StreamingChatModel secondary,
             @ModelName("fallback") StreamingChatModel fallback,
             PrimaryChatGuard guard,
+            SecondaryChatGuard secondaryGuard,
             ModelFallbackConfig config) {
         this.delegate = delegate;
+        this.secondary = secondary;
         this.fallback = fallback;
         this.guard = guard;
+        this.secondaryGuard = secondaryGuard;
         this.config = config;
         Log.info("FallbackStreamingChatModel initialized with @ModelName(\"primary\") delegate");
     }
@@ -79,9 +89,11 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
                 guard.callPrimaryOnly(() -> runBridged(delegate, request, handler, partialSent));
                 return;
             }
+            String next = config.secondaryEnabled() ? AgentMeters.TIER_SECONDARY : AgentMeters.TIER_FALLBACK;
             guard.call(
                     () -> runBridged(delegate, request, handler, partialSent),
-                    () -> runBridged(fallback, sanitizeForOllama(request), handler, partialSent));
+                    next,
+                    () -> afterPrimary(request, handler, partialSent));
         } catch (RuntimeException e) {
             if (!partialSent.get()) {
                 handler.onError(e);
@@ -89,6 +101,21 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
             // else: runBridged already forwarded onError to handler before resolving the future
             // normally, precisely so the guard would not see a failure and retry into it.
         }
+    }
+
+    private ChatResponse afterPrimary(ChatRequest request, StreamingChatResponseHandler handler,
+            AtomicBoolean partialSent) {
+        if (!config.secondaryEnabled()) {
+            return ollama(request, handler, partialSent);
+        }
+        return secondaryGuard.call(
+                () -> runBridged(secondary, FallbackRequests.forFallback(request), handler, partialSent),
+                () -> ollama(request, handler, partialSent));
+    }
+
+    private ChatResponse ollama(ChatRequest request, StreamingChatResponseHandler handler,
+            AtomicBoolean partialSent) {
+        return runBridged(fallback, sanitizeForOllama(request), handler, partialSent);
     }
 
     @Override

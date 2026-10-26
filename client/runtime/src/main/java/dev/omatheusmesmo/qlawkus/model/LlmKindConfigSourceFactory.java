@@ -17,8 +17,10 @@ import java.util.OptionalInt;
  * config keys that the rest of the system reads as dumb consumers:
  *
  * <ul>
- *   <li>{@code quarkus.langchain4j.openai."primary".{base-url,api-key,chat-model.model-name}} —
+ *   <li>{@code quarkus.langchain4j.openai."primary".{base-url,api-key,chat-model.model-name}}:
  *       consumed by the quarkus-langchain4j openai extension to build the chat model.</li>
+ *   <li>{@code quarkus.langchain4j.openai."secondary".{base-url,api-key,chat-model.model-name}} and
+ *       {@code qlawkus.model.secondary-enabled}: the same-provider chat tier, see {@link #emitSecondaryChat}.</li>
  *   <li>{@code qlawkus.embedding.{base-url,api-key,model-name,dimensions,input-type}} —
  *       consumed by {@link PrimaryEmbeddingModelProducer}.</li>
  *   <li>{@code quarkus.langchain4j.pgvector.dimension} — consumed by the pgvector store.</li>
@@ -32,6 +34,7 @@ public class LlmKindConfigSourceFactory implements ConfigSourceFactory {
 
     private static final int ORDINAL = 90;
     private static final String NO_KEY_PLACEHOLDER = "no-key";
+    private static final String PRIMARY_API_KEY_REFERENCE = "${quarkus.langchain4j.openai.\"primary\".api-key}";
 
     /**
      * Whether the qlawkus-cognition-pgvector extension is on the classpath. Gates emitting the
@@ -102,6 +105,7 @@ public class LlmKindConfigSourceFactory implements ConfigSourceFactory {
                     "Embedding dimension is unknown for kind '%s'; set EMBEDDING_DIMENSION.".formatted(embKind));
         }
         Map<String, String> emitted = new HashMap<>();
+        emitSecondaryChat(context, kind, baseUrl, chatModel, emitted);
         emitted.put("quarkus.langchain4j.openai.\"primary\".base-url", baseUrl);
         emitted.put("quarkus.langchain4j.openai.\"primary\".api-key", apiKey);
         emitted.put("quarkus.langchain4j.openai.\"primary\".chat-model.model-name", chatModel);
@@ -122,6 +126,29 @@ public class LlmKindConfigSourceFactory implements ConfigSourceFactory {
         embKind.embeddingInputType().ifPresent(type -> emitted.put("qlawkus.embedding.input-type", type));
 
         return List.of(new PropertiesConfigSource(emitted, "qlawkus-llm-kind", ORDINAL));
+    }
+
+    /**
+     * Emits the same-provider secondary chat tier, the model tried after the primary and before the
+     * Ollama fallback. A kind that declares a {@link ProviderKind#secondaryChatModel()} enables it on the
+     * primary's endpoint with the primary's key by reference, so a key stored once reaches both. A kind
+     * without one leaves it disabled and the chain is primary then Ollama; the bean is still emitted
+     * (pointing at the primary's endpoint, never called) because the provider is fixed at build time and
+     * the kind is only known at runtime. Setting {@code LLM_SECONDARY_CHAT_MODEL} enables it for any kind.
+     */
+    private static void emitSecondaryChat(ConfigSourceContext context, ProviderKind kind, String primaryBaseUrl,
+            String primaryChatModel, Map<String, String> emitted) {
+        String model = value(context, kind.secondaryChatModel().orElse(null), "LLM_SECONDARY_CHAT_MODEL");
+        boolean enabled = model != null;
+        String baseUrl = enabled ? value(context, primaryBaseUrl, "LLM_SECONDARY_BASE_URL") : primaryBaseUrl;
+        String apiKey = enabled
+                ? value(context, PRIMARY_API_KEY_REFERENCE, "LLM_SECONDARY_API_KEY")
+                : NO_KEY_PLACEHOLDER;
+        emitted.put("quarkus.langchain4j.openai.\"secondary\".base-url", baseUrl);
+        emitted.put("quarkus.langchain4j.openai.\"secondary\".api-key", apiKey);
+        emitted.put("quarkus.langchain4j.openai.\"secondary\".chat-model.model-name",
+                enabled ? model : primaryChatModel);
+        emitted.put("qlawkus.model.secondary-enabled", String.valueOf(enabled));
     }
 
     /**

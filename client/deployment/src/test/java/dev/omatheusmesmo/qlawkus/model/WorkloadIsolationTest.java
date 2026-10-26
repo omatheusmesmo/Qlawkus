@@ -59,7 +59,7 @@ class WorkloadIsolationTest {
     @Test
     void everyWorkloadBreakerIsRegisteredBeforeFirstUse() {
         for (String workload : workloads.names()) {
-            for (String surface : Set.of(WorkloadGuards.CHAT, WorkloadGuards.EMBEDDING)) {
+            for (String surface : Set.of(WorkloadGuards.CHAT, WorkloadGuards.CHAT_SECONDARY, WorkloadGuards.EMBEDDING)) {
                 String name = workloads.breakerName(surface, workload);
                 assertNotEquals(null, CircuitBreakerMaintenance.get().currentState(name),
                         "breaker " + name + " should be registered at startup");
