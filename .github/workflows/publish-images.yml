@@ -1,0 +1,153 @@
+name: Publish images
+
+run-name: Publish images ${{ inputs.version }}
+
+# Builds the JVM, devtools and native container images in-container (the Dockerfiles compile the
+# reactor themselves, so no host Maven step is needed) and pushes them to GHCR. Called by
+# release-perform.yml with the release tag; dispatch it by hand on a branch to rehearse the build
+# (push defaults to false, so nothing leaves the runner).
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version to tag the images with (a release tag such as 0.9.5, or dev)'
+        required: true
+        type: string
+      ref:
+        description: 'Git ref to build (the release tag); defaults to the triggering ref'
+        required: false
+        type: string
+        default: ''
+      push:
+        description: 'Push to GHCR (false builds only)'
+        required: false
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to tag the images with (dev builds are never tagged latest)'
+        required: true
+        default: dev
+        type: string
+      ref:
+        description: 'Git ref to build; defaults to the selected branch'
+        required: false
+        type: string
+        default: ''
+      push:
+        description: 'Push to GHCR (false builds only)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  prepare:
+    name: Resolve tags
+    runs-on: ubuntu-latest
+    outputs:
+      owner: ${{ steps.resolve.outputs.owner }}
+      version: ${{ steps.resolve.outputs.version }}
+      release: ${{ steps.resolve.outputs.release }}
+    env:
+      INPUT_VERSION: ${{ inputs.version }}
+      INPUT_PUSH: ${{ inputs.push }}
+    steps:
+      - id: resolve
+        name: Resolve owner, version and release flag
+        run: |
+          VERSION="${INPUT_VERSION#v}"
+          if [[ ! "${VERSION}" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "Invalid image version: ${VERSION}" >&2
+            exit 1
+          fi
+          RELEASE=false
+          if [[ "${INPUT_PUSH}" == "true" && "${VERSION}" != *-SNAPSHOT && "${VERSION}" != "dev" ]]; then
+            RELEASE=true
+          fi
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          {
+            echo "owner=${OWNER}"
+            echo "version=${VERSION}"
+            echo "release=${RELEASE}"
+          } >> "${GITHUB_OUTPUT}"
+          echo "Images: ghcr.io/${OWNER}/qlawkus:${VERSION} (latest tags: ${RELEASE})"
+
+  images:
+    name: Image ${{ matrix.name }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: jvm
+            dockerfile: app/src/main/docker/Dockerfile.jvm-build
+            build-args: QLAWKUS_IMAGE_VARIANT=base
+            suffix: ''
+          - name: jvm-devtools
+            dockerfile: app/src/main/docker/Dockerfile.jvm-build
+            build-args: QLAWKUS_IMAGE_VARIANT=devtools
+            suffix: -devtools
+          - name: native
+            dockerfile: app/src/main/docker/Dockerfile.native-build
+            build-args: ''
+            suffix: -native
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - id: source
+        name: Record the commit being built
+        run: echo "revision=$(git rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
+
+      - name: Reclaim Disk Space
+        run: .github/ci-prerequisites.sh
+
+      - uses: docker/setup-buildx-action@v4
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ needs.prepare.outputs.owner }}/qlawkus
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=${{ needs.prepare.outputs.version }}${{ matrix.suffix }}
+            type=raw,value=latest${{ matrix.suffix }},enable=${{ needs.prepare.outputs.release }}
+          labels: |
+            org.opencontainers.image.title=Qlawkus
+            org.opencontainers.image.description=Qlawkus: autonomous personal engineering agent built on Quarkus
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.revision=${{ steps.source.outputs.revision }}
+
+      - name: Log in to GHCR
+        if: inputs.push
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          build-args: ${{ matrix.build-args }}
+          push: ${{ inputs.push }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }}

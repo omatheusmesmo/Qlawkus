@@ -46,6 +46,36 @@ full list of modes and actions.
 NOTE: The first in-container build downloads the full dependency tree, so it takes
 a few minutes. A cached Maven repo (a BuildKit cache mount) makes later builds fast.
 
+=== Prebuilt images
+
+Each release publishes three images to GitHub Container Registry, starting with the
+next release (0.9.4 was released before publishing existed, so it has none):
+
+[source,bash]
+----
+docker pull ghcr.io/omatheusmesmo/qlawkus:latest           # JVM (default)
+docker pull ghcr.io/omatheusmesmo/qlawkus:latest-devtools  # JVM plus git and gh
+docker pull ghcr.io/omatheusmesmo/qlawkus:latest-native    # GraalVM native
+----
+
+`latest` follows the newest release. A version tag (for example `0.9.5`, with the
+same suffixes, such as `0.9.5-native`) pins a release, which is what a reproducible
+deployment should use.
+
+Pick the variant by what the agent has to do:
+
+* JVM (no suffix): the default.
+* Devtools (`-devtools`): the JVM image plus `git` and `gh`, for the code-review tools.
+  See the devtools section below.
+* Native (`-native`): a GraalVM binary on the micro base, for a smaller footprint and
+  faster startup. It has no package manager, so there is no devtools variant, and the
+  code-review tools that shell out to `git` and `gh` cannot run in it.
+
+The Compose files still build from source. The prebuilt images are for running the
+container directly, as the reference Kubernetes deployment does
+(`examples/redeploy/k8s/deployment.yaml`); they need the same environment the Compose
+file sets (datasources, `LLM_KIND`, `LLM_API_KEY`, the admin password hash).
+
 === Local Docker (Ollama + PostgreSQL)
 
 Self-contained, no external API key required.
