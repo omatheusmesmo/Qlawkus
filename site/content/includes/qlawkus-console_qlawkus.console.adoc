@@ -7,6 +7,27 @@ h|[.header-title]##Configuration property##
 h|Type
 h|Default
 
+a| [[qlawkus-console_qlawkus-console-chat-tool-progress]] [.property-path]##link:#qlawkus-console_qlawkus-console-chat-tool-progress[`+++qlawkus.console.chat.tool-progress+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.console.chat.tool-progress+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+How much of the agent's tool activity the chat page shows while a turn runs. `off` shows only a "N tools, Xs" summary line, `status` shows each tool's name and duration, `preview` adds the first 40 characters of its arguments, and `verbose` adds the arguments (up to 300 characters) in a collapsible detail. Tool results are never shown. The messaging channels are meant to take the same four names.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_CONSOLE_CHAT_TOOL_PROGRESS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_CONSOLE_CHAT_TOOL_PROGRESS+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`off`, `status`, `preview`, `verbose`
+|`+++preview+++`
+
 a| [[qlawkus-console_qlawkus-console-grafana-url]] [.property-path]##link:#qlawkus-console_qlawkus-console-grafana-url[`+++qlawkus.console.grafana-url+++`]##
 ifdef::add-copy-button-to-config-props[]
 config_property_copy_button:+++qlawkus.console.grafana-url+++[]
@@ -29,4 +50,3 @@ endif::add-copy-button-to-env-var[]
 |
 
 |===
-

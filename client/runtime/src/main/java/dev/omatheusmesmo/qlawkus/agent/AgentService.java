@@ -15,6 +15,7 @@ import dev.omatheusmesmo.qlawkus.cognition.UpdateUserProfileTool;
 import dev.omatheusmesmo.qlawkus.cognition.ViewSkillTool;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProviderSupplier;
 import io.quarkiverse.langchain4j.RegisterAiService;
+import io.quarkiverse.langchain4j.runtime.aiservice.ChatEvent;
 import io.smallrye.mutiny.Multi;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -42,6 +43,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 public interface AgentService {
 
     Multi<String> chat(@MemoryId String conversationId, @UserMessage String message);
+
+    Multi<ChatEvent> chatEvents(@MemoryId String conversationId, @UserMessage String message);
 
     String chatSync(@MemoryId String conversationId, @UserMessage String message);
 }

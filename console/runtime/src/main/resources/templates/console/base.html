@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/console/app.css">
     <script src="/console/htmx.min.js" defer></script>
     <script src="/console/console.js" defer></script>
+{#insert head}{/insert}
 </head>
 <body>
 <div class="layout">
@@ -27,6 +28,7 @@
         </div>
         <nav class="nav">
             <a class="nav-item{#if active == 'overview'} is-active{/if}" href="/console">Overview</a>
+            <a class="nav-item{#if active == 'chat'} is-active{/if}" href="/console/chat">Chat</a>
             <a class="nav-item{#if active == 'memory'} is-active{/if}" href="/console/memory">Memory</a>
             <a class="nav-item{#if active == 'skills'} is-active{/if}" href="/console/skills">Skills</a>
             <a class="nav-item{#if active == 'cognition'} is-active{/if}" href="/console/cognition">Cognition</a>
