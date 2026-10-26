@@ -85,7 +85,7 @@ export QLAWKUS_VAULT_ENABLED=true
 export QLAWKUS_VAULT_PASSPHRASE=your-strong-passphrase
 ----
 
-When enabled with a passphrase, the refresh token is encrypted with AES-256-GCM (the key is derived from the passphrase via Argon2id) and stored in the `qlawkus_google_auth` datasource. If the vault is disabled or no passphrase is set, tokens are kept in memory and lost on restart. Treat the passphrase as a secret: see xref:secrets.adoc[Secrets] to store it in the keystore under `qlawkus.google.vault.encryption-passphrase` instead of a plain environment variable.
+When enabled with a passphrase, the refresh token is encrypted with AES-256-GCM (the key is derived from the passphrase via Argon2id) and stored in the `qlawkus_google_auth` datasource. If the vault is disabled or no passphrase is set, tokens are kept in memory and lost on restart. Treat the passphrase as a secret: see xref:secrets.adoc[Secrets] to store it in the keystore under `qlawkus.google.vault.encryption-passphrase` instead of a plain environment variable. A stored credential that the current passphrase cannot decrypt is reported once in the logs and ignored, so the agent still starts with Google unauthorized; re-authorize Google to replace it.
 
 == 7. First Authorization Flow
 

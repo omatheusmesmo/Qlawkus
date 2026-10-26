@@ -16,6 +16,7 @@ import dev.omatheusmesmo.qlawkus.tools.google.auth.RefreshTokenCapturedEvent;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleAuthConfig;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.Capabilities;
+import io.quarkus.deployment.Capability;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageSecurityProviderBuildItem;
@@ -26,7 +27,6 @@ import io.quarkus.runtime.configuration.ConfigurationException;
 class GoogleAuthProcessor {
 
     private static final String FEATURE = "google-auth";
-    private static final String HIBERNATE_PANACHE_CAPABILITY = "io.quarkus.hibernate-orm-panache";
 
     @BuildStep
     FeatureBuildItem feature() {
@@ -69,7 +69,7 @@ class GoogleAuthProcessor {
 
     @BuildStep(onlyIf = IsVaultEnabled.class)
     AdditionalBeanBuildItem registerVaultBeans(Capabilities capabilities) {
-        if (capabilities.isMissing(HIBERNATE_PANACHE_CAPABILITY)) {
+        if (capabilities.isMissing(Capability.HIBERNATE_ORM)) {
             throw new ConfigurationException(
                 "Google vault requires quarkus-hibernate-orm-panache. "
                 + "Add the extension or disable the vault with qlawkus.google.vault.enabled=false");

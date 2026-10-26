@@ -74,8 +74,7 @@ public class AesEncryptor {
 
             return new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            Log.errorf(e, "Decryption failed");
-            throw new RuntimeException("Decryption failed", e);
+            throw new CredentialDecryptionException("Stored credential could not be decrypted", e);
         }
     }
 
