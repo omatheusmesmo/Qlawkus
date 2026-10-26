@@ -38,7 +38,11 @@ jobs:
         run: ./mvnw -B test -pl integration-tests/live-provider -Dci=true -Dno-format -ntp
 
       - name: Build with Maven (Native)
-        run: ./mvnw -B install -Pnative -Dquarkus.native.container-build -Dnative.surefire.skip -Dno-format -ntp
+        run: |
+          set -o pipefail
+          SECONDS=0
+          ./mvnw -B install -Pnative -Dquarkus.native.container-build -Dnative.surefire.skip -Dno-format -ntp 2>&1 | tee native-build.log
+          echo "BUILD_SECONDS=${SECONDS}" > native-build.env
 
       - name: Upload test reports
         uses: actions/upload-artifact@v6
@@ -47,3 +51,115 @@ jobs:
           name: test-reports
           path: '**/target/*-reports/TEST-*.xml'
           retention-days: 7
+
+      - name: Upload native binaries
+        uses: actions/upload-artifact@v6
+        with:
+          name: native-binaries
+          path: |
+            integration-tests/markdown-only/target/*-runner
+            app/target/*-runner
+            native-build.log
+            native-build.env
+          retention-days: 7
+          if-no-files-found: warn
+
+  measure-native:
+    name: Native footprint
+    needs: build
+    runs-on: ubuntu-latest
+    # A measurement, not a gate: a flaky boot here must not turn the nightly red.
+    continue-on-error: true
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: qlawkus
+          POSTGRES_USER: qlawkus
+          POSTGRES_PASSWORD: qlawkus
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qlawkus -d qlawkus"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      LLM_API_KEY: dummy
+      # The committed %dev hash of 'dev' (app/src/main/resources/application.properties). The
+      # native full app refuses to boot without an admin credential; this one only lets it start.
+      QLAWKUS_ADMIN_PASSWORD_HASH: '$argon2id$v=19$m=19456,t=2,p=1$fukXIsitf4yIZrwHAFFP7A$lzdo9BmLtsfQN7xT7PdUe8auPVSlpQ3xx/wMesqUvFc'
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download native binaries
+        uses: actions/download-artifact@v7
+        with:
+          name: native-binaries
+          path: native
+
+      - name: Create the full app's databases
+        env:
+          PGPASSWORD: qlawkus
+        run: |
+          for db in qlawkus_google_auth qlawkus_brag; do
+            psql -h localhost -U qlawkus -d qlawkus -c "CREATE DATABASE ${db}"
+          done
+
+      - name: Measure markdown-only and the full app
+        run: |
+          mkdir -p measurements
+          MARKDOWN_ONLY=$(find native -path '*markdown-only*' -name '*-runner' -type f)
+          FULL_APP=$(find native -path '*/app/*' -name '*-runner' -type f)
+          BUILD_LOG=$(find native -name native-build.log -type f)
+          BUILD_SECONDS=$(sed -n 's/^BUILD_SECONDS=//p' "$(find native -name native-build.env -type f)")
+          # upload-artifact drops file permissions, so the binaries come back without the exec bit.
+          chmod +x "$MARKDOWN_ONLY" "$FULL_APP"
+          build_peak() {
+            awk -v module="$1" '
+              /:build .* @ /  { current = $(NF - 1) }
+              /Peak RSS: /    {
+                if (current == module && match($0, /Peak RSS: [0-9.]+(GB|GiB)/)) {
+                  print substr($0, RSTART + 10, RLENGTH - 10)
+                  exit
+                }
+              }' "$BUILD_LOG"
+          }
+          MARKDOWN_ONLY_PEAK=$(build_peak qlawkus-integration-tests-markdown-only)
+          FULL_APP_PEAK=$(build_peak qlawkus-app)
+          scripts/measure-native.sh "$MARKDOWN_ONLY" --label markdown-only \
+            --build-peak-rss "$MARKDOWN_ONLY_PEAK" --build-seconds "$BUILD_SECONDS" --md \
+            > measurements/markdown-only.json 2> >(tee -a measurements/rows.md >&2)
+          scripts/measure-native.sh "$FULL_APP" --label full-app \
+            --build-peak-rss "$FULL_APP_PEAK" --build-seconds "$BUILD_SECONDS" --md \
+            > measurements/full-app.json 2> >(tee -a measurements/rows.md >&2)
+
+      - name: Write the job summary
+        run: |
+          {
+            echo "## Native footprint"
+            echo ""
+            echo "Measured the way the Quarkus team measures its own startup numbers ([method](https://quarkus.io/guides/performance-measure), [benchmark](https://github.com/quarkusio/spring-quarkus-perf-comparison/tree/9b3fb2381fb1d701f1ddb8b3996ab54eacc9148c)): time to first request polls \`/q/health/ready\`, RSS is \`pmap\` at startup and after one request, 3 iterations each. GitHub runners cannot drop the filesystem cache or pin CPUs, so those two upstream steps are skipped."
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          jq -rs '
+            def mib(x): (x / 1048576 * 10 | round / 10);
+            def r1(x): (x * 10 | round / 10);
+            .[0] as $m | .[1] as $f |
+            "| Metric | markdown-only | full app | delta |",
+            "|---|---|---|---|",
+            "| Native binary size | \(mib($m.size_bytes)) MiB | \(mib($f.size_bytes)) MiB | \(mib($f.size_bytes - $m.size_bytes)) MiB |",
+            "| Time to first request, avg | \(r1($m.ttfr_avg_ms)) ms | \(r1($f.ttfr_avg_ms)) ms | \(r1($f.ttfr_avg_ms - $m.ttfr_avg_ms)) ms |",
+            "| RSS at startup, avg | \($m.rss_startup_avg_mib) MiB | \($f.rss_startup_avg_mib) MiB | \(r1($f.rss_startup_avg_mib - $m.rss_startup_avg_mib)) MiB |",
+            "| RSS after first request, avg | \($m.rss_first_request_avg_mib) MiB | \($f.rss_first_request_avg_mib) MiB | \(r1($f.rss_first_request_avg_mib - $m.rss_first_request_avg_mib)) MiB |",
+            "| Native build peak RSS | \($m.native_build_peak_rss // "n/a") | \($f.native_build_peak_rss // "n/a") | n/a |",
+            "",
+            "Native build wall time for the whole reactor: \($m.build_seconds) s (both binaries come from one build)."
+          ' measurements/markdown-only.json measurements/full-app.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload measurements
+        uses: actions/upload-artifact@v6
+        with:
+          name: native-footprint
+          path: measurements/
+          retention-days: 90
