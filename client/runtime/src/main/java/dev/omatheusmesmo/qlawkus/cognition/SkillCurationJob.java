@@ -6,7 +6,6 @@ import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
-import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -44,7 +43,21 @@ public class SkillCurationJob {
   }
 
   public long curateNow() {
+    JobLog.Run run = JobLog.start("skill-curation");
+    try {
+      long removed = curateSkills(run);
+      run.count("removed", removed);
+      run.finish();
+      return removed;
+    } catch (RuntimeException e) {
+      run.fail(e);
+      throw e;
+    }
+  }
+
+  private long curateSkills(JobLog.Run run) {
     List<SkillSummary> skills = skillStore.index();
+    run.count("skills", skills.size());
     if (skills.size() < 2) {
       return 0;
     }
@@ -71,11 +84,8 @@ public class SkillCurationJob {
           removed++;
         }
       }
-      if (removed > 0) {
-        Log.infof("SkillCurationJob: removed %d redundant skills", removed);
-      }
     } catch (Exception e) {
-      Log.warnf(e, "SkillCurationJob: curation failed");
+      run.fail(e);
     }
     return removed;
   }

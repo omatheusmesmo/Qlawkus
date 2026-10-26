@@ -44,26 +44,40 @@ public class EpisodicConsolidatorJob {
 
   public void consolidateNow() {
     LocalDate yesterday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
-    consolidateDate(yesterday);
+    JobLog.Run run = JobLog.start("episodic-consolidator");
+    try {
+      run.count("date", yesterday);
+      run.count("outcome", consolidateDate(yesterday));
+      run.finish();
+    } catch (RuntimeException e) {
+      run.fail(e);
+      throw e;
+    }
   }
 
-  public void consolidateDate(LocalDate date) {
+  /**
+   * Consolidates one day and reports what it did: {@code reembedded} when the journal existed and only
+   * its embedding was repaired, {@code skipped} when the day had no messages, {@code stored} when a new
+   * journal was written.
+   */
+  public String consolidateDate(LocalDate date) {
     if (episodicStore.existsForDate(date)) {
       Log.debugf("Journal already exists for %s, re-asserting its embedding", date);
       embedExistingJournal(date);
-      return;
+      return "reembedded";
     }
 
     List<ChatMessage> messages = workingMemoryStore.findByDateRange(date);
     if (messages.isEmpty()) {
       Log.debugf("No messages found for %s, skipping", date);
-      return;
+      return "skipped";
     }
 
     String summary = summarizeMessages(messages, date);
     episodicStore.storeEpisode(date, summary, messages.size());
 
     embedSummary(date, summary);
+    return "stored";
   }
 
   /**

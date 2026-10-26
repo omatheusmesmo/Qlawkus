@@ -4,7 +4,6 @@ import dev.omatheusmesmo.qlawkus.config.MemoryReviewConfig;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
-import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -37,11 +36,15 @@ public class MemoryReviewJob {
   public long reviewNow() {
     double similarityThreshold = config.similarityThreshold();
     double maxCosineDistance = 1.0 - similarityThreshold;
-    long removed = factStore.purgeNearDuplicates(maxCosineDistance);
-    if (removed > 0) {
-      Log.infof("MemoryReviewJob: removed %d near-duplicate memories (>= %.2f cosine similarity)",
-          removed, similarityThreshold);
+    JobLog.Run run = JobLog.start("memory-review");
+    try {
+      long removed = factStore.purgeNearDuplicates(maxCosineDistance);
+      run.count("removed", removed).count("threshold", similarityThreshold);
+      run.finish();
+      return removed;
+    } catch (RuntimeException e) {
+      run.fail(e);
+      throw e;
     }
-    return removed;
   }
 }

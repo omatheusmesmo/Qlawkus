@@ -86,12 +86,12 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
         AtomicBoolean partialSent = new AtomicBoolean(false);
         try {
             if (!config.fallbackEnabled()) {
-                guard.callPrimaryOnly(() -> runBridged(delegate, request, handler, partialSent));
+                guard.callPrimaryOnly(() -> runBridged(delegate, request, handler, partialSent, ServedTier.PRIMARY));
                 return;
             }
             String next = config.secondaryEnabled() ? AgentMeters.TIER_SECONDARY : AgentMeters.TIER_FALLBACK;
             guard.call(
-                    () -> runBridged(delegate, request, handler, partialSent),
+                    () -> runBridged(delegate, request, handler, partialSent, ServedTier.PRIMARY),
                     next,
                     () -> afterPrimary(request, handler, partialSent));
         } catch (RuntimeException e) {
@@ -109,13 +109,14 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
             return ollama(request, handler, partialSent);
         }
         return secondaryGuard.call(
-                () -> runBridged(secondary, FallbackRequests.forFallback(request), handler, partialSent),
+                () -> runBridged(secondary, FallbackRequests.forFallback(request), handler, partialSent,
+                        ServedTier.SECONDARY),
                 () -> ollama(request, handler, partialSent));
     }
 
     private ChatResponse ollama(ChatRequest request, StreamingChatResponseHandler handler,
             AtomicBoolean partialSent) {
-        return runBridged(fallback, sanitizeForOllama(request), handler, partialSent);
+        return runBridged(fallback, sanitizeForOllama(request), handler, partialSent, ServedTier.FALLBACK);
     }
 
     @Override
@@ -134,7 +135,7 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
      * settles once the model calls {@code onCompleteResponse} or {@code onError}.
      */
     private static ChatResponse runBridged(StreamingChatModel model, ChatRequest request,
-            StreamingChatResponseHandler downstream, AtomicBoolean partialSent) {
+            StreamingChatResponseHandler downstream, AtomicBoolean partialSent, String tier) {
         CompletableFuture<ChatResponse> future = new CompletableFuture<>();
         StreamingChatResponseHandler bridge = new StreamingChatResponseHandler() {
 
@@ -177,8 +178,9 @@ public class FallbackStreamingChatModel implements StreamingChatModel {
 
             @Override
             public void onCompleteResponse(ChatResponse response) {
-                downstream.onCompleteResponse(response);
-                future.complete(response);
+                ChatResponse answered = ServedTier.answered(tier, response);
+                downstream.onCompleteResponse(answered);
+                future.complete(answered);
             }
 
             @Override

@@ -26,7 +26,9 @@ import org.flywaydb.core.api.MigrationInfo;
  * applies migrations out of band, or where a rolling deploy puts a pod carrying a newer migration set
  * in front of a database that has not been upgraded yet. In both cases the pod should stay out of the
  * load balancer until the schema catches up, and flip to ready on its own once it does - which is why
- * this queries live rather than caching a verdict from startup.
+ * this re-queries while migrations are pending, and once the schema is current it stops asking Flyway.
+ * Each Flyway call logs its {@code Database:} line at INFO, so polling a settled schema every few
+ * seconds would bury the log; a settled schema cannot become pending without a new deployment.
  */
 @Readiness
 public class MigrationReadinessCheck implements HealthCheck {
@@ -36,10 +38,15 @@ public class MigrationReadinessCheck implements HealthCheck {
     @Inject
     Instance<Flyway> flyway;
 
+    private volatile boolean settled;
+
     @Override
     public HealthCheckResponse call() {
         if (!flyway.isResolvable()) {
             return HealthCheckResponse.named(NAME).up().withData("flyway", "unavailable").build();
+        }
+        if (settled) {
+            return HealthCheckResponse.named(NAME).up().withData("pending", 0).build();
         }
         try {
             MigrationInfo[] pending = flyway.get().info().pending();
@@ -50,6 +57,7 @@ public class MigrationReadinessCheck implements HealthCheck {
                         .withData("nextVersion", describe(pending[0]))
                         .build();
             }
+            settled = true;
             return HealthCheckResponse.named(NAME).up().withData("pending", 0).build();
         } catch (RuntimeException e) {
             return HealthCheckResponse.named(NAME)

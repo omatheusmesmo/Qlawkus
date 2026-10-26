@@ -90,7 +90,8 @@ public class AchievementProcessor {
         }
 
         entry.persist();
-        Log.infof("Auto-detected achievement recorded: %s", achievement);
+        Log.info("Auto-detected achievement recorded");
+        Log.debugf("Auto-detected achievement: %s", achievement);
     }
 
     public String translateImpact(String achievement) {

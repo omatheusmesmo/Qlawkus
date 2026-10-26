@@ -4,7 +4,6 @@ import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
-import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -37,11 +36,16 @@ public class SkillLifecycleJob {
   }
 
   public int sweepNow() {
-    int transitioned = skillStore.sweepLifecycle(
-        config.lifecycle().staleAfterDays(), config.lifecycle().archiveAfterDays());
-    if (transitioned > 0) {
-      Log.infof("SkillLifecycleJob: transitioned %d skills", transitioned);
+    JobLog.Run run = JobLog.start("skill-lifecycle");
+    try {
+      int transitioned = skillStore.sweepLifecycle(
+          config.lifecycle().staleAfterDays(), config.lifecycle().archiveAfterDays());
+      run.count("transitioned", transitioned);
+      run.finish();
+      return transitioned;
+    } catch (RuntimeException e) {
+      run.fail(e);
+      throw e;
     }
-    return transitioned;
   }
 }

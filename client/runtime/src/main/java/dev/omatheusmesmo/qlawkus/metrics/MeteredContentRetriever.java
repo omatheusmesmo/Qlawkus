@@ -4,9 +4,11 @@ import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.ContentMetadata;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.query.Query;
+import dev.omatheusmesmo.qlawkus.agent.AgentTurn;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Wraps the active-memory retriever so every turn reports what memory actually did: whether anything
@@ -36,6 +38,7 @@ public class MeteredContentRetriever implements ContentRetriever {
         long startedAt = System.nanoTime();
         List<Content> contents = delegate.retrieve(query);
         meters.retrieval(contents.size(), scoresOf(contents), Duration.ofNanos(System.nanoTime() - startedAt));
+        Optional.ofNullable(AgentTurn.current()).ifPresent(turn -> turn.facts(contents.size()));
         return contents;
     }
 

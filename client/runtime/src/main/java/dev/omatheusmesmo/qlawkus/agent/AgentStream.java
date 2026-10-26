@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.agent;
 
+import dev.omatheusmesmo.qlawkus.model.ServedTier;
 import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import io.quarkiverse.langchain4j.runtime.aiservice.ChatEvent;
 import io.quarkus.logging.Log;
@@ -34,26 +35,39 @@ public class AgentStream {
     private final AgentService agent;
     private final Event<ToolActivityEvent> activity;
     private final SecretRedactor redactor;
+    private final AgentDeliveryContext delivery;
 
     @Inject
-    public AgentStream(AgentService agent, Event<ToolActivityEvent> activity, SecretRedactor redactor) {
+    public AgentStream(AgentService agent, Event<ToolActivityEvent> activity, SecretRedactor redactor,
+            AgentDeliveryContext delivery) {
         this.agent = agent;
         this.activity = activity;
         this.redactor = redactor;
+        this.delivery = delivery;
     }
 
     public Multi<AgentEvent> stream(String conversationId, String message) {
         return Multi.createFrom().deferred(() -> {
-            Turn turn = new Turn(conversationId);
-            return agent.chatEvents(conversationId, message)
-                    .onItem().transformToIterable(turn::translate)
-                    .onCompletion().continueWith(turn::done);
+            AgentTurn logged = AgentTurn.open(conversationId, AgentTurn.channelOf(conversationId, delivery), true);
+            Turn turn = new Turn(conversationId, logged);
+            Multi<ChatEvent> events;
+            try (AgentTurn.Binding ignored = logged.bind()) {
+                events = agent.chatEvents(conversationId, message);
+            } catch (RuntimeException e) {
+                logged.close("error");
+                throw e;
+            }
+            return events.onItem().transformToIterable(turn::translate)
+                    .onCompletion().continueWith(turn::done)
+                    .onTermination().invoke((failure, cancelled) ->
+                            logged.close(AgentTurn.outcomeOf(failure, cancelled)));
         });
     }
 
     private final class Turn {
 
         private final String conversationId;
+        private final AgentTurn logged;
         private final long startedAt = System.nanoTime();
         private final AtomicInteger sequence = new AtomicInteger();
         private final AtomicInteger toolCalls = new AtomicInteger();
@@ -61,8 +75,9 @@ public class AgentStream {
         private final AtomicReference<Integer> outputTokens = new AtomicReference<>();
         private final Map<String, Deque<Pending>> pending = new ConcurrentHashMap<>();
 
-        private Turn(String conversationId) {
+        private Turn(String conversationId, AgentTurn logged) {
             this.conversationId = conversationId;
+            this.logged = logged;
         }
 
         List<AgentEvent> translate(ChatEvent event) {
@@ -90,6 +105,7 @@ public class AgentStream {
             pending.computeIfAbsent(key(request.id(), request.name()), k -> new ConcurrentLinkedDeque<>())
                     .addLast(new Pending(id, System.nanoTime()));
             toolCalls.incrementAndGet();
+            logged.tool(request.name());
             return new AgentEvent.ToolStart(id, request.name(),
                     ToolProgress.VERBOSE.detail(redactor.redact(request.arguments())));
         }
@@ -111,7 +127,9 @@ public class AgentStream {
             if (usage != null) {
                 inputTokens.set(usage.inputTokenCount());
                 outputTokens.set(usage.outputTokenCount());
+                logged.usage(usage.inputTokenCount(), usage.outputTokenCount());
             }
+            ServedTier.of(response).ifPresent(logged::tier);
         }
 
         private AgentEvent publish(AgentEvent.ToolEvent event) {
