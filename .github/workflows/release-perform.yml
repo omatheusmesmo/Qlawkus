@@ -121,10 +121,24 @@ jobs:
             ## Artifacts
 
             - **JVM**: Download `qlawkus-app-${{ steps.version.outputs.version }}.zip` and run with `java -jar quarkus-run.jar`
-            - **Docker**: Build from source with `docker compose up --build`
+            - **Docker (JVM)**: `docker pull ghcr.io/${{ github.repository_owner }}/qlawkus:${{ steps.version.outputs.version }}`
+            - **Docker (devtools, adds git and gh)**: `docker pull ghcr.io/${{ github.repository_owner }}/qlawkus:${{ steps.version.outputs.version }}-devtools`
+            - **Docker (native)**: `docker pull ghcr.io/${{ github.repository_owner }}/qlawkus:${{ steps.version.outputs.version }}-native`
 
             > _Draft release - edit and publish when ready._
           draft: true
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-images:
+    name: Publish images
+    needs: perform-release
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish-images.yml
+    with:
+      version: ${{ github.event.inputs.tag || github.ref_name }}
+      ref: ${{ github.event.inputs.tag || github.ref_name }}
+      push: true

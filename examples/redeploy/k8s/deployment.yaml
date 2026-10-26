@@ -40,7 +40,11 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: qlawkus
-          # Replaced per redeploy by `kubectl set image` (see rollout.sh).
+          # Replaced per redeploy by `kubectl set image` (see rollout.sh). Published by each release
+          # from the next one on (publish-images.yml); no image exists for 0.9.4, so `latest` is the tag
+          # that resolves. The -devtools (adds git and
+          # gh for the code-review tools) and -native (GraalVM binary) variants use the same tag with
+          # the suffix, e.g. ghcr.io/omatheusmesmo/qlawkus:latest-native.
           image: ghcr.io/omatheusmesmo/qlawkus:latest
           ports:
             - containerPort: 8080

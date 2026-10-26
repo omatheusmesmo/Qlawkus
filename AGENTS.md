@@ -333,14 +333,15 @@ User-facing catalog: `site/content/operations.adoc` under "What the agent measur
 
 ## CI / Release
 
-6 GitHub Actions workflows:
+7 GitHub Actions workflows:
 
 - **`build-pull-request.yml`** - On PR: quick build → JVM test matrix (per module) → native IT matrix (per IT module) → build report. No API key passed → LLM tests auto-skip
 - **`build-push.yml`** - On push to main: full `mvn clean install` with `LLM_API_KEY: dummy`, then a separate step running only `integration-tests/live-provider` with the `NVIDIA_API_KEY` secret
 - **`build-nightly.yml`** - Cron seg-sex 02:00 UTC + dispatch: JVM + native build, same `NVIDIA_API_KEY` secret
 - **`pre-release.yml`** - On PR that changes `.github/project.yml`: validates version is not SNAPSHOT, blocks forks
 - **`release-prepare.yml`** - On PR merge that changes `.github/project.yml`: sets POM version, tags (no `v` prefix), pushes tag, bumps to next SNAPSHOT
-- **`release-perform.yml`** - On tag push: builds artifacts, creates draft GitHub Release with PR-based changelog
+- **`release-perform.yml`** - On tag push: builds artifacts, creates draft GitHub Release with PR-based changelog, then calls `publish-images.yml`
+- **`publish-images.yml`** - Reusable (`workflow_call` from release, `workflow_dispatch` for a dry run, `push` defaults to false): builds the JVM, `-devtools` and `-native` images in-container and pushes them to `ghcr.io/<owner>/qlawkus` with the version tag, plus `latest` variants on a release
 
 Release flow: edit `current-version` in `.github/project.yml` → open PR (triggers `pre-release` validation) → merge triggers `release-prepare` → tag push triggers `release-perform` → edit/publish draft release.
 
