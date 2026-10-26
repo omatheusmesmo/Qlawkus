@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.messaging.telegram;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.omatheusmesmo.qlawkus.http.HttpRetryClassifier;
 import dev.omatheusmesmo.qlawkus.http.TransientHttpException;
@@ -47,7 +48,27 @@ public interface TelegramBotClient {
             jitter = 200, jitterDelayUnit = ChronoUnit.MILLIS,
             retryOn = {TransientHttpException.class, jakarta.ws.rs.ProcessingException.class})
     @ExponentialBackoff(maxDelay = 8000, maxDelayUnit = ChronoUnit.MILLIS)
-    void sendMessage(@PathParam("token") String token, SendMessageRequest request);
+    SendMessageResponse sendMessage(@PathParam("token") String token, SendMessageRequest request);
+
+    @POST
+    @Path("/editMessageText")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Retry(maxRetries = 3, delay = 500, delayUnit = ChronoUnit.MILLIS,
+            jitter = 200, jitterDelayUnit = ChronoUnit.MILLIS,
+            retryOn = {TransientHttpException.class, jakarta.ws.rs.ProcessingException.class})
+    @ExponentialBackoff(maxDelay = 8000, maxDelayUnit = ChronoUnit.MILLIS)
+    void editMessageText(@PathParam("token") String token, EditMessageTextRequest request);
+
+    @POST
+    @Path("/deleteMessage")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Retry(maxRetries = 3, delay = 500, delayUnit = ChronoUnit.MILLIS,
+            jitter = 200, jitterDelayUnit = ChronoUnit.MILLIS,
+            retryOn = {TransientHttpException.class, jakarta.ws.rs.ProcessingException.class})
+    @ExponentialBackoff(maxDelay = 8000, maxDelayUnit = ChronoUnit.MILLIS)
+    void deleteMessage(@PathParam("token") String token, DeleteMessageRequest request);
 
     @GET
     @Path("/getFile")
@@ -84,11 +105,29 @@ public interface TelegramBotClient {
     @Produces(MediaType.APPLICATION_JSON)
     void sendChatAction(@PathParam("token") String token, SendChatActionRequest request);
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     record SendMessageRequest(
             @JsonProperty("chat_id") String chatId,
             String text,
             @JsonProperty("parse_mode") String parseMode
     ) {}
+
+    record EditMessageTextRequest(
+            @JsonProperty("chat_id") String chatId,
+            @JsonProperty("message_id") long messageId,
+            String text
+    ) {}
+
+    record DeleteMessageRequest(
+            @JsonProperty("chat_id") String chatId,
+            @JsonProperty("message_id") long messageId
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record SendMessageResponse(boolean ok, SentMessage result) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record SentMessage(@JsonProperty("message_id") long messageId) {}
 
     record SendChatActionRequest(
             @JsonProperty("chat_id") String chatId,

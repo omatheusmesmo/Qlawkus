@@ -91,6 +91,69 @@ endif::add-copy-button-to-env-var[]
 |string
 |`+++https://api.openai.com+++`
 
+a| [[qlawkus-messaging_qlawkus-messaging-tool-progress-mode]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tool-progress-mode[`+++qlawkus.messaging.tool-progress.mode+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tool-progress.mode+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+What each chat sees of a tool call: `off` shows nothing, `status` the tool name and duration, `preview` adds the start of its arguments, `verbose` a longer part. Changed per chat with `/verbose`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TOOL_PROGRESS_MODE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TOOL_PROGRESS_MODE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++preview+++`
+
+a| [[qlawkus-messaging_qlawkus-messaging-tool-progress-on-complete]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tool-progress-on-complete[`+++qlawkus.messaging.tool-progress.on-complete+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tool-progress.on-complete+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+What replaces the status message when the reply arrives: `summary` edits it to one line such as "7 tools, 4.2s", `delete` removes it.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TOOL_PROGRESS_ON_COMPLETE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TOOL_PROGRESS_ON_COMPLETE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++summary+++`
+
+a| [[qlawkus-messaging_qlawkus-messaging-tool-progress-max-lines]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tool-progress-max-lines[`+++qlawkus.messaging.tool-progress.max-lines+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tool-progress.max-lines+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Lines kept in the status message; older calls scroll off and a count of them remains.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TOOL_PROGRESS_MAX_LINES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TOOL_PROGRESS_MAX_LINES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++6+++`
+
 a| [[qlawkus-messaging_qlawkus-messaging-tts-enabled]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tts-enabled[`+++qlawkus.messaging.tts.enabled+++`]##
 ifdef::add-copy-button-to-config-props[]
 config_property_copy_button:+++qlawkus.messaging.tts.enabled+++[]

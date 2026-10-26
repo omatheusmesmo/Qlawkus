@@ -5,6 +5,7 @@ import dev.omatheusmesmo.qlawkus.messaging.MessagingFormat;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingProvider;
+import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressSink;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingResponse;
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Multi;
@@ -170,8 +171,38 @@ public class TelegramProviderAdapter implements MessagingProvider {
         return out.toByteArray();
     }
 
+    @Override
+    public Optional<ToolProgressSink> progressSink() {
+        return botToken().map(token -> new TelegramProgressSink(botClient, token));
+    }
+
     private Optional<String> botToken() {
         return config.botToken().filter(token -> !token.isBlank());
+    }
+
+    private record TelegramProgressSink(TelegramBotClient botClient, String token) implements ToolProgressSink {
+
+        @Override
+        public String post(String chatId, String text) {
+            TelegramBotClient.SendMessageResponse response =
+                    botClient.sendMessage(token, new TelegramBotClient.SendMessageRequest(chatId, text, null));
+            if (response == null || response.result() == null) {
+                throw new IllegalStateException("Telegram sendMessage returned no message");
+            }
+            return String.valueOf(response.result().messageId());
+        }
+
+        @Override
+        public void edit(String chatId, String messageId, String text) {
+            botClient.editMessageText(token,
+                    new TelegramBotClient.EditMessageTextRequest(chatId, Long.parseLong(messageId), text));
+        }
+
+        @Override
+        public void delete(String chatId, String messageId) {
+            botClient.deleteMessage(token,
+                    new TelegramBotClient.DeleteMessageRequest(chatId, Long.parseLong(messageId)));
+        }
     }
 
     public MessagingMessage mapUpdate(TelegramUpdate update) {
