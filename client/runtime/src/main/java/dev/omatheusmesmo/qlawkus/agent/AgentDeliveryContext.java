@@ -35,6 +35,18 @@ public class AgentDeliveryContext {
         HOLDER.remove();
     }
 
+    public Snapshot snapshot() {
+        Holder h = HOLDER.get();
+        return new Snapshot(h.memoryId, h.providerId, h.chatId);
+    }
+
+    public void restore(Snapshot snapshot) {
+        set(snapshot.memoryId(), snapshot.providerId(), snapshot.chatId());
+    }
+
+    public record Snapshot(String memoryId, String providerId, String chatId) {
+    }
+
     private static class Holder {
         String memoryId;
         String providerId;
