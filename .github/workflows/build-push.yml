@@ -25,8 +25,7 @@ jobs:
     name: Build on main
     runs-on: ubuntu-latest
     env:
-      LLM_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
-      LLM_KIND: nvidia
+      LLM_API_KEY: dummy
     steps:
       - uses: actions/checkout@v7
 
@@ -42,6 +41,12 @@ jobs:
 
       - name: Build with Maven
         run: ./mvnw -B clean install -Dci=true -Dno-format -ntp
+
+      - name: Live provider contract
+        env:
+          LLM_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          LLM_KIND: nvidia
+        run: ./mvnw -B test -pl integration-tests/live-provider -Dci=true -Dno-format -ntp
 
       - name: Upload test reports
         uses: actions/upload-artifact@v6

@@ -14,8 +14,7 @@ jobs:
     name: Full build + native
     runs-on: ubuntu-latest
     env:
-      LLM_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
-      LLM_KIND: nvidia
+      LLM_API_KEY: dummy
     steps:
       - uses: actions/checkout@v7
 
@@ -31,6 +30,12 @@ jobs:
 
       - name: Build with Maven (JVM)
         run: ./mvnw -B clean install -Dci=true -Dno-format -ntp
+
+      - name: Live provider contract
+        env:
+          LLM_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          LLM_KIND: nvidia
+        run: ./mvnw -B test -pl integration-tests/live-provider -Dci=true -Dno-format -ntp
 
       - name: Build with Maven (Native)
         run: ./mvnw -B install -Pnative -Dquarkus.native.container-build -Dnative.surefire.skip -Dno-format -ntp
