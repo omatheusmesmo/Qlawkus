@@ -1,0 +1,22 @@
+{#include console/base}
+{#title}Qlawkus Console - Chat{/title}
+{#head}
+    <script src="/console/chat.js" defer></script>
+{/head}
+<header class="content-head">
+    <h1>Chat</h1>
+    <p class="lede">Talk to the agent. Replies stream from <span class="mono">POST {endpoint}</span> and share its conversation.</p>
+</header>
+
+<section class="panel chat" id="chat">
+    <div class="chat-log" id="chat-log" role="log" aria-live="polite">
+        <p class="chat-empty" id="chat-empty">Say something to start. Enter sends, Shift+Enter adds a line.</p>
+    </div>
+    <div class="chat-error" id="chat-error" role="alert" hidden></div>
+    <form class="chat-form" id="chat-form" data-endpoint="{endpoint}" data-tool-progress="{toolProgress}">
+        <label class="sr-only" for="chat-input">Message</label>
+        <textarea id="chat-input" name="message" rows="1" placeholder="Message the agent" autocomplete="off"></textarea>
+        <button type="submit" id="chat-send">Send</button>
+    </form>
+</section>
+{/include}
