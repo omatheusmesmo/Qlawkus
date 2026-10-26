@@ -36,31 +36,37 @@ public class AgentStream {
     private final Event<ToolActivityEvent> activity;
     private final SecretRedactor redactor;
     private final AgentDeliveryContext delivery;
+    private final StreamedToolContext streamedTools;
 
     @Inject
     public AgentStream(AgentService agent, Event<ToolActivityEvent> activity, SecretRedactor redactor,
-            AgentDeliveryContext delivery) {
+            AgentDeliveryContext delivery, StreamedToolContext streamedTools) {
         this.agent = agent;
         this.activity = activity;
         this.redactor = redactor;
         this.delivery = delivery;
+        this.streamedTools = streamedTools;
     }
 
     public Multi<AgentEvent> stream(String conversationId, String message) {
         return Multi.createFrom().deferred(() -> {
             AgentTurn logged = AgentTurn.open(conversationId, AgentTurn.channelOf(conversationId, delivery), true);
             Turn turn = new Turn(conversationId, logged);
+            streamedTools.capture(conversationId);
             Multi<ChatEvent> events;
             try (AgentTurn.Binding ignored = logged.bind()) {
                 events = agent.chatEvents(conversationId, message);
             } catch (RuntimeException e) {
                 logged.close("error");
+                streamedTools.release(conversationId);
                 throw e;
             }
             return events.onItem().transformToIterable(turn::translate)
                     .onCompletion().continueWith(turn::done)
-                    .onTermination().invoke((failure, cancelled) ->
-                            logged.close(AgentTurn.outcomeOf(failure, cancelled)));
+                    .onTermination().invoke((failure, cancelled) -> {
+                        logged.close(AgentTurn.outcomeOf(failure, cancelled));
+                        streamedTools.release(conversationId);
+                    });
         });
     }
 

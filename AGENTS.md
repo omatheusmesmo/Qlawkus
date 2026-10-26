@@ -126,6 +126,8 @@ New tool modules must also be added as dependencies in `app/pom.xml`.
 
 A tool that makes outbound HTTP calls follows the retry contract in **Resilience & Health** below: throw `TransientHttpException` for transient failures, and annotate the single HTTP call rather than the tool method.
 
+A tool sees the caller's context on both paths. On `chatSync` it runs on the caller's thread, so the `AgentDeliveryContext` ThreadLocal and the request context are already there. On the streaming path (`AgentStream`) it runs on the model client's callback thread, so `StreamedToolContext` captures the caller's delivery values and request context when the turn starts (keyed by conversation) and restores them around each call: `ContextBridgingToolExecutor` for `@QlawTool` tools (inside `QlawToolProvider`'s metering) and `StreamedToolWrapper` for the tools declared on `@RegisterAiService(tools = ...)`, the seam quarkus-langchain4j exposes for them. With no caller request context a fresh one lives for that call only. A new tool that reads request-scoped state or the delivery context needs nothing more; a new tool seam must go through this bridge, not read the ThreadLocal directly.
+
 ## Extension Development
 
 Every module here (`client`, `tools/*`, `messaging/*`) is a full Quarkus extension: a `runtime/` + `deployment/` pair. Rules that keep that pattern correct:

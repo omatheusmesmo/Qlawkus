@@ -8,6 +8,7 @@ import dev.langchain4j.service.tool.ToolExecutor;
 import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.ToolProviderRequest;
 import dev.langchain4j.service.tool.ToolProviderResult;
+import dev.omatheusmesmo.qlawkus.agent.StreamedToolContext;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.metrics.MeteredToolExecutor;
 import dev.omatheusmesmo.qlawkus.tracing.TracedToolExecutor;
@@ -34,6 +35,9 @@ public class QlawToolProvider implements ToolProvider {
     AgentMeters meters;
 
     @Inject
+    StreamedToolContext streamedTools;
+
+    @Inject
     Instance<Tracer> tracer;
 
     @ConfigProperty(name = "quarkus.langchain4j.tracing.include-tool-arguments", defaultValue = "false")
@@ -56,8 +60,9 @@ public class QlawToolProvider implements ToolProvider {
             List<ToolSpecification> specs = ToolSpecifications.toolSpecificationsFrom(beanClass);
             for (ToolSpecification spec : specs) {
                 Method toolMethod = findToolMethod(beanClass, spec);
-                builder.add(spec, traced(spec.name(), new MeteredToolExecutor(
-                        spec.name(), new DefaultToolExecutor(tool, toolMethod), meters)));
+                ToolExecutor bridged = new ContextBridgingToolExecutor(new DefaultToolExecutor(tool, toolMethod),
+                        streamedTools);
+                builder.add(spec, traced(spec.name(), new MeteredToolExecutor(spec.name(), bridged, meters)));
                 Log.debugf("Registered extension tool: %s from %s", spec.name(), beanClass.getSimpleName());
             }
         }
