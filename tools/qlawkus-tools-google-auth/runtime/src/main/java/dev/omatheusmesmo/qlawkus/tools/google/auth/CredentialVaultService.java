@@ -11,6 +11,7 @@ import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.time.Instant;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @ApplicationScoped
 public class CredentialVaultService {
@@ -31,13 +32,14 @@ public class CredentialVaultService {
     private volatile AesEncryptor encryptor;
     private volatile MemoryCredential memoryStore;
     private volatile boolean renewalScheduled;
+    private final AtomicBoolean undecryptableReported = new AtomicBoolean();
 
     private boolean useVault() {
         return vaultConfig.enabled() && vaultConfig.encryptionPassphrase().isPresent()
             && !vaultConfig.encryptionPassphrase().get().isBlank();
     }
 
-    void onStartup(@Observes StartupEvent event) {
+    public void onStartup(@Observes StartupEvent event) {
         boolean hasExistingCredential;
         if (useVault()) {
             hasExistingCredential = GoogleCredential.findByProvider("google") != null;
@@ -80,6 +82,8 @@ public class CredentialVaultService {
             credential.provider = "google";
         }
         credential.encryptedRefreshToken = encrypted;
+        credential.encryptedAccessToken = null;
+        credential.expiresAt = null;
         credential.persist();
 
         Log.info("Google refresh token persisted (encrypted)");
@@ -108,7 +112,8 @@ public class CredentialVaultService {
         }
 
         AesEncryptor enc = getEncryptor();
-        String refreshToken = enc.decrypt(credential.encryptedRefreshToken);
+        String refreshToken = decryptStored(credential.encryptedRefreshToken);
+        if (refreshToken == null) return;
 
         try {
             TokenResponse response = deviceFlowClient.refreshAccessToken(
@@ -196,14 +201,14 @@ public class CredentialVaultService {
 
         if (credential.expiresAt != null && credential.expiresAt.isAfter(Instant.now().plusSeconds(60))
             && credential.encryptedAccessToken != null) {
-            return getEncryptor().decrypt(credential.encryptedAccessToken);
+            return decryptStored(credential.encryptedAccessToken);
         }
 
         renewVaultAccessToken();
 
         credential = GoogleCredential.findByProvider("google");
         return credential != null && credential.encryptedAccessToken != null
-            ? getEncryptor().decrypt(credential.encryptedAccessToken) : null;
+            ? decryptStored(credential.encryptedAccessToken) : null;
     }
 
     private String getMemoryAccessToken() {
@@ -222,10 +227,29 @@ public class CredentialVaultService {
     public String getDecryptedRefreshToken() {
         if (useVault()) {
             GoogleCredential credential = GoogleCredential.findByProvider("google");
-            return credential != null ? getEncryptor().decrypt(credential.encryptedRefreshToken) : null;
+            return credential != null ? decryptStored(credential.encryptedRefreshToken) : null;
         }
         MemoryCredential current = memoryStore;
         return current != null ? current.refreshToken() : null;
+    }
+
+    private String decryptStored(String ciphertext) {
+        try {
+            return getEncryptor().decrypt(ciphertext);
+        } catch (CredentialDecryptionException e) {
+            reportUndecryptableCredential();
+            return null;
+        }
+    }
+
+    private void reportUndecryptableCredential() {
+        if (undecryptableReported.compareAndSet(false, true)) {
+            Log.error("Stored Google credential (provider=google) cannot be decrypted: the vault passphrase "
+                + "does not match the one it was encrypted with. Google is treated as not authorized; "
+                + "re-authorize Google to replace the stored credential.");
+        } else {
+            Log.debug("Stored Google credential still cannot be decrypted; Google is treated as not authorized");
+        }
     }
 
     private AesEncryptor getEncryptor() {
