@@ -332,3 +332,23 @@ quarkus.smallrye-health.management.enabled=false
 Both are build-time properties. The scrape on 9000 takes no credential, deliberately: every authenticated identity in this distribution is the admin, so a credential for Prometheus would be the admin one, sitting in plaintext next to the Argon2id hash meant to protect it. The boundary is the network instead. Compose never publishes 9000, and the reference Kubernetes Deployment names it `management` so it can be kept out of any Service that leaves the cluster.
 
 If you build your own distribution, either keep the same split or put `/q/metrics` behind whichever auth mechanism you wired in. The extension deliberately imposes no policy, because the mechanism is the integrator's choice.
+
+
+== Native footprint
+
+The selling point of composing the agent from capabilities is that an unselected one never reaches the binary: the manifest decides the dependencies before the build, so a distribution that leaves a capability out carries no code for it. That claim is measured, not assumed.
+
+The nightly build compares two native binaries from the same build: `markdown-only` (`integration-tests/markdown-only`, the database-free distribution) and the full `app`, which carries every capability the reference distribution selects, including the Postgres backend.
+
+The method is the one the Quarkus team uses for its own startup numbers, described in https://quarkus.io/guides/performance-measure[the performance measurement guide], and the measurement code is vendored from the team's benchmark, https://github.com/quarkusio/spring-quarkus-perf-comparison[quarkusio/spring-quarkus-perf-comparison] at commit `9b3fb2381fb1d701f1ddb8b3996ab54eacc9148c` (Apache-2.0, the same licence as Qlawkus). `scripts/perf/time-to-1st-request.sh` is that upstream script, unmodified apart from a header naming its source. `scripts/measure-native.sh` drives it and runs the upstream RSS sequence. Each distribution is measured like this:
+
+* *Binary size* - the size of the `-runner` file on disk. For a JVM run (`scripts/measure-native.sh` on a `.jar`) it is the whole directory holding the jar.
+* *Time to first request* - the upstream script starts the application and polls `http://localhost:<port>/q/health/ready` until it answers 200, and prints the elapsed nanoseconds. Each run is wrapped in `timeout 60s`, as upstream does. Three iterations, averaged.
+* *RSS at startup* and *RSS after first request* - the application starts in the background, the script waits the upstream `PAUSE_TIME` of 5 seconds, takes `pmap -x` of the process (its `total` line, in KiB, converted to MiB), sends one request to the same readiness URL, takes `pmap` again, sends `SIGTERM` and waits the pause again. Three iterations, averaged.
+* *Native build peak RSS* - the `Peak RSS:` line native-image prints for each module during the build, as upstream extracts it from its build log. It is the memory the compiler needed, not what the binary uses at runtime.
+
+Two steps of the upstream method are skipped, because GitHub-hosted runners cannot do them: `sync-drop-fs-cache` needs root, and `taskset` CPU pinning needs dedicated cores. Expect more variance between runs than the upstream dedicated-hardware numbers show, and read the averages as a trend on this runner rather than as absolute figures.
+
+The `measure-native` job of `.github/workflows/build-nightly.yml` runs after the nightly native build. It reuses the binaries and the build log that build produced, starts a Postgres service container for the full app with the Compose stack's database names and credentials, and uses a dummy LLM key, since readiness never calls the model. The comparison table is written to the run's job summary, and the raw JSON, one object per distribution, is uploaded as the `native-footprint` artifact and kept for 90 days. The build wall time in the summary covers the whole native reactor build, which produced both binaries.
+
+The numbers are a record, not a gate: there is no threshold, so a regression shows up in the trend. A size or startup check would compare each run with the previous one and fail above an agreed margin.
