@@ -21,8 +21,8 @@ import java.time.Instant;
  * probe runs every few seconds, and an inference just to answer it would bill the owner for being
  * monitored.
  *
- * <p>Either circuit alone being open is not unreadiness. The primary failing while the Ollama
- * fallback serves is degraded, not unable - taking the pod out of rotation there would turn a
+ * <p>Either circuit alone being open is not unreadiness. The primary failing while the secondary or the
+ * Ollama fallback serves is degraded, not unable - taking the pod out of rotation there would turn a
  * provider incident into an outage. The check goes down only when a circuit is open <em>and</em> no
  * fallback is configured, which is the state where a request on that surface has nowhere left to go.
  *
@@ -70,6 +70,7 @@ public class ModelReadinessCheck implements HealthCheck {
         HealthCheckResponseBuilder response = HealthCheckResponse.named(NAME)
                 .withData("chatCircuit", chat.name())
                 .withData("embeddingCircuit", embedding.name())
+                .withData("secondaryCircuit", stateOf(WorkloadGuards.CHAT_SECONDARY, WorkloadContext.INTERACTIVE).name())
                 .withData("fallbackEnabled", fallbackEnabled);
         Instant now = Instant.now();
         boolean chatBlocked = reportPermanent(response, WorkloadGuards.CHAT, now);
@@ -83,6 +84,8 @@ public class ModelReadinessCheck implements HealthCheck {
             response.withData(workload + "ChatCircuit", stateOf(WorkloadGuards.CHAT, workload).name());
             response.withData(workload + "EmbeddingCircuit",
                     stateOf(WorkloadGuards.EMBEDDING, workload).name());
+            response.withData(workload + "SecondaryCircuit",
+                    stateOf(WorkloadGuards.CHAT_SECONDARY, workload).name());
             response.withData(workload + "ChatPermanentFailures",
                     failures.streak(WorkloadGuards.CHAT, workload).consecutive());
             response.withData(workload + "EmbeddingPermanentFailures",

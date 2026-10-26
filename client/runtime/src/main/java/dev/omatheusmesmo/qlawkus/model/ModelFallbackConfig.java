@@ -30,6 +30,14 @@ public interface ModelFallbackConfig {
     String CIRCUIT_BREAKER_EMBEDDING = "qlawkus-primary-embedding";
 
     /**
+     * The breaker of the secondary chat tier (the same-provider fallback, see {@code secondaryEnabled}),
+     * kept apart from the primary's so a secondary outage never reads as a primary one.
+     *
+     * @see #CIRCUIT_BREAKER_CHAT
+     */
+    String CIRCUIT_BREAKER_SECONDARY_CHAT = "qlawkus-secondary-chat";
+
+    /**
      * Number of retries against the primary model before falling back to Ollama.
      */
     @WithDefault("3")
@@ -58,6 +66,14 @@ public interface ModelFallbackConfig {
      */
     @WithDefault("true")
     boolean fallbackEnabled();
+
+    /**
+     * Whether a same-provider secondary chat model sits between the primary and the Ollama fallback.
+     * Set at startup by the provider kind (the NVIDIA kind enables it with Nemotron Ultra on the primary's
+     * endpoint); a kind with no secondary model leaves it off, and the chain is primary then Ollama.
+     */
+    @WithDefault("false")
+    boolean secondaryEnabled();
 
     /**
      * When readiness treats a permanent answer from the primary provider as unable to serve.

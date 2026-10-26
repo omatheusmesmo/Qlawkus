@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Locks the provider-kind base-url resolution precedence.
@@ -91,5 +92,105 @@ class LlmKindConfigSourceFactoryTest {
                 .build();
 
         assertEquals(localOllama, config.getConfigValue(PRIMARY_BASE_URL).getValue());
+    }
+
+    private static final String PRIMARY_API_KEY = "quarkus.langchain4j.openai.\"primary\".api-key";
+    private static final String PRIMARY_CHAT_MODEL = "quarkus.langchain4j.openai.\"primary\".chat-model.model-name";
+    private static final String SECONDARY_BASE_URL = "quarkus.langchain4j.openai.\"secondary\".base-url";
+    private static final String SECONDARY_API_KEY = "quarkus.langchain4j.openai.\"secondary\".api-key";
+    private static final String SECONDARY_CHAT_MODEL = "quarkus.langchain4j.openai.\"secondary\".chat-model.model-name";
+    private static final String SECONDARY_ENABLED = "qlawkus.model.secondary-enabled";
+    private static final String GLM = "z-ai/glm-5.3";
+    private static final String ULTRA = "nvidia/nemotron-3-ultra-550b-a55b";
+
+    private static SmallRyeConfig configWith(Map<String, String> overrides) {
+        return new SmallRyeConfigBuilder()
+                .addDefaultInterceptors()
+                .withSources(new LlmKindConfigSourceFactory())
+                .withSources(new PropertiesConfigSource(overrides, "env", OVERRIDE_SOURCE_ORDINAL))
+                .build();
+    }
+
+    @Test
+    void nvidiaKindUsesGlmAsPrimaryChatModel() {
+        SmallRyeConfig config = configWith(Map.of("LLM_KIND", "nvidia"));
+
+        assertEquals(GLM, config.getConfigValue(PRIMARY_CHAT_MODEL).getValue());
+    }
+
+    @Test
+    void nvidiaKindEnablesUltraAsSecondaryOnTheSameEndpointWithThePrimarysKey() {
+        SmallRyeConfig config = configWith(Map.of("LLM_KIND", "nvidia", "LLM_API_KEY", "nvapi-secret"));
+
+        assertEquals("true", config.getConfigValue(SECONDARY_ENABLED).getValue());
+        assertEquals(ULTRA, config.getConfigValue(SECONDARY_CHAT_MODEL).getValue());
+        assertEquals(NVIDIA_BASE_URL, config.getConfigValue(SECONDARY_BASE_URL).getValue());
+        assertEquals("nvapi-secret", config.getConfigValue(SECONDARY_API_KEY).getValue());
+    }
+
+    /**
+     * The secondary key is a reference to the primary key property, not a copy: a key that reaches the
+     * primary later and from a higher source (the keystore at ordinal 350 publishes the native
+     * property) must reach the secondary too, with no second secret to store.
+     */
+    @Test
+    void secondaryKeyFollowsTheNativePrimaryKeyFromAHigherSource() {
+        SmallRyeConfig config = new SmallRyeConfigBuilder()
+                .addDefaultInterceptors()
+                .withSources(new LlmKindConfigSourceFactory())
+                .withSources(new PropertiesConfigSource(
+                        Map.of("LLM_KIND", "nvidia", "LLM_API_KEY", "from-env"), "env", OVERRIDE_SOURCE_ORDINAL))
+                .withSources(new PropertiesConfigSource(
+                        Map.of(PRIMARY_API_KEY, "from-keystore"), "keystore", 350))
+                .build();
+
+        assertEquals("from-keystore", config.getConfigValue(SECONDARY_API_KEY).getValue());
+    }
+
+    @Test
+    void explicitSecondaryOverridesWinOverTheKindDefaults() {
+        SmallRyeConfig config = configWith(Map.of(
+                "LLM_KIND", "nvidia",
+                "LLM_API_KEY", "nvapi-secret",
+                "LLM_SECONDARY_CHAT_MODEL", "meta/llama-4-maverick",
+                "LLM_SECONDARY_BASE_URL", "https://other.example/v1",
+                "LLM_SECONDARY_API_KEY", "other-key"));
+
+        assertEquals("meta/llama-4-maverick", config.getConfigValue(SECONDARY_CHAT_MODEL).getValue());
+        assertEquals("https://other.example/v1", config.getConfigValue(SECONDARY_BASE_URL).getValue());
+        assertEquals("other-key", config.getConfigValue(SECONDARY_API_KEY).getValue());
+        assertEquals(GLM, config.getConfigValue(PRIMARY_CHAT_MODEL).getValue(),
+                "overriding the secondary must not touch the primary");
+    }
+
+    @Test
+    void aKindWithoutASameProviderModelDisablesTheSecondaryTier() {
+        SmallRyeConfig config = configWith(Map.of("LLM_KIND", "mistral", "LLM_API_KEY", "mistral-secret"));
+
+        assertEquals("false", config.getConfigValue(SECONDARY_ENABLED).getValue());
+        assertEquals("no-key", config.getConfigValue(SECONDARY_API_KEY).getValue(),
+                "the primary provider's secret must never be attached to a disabled tier");
+    }
+
+    @Test
+    void settingASecondaryModelEnablesTheTierForAKindWithoutOne() {
+        SmallRyeConfig config = configWith(Map.of(
+                "LLM_KIND", "mistral",
+                "LLM_API_KEY", "mistral-secret",
+                "LLM_SECONDARY_CHAT_MODEL", "mistral-small-latest"));
+
+        assertEquals("true", config.getConfigValue(SECONDARY_ENABLED).getValue());
+        assertEquals("mistral-small-latest", config.getConfigValue(SECONDARY_CHAT_MODEL).getValue());
+    }
+
+    @Test
+    void localOllamaKeepsTheNativeFallbackUntouched() {
+        SmallRyeConfig config = configWith(Map.of(
+                "LLM_BASE_URL", "http://ollama:11434/v1",
+                "LLM_API_KEY", "dummy"));
+
+        assertEquals("false", config.getConfigValue(SECONDARY_ENABLED).getValue());
+        assertNull(config.getConfigValue("quarkus.langchain4j.openai.\"fallback\".base-url").getValue(),
+                "the Ollama fallback is native and must not be emitted as an OpenAI-compatible model");
     }
 }

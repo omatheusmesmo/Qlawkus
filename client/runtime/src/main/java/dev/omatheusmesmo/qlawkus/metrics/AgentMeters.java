@@ -49,6 +49,12 @@ public class AgentMeters {
     public static final String JOB_ITEMS = "qlawkus.job.items";
 
     public static final String MODEL_FALLBACK = "qlawkus.model.fallback";
+
+    /** The {@code tier} tag of {@link #MODEL_FALLBACK} when the same-provider secondary takes over. */
+    public static final String TIER_SECONDARY = "secondary";
+
+    /** The {@code tier} tag of {@link #MODEL_FALLBACK} when the Ollama fallback takes over. */
+    public static final String TIER_FALLBACK = "fallback";
     public static final String MODEL_CIRCUIT_STATE = "qlawkus.model.circuit.state";
 
     /** Model surfaces. Separate breakers, because chat and embeddings can fail independently. */
@@ -71,6 +77,7 @@ public class AgentMeters {
     private static final String TAG_OUTCOME = "outcome";
     private static final String TAG_JOB = "job";
     private static final String TAG_SURFACE = "surface";
+    private static final String TAG_TIER = "tier";
     private static final String TAG_WORKLOAD = "workload";
     private static final String TAG_TOOL = "tool";
     private static final String TAG_STORE = "store";
@@ -224,10 +231,14 @@ public class AgentMeters {
         });
     }
 
-    /** Counts one switch from the primary provider to the fallback, per model surface. */
-    public void fallback(String surface) {
+    /**
+     * Counts one switch to the next model tier, per surface. {@code tier} is the tier being switched to:
+     * {@link #TIER_SECONDARY} when the primary is abandoned for the same-provider model, {@link
+     * #TIER_FALLBACK} when the Ollama fallback takes over.
+     */
+    public void fallback(String surface, String tier) {
         if (registry != null) {
-            registry.counter(MODEL_FALLBACK, Tags.of(TAG_SURFACE, surface)).increment();
+            registry.counter(MODEL_FALLBACK, Tags.of(TAG_SURFACE, surface, TAG_TIER, tier)).increment();
         }
     }
 

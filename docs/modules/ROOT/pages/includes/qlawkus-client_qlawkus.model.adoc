@@ -112,6 +112,27 @@ endif::add-copy-button-to-env-var[]
 |boolean
 |`+++true+++`
 
+a| [[qlawkus-client_qlawkus-model-secondary-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-model-secondary-enabled[`+++qlawkus.model.secondary-enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.model.secondary-enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether a same-provider secondary chat model sits between the primary and the Ollama fallback. Set at startup by the provider kind (the NVIDIA kind enables it with Nemotron Ultra on the primary's endpoint); a kind with no secondary model leaves it off, and the chain is primary then Ollama.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MODEL_SECONDARY_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MODEL_SECONDARY_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
 a| [[qlawkus-client_qlawkus-model-permanent-failure-threshold]] [.property-path]##link:#qlawkus-client_qlawkus-model-permanent-failure-threshold[`+++qlawkus.model.permanent-failure.threshold+++`]##
 ifdef::add-copy-button-to-config-props[]
 config_property_copy_button:+++qlawkus.model.permanent-failure.threshold+++[]

@@ -115,7 +115,8 @@ class DashboardMetricsTest {
         meters.retrieval(1, new double[] {0.8}, took);
         meters.embedFact(2, () -> { });
         meters.job("dashboard-probe", took, 1, true);
-        meters.fallback(AgentMeters.SURFACE_CHAT);
+        meters.fallback(AgentMeters.SURFACE_CHAT, AgentMeters.TIER_SECONDARY);
+        meters.fallback(AgentMeters.SURFACE_CHAT, AgentMeters.TIER_FALLBACK);
         meters.tool("dashboard-probe", took, true);
         meters.store("FactStore", "markdown", "store", took, true);
 
