@@ -9,6 +9,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.EnabledIf;
@@ -20,8 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * Calls the real provider once per surface. Every other embedding and chat test in the reactor runs
- * against WireMock, so a model the provider retires keeps them green: NVIDIA retired
+ * Calls the real provider once per surface: the embedding model, the primary chat model and, when the
+ * resolved kind enables it, the same-provider secondary chat model. Every other embedding and chat test
+ * in the reactor runs against WireMock, so a model the provider retires keeps them green: NVIDIA retired
  * {@code nv-embedqa-e5-v5} on 2026-08-25 and the suite did not notice for two months (#359).
  *
  * <p>It runs only where a real key is present ({@code QlawkusTestUtils#usesLLM}) and skips cleanly
@@ -44,7 +46,14 @@ class LiveProviderContractTest {
     ChatModel chatModel;
 
     @Inject
+    @ModelName("secondary")
+    ChatModel secondaryChatModel;
+
+    @Inject
     Config config;
+
+    @ConfigProperty(name = "qlawkus.model.secondary-enabled", defaultValue = "false")
+    boolean secondaryEnabled;
 
     @ConfigProperty(name = "qlawkus.embedding.model-name")
     String embeddingModelName;
@@ -60,12 +69,25 @@ class LiveProviderContractTest {
     }
 
     @Test
-    @Timeout(value = 120, unit = TimeUnit.SECONDS)
+    @Timeout(value = 240, unit = TimeUnit.SECONDS)
     void chatEndpointAnswersAMinimalPrompt() {
         String answer = chatModel.chat("Reply with the single word: pong");
 
         assertNotNull(answer);
         assertFalse(answer.isBlank(), "the chat model answered with an empty message");
+    }
+
+    @Test
+    @Timeout(value = 240, unit = TimeUnit.SECONDS)
+    void secondaryChatEndpointAnswersAMinimalPrompt() {
+        Assumptions.assumeTrue(secondaryEnabled,
+                "the resolved provider kind has no secondary chat model (qlawkus.model.secondary-enabled=false); "
+                        + "set LLM_KIND to a kind that declares one, or LLM_SECONDARY_CHAT_MODEL, to exercise it");
+
+        String answer = secondaryChatModel.chat("Reply with the single word: pong");
+
+        assertNotNull(answer);
+        assertFalse(answer.isBlank(), "the secondary chat model answered with an empty message");
     }
 
     private int expectedDimension() {
