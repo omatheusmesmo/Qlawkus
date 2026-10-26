@@ -3,15 +3,19 @@ package dev.omatheusmesmo.qlawkus.messaging;
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.AgentRunner;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
+import dev.omatheusmesmo.qlawkus.agent.ToolProgress;
 import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
+import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressRouter;
+import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressSettings;
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsConfig;
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsRouter;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.inject.Instance;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -45,6 +49,12 @@ class MessagingOrchestratorTest {
         orchestrator.conversationControl = conversationControl;
         orchestrator.workingMemoryStore = workingMemoryStore;
         orchestrator.ttsRouter = ttsRouter;
+        orchestrator.progressRouter = new ToolProgressRouter();
+        orchestrator.providerRegistry = Mockito.mock(ProviderRegistry.class);
+
+        ToolProgressSettings toolProgress = Mockito.mock(ToolProgressSettings.class);
+        when(toolProgress.modeFor(anyString())).thenReturn(ToolProgress.OFF);
+        orchestrator.toolProgress = toolProgress;
 
         TtsConfig ttsConfig = Mockito.mock(TtsConfig.class);
         when(ttsConfig.defaultLanguage()).thenReturn("en");
@@ -115,5 +125,25 @@ class MessagingOrchestratorTest {
         Void result = orchestrator.process(msg).await().indefinitely();
 
         assertNull(result);
+    }
+
+    @Test
+    void anUnauthorizedUserCannotCycleTheToolProgressMode() {
+        when(authService.isAuthorized(any())).thenReturn(false);
+        MessagingMessage message = new MessagingMessage("discord", "channel-1", "stranger", "/verbose", Optional.empty());
+
+        String reply = orchestrator.cycleToolProgress(message);
+
+        verify(orchestrator.toolProgress, never()).cycle(anyString());
+        assertFalse(reply.contains("Tool progress for this chat"), reply);
+    }
+
+    @Test
+    void anAuthorizedUserCyclesTheModeOfTheirChat() {
+        when(authService.isAuthorized(any())).thenReturn(true);
+        when(orchestrator.toolProgress.cycle("discord:channel-1")).thenReturn(ToolProgress.VERBOSE);
+        MessagingMessage message = new MessagingMessage("discord", "channel-1", "owner", "/verbose", Optional.empty());
+
+        assertEquals("Tool progress for this chat: verbose", orchestrator.cycleToolProgress(message));
     }
 }

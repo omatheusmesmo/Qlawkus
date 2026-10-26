@@ -4,11 +4,16 @@ import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.AgentRunner;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;
+import dev.omatheusmesmo.qlawkus.agent.ToolProgress;
 import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
+import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressReporter;
+import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressRouter;
+import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressSettings;
+import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressTurn;
 import dev.omatheusmesmo.qlawkus.messaging.transcription.VoiceTranscriptionService;
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsConfig;
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsRouter;
@@ -43,6 +48,15 @@ public class MessagingOrchestrator {
 
     @Inject
     Instance<AgentDeliveryContext> deliveryContextInstance;
+
+    @Inject
+    ProviderRegistry providerRegistry;
+
+    @Inject
+    ToolProgressSettings toolProgress;
+
+    @Inject
+    ToolProgressRouter progressRouter;
 
     @Inject
     MessagingAuthService authService;
@@ -83,6 +97,10 @@ public class MessagingOrchestrator {
             return Uni.createFrom().voidItem();
         }
 
+        if (ToolProgressSettings.isVerboseCommand(message.text())) {
+            return notificationService.send(message.providerId(), message.chatId(), cycleToolProgress(message));
+        }
+
         long startMs = System.currentTimeMillis();
         return Uni.createFrom()
                 .item(() -> resolveText(message))
@@ -91,7 +109,7 @@ public class MessagingOrchestrator {
                         message.userId(), text != null ? text.length() : 0))
                 .map(text -> {
                     setDeliveryContext(memoryId(message), message.providerId(), message.chatId());
-                    return runAgentWithContext(memoryId(message), text);
+                    return runAgentWithContext(memoryId(message), text, message);
                 })
                 .invoke(result -> Log.infof(
                         "MessagingOrchestrator: agent done userId=%s elapsedMs=%d responseLen=%d voice=%s",
@@ -196,7 +214,21 @@ public class MessagingOrchestrator {
                 : message.providerId() + ":" + message.chatId();
     }
 
-    private AgentResult runAgentWithContext(String conversationId, String text) {
+    /**
+     * Cycles the tool-progress mode of the message's chat. Checks the allowlist itself, because the
+     * Discord slash command reaches it without going through {@link #process}.
+     */
+    public String cycleToolProgress(MessagingMessage message) {
+        if (!authService.isAuthorized(message)) {
+            Log.warnf("MessagingOrchestrator: unauthorized tool-progress change userId=%s provider=%s",
+                    message.userId(), message.providerId());
+            return "Not authorized.";
+        }
+        ToolProgress mode = toolProgress.cycle(ToolProgressSettings.key(message.providerId(), message.chatId()));
+        return "Tool progress for this chat: " + mode.wireName();
+    }
+
+    private AgentResult runAgentWithContext(String conversationId, String text, MessagingMessage message) {
         ManagedContext requestContext = Arc.container() != null
                 ? Arc.container().requestContext() : null;
         boolean activated = false;
@@ -213,7 +245,7 @@ public class MessagingOrchestrator {
         boolean clearRequested;
         try {
             expireIdleConversation(conversationId);
-            String response = invokeAgent(conversationId, text);
+            String response = invokeAgent(conversationId, text, message);
             clearRequested = conversationControl.isClearRequested();
             result = new AgentResult(response, voicePreference.isRequested(), voicePreference.language());
         } finally {
@@ -231,17 +263,34 @@ public class MessagingOrchestrator {
         return result;
     }
 
-    private String invokeAgent(String conversationId, String text) {
-        if (!agentRunnerInstance.isUnsatisfied()) {
-            try {
-                String response = agentRunnerInstance.get().chat(conversationId, text);
-                Log.debugf("MessagingOrchestrator: agent completed for conversationId=%s", conversationId);
-                return response;
-            } catch (Exception e) {
-                Log.warnf(e, "MessagingOrchestrator: agent failed, falling back to AgentService");
+    private String invokeAgent(String conversationId, String text, MessagingMessage message) {
+        ToolProgressTurn turn = progressRouter.begin(conversationId, progressReporter(message));
+        try {
+            if (!agentRunnerInstance.isUnsatisfied()) {
+                try {
+                    String response = agentRunnerInstance.get().chat(conversationId, text);
+                    Log.debugf("MessagingOrchestrator: agent completed for conversationId=%s", conversationId);
+                    return response;
+                } catch (Exception e) {
+                    Log.warnf(e, "MessagingOrchestrator: agent failed, falling back to AgentService");
+                }
             }
+            return agentService.chatSync(conversationId, text);
+        } finally {
+            progressRouter.end(conversationId, turn);
+            turn.finish(toolProgress.completion());
         }
-        return agentService.chatSync(conversationId, text);
+    }
+
+    private ToolProgressReporter progressReporter(MessagingMessage message) {
+        ToolProgress mode = toolProgress.modeFor(ToolProgressSettings.key(message.providerId(), message.chatId()));
+        if (!mode.showsTools()) {
+            return null;
+        }
+        return providerRegistry.getProvider(message.providerId())
+                .flatMap(MessagingProvider::progressSink)
+                .map(sink -> ToolProgressReporter.forChat(mode, sink, message.chatId(), toolProgress.maxLines()))
+                .orElse(null);
     }
 
     private void setDeliveryContext(String memoryId, String providerId, String chatId) {

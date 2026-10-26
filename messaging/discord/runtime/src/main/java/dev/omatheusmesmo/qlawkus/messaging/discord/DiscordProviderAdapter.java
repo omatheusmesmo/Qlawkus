@@ -6,6 +6,7 @@ import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingProvider;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingResponse;
+import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressSink;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
@@ -19,6 +20,7 @@ import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.MessageCreateFields;
 import discord4j.core.spec.MessageCreateSpec;
+import discord4j.core.spec.MessageEditSpec;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
 import discord4j.rest.response.ResponseFunction;
@@ -162,6 +164,7 @@ public class DiscordProviderAdapter implements MessagingProvider {
 
         switch (sub) {
             case "ask" -> handleAskCommand(event);
+            case "verbose" -> handleVerboseCommand(event);
             case "status" -> event.reply("✅ Qlawkus online").subscribe();
             case "help" -> event.reply(helpText()).subscribe();
             default -> event.reply("Unknown subcommand. Use `/qlawkus help`.").subscribe();
@@ -192,12 +195,20 @@ public class DiscordProviderAdapter implements MessagingProvider {
                         err -> Log.errorf(err, "Discord: ask command failed userId=%s", userId));
     }
 
+    private void handleVerboseCommand(ChatInputInteractionEvent event) {
+        String userId = event.getInteraction().getUser().getId().asString();
+        String channelId = event.getInteraction().getChannelId().asString();
+        MessagingMessage mapped = new MessagingMessage("discord", channelId, userId, "/verbose", Optional.empty());
+        event.reply(orchestrator.cycleToolProgress(mapped)).subscribe();
+    }
+
     private String helpText() {
         return """
                 **Qlawkus** - autonomous engineering agent
 
                 Commands:
                 - `/qlawkus ask question:<text>` - ask the agent a question
+                - `/qlawkus verbose` - cycle how much tool activity this chat sees
                 - `/qlawkus status` - show agent status
                 - `/qlawkus help` - show this help
 
@@ -272,6 +283,42 @@ public class DiscordProviderAdapter implements MessagingProvider {
                 .onFailure().invoke(err -> Log.errorf(err, "Discord: send failed channel=%s", channelId))
                 .onFailure().recoverWithNull()
                 .replaceWithVoid();
+    }
+
+    @Override
+    public Optional<ToolProgressSink> progressSink() {
+        return Optional.ofNullable(gatewayClient).map(DiscordProgressSink::new);
+    }
+
+    private record DiscordProgressSink(GatewayDiscordClient gateway) implements ToolProgressSink {
+
+        @Override
+        public String post(String channelId, String text) {
+            Message message = gateway.getChannelById(Snowflake.of(channelId))
+                    .ofType(MessageChannel.class)
+                    .flatMap(channel -> channel.createMessage(text))
+                    .block();
+            if (message == null) {
+                throw new IllegalStateException("Discord createMessage returned no message");
+            }
+            return message.getId().asString();
+        }
+
+        @Override
+        public void edit(String channelId, String messageId, String text) {
+            message(channelId, messageId)
+                    .flatMap(message -> message.edit(MessageEditSpec.builder().content(text).build()))
+                    .block();
+        }
+
+        @Override
+        public void delete(String channelId, String messageId) {
+            message(channelId, messageId).flatMap(message -> message.delete()).block();
+        }
+
+        private Mono<Message> message(String channelId, String messageId) {
+            return gateway.getMessageById(Snowflake.of(channelId), Snowflake.of(messageId));
+        }
     }
 
     @Override
