@@ -225,13 +225,13 @@ Cost estimation is opt-in via `qlawkus.cost.enabled`. `model/TokenPriceCostEstim
 | What | Version | Where set |
 |------|---------|-----------|
 | Quarkus platform | `3.40.1.1` | `quarkus.platform.version` in root `pom.xml` |
-| quarkus-langchain4j (Quarkiverse extension) | `1.13.3` | `io.quarkus.platform:quarkus-langchain4j-bom` - do not set |
-| Upstream `dev.langchain4j` core (transitive) | `1.19.3` | same BOM - do not set |
-| Upstream beta modules (`langchain4j-skills`, `langchain4j-pgvector`, `langchain4j-agentic`) | `1.19.3-beta29` | same BOM - do not set |
+| quarkus-langchain4j (Quarkiverse extension) | `1.14.2` | root `pom.xml` property `quarkus-langchain4j.version`, ahead of the platform (see below) |
+| Upstream `dev.langchain4j` core (transitive) | `1.20.2` | same BOM - do not set |
+| Upstream beta modules (`langchain4j-skills`, `langchain4j-pgvector`, `langchain4j-agentic`) | `1.20.2-beta30` | same BOM - do not set |
 
-The Quarkiverse **extension** version (`1.13.3`) and the upstream **library** version (`1.19.3`) are different namespaces: `1.13.3` is NOT a langchain4j-core version. The `quarkus-bom` manages neither, so the root pom imports `quarkus-langchain4j-bom` at the platform version; it pins the Quarkiverse artifacts and transitively imports the `langchain4j-bom`, which pins every `dev.langchain4j:*` artifact. So when adding an upstream module (e.g. `langchain4j-skills`, or `dev.langchain4j:langchain4j` for `InMemoryEmbeddingStore`), add it with **no `<version>`** - the BOM resolves it.
+The Quarkiverse **extension** version (`1.14.2`) and the upstream **library** version (`1.20.2`) are different namespaces: `1.14.2` is NOT a langchain4j-core version. The `quarkus-bom` manages neither. The root pom imports `io.quarkiverse.langchain4j:quarkus-langchain4j-bom` at `quarkus-langchain4j.version` first, so it wins over the platform's copy (the platform ships `1.13.3` with `3.40.1.1`); the platform's `quarkus-langchain4j-bom` import stays after it for everything else the platform aligns. That Quarkiverse BOM transitively imports the `langchain4j-bom`, which pins every `dev.langchain4j:*` artifact. So when adding an upstream module (e.g. `langchain4j-skills`, or `dev.langchain4j:langchain4j` for `InMemoryEmbeddingStore`), add it with **no `<version>`** - the BOM resolves it.
 
-To move ahead of the platform's cadence, import `io.quarkiverse.langchain4j:quarkus-langchain4j-bom` at the wanted version *before* the platform one; declaration order decides which wins. Re-verify any time with:
+The override is temporary: drop the Quarkiverse import (and the property) once the Quarkus platform ships quarkus-langchain4j >= 1.14.2. To move ahead again, bump `quarkus-langchain4j.version`; declaration order decides which BOM wins. Re-verify any time with:
 
 ```bash
 mvn dependency:tree -pl client/runtime -Dincludes='dev.langchain4j'
