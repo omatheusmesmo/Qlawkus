@@ -70,6 +70,34 @@ spec:
                 secretKeyRef:
                   name: qlawkus-llm
                   key: api-key
+            # The image's launcher sizes the heap as a share of the container limit, 80% unless
+            # told otherwise. That leaves 205Mi of a 1Gi limit for everything outside the heap, and
+            # the agent's non-heap alone (metaspace, code cache) measured 130Mi, before thread stacks,
+            # Netty's direct buffers and the native memory pty4j and JNA allocate. Half the limit as
+            # heap is still about eight times the live set measured below.
+            - name: JAVA_MAX_MEM_RATIO
+              value: "50"
+          # Sized for the JVM image, from the reference stack after a day and a half of real use:
+          # 59Mi of heap survives a full GC (jvm_gc_live_data_size_bytes) and 130Mi is non-heap
+          # (jvm_memory_used_bytes{area="nonheap"}). Without a limit the same process sat at 2.3Gi
+          # RSS, because ParallelGC grows the heap toward 80% of the node's memory when nothing
+          # stops it; that is headroom taken, not memory needed.
+          #
+          # For the -native image use requests 256Mi and limits 512Mi instead, and drop
+          # JAVA_MAX_MEM_RATIO: the nightly measures the full app at 179Mi RSS after its first
+          # request on an empty state (the "Native footprint" section of operations.adoc), and the
+          # binary sizes its own heap from the limit.
+          #
+          # No CPU limit on purpose. A JVM boot is a burst of class loading and JIT compilation, and
+          # a CPU limit throttles exactly that burst, stretching a start that the startup probe below
+          # gives 150s. The request reserves enough for steady use, which is mostly waiting on the
+          # model provider.
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
           # Readiness answers "should this pod get traffic". It reports on the agent itself: the
           # stores every turn reads, whether working memory can be written, and whether the model
           # chain still has somewhere to go. A store the agent only learns into reports as degraded

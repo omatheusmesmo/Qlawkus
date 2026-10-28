@@ -352,3 +352,25 @@ Two steps of the upstream method are skipped, because GitHub-hosted runners cann
 The `measure-native` job of `.github/workflows/build-nightly.yml` runs after the nightly native build. It reuses the binaries and the build log that build produced, starts a Postgres service container for the full app with the Compose stack's database names and credentials, and uses a dummy LLM key, since readiness never calls the model. The comparison table is written to the run's job summary, and the raw JSON, one object per distribution, is uploaded as the `native-footprint` artifact and kept for 90 days. The build wall time in the summary covers the whole native reactor build, which produced both binaries.
 
 The numbers are a record, not a gate: there is no threshold, so a regression shows up in the trend. A size or startup check would compare each run with the previous one and fail above an agreed margin.
+
+== Sizing the pod
+
+`examples/redeploy/k8s/deployment.yaml` sets requests and limits for the JVM image, from what the agent was measured to need rather than what it happens to hold:
+
+[cols="2,1,3"]
+|===
+| Measurement | Value | Source
+
+| Heap that survives a full GC | 59Mi | `jvm_gc_live_data_size_bytes` on the reference stack, after a day and a half of real use
+| Non-heap (metaspace, code cache) | 130Mi | `jvm_memory_used_bytes{area="nonheap"}`, same stack
+| RSS with no limit | 2.3Gi | the same process; ParallelGC grows the heap toward 80% of the host's memory when nothing caps it
+| Native full app, RSS after the first request | 179Mi | the nightly "Native footprint" measurement, on an empty state
+|===
+
+The JVM pod requests 512Mi with a 1Gi limit, and sets `JAVA_MAX_MEM_RATIO=50`. The image's launcher turns that variable into `-XX:MaxRAMPercentage` (80 by default), so the heap may use half the limit, about eight times the live set, and the other half stays for non-heap, thread stacks, Netty's direct buffers and the native memory pty4j and JNA allocate. At the default 80%, that remainder would be 205Mi against a non-heap that alone measures 130Mi, which is how a pod gets OOM-killed with a heap that is nowhere near full.
+
+For the native image, request 256Mi with a 512Mi limit and leave `JAVA_MAX_MEM_RATIO` out: the binary sizes its own heap from the limit.
+
+There is a CPU request (500m) and no CPU limit. A JVM start is a burst of class loading and JIT compilation, and a limit throttles exactly that burst, which stretches a boot the startup probe gives 150 seconds. In steady use the agent mostly waits on the model provider.
+
+The heap figures come from one owner's agent; a busier one (more skills, more conversations held in working memory, more channels) grows the live set. Read `jvm_gc_live_data_size_bytes` on your own instance and keep the heap share at several times it.
