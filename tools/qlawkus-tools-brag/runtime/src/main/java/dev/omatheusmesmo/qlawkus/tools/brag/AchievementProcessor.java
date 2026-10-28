@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.tools.brag;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.cognition.ChatCompletedEvent;
+import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
@@ -55,7 +56,7 @@ public class AchievementProcessor {
                 %s""".formatted(conversation);
 
         try {
-            String response = chatModel.chat(prompt);
+            String response = WorkloadContext.callAs(WorkloadContext.BATCH, () -> chatModel.chat(prompt));
             if (response == null || response.isBlank() || response.strip().equalsIgnoreCase("none")) {
                 return null;
             }
@@ -108,6 +109,6 @@ public class AchievementProcessor {
 
                 Achievement: %s""".formatted(achievement);
 
-        return chatModel.chat(prompt);
+        return WorkloadContext.callAs(WorkloadContext.BATCH, () -> chatModel.chat(prompt));
     }
 }
