@@ -43,6 +43,11 @@ public class WhisperTranscriptionService implements VoiceTranscriptionService {
     }
 
     @Override
+    public String engine() {
+        return "whisper";
+    }
+
+    @Override
     public String transcribe(byte[] audioBytes) {
         String apiKey = config.apiKey().filter(key -> !key.isBlank())
                 .orElseThrow(() -> new IllegalStateException(

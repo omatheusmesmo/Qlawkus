@@ -80,9 +80,9 @@ class WhatsAppProviderAdapterTest {
     }
 
     @Test
-    void send_apiThrows_completesWithoutPropagating() {
+    void send_apiThrows_propagatesToTheCaller() {
         doThrow(new RuntimeException("api error")).when(apiClient).sendMessage(any(), any(), any());
 
-        assertDoesNotThrow(() -> adapter.send("5511999999999", "hi").await().indefinitely());
+        assertThrows(RuntimeException.class, () -> adapter.send("5511999999999", "hi").await().indefinitely());
     }
 }

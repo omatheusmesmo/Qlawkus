@@ -5,7 +5,6 @@ import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingProvider;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingResponse;
-import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -54,8 +53,6 @@ public class WhatsAppProviderAdapter implements MessagingProvider {
                     return null;
                 })
                 .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
-                .onFailure().invoke(err -> Log.errorf(err, "WhatsApp send failed to=%s", to))
-                .onFailure().recoverWithNull()
                 .replaceWithVoid();
     }
 

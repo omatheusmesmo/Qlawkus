@@ -242,12 +242,12 @@ public class DiscordProviderAdapter implements MessagingProvider {
     private Optional<byte[]> downloadAttachment(Attachment att) {
         try {
             byte[] data = mediaDownloader.download(att.getUrl());
-            Log.infof("Discord: downloaded audio attachment %s (%d bytes, %s)",
-                    att.getFilename(), data.length, att.getContentType().orElse("unknown"));
+            Log.infof("Discord: downloaded audio attachment (%d bytes, %s)",
+                    data.length, att.getContentType().orElse("unknown"));
             return Optional.of(data);
         } catch (Exception e) {
-            Log.errorf("Discord: failed to download attachment %s after retries: %s",
-                    att.getFilename(), e.getMessage());
+            Log.errorf("Discord: failed to download audio attachment after retries exception=%s",
+                    e.getClass().getSimpleName());
             return Optional.empty();
         }
     }
@@ -271,8 +271,7 @@ public class DiscordProviderAdapter implements MessagingProvider {
     @Override
     public Uni<Void> send(String channelId, String text) {
         if (gatewayClient == null) {
-            Log.warnf("Discord: send called but Gateway not connected channel=%s", channelId);
-            return Uni.createFrom().voidItem();
+            return Uni.createFrom().failure(new IllegalStateException("Discord Gateway not connected"));
         }
 
         return Uni.createFrom().completionStage(
@@ -280,8 +279,6 @@ public class DiscordProviderAdapter implements MessagingProvider {
                         .ofType(MessageChannel.class)
                         .flatMap(channel -> channel.createMessage(text))
                         .toFuture())
-                .onFailure().invoke(err -> Log.errorf(err, "Discord: send failed channel=%s", channelId))
-                .onFailure().recoverWithNull()
                 .replaceWithVoid();
     }
 
@@ -324,8 +321,7 @@ public class DiscordProviderAdapter implements MessagingProvider {
     @Override
     public Uni<Void> sendVoice(String channelId, byte[] audio, String filename, String fallbackText) {
         if (gatewayClient == null) {
-            Log.warnf("Discord: sendVoice called but Gateway not connected channel=%s", channelId);
-            return Uni.createFrom().voidItem();
+            return Uni.createFrom().failure(new IllegalStateException("Discord Gateway not connected"));
         }
 
         return Uni.createFrom().completionStage(
@@ -333,10 +329,7 @@ public class DiscordProviderAdapter implements MessagingProvider {
                         .ofType(MessageChannel.class)
                         .flatMap(channel -> channel.createMessage(voiceMessage(audio, filename)))
                         .toFuture())
-                .replaceWithVoid()
-                .onFailure().invoke(err -> Log.errorf(err,
-                        "Discord: sendVoice failed channel=%s, falling back to text", channelId))
-                .onFailure().recoverWithUni(() -> send(channelId, fallbackText));
+                .replaceWithVoid();
     }
 
     /**

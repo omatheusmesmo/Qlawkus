@@ -217,6 +217,18 @@ Job memory-review finished duration=812ms removed=3 threshold=0.92
 
 A job that fails logs one warning with the exception class, not its message.
 
+Each messaging channel adds lines for what it received and what it sent. An accepted message logs once with its kind and a length (characters for text, bytes for voice); a sender outside the allowlist logs one warning with the provider and user id. A reply logs once, after the platform accepted every part, with the number of parts and the send time; a failed delivery logs one warning with the exception class. Voice logs the transcription and the synthesis:
+
+----
+Message accepted provider=telegram chatId=123456 userId=789 kind=text length=42
+Reply delivered provider=telegram chatId=123456 parts=2 kind=text elapsedMs=318
+Reply delivery failed provider=telegram chatId=123456 kind=text sentParts=0 of 1 exception=ClientWebApplicationException elapsedMs=212
+Voice transcribed engine=whisper audioBytes=48213 elapsedMs=1270 outcome=ok
+Speech synthesized provider=openai language=pt chars=180 elapsedMs=940 outcome=ok
+----
+
+The messaging lines carry `channel` (the provider) and `conversation` (the memory id) as MDC fields on that line only, so a reply sent from a worker thread still has them.
+
 The turn and tool lines also carry `channel`, `conversation`, `workload` or `tool` as MDC fields, which the JSON console writes as `mdc.channel`, `mdc.conversation`, `mdc.workload` and `mdc.tool` next to `mdc.traceId`. The fields are set for the duration of the turn or tool call and cleared afterwards, and the same values appear in the message text, so a plain-text search finds them too (`|= "channel=telegram"`, `|= "Tool call searchMemories"`).
 
 What the agent writes at INFO never includes message text, reply text, prompts, extracted facts, skill bodies, tool arguments or tool results. Those go to DEBUG only, so turning on DEBUG for a category is a deliberate act that brings the content back into the log. Structured identifiers (a conversation id, a tool name, a skill name, a count) are INFO; anything the owner or the model wrote is not.

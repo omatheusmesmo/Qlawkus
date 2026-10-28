@@ -86,32 +86,30 @@ public class MessagingOrchestrator {
     AgentConfig agentConfig;
 
     public Uni<Void> process(MessagingMessage message) {
-        Log.infof("MessagingOrchestrator: received provider=%s userId=%s chatId=%s textLen=%d hasAudio=%s",
-                message.providerId(), message.userId(), message.chatId(),
-                message.text() != null ? message.text().length() : 0,
-                message.audio().isPresent());
-
+        String channel = message.providerId();
         if (!authService.isAuthorized(message)) {
-            Log.warnf("MessagingOrchestrator: unauthorized userId=%s provider=%s",
-                    message.userId(), message.providerId());
+            MessagingLog.warn(channel, null, "Message rejected provider=%s userId=%s reason=allowlist",
+                    channel, message.userId());
             return Uni.createFrom().voidItem();
         }
 
+        String conversation = memoryId(message);
+        MessagingLog.info(channel, conversation, "Message accepted provider=%s chatId=%s userId=%s kind=%s length=%d",
+                channel, message.chatId(), message.userId(), kindOf(message), lengthOf(message));
+
         if (ToolProgressSettings.isVerboseCommand(message.text())) {
-            return notificationService.send(message.providerId(), message.chatId(), cycleToolProgress(message));
+            return notificationService.send(channel, message.chatId(), cycleToolProgress(message), conversation);
         }
 
         long startMs = System.currentTimeMillis();
         return Uni.createFrom()
-                .item(() -> resolveText(message))
+                .item(() -> resolveText(message, conversation))
                 .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
-                .invoke(text -> Log.infof("MessagingOrchestrator: invoking agent userId=%s textLen=%d",
-                        message.userId(), text != null ? text.length() : 0))
                 .map(text -> {
-                    setDeliveryContext(memoryId(message), message.providerId(), message.chatId());
-                    return runAgentWithContext(memoryId(message), text, message);
+                    setDeliveryContext(conversation, channel, message.chatId());
+                    return runAgentWithContext(conversation, text, message);
                 })
-                .invoke(result -> Log.infof(
+                .invoke(result -> Log.debugf(
                         "MessagingOrchestrator: agent done userId=%s elapsedMs=%d responseLen=%d voice=%s",
                         message.userId(), System.currentTimeMillis() - startMs,
                         result.text() != null ? result.text().length() : 0, result.voiceRequested()))
@@ -120,30 +118,37 @@ public class MessagingOrchestrator {
                         message.userId(), System.currentTimeMillis() - startMs))
                 .onFailure().recoverWithItem(err -> AgentResult.textOnly(
                         "⚠️ Failed to process your message: " + summarizeError(err)))
-                .flatMap(result -> deliver(message, result))
-                .invoke(() -> Log.infof("MessagingOrchestrator: response delivered userId=%s totalMs=%d",
-                        message.userId(), System.currentTimeMillis() - startMs));
+                .flatMap(result -> deliver(message, result, conversation));
     }
 
-    private Uni<Void> deliver(MessagingMessage message, AgentResult result) {
+    private static String kindOf(MessagingMessage message) {
+        return message.audio().isPresent() ? "voice" : "text";
+    }
+
+    private static long lengthOf(MessagingMessage message) {
+        return message.audio().map(audio -> (long) audio.length)
+                .orElseGet(() -> message.text() != null ? message.text().length() : 0L);
+    }
+
+    private Uni<Void> deliver(MessagingMessage message, AgentResult result, String conversation) {
+        String channel = message.providerId();
         if (result.voiceRequested()) {
             if (!ttsRouter.enabled()) {
-                Log.warnf("MessagingOrchestrator: voice requested but TTS is disabled (qlawkus.messaging.tts.enabled=false), falling back to text for userId=%s", message.userId());
+                MessagingLog.warn(channel, conversation,
+                        "Voice requested but TTS is disabled (qlawkus.messaging.tts.enabled=false), replying with text");
             } else {
                 return Uni.createFrom()
-                    .item(() -> ttsRouter.synthesize(stripForSpeech(result.text()), result.language()))
+                    .item(() -> MessagingLog.within(channel, conversation,
+                            () -> ttsRouter.synthesize(stripForSpeech(result.text()), result.language())))
                     .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
                     .flatMap(audio -> notificationService.sendVoice(
-                        message.providerId(), message.chatId(), audio,
-                        voiceFilename(result.text()), result.text()))
-                    .onFailure().invoke(err -> Log.errorf(err,
-                        "MessagingOrchestrator: voice synthesis/send failed userId=%s, falling back to text",
-                        message.userId()))
+                        channel, message.chatId(), audio,
+                        voiceFilename(result.text()), result.text(), conversation))
                     .onFailure().recoverWithUni(() -> notificationService.send(
-                        message.providerId(), message.chatId(), result.text()));
+                        channel, message.chatId(), result.text(), conversation));
             }
         }
-        return notificationService.send(message.providerId(), message.chatId(), result.text());
+        return notificationService.send(channel, message.chatId(), result.text(), conversation);
     }
 
     private String voiceFilename(String text) {
@@ -220,8 +225,8 @@ public class MessagingOrchestrator {
      */
     public String cycleToolProgress(MessagingMessage message) {
         if (!authService.isAuthorized(message)) {
-            Log.warnf("MessagingOrchestrator: unauthorized tool-progress change userId=%s provider=%s",
-                    message.userId(), message.providerId());
+            MessagingLog.warn(message.providerId(), null, "Command rejected provider=%s userId=%s reason=allowlist",
+                    message.providerId(), message.userId());
             return "Not authorized.";
         }
         ToolProgress mode = toolProgress.cycle(ToolProgressSettings.key(message.providerId(), message.chatId()));
@@ -317,15 +322,30 @@ public class MessagingOrchestrator {
         }
     }
 
-    private String resolveText(MessagingMessage message) {
-        return message.audio().map(audio -> {
-            try {
-                return transcriptionService.transcribe(audio);
-            } catch (Exception e) {
-                Log.warnf(e, "MessagingOrchestrator: transcription failed for userId=%s, using text fallback",
-                        message.userId());
-                return message.text();
-            }
-        }).orElse(message.text());
+    private String resolveText(MessagingMessage message, String conversation) {
+        return message.audio().map(audio -> transcribe(message, conversation, audio))
+                .orElse(message.text());
+    }
+
+    private String transcribe(MessagingMessage message, String conversation, byte[] audio) {
+        String channel = message.providerId();
+        long startNanos = System.nanoTime();
+        String engine = transcriptionService.engine();
+        try {
+            String transcript = transcriptionService.transcribe(audio);
+            MessagingLog.info(channel, conversation,
+                    "Voice transcribed engine=%s audioBytes=%d elapsedMs=%d outcome=ok",
+                    engine, audio.length, elapsedMs(startNanos));
+            return transcript;
+        } catch (Exception e) {
+            MessagingLog.warn(channel, conversation,
+                    "Voice transcription failed engine=%s audioBytes=%d elapsedMs=%d outcome=error exception=%s, using text fallback",
+                    engine, audio.length, elapsedMs(startNanos), MessagingLog.exceptionName(e));
+            return message.text();
+        }
+    }
+
+    private static long elapsedMs(long startNanos) {
+        return Duration.ofNanos(System.nanoTime() - startNanos).toMillis();
     }
 }

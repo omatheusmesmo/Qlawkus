@@ -95,8 +95,7 @@ public class TelegramProviderAdapter implements MessagingProvider {
     public Uni<Void> send(String chatId, String text) {
         Optional<String> token = botToken();
         if (token.isEmpty()) {
-            Log.warnf("Telegram: bot-token not configured, dropping message to chatId=%s", chatId);
-            return Uni.createFrom().voidItem();
+            return Uni.createFrom().failure(new IllegalStateException("Telegram bot-token not configured"));
         }
         return Uni.createFrom()
                 .item(() -> {
@@ -106,8 +105,6 @@ public class TelegramProviderAdapter implements MessagingProvider {
                     return null;
                 })
                 .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
-                .onFailure().invoke(err -> Log.errorf(err, "Telegram send failed chatId=%s", chatId))
-                .onFailure().recoverWithNull()
                 .replaceWithVoid();
     }
 
@@ -122,9 +119,6 @@ public class TelegramProviderAdapter implements MessagingProvider {
                     return (Void) null;
                 })
                 .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
-                .onFailure().invoke(err -> Log.errorf(err,
-                        "Telegram: sendVoice failed chatId=%s, falling back to text", chatId))
-                .onFailure().recoverWithUni(() -> send(chatId, fallbackText))
                 .replaceWithVoid();
     }
 
@@ -231,7 +225,7 @@ public class TelegramProviderAdapter implements MessagingProvider {
             String url = config.apiBaseUrl() + "/file/bot" + token.get() + "/" + file.result().filePath();
             return Optional.of(mediaDownloader.download(url));
         } catch (Exception e) {
-            Log.errorf("Telegram: failed to fetch voice note: %s", e.getMessage());
+            Log.errorf("Telegram: failed to fetch voice note exception=%s", e.getClass().getSimpleName());
             return Optional.empty();
         }
     }
