@@ -4,13 +4,17 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.omatheusmesmo.qlawkus.cognition.ChatCompletedEvent;
+import dev.omatheusmesmo.qlawkus.cognition.gate.TurnGate;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import dev.omatheusmesmo.qlawkus.tools.brag.AchievementProcessor;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragEntry;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
@@ -23,7 +27,11 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -35,6 +43,35 @@ class AchievementProcessorTest {
 
     @Inject
     AchievementProcessor processor;
+
+    @InjectMock
+    TurnGate turnGate;
+
+    @Inject
+    Event<ChatCompletedEvent> chatCompleted;
+
+    @Test
+    void onChatCompleted_gateSaysNo_modelIsNeverCalled() throws Exception {
+        fireChatCompleted(new UserMessage("I fixed the NPE in auth"), AiMessage.from("Applied."));
+
+        verify(turnGate).worthIt(argThat(q -> "achievement".equals(q.id())), anyList());
+        verify(chatModel, never()).chat(anyString());
+    }
+
+    @Test
+    void onChatCompleted_gateSaysYes_detectionRunsAsBefore() throws Exception {
+        when(turnGate.worthIt(argThat(q -> "achievement".equals(q.id())), anyList())).thenReturn(true);
+        when(chatModel.chat(anyString())).thenReturn("");
+
+        fireChatCompleted(new UserMessage("I fixed the NPE in auth"), AiMessage.from("Applied."));
+
+        verify(chatModel).chat(anyString());
+    }
+
+    private void fireChatCompleted(ChatMessage... messages) throws Exception {
+        chatCompleted.fireAsync(new ChatCompletedEvent(List.of(messages)))
+                .toCompletableFuture().get(10, TimeUnit.SECONDS);
+    }
 
     @AfterEach
     @Transactional

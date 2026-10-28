@@ -264,6 +264,10 @@ The meters above arrive from upstream. These are the ones Qlawkus emits itself, 
 |How often the primary provider was abandoned, and the breaker state right now. The `tier` label says which tier was switched to: `secondary` (the same-provider model) or `fallback` (Ollama). The gauge reports `0` closed, `1` half-open, `2` open, and is published from startup so a healthy agent still has a series.
 |`surface`, `tier` (fallback counter only)
 
+|`qlawkus.turn.gate`
+|How often the turn gate lets a post-turn generation run (`pass`) or skips it (`skip`), and how often the gate threw and the generation ran anyway (`error`). Read `skip` against the model calls it saved; a rising `error` means the gate itself is failing open.
+|`question`, `outcome`
+
 |`qlawkus.tool.invocations` +
 `qlawkus.tool.duration`
 |Which tool is failing, rather than that some tool is. Covers the tool extensions; the built-in memory and skill tools are registered directly on the AI service and are not counted here.

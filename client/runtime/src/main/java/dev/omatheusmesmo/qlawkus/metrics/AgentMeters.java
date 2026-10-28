@@ -70,11 +70,23 @@ public class AgentMeters {
     public static final String STORE_OPERATIONS = "qlawkus.store.operations";
     public static final String STORE_DURATION = "qlawkus.store.duration";
 
+    public static final String TURN_GATE = "qlawkus.turn.gate";
+
+    /** The {@code outcome} tag of {@link #TURN_GATE} when the gate lets the generation run. */
+    public static final String GATE_PASS = "pass";
+
+    /** The {@code outcome} tag of {@link #TURN_GATE} when the gate skips the generation. */
+    public static final String GATE_SKIP = "skip";
+
+    /** The {@code outcome} tag of {@link #TURN_GATE} when the gate threw and the turn ran anyway. */
+    public static final String GATE_ERROR = "error";
+
     public static final String REDEPLOY_RUNS = "qlawkus.redeploy.runs";
     public static final String REDEPLOY_PHASE_DURATION = "qlawkus.redeploy.phase.duration";
     public static final String REDEPLOY_LAST_SUCCESS_AGE = "qlawkus.redeploy.last.success.age";
 
     private static final String TAG_OUTCOME = "outcome";
+    private static final String TAG_QUESTION = "question";
     private static final String TAG_JOB = "job";
     private static final String TAG_SURFACE = "surface";
     private static final String TAG_TIER = "tier";
@@ -259,6 +271,16 @@ public class AgentMeters {
         if (registry != null) {
             registry.gauge(MODEL_CIRCUIT_STATE, Tags.of(TAG_SURFACE, surface, TAG_WORKLOAD, workload),
                     source, state);
+        }
+    }
+
+    /**
+     * Counts one decision of the turn gate, per question. Without it an operator cannot tell a gate
+     * that is saving the generations it was built for from one that is quietly failing open.
+     */
+    public void turnGate(String question, String outcome) {
+        if (registry != null) {
+            registry.counter(TURN_GATE, Tags.of(TAG_QUESTION, question, TAG_OUTCOME, outcome)).increment();
         }
     }
 

@@ -90,6 +90,23 @@ class AgentMetersTest {
     }
 
     /**
+     * The gate counter is what tells an operator how often a post-turn generation is being skipped,
+     * so each outcome must land under its own question tag.
+     */
+    @Test
+    void aTurnGateOutcomeIsCountedPerQuestion() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        AgentMeters meters = new AgentMeters(registry);
+
+        meters.turnGate("durable-fact", AgentMeters.GATE_SKIP);
+
+        assertEquals(1.0, registry.get(AgentMeters.TURN_GATE)
+                .tag("question", "durable-fact").tag(OUTCOME, "skip").counter().count());
+        assertNull(registry.find(AgentMeters.TURN_GATE).tag("question", "reusable-procedure").counter(),
+                "a question that was never gated must not appear");
+    }
+
+    /**
      * Without the observability extension there is no registry, and every meter call must be inert
      * rather than a boot failure. The stores construct meters this way outside CDI.
      */
