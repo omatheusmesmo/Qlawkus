@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.messaging;
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.AgentRunner;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
+import dev.omatheusmesmo.qlawkus.agent.ConversationId;
 import dev.omatheusmesmo.qlawkus.agent.ToolProgress;
 import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
@@ -77,7 +78,7 @@ class MessagingOrchestratorTest {
         when(agentRunnerInstance.isUnsatisfied()).thenReturn(true);
         orchestrator.agentRunnerInstance = agentRunnerInstance;
 
-        when(notificationService.send(any(), any(), any())).thenReturn(Uni.createFrom().voidItem());
+        when(notificationService.send(any(), any(), any(), any())).thenReturn(Uni.createFrom().voidItem());
         when(voicePreference.isRequested()).thenReturn(false);
         when(conversationControl.isClearRequested()).thenReturn(false);
     }
@@ -91,7 +92,7 @@ class MessagingOrchestratorTest {
         orchestrator.process(msg).await().indefinitely();
 
         verify(agentService).chatSync(any(), eq("hello"));
-        verify(notificationService).send("telegram", "chat-1", "Hi there!");
+        verify(notificationService).send("telegram", "chat-1", "Hi there!", ConversationId.SHARED);
     }
 
     @Test
@@ -102,7 +103,7 @@ class MessagingOrchestratorTest {
         orchestrator.process(msg).await().indefinitely();
 
         verify(agentService, never()).chatSync(any(), any());
-        verify(notificationService, never()).send(any(), any(), any());
+        verify(notificationService, never()).send(any(), any(), any(), any());
     }
 
     @Test
@@ -113,7 +114,7 @@ class MessagingOrchestratorTest {
         MessagingMessage msg = MessagingMessage.text("telegram", "chat-1", "user-1", "hello");
         assertDoesNotThrow(() -> orchestrator.process(msg).await().indefinitely());
 
-        verify(notificationService).send(eq("telegram"), eq("chat-1"), contains("Failed"));
+        verify(notificationService).send(eq("telegram"), eq("chat-1"), contains("Failed"), any());
     }
 
     @Test

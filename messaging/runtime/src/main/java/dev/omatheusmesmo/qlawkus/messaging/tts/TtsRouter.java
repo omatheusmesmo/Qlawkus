@@ -1,10 +1,12 @@
 package dev.omatheusmesmo.qlawkus.messaging.tts;
 
+import dev.omatheusmesmo.qlawkus.messaging.MessagingLog;
 import io.quarkus.arc.All;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -29,20 +31,52 @@ public class TtsRouter {
      */
     public byte[] synthesize(String text, String language) {
         TtsConfig.TtsProvider provider = resolveProvider(language);
+        long startNanos = System.nanoTime();
         try {
-            return clientFor(provider.kind()).synthesize(provider, text);
+            byte[] audio = clientFor(provider.kind()).synthesize(provider, text);
+            logSynthesized(provider.kind(), language, text, startNanos);
+            return audio;
         } catch (RuntimeException primaryFailure) {
             TtsConfig.TtsProvider fallback = provider.fallback()
                     .filter(key -> !key.isBlank())
                     .map(key -> config.providers().get(key))
                     .orElse(null);
             if (fallback == null) {
+                logFailed(provider.kind(), language, text, startNanos, primaryFailure);
                 throw primaryFailure;
             }
             Log.warnf("TTS provider for language='%s' failed (%s); using fallback '%s'",
-                    language, primaryFailure.getMessage(), provider.fallback().orElse(""));
-            return clientFor(fallback.kind()).synthesize(fallback, text);
+                    language, MessagingLog.exceptionName(primaryFailure), provider.fallback().orElse(""));
+            return synthesizeWithFallback(fallback, language, text);
         }
+    }
+
+    private byte[] synthesizeWithFallback(TtsConfig.TtsProvider fallback, String language, String text) {
+        long startNanos = System.nanoTime();
+        try {
+            byte[] audio = clientFor(fallback.kind()).synthesize(fallback, text);
+            logSynthesized(fallback.kind(), language, text, startNanos);
+            return audio;
+        } catch (RuntimeException fallbackFailure) {
+            logFailed(fallback.kind(), language, text, startNanos, fallbackFailure);
+            throw fallbackFailure;
+        }
+    }
+
+    private static void logSynthesized(String provider, String language, String text, long startNanos) {
+        MessagingLog.info(null, null, "Speech synthesized provider=%s language=%s chars=%d elapsedMs=%d outcome=ok",
+                provider, language, text.length(), elapsedMs(startNanos));
+    }
+
+    private static void logFailed(String provider, String language, String text, long startNanos,
+                                  RuntimeException failure) {
+        MessagingLog.warn(null, null,
+                "Speech synthesis failed provider=%s language=%s chars=%d elapsedMs=%d outcome=error exception=%s",
+                provider, language, text.length(), elapsedMs(startNanos), MessagingLog.exceptionName(failure));
+    }
+
+    private static long elapsedMs(long startNanos) {
+        return Duration.ofNanos(System.nanoTime() - startNanos).toMillis();
     }
 
     private TtsClient clientFor(String kind) {

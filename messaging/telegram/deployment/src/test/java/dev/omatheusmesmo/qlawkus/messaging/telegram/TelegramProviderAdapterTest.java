@@ -116,10 +116,10 @@ class TelegramProviderAdapterTest {
     }
 
     @Test
-    void send_botClientThrows_completesWithoutPropagating() {
+    void send_botClientThrows_propagatesToTheCaller() {
         doThrow(new RuntimeException("network error")).when(botClient).sendMessage(any(), any());
 
-        assertDoesNotThrow(() -> adapter.send("chat-1", "hello").await().indefinitely());
+        assertThrows(RuntimeException.class, () -> adapter.send("chat-1", "hello").await().indefinitely());
     }
 
     @Test

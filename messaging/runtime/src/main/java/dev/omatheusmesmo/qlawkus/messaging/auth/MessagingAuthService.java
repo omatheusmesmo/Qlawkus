@@ -1,7 +1,6 @@
 package dev.omatheusmesmo.qlawkus.messaging.auth;
 
 import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
-import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -20,10 +19,6 @@ public class MessagingAuthService {
         if (allowed == null || allowed.isEmpty() || allowed.contains(WILDCARD)) {
             return true;
         }
-        boolean authorized = allowed.contains(message.userId());
-        if (!authorized) {
-            Log.warnf("MessagingAuth: unauthorized user=%s provider=%s", message.userId(), message.providerId());
-        }
-        return authorized;
+        return allowed.contains(message.userId());
     }
 }

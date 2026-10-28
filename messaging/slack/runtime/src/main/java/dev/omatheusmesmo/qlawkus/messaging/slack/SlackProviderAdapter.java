@@ -5,7 +5,6 @@ import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingProvider;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingResponse;
-import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -53,8 +52,6 @@ public class SlackProviderAdapter implements MessagingProvider {
                     return null;
                 })
                 .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
-                .onFailure().invoke(err -> Log.errorf(err, "Slack send failed channel=%s", channel))
-                .onFailure().recoverWithNull()
                 .replaceWithVoid();
     }
 

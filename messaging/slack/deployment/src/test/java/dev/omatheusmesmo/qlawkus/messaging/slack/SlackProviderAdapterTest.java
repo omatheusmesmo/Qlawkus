@@ -77,9 +77,9 @@ class SlackProviderAdapterTest {
     }
 
     @Test
-    void send_apiThrows_completesWithoutPropagating() {
+    void send_apiThrows_propagatesToTheCaller() {
         doThrow(new RuntimeException("slack error")).when(apiClient).postMessage(any(), any());
 
-        assertDoesNotThrow(() -> adapter.send("C98765", "hi").await().indefinitely());
+        assertThrows(RuntimeException.class, () -> adapter.send("C98765", "hi").await().indefinitely());
     }
 }
