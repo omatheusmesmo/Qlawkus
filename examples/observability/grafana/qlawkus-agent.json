@@ -1130,6 +1130,61 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "type": "row",
+      "title": "Turn gate",
+      "id": 30,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 88
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Post-turn generations gated",
+      "description": "Decisions of the turn gate that decides whether a finished turn is mined by the post-turn extractors (facts, procedures, achievements), per question. skip is a model call saved; error means the gate threw and the generation ran anyway (fail-open).",
+      "id": 31,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 89
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (question, outcome) (rate(qlawkus_turn_gate_total[$__rate_interval]))",
+          "legendFormat": "{{question}} {{outcome}}",
+          "refId": "A"
+        }
+      ]
     }
   ]
 }

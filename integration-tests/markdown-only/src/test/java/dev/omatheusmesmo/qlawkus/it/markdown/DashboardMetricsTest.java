@@ -118,6 +118,7 @@ class DashboardMetricsTest {
         meters.fallback(AgentMeters.SURFACE_CHAT, AgentMeters.TIER_SECONDARY);
         meters.fallback(AgentMeters.SURFACE_CHAT, AgentMeters.TIER_FALLBACK);
         meters.tool("dashboard-probe", took, true);
+        meters.turnGate("dashboard-probe", AgentMeters.GATE_PASS);
         meters.store("FactStore", "markdown", "store", took, true);
 
         String scrape = given().when().get("/q/metrics").then().statusCode(200).extract().asString();

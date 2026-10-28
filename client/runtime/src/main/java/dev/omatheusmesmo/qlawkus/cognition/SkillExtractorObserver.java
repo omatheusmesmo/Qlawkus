@@ -3,6 +3,8 @@ package dev.omatheusmesmo.qlawkus.cognition;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
+import dev.omatheusmesmo.qlawkus.cognition.gate.TurnGates;
+import dev.omatheusmesmo.qlawkus.cognition.gate.TurnQuestion;
 import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
@@ -21,6 +23,9 @@ import java.util.Optional;
 @ApplicationScoped
 public class SkillExtractorObserver {
 
+  static final TurnQuestion QUESTION = new TurnQuestion("reusable-procedure",
+      "Does this exchange show a multi-step procedure the user is likely to want to repeat?");
+
   @Inject
   ChatModel chatModel;
 
@@ -30,11 +35,17 @@ public class SkillExtractorObserver {
   @Inject
   SkillsConfig config;
 
+  @Inject
+  TurnGates turnGates;
+
   void onChatCompleted(@ObservesAsync ChatCompletedEvent event) {
     if (!config.extractor().enabled()) {
       return;
     }
     if (event.messages().isEmpty()) {
+      return;
+    }
+    if (!turnGates.worthIt(QUESTION, event.messages())) {
       return;
     }
     extractAndStore(event.messages());

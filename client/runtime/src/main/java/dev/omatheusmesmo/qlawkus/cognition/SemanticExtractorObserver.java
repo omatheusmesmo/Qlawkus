@@ -3,6 +3,8 @@ package dev.omatheusmesmo.qlawkus.cognition;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
+import dev.omatheusmesmo.qlawkus.cognition.gate.TurnGates;
+import dev.omatheusmesmo.qlawkus.cognition.gate.TurnQuestion;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
@@ -15,6 +17,9 @@ import java.util.Map;
 @ApplicationScoped
 public class SemanticExtractorObserver {
 
+  static final TurnQuestion QUESTION = new TurnQuestion("durable-fact",
+      "Does this exchange state a durable fact about the user, such as a preference, a person, a plan or a date, that is worth remembering?");
+
   @Inject
   ChatModel chatModel;
 
@@ -24,9 +29,13 @@ public class SemanticExtractorObserver {
   @Inject
   AgentConfig agentConfig;
 
+  @Inject
+  TurnGates turnGates;
+
   void onChatCompleted(@ObservesAsync ChatCompletedEvent event) {
     if (!agentConfig.semanticExtractor().enabled()) return;
     if (event.messages().isEmpty()) return;
+    if (!turnGates.worthIt(QUESTION, event.messages())) return;
 
     extractAndStore(event.messages());
   }

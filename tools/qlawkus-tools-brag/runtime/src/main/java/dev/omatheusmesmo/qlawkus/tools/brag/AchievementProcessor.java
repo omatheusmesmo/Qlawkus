@@ -3,6 +3,8 @@ package dev.omatheusmesmo.qlawkus.tools.brag;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.cognition.ChatCompletedEvent;
+import dev.omatheusmesmo.qlawkus.cognition.gate.TurnGates;
+import dev.omatheusmesmo.qlawkus.cognition.gate.TurnQuestion;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -15,15 +17,22 @@ import java.time.ZoneOffset;
 @ApplicationScoped
 public class AchievementProcessor {
 
+    static final TurnQuestion QUESTION = new TurnQuestion("achievement",
+            "Is the user telling about a piece of work they completed, such as a release, a fix, a feature or a migration?");
+
     @Inject
     ChatModel chatModel;
 
     @Inject
     BragConfig config;
 
+    @Inject
+    TurnGates turnGates;
+
     void onChatCompleted(@ObservesAsync ChatCompletedEvent event) {
         if (!config.enabled() || !config.impactTranslationEnabled()) return;
         if (event.messages().isEmpty()) return;
+        if (!turnGates.worthIt(QUESTION, event.messages())) return;
 
         extractAndStore(event.messages());
     }

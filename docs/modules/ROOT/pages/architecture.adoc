@@ -134,6 +134,7 @@ All five are registered with an explicit `@Scheduled(identity = ...)`, which is 
 === Operational notes
 
 * Passive fact extraction (`semantic-extractor`) runs on every channel (REST, Discord, Telegram). It observes `ChatCompletedEvent`, which is fired channel-agnostically by `ChatCompletionEmitter`. Gate it with `qlawkus.agent.semantic-extractor.enabled` (default `true`).
+* Before each post-turn generation (facts, reusable skills, achievements), a turn gate decides whether the turn is worth it. The default gate says yes to every turn, so nothing changes until a distribution supplies its own. The gate runs on the batch workload and fails open: if it throws, the generation runs as it would have without a gate. Its decisions are counted by `qlawkus.turn.gate`.
 * The shared conversation (`AGENT_SHARED_CONTEXT=true`) means the owner is continuous across Discord, Telegram, and REST.
 * To inspect or reset memory, use `GET` / `DELETE /api/admin/memory` (see xref:config-reference.adoc[Configuration]).
 
