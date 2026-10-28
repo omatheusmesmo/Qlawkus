@@ -32,19 +32,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The NVIDIA kind's three tiers, driven through the real {@link FallbackChatModel} and
  * {@link FallbackStreamingChatModel} against one WireMock. The OpenAI-compatible completions endpoint
- * serves GLM (the primary) and Nemotron Ultra (the secondary on the same endpoint), told apart by the
+ * serves Nemotron Ultra (the primary) and Nemotron Lightning (the secondary on the same endpoint), told apart by the
  * {@code model} member of the request body; the Ollama fallback speaks its native {@code /api/chat} on
  * the same server. What is proven is the wire request each tier receives, not a double.
  */
 @QuarkusTest
-@TestProfile(GlmWithUltraFallbackTest.NvidiaOverWireMock.class)
+@TestProfile(UltraWithLightningFallbackTest.NvidiaOverWireMock.class)
 @ConnectWireMock
-class GlmWithUltraFallbackTest {
+class UltraWithLightningFallbackTest {
 
     private static final String COMPLETIONS = "/v1/chat/completions";
     private static final String OLLAMA_CHAT = "/api/chat";
-    private static final String GLM = "z-ai/glm-5.3";
     private static final String ULTRA = "nvidia/nemotron-3-ultra-550b-a55b";
+    private static final String LIGHTNING = "nvidia/nemotron-3.5-lightning-30b-a3b";
     private static final String OLLAMA = "qwen3.5:4b";
 
     public static class NvidiaOverWireMock implements QuarkusTestProfile {
@@ -83,8 +83,8 @@ class GlmWithUltraFallbackTest {
 
     @Test
     void aTransientPrimaryFailureAnswersFromTheSecondaryAndKeepsTheToolsOnTheWire() {
-        stubModelDown(GLM);
-        stubCompletionJson(ULTRA, "from-ultra");
+        stubModelDown(ULTRA);
+        stubCompletionJson(LIGHTNING, "from-lightning");
 
         ChatRequest request = ChatRequest.builder()
                 .messages(UserMessage.from("hi"))
@@ -93,29 +93,29 @@ class GlmWithUltraFallbackTest {
 
         ChatResponse first = chatModel.chat(request);
 
-        assertEquals("from-ultra", first.aiMessage().text());
+        assertEquals("from-lightning", first.aiMessage().text());
         wiremock.verifyThat(WireMock.postRequestedFor(WireMock.urlEqualTo(COMPLETIONS))
-                .withRequestBody(WireMock.matchingJsonPath("$.model", WireMock.equalTo(GLM))));
+                .withRequestBody(WireMock.matchingJsonPath("$.model", WireMock.equalTo(ULTRA))));
         wiremock.verifyThat(1, WireMock.postRequestedFor(WireMock.urlEqualTo(COMPLETIONS))
-                .withRequestBody(WireMock.matchingJsonPath("$.model", WireMock.equalTo(ULTRA)))
+                .withRequestBody(WireMock.matchingJsonPath("$.model", WireMock.equalTo(LIGHTNING)))
                 .withRequestBody(WireMock.matchingJsonPath("$.tools[0].function.name", WireMock.equalTo("lookup"))));
         wiremock.verifyThat(0, WireMock.postRequestedFor(WireMock.urlEqualTo(OLLAMA_CHAT)));
         assertEquals(CircuitBreakerState.OPEN,
                 CircuitBreakerMaintenance.get().currentState(ModelFallbackConfig.CIRCUIT_BREAKER_CHAT));
 
-        int primaryHits = hits(GLM);
+        int primaryHits = hits(ULTRA);
         assertTrue(primaryHits >= 3, "the primary is retried before it is abandoned");
 
         ChatResponse second = chatModel.chat(request);
 
-        assertEquals("from-ultra", second.aiMessage().text());
-        assertEquals(primaryHits, hits(GLM), "an open breaker goes straight to the secondary");
+        assertEquals("from-lightning", second.aiMessage().text());
+        assertEquals(primaryHits, hits(ULTRA), "an open breaker goes straight to the secondary");
     }
 
     @Test
     void aTransientPrimaryFailureStreamsTheReplyFromTheSecondary() throws Exception {
-        stubModelDown(GLM);
-        stubStreamSse(ULTRA, "from-ultra-stream");
+        stubModelDown(ULTRA);
+        stubStreamSse(LIGHTNING, "from-lightning-stream");
 
         List<String> partials = new ArrayList<>();
         CompletableFuture<ChatResponse> done = new CompletableFuture<>();
@@ -123,18 +123,18 @@ class GlmWithUltraFallbackTest {
 
         ChatResponse response = done.get(30, TimeUnit.SECONDS);
 
-        assertEquals("from-ultra-stream", response.aiMessage().text());
-        assertEquals(List.of("from-ultra-stream"), partials);
-        assertTrue(hits(GLM) >= 3, "GLM is tried and retried before the reply moves to Ultra");
+        assertEquals("from-lightning-stream", response.aiMessage().text());
+        assertEquals(List.of("from-lightning-stream"), partials);
+        assertTrue(hits(ULTRA) >= 3, "Ultra is tried and retried before the reply moves to Lightning");
         wiremock.verifyThat(1, WireMock.postRequestedFor(WireMock.urlEqualTo(COMPLETIONS))
-                .withRequestBody(WireMock.matchingJsonPath("$.model", WireMock.equalTo(ULTRA)))
+                .withRequestBody(WireMock.matchingJsonPath("$.model", WireMock.equalTo(LIGHTNING)))
                 .withRequestBody(WireMock.matchingJsonPath("$.stream", WireMock.equalTo("true"))));
     }
 
     @Test
     void whenThePrimaryAndTheSecondaryAreDownTheReplyComesFromOllama() {
-        stubModelDown(GLM);
         stubModelDown(ULTRA);
+        stubModelDown(LIGHTNING);
         stubOllamaJson("from-ollama");
 
         ChatResponse response = chatModel.chat(ChatRequest.builder()
@@ -150,8 +150,8 @@ class GlmWithUltraFallbackTest {
 
     @Test
     void whenThePrimaryAndTheSecondaryAreDownTheStreamComesFromOllama() throws Exception {
-        stubModelDown(GLM);
         stubModelDown(ULTRA);
+        stubModelDown(LIGHTNING);
         stubOllamaStream("from-ollama-stream");
 
         List<String> partials = new ArrayList<>();
@@ -172,8 +172,8 @@ class GlmWithUltraFallbackTest {
      */
     @Test
     void aSecondaryThatAnswersPermanentlyStillFallsThroughToOllama() {
-        stubModelDown(GLM);
-        stubModelStatus(ULTRA, 404, "{\"error\":\"model not found\"}");
+        stubModelDown(ULTRA);
+        stubModelStatus(LIGHTNING, 404, "{\"error\":\"model not found\"}");
         stubOllamaJson("from-ollama");
 
         ChatResponse response = chatModel.chat(ChatRequest.builder()
@@ -182,13 +182,13 @@ class GlmWithUltraFallbackTest {
 
         assertEquals("from-ollama", response.aiMessage().text());
         wiremock.verifyThat(1, WireMock.postRequestedFor(WireMock.urlEqualTo(COMPLETIONS))
-                .withRequestBody(WireMock.matchingJsonPath("$.model", WireMock.equalTo(ULTRA))));
+                .withRequestBody(WireMock.matchingJsonPath("$.model", WireMock.equalTo(LIGHTNING))));
     }
 
     @Test
     void aSecondaryThatAnswersPermanentlyStillStreamsFromOllama() throws Exception {
-        stubModelDown(GLM);
-        stubModelStatus(ULTRA, 401, "{\"error\":\"unauthorized\"}");
+        stubModelDown(ULTRA);
+        stubModelStatus(LIGHTNING, 401, "{\"error\":\"unauthorized\"}");
         stubOllamaStream("from-ollama-stream");
 
         List<String> partials = new ArrayList<>();

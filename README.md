@@ -81,7 +81,7 @@ The code-review tools need `git` and `gh`, which the base image leaves out. `QLA
 | Profile | LLM | Database | When |
 |:--------|:----|:---------|:-----|
 | **dev** | Ollama (Dev Services) | PostgreSQL (Dev Services) | `quarkus dev` |
-| **prod** | NVIDIA NIM (GLM-5.3 primary, Nemotron Ultra secondary) + Ollama (last resort) | External PostgreSQL | Docker / VM deployment |
+| **prod** | NVIDIA NIM (Nemotron Ultra primary, Nemotron Lightning secondary) + Ollama (last resort) | External PostgreSQL | Docker / VM deployment |
 
 A build without the `cognition-pgvector` capability is **database-free**: memory, skills, and episodic journals fall back to plain markdown files under `~/.qlawkus/`. `app/` ships with `cognition-pgvector` composed in; see [Composable Platform](#composable-platform) to build a markdown-only distribution instead.
 
@@ -108,8 +108,8 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 |:---------|:--------|:--------|
 | `LLM_KIND` | `openai` (app default); the Compose files ship `nvidia` | Provider profile (`openai`, `nvidia`, `deepseek`, `mistral`, `groq`, `xai`, `openrouter`) — sets base URL + default chat/embedding models |
 | `LLM_API_KEY` | — | API key for the chosen provider. Required for prod. NVIDIA keys: [build.nvidia.com](https://build.nvidia.com/) |
-| `LLM_CHAT_MODEL` | provider default | Override the primary chat model (NVIDIA default `z-ai/glm-5.3`) |
-| `LLM_SECONDARY_CHAT_MODEL` | provider default | Override the secondary chat model (NVIDIA default `nvidia/nemotron-3-ultra-550b-a55b`, on the primary endpoint and key). Setting it enables the secondary tier for any kind |
+| `LLM_CHAT_MODEL` | provider default | Override the primary chat model (NVIDIA default `nvidia/nemotron-3-ultra-550b-a55b`) |
+| `LLM_SECONDARY_CHAT_MODEL` | provider default | Override the secondary chat model (NVIDIA default `nvidia/nemotron-3.5-lightning-30b-a3b`, on the primary endpoint and key). Setting it enables the secondary tier for any kind |
 | `LLM_SECONDARY_BASE_URL` / `LLM_SECONDARY_API_KEY` | primary endpoint / primary key | Point the secondary at another endpoint or key |
 | `LLM_EMBEDDING_MODEL` | provider default | Override the embedding model (NVIDIA default `nvidia/nemotron-3-embed-1b`, 2048 dimensions) |
 | `LLM_TIMEOUT` | `180s` | Primary model request timeout |
@@ -128,8 +128,8 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 
 The production setup uses three chat tiers, tried in order when the one before fails:
 
-1. **Primary**: `z-ai/glm-5.3` on NVIDIA NIM.
-2. **Secondary**: `nvidia/nemotron-3-ultra-550b-a55b` on the same NIM endpoint and key. It has its own circuit breaker, so an outage that opens the primary's breaker sends calls straight to the next tier once the secondary's breaker opens too.
+1. **Primary**: `nvidia/nemotron-3-ultra-550b-a55b` on NVIDIA NIM.
+2. **Secondary**: `nvidia/nemotron-3.5-lightning-30b-a3b` on the same NIM endpoint and key. It has its own circuit breaker, so an outage that opens the primary's breaker sends calls straight to the next tier once the secondary's breaker opens too.
 3. **Fallback**: a local Ollama sidecar. It stays last on purpose: a same-provider model does not survive a provider outage, a revoked key or a NIM-wide incident, so the local model is the only tier that does.
 
 Kinds without a same-provider model skip tier 2, so their chain is primary then Ollama. The local Compose stack runs with no external key this way.
