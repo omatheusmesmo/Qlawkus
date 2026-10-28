@@ -7,7 +7,7 @@
   <parent>
     <groupId>dev.omatheusmesmo</groupId>
     <artifactId>qlawkus-integration-tests</artifactId>
-    <version>0.9.5</version>
+    <version>0.9.6-SNAPSHOT</version>
   </parent>
 
   <artifactId>qlawkus-integration-tests-live-provider</artifactId>
