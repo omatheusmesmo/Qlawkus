@@ -5,6 +5,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @ApplicationScoped
 public class MessagingAuthService {
@@ -15,10 +17,19 @@ public class MessagingAuthService {
     public static final String WILDCARD = "*";
 
     public boolean isAuthorized(MessagingMessage message) {
-        List<String> allowed = config.allowedUsers().get(message.providerId());
-        if (allowed == null || allowed.isEmpty() || allowed.contains(WILDCARD)) {
+        List<String> allowed = listedIds(config.allowedUsers(), message.providerId());
+        if (allowed.contains(WILDCARD)) {
             return true;
         }
-        return allowed.contains(message.userId());
+        return message.userId() != null && allowed.contains(message.userId());
+    }
+
+    static List<String> listedIds(Map<String, Optional<List<String>>> allowedUsers, String providerId) {
+        if (allowedUsers == null) {
+            return List.of();
+        }
+        return allowedUsers.getOrDefault(providerId, Optional.empty()).orElse(List.of()).stream()
+                .filter(id -> id != null && !id.isBlank())
+                .toList();
     }
 }
