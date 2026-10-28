@@ -67,15 +67,17 @@ the reverse. Set both to `false` to leave only slash commands. They are separate
 quiet in a shared server is a common ask, while the owner's DM is the private line to the agent - one
 should not silence the other.
 
-Optional auth (restrict who may talk to the bot):
+Auth (who may talk to the bot). The allowlist denies by default: until you list at least one user ID, the bot rejects every message and logs a warning at startup naming the channel.
 
 [source,bash]
 ----
-export QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_DISCORD=*
-# or comma-separated user IDs: 12345,67890
+export QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_DISCORD=123456789
+# or comma-separated user IDs: 123456789,987654321
 ----
 
-`*` (or leaving the list unset) allows everyone; a comma-separated list restricts to those user IDs.
+To find your ID, enable Developer Mode in Discord (User Settings, Advanced), then right-click your name and choose Copy User ID.
+
+`*` lets anyone who can reach the bot talk to the agent. Use it only for a throwaway bot. An unset or empty list rejects everyone.
 
 === 4. Slash Commands
 
@@ -108,8 +110,8 @@ Polling (default):
 ----
 export QLAWKUS_MESSAGING_TELEGRAM_BOT_TOKEN=your-bot-token
 export QLAWKUS_MESSAGING_TELEGRAM_MODE=polling
-export QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_TELEGRAM=*
-# or comma-separated user IDs: 12345,67890
+export QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_TELEGRAM=123456789
+# or comma-separated user IDs: 123456789,987654321
 ----
 
 Webhook:
@@ -119,8 +121,15 @@ Webhook:
 export QLAWKUS_MESSAGING_TELEGRAM_BOT_TOKEN=your-bot-token
 export QLAWKUS_MESSAGING_TELEGRAM_MODE=webhook
 export QLAWKUS_MESSAGING_TELEGRAM_WEBHOOK_URL=https://yourdomain.com/api/webhook/telegram
-export QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_TELEGRAM=*
+export QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_TELEGRAM=123456789
 ----
+
+The allowlist denies by default, as on Discord: an unset or empty list rejects everyone, and `*` allows
+anyone (use it only for a throwaway bot). To find your numeric ID, message @userinfobot on Telegram; it
+replies with your ID.
+
+After you change `.env`, recreate the app container: `./run.sh prod restart` recreates the app service.
+A plain `docker compose restart` reuses the existing container and does not re-read the environment.
 
 The webhook path is `/api/webhook/telegram` (the Slack and WhatsApp adapters, when enabled, use `/api/webhook/slack` and `/api/webhook/whatsapp`).
 

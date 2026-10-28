@@ -43,8 +43,8 @@ services:
       # Below: only values that DIFFER from the application.properties defaults, or REMAP a .env var
       # to the name the app expects. Pure pass-throughs (tokens, etc.) come from env_file (.env) and
       # already default in the properties, so they are not repeated here. Likewise AGENT_*/memory-*.
-      - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-*}
-      - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-*}
+      - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-}
+      - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-}
       # Google client-id/secret have no property default; supply empty so the app boots without Google.
       - QLAWKUS_GOOGLE_AUTH_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - QLAWKUS_GOOGLE_AUTH_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
@@ -122,8 +122,8 @@ services:
       # The console links to Grafana from the browser, so this is the published port, not the in-network lgtm address.
       - QLAWKUS_CONSOLE_GRAFANA_URL=${QLAWKUS_CONSOLE_GRAFANA_URL:-http://localhost:3000}
       # Only values that DIFFER from the application.properties defaults, or REMAP a .env var.
-      - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-*}
-      - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-*}
+      - DISCORD_ALLOWED_USER_IDS=${DISCORD_ALLOWED_USER_IDS:-}
+      - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-}
       - QLAWKUS_GOOGLE_AUTH_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - QLAWKUS_GOOGLE_AUTH_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - QLAWKUS_VAULT_ENABLED=${QLAWKUS_VAULT_ENABLED:-true}
