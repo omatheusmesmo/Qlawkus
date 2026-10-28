@@ -100,8 +100,8 @@ class LlmKindConfigSourceFactoryTest {
     private static final String SECONDARY_API_KEY = "quarkus.langchain4j.openai.\"secondary\".api-key";
     private static final String SECONDARY_CHAT_MODEL = "quarkus.langchain4j.openai.\"secondary\".chat-model.model-name";
     private static final String SECONDARY_ENABLED = "qlawkus.model.secondary-enabled";
-    private static final String GLM = "z-ai/glm-5.3";
     private static final String ULTRA = "nvidia/nemotron-3-ultra-550b-a55b";
+    private static final String LIGHTNING = "nvidia/nemotron-3.5-lightning-30b-a3b";
 
     private static SmallRyeConfig configWith(Map<String, String> overrides) {
         return new SmallRyeConfigBuilder()
@@ -112,18 +112,18 @@ class LlmKindConfigSourceFactoryTest {
     }
 
     @Test
-    void nvidiaKindUsesGlmAsPrimaryChatModel() {
+    void nvidiaKindUsesUltraAsPrimaryChatModel() {
         SmallRyeConfig config = configWith(Map.of("LLM_KIND", "nvidia"));
 
-        assertEquals(GLM, config.getConfigValue(PRIMARY_CHAT_MODEL).getValue());
+        assertEquals(ULTRA, config.getConfigValue(PRIMARY_CHAT_MODEL).getValue());
     }
 
     @Test
-    void nvidiaKindEnablesUltraAsSecondaryOnTheSameEndpointWithThePrimarysKey() {
+    void nvidiaKindEnablesLightningAsSecondaryOnTheSameEndpointWithThePrimarysKey() {
         SmallRyeConfig config = configWith(Map.of("LLM_KIND", "nvidia", "LLM_API_KEY", "nvapi-secret"));
 
         assertEquals("true", config.getConfigValue(SECONDARY_ENABLED).getValue());
-        assertEquals(ULTRA, config.getConfigValue(SECONDARY_CHAT_MODEL).getValue());
+        assertEquals(LIGHTNING, config.getConfigValue(SECONDARY_CHAT_MODEL).getValue());
         assertEquals(NVIDIA_BASE_URL, config.getConfigValue(SECONDARY_BASE_URL).getValue());
         assertEquals("nvapi-secret", config.getConfigValue(SECONDARY_API_KEY).getValue());
     }
@@ -159,7 +159,7 @@ class LlmKindConfigSourceFactoryTest {
         assertEquals("meta/llama-4-maverick", config.getConfigValue(SECONDARY_CHAT_MODEL).getValue());
         assertEquals("https://other.example/v1", config.getConfigValue(SECONDARY_BASE_URL).getValue());
         assertEquals("other-key", config.getConfigValue(SECONDARY_API_KEY).getValue());
-        assertEquals(GLM, config.getConfigValue(PRIMARY_CHAT_MODEL).getValue(),
+        assertEquals(ULTRA, config.getConfigValue(PRIMARY_CHAT_MODEL).getValue(),
                 "overriding the secondary must not touch the primary");
     }
 

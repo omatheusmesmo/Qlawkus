@@ -14,9 +14,13 @@ import java.util.Optional;
  *
  * <p>Chat model names move fast and are meant to be refreshed here periodically; they are always
  * overridable via {@code LLM_CHAT_MODEL} (and {@code LLM_SECONDARY_CHAT_MODEL} for the secondary).
- * The NVIDIA default is {@code z-ai/glm-5.3}, measured against NIM on 2026-10-24 (warm): Artificial
- * Analysis Intelligence Index 60 against 23 for {@code nemotron-3-ultra-550b-a55b}, which takes the
- * secondary tier on the same endpoint and key, ahead of the Ollama fallback. Embedding
+ * The NVIDIA default is {@code nvidia/nemotron-3-ultra-550b-a55b}, with
+ * {@code nvidia/nemotron-3.5-lightning-30b-a3b} as the secondary tier on the same endpoint and key, ahead
+ * of the Ollama fallback. The previous primary, {@code z-ai/glm-5.3}, reached its end of life on NIM on
+ * 2026-10-28. Measured against NIM that day with a tool-calling prompt: Ultra answers in 4 to 6 seconds
+ * and sustains about 40 requests a minute; Lightning answers in 5 to 6 seconds and sustained 40 a minute
+ * with no throttling. {@code minimaxai/minimax-m3.1-flash} was faster but throttled after about 10 a
+ * minute, too few for a tier that takes every turn while the primary is failing. Embedding
  * model/dimension/input-type are stable per provider, but not forever: NVIDIA retired {@code nv-embedqa-e5-v5} on 2026-08-25, and its successor
  * {@code nemotron-3-embed-1b} only produces 2048 dimensions. A dimension change re-sizes the pgvector
  * column at the next boot ({@code R__embedding_dimension}) and re-embeds what was stored
@@ -28,7 +32,8 @@ public enum ProviderKind {
     // (Matryoshka reduction). Native-dimension models (NVIDIA nemotron-embed, mistral-embed, ollama mxbai)
     // REJECT it, so it must not be sent for them.
     OPENAI("https://api.openai.com/v1/", "gpt-5-mini", null, "text-embedding-3-large", 1024, null, true),
-    NVIDIA("https://integrate.api.nvidia.com/v1", "z-ai/glm-5.3", "nvidia/nemotron-3-ultra-550b-a55b",
+    NVIDIA("https://integrate.api.nvidia.com/v1", "nvidia/nemotron-3-ultra-550b-a55b",
+            "nvidia/nemotron-3.5-lightning-30b-a3b",
             "nvidia/nemotron-3-embed-1b", 2048, "passage", false),
     DEEPSEEK("https://api.deepseek.com", "deepseek-v4-flash", null, "deepseek-embed", 1024, null, false),
     MISTRAL("https://api.mistral.ai/v1", "mistral-large-latest", null, "mistral-embed", 1024, null, false),
