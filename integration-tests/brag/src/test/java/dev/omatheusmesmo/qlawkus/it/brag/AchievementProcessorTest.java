@@ -4,6 +4,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import dev.omatheusmesmo.qlawkus.tools.brag.AchievementProcessor;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragEntry;
 import io.quarkus.test.InjectMock;
@@ -178,5 +179,23 @@ class AchievementProcessorTest {
 
         BragEntry entry = BragEntry.find("achievement", "Added monitoring dashboards").firstResult();
         assertEquals(LocalDate.now(ZoneOffset.UTC), entry.date);
+    }
+
+    @Test
+    void detectAchievement_callsTheModelOnTheBatchWorkload() {
+        when(chatModel.chat(anyString())).thenAnswer(invocation -> WorkloadContext.current());
+
+        String result = processor.detectAchievement(List.of(
+                new UserMessage("I fixed the NPE in auth"),
+                AiMessage.from("Great, the fix is applied.")));
+
+        assertEquals(WorkloadContext.BATCH, result);
+    }
+
+    @Test
+    void translateImpact_callsTheModelOnTheBatchWorkload() {
+        when(chatModel.chat(anyString())).thenAnswer(invocation -> WorkloadContext.current());
+
+        assertEquals(WorkloadContext.BATCH, processor.translateImpact("Fixed auth bug"));
     }
 }
