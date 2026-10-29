@@ -8,7 +8,7 @@
 # and scrapes port 9000 from its own Prometheus, with no change to the agent.
 services:
   lgtm:
-    image: grafana/otel-lgtm:0.38.0
+    image: grafana/otel-lgtm:0.38.1
     environment:
       # The image grants every anonymous visitor the Admin role. Turned off here, and the admin
       # password is required: the entrypoint below refuses to start Grafana without one, the same
