@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tool.shell;
 
 import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.agent.tool.P;
 import dev.omatheusmesmo.qlawkus.config.FileConfig;
 import dev.omatheusmesmo.qlawkus.dto.FileEntry;
 import dev.omatheusmesmo.qlawkus.dto.FileResult;
@@ -13,6 +14,8 @@ import jakarta.inject.Inject;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -49,11 +52,23 @@ public class FileTool {
         this.encoding = fileConfig.encoding();
     }
 
+    public FileResult readFile(String path) {
+        return readFile(path, null, null);
+    }
+
     @Tool("Read a file's content within the workspace. " +
             "Parameters: path (required) — file path relative to workspace root. " +
-            "Returns file content as string. Binary files return an error suggesting xxd via ShellTool. " +
-            "Large files are truncated beyond the configured max-read-size (default 5MB).")
-    public FileResult readFile(String path) {
+            "Optional offset is the first line (1-indexed); limit is the maximum lines, default 2000. " +
+            "Providing either returns numbered lines and a continuation offset when more remain. " +
+            "Long lines are marked as truncated. Omit both for the original full-file content. " +
+            "Binary files return an error. Reads obey the configured read-size limit (default 5MB).")
+    public FileResult readFile(String path,
+            @P(value = "First line to read, starting at 1", required = false) Integer offset,
+            @P(value = "Maximum lines to return; capped by max-lines-per-page", required = false) Integer limit) {
+        boolean paginated = offset != null || limit != null;
+        if (offset != null && offset < 1 || limit != null && limit < 1) {
+            return FileResult.fail("offset and limit must be positive; offset starts at 1");
+        }
         SecurityResult security = checkPath(path);
         if (security.blocked()) {
             return FileResult.fail(security.reason());
@@ -72,12 +87,26 @@ public class FileTool {
             return FileResult.fail("Path is a directory, not a file: " + path);
         }
 
-        if (isBinary(resolved)) {
+        if (isBinary(resolved, resolveCharset())) {
             return FileResult.fail("Binary file detected. Use ShellTool.runCommand('xxd " + path + "') to inspect binary content.");
         }
 
         try {
             long fileSize = Files.size(resolved);
+            if (paginated) {
+                FileConfig.Read config = fileConfig.read();
+                if (config.maxLinesPerPage() < 1 || config.maxLineLength() < 1) {
+                    return FileResult.fail("Paginated read limits must be positive");
+                }
+                int firstLine = offset == null ? 1 : offset;
+                int pageSize = Math.min(limit == null ? config.maxLinesPerPage() : limit, config.maxLinesPerPage());
+                try (var reader = Files.newBufferedReader(resolved, resolveCharset())) {
+                    String page = FilePageReader.read(reader, firstLine, pageSize, config.maxLineLength(), maxReadSize,
+                            resolveCharset());
+                    Log.infof("FILE_READ | path=%s | size=%d | offset=%d | limit=%d", path, fileSize, firstLine, pageSize);
+                    return FileResult.ok(page);
+                }
+            }
             if (fileSize > maxReadSize) {
                 String content = Files.readString(resolved, resolveCharset());
                 int truncateAt = (int) Math.min(maxReadSize, content.length());
@@ -263,14 +292,21 @@ public class FileTool {
     }
 
     public static boolean isBinary(Path file) {
+        return isBinary(file, StandardCharsets.UTF_8);
+    }
+
+    private static boolean isBinary(Path file, Charset charset) {
         try (var is = Files.newInputStream(file)) {
             byte[] bytes = is.readNBytes(8192);
-            for (byte b : bytes) {
-                if (b < 0 && b != '\t' && b != '\n' && b != '\r') {
-                    return true;
+            if (!charset.name().startsWith("UTF-16") && !charset.name().startsWith("UTF-32")) {
+                for (byte b : bytes) {
+                    if (b == 0) {
+                        return true;
+                    }
                 }
             }
-            return false;
+            return charset.newDecoder().decode(ByteBuffer.wrap(bytes), CharBuffer.allocate(8192),
+                    bytes.length < 8192).isError();
         } catch (IOException e) {
             return false;
         }

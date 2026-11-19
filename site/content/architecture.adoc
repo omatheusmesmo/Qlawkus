@@ -74,6 +74,29 @@ sequenceDiagram
 </div>
 ++++
 
+== Workspace file reads
+
+`readFile` can read a numbered page instead of sending a whole file to the model.
+For example, these tool arguments request lines 101 through 200:
+
+[source,json]
+----
+{"path":"src/main/java/App.java","offset":101,"limit":100}
+----
+
+Offsets start at 1. Providing either `offset` or `limit` enables paging; omitted
+offsets start at 1, and omitted limits use `qlawkus.file.read.max-lines-per-page`
+(default 2000). Requested limits are capped at that maximum. Returned lines use
+`101|content` notation, and a truncated page names the next offset to request.
+Individual lines are capped at `qlawkus.file.read.max-line-length` (default 2000
+characters) and marked when shortened. Pages also respect the existing read-size
+budget for numbered content; continuation and truncation markers are additional metadata.
+Reads stream through the file without loading it or an oversized line into memory.
+
+Omit both parameters to keep the original full-file format, including its line
+endings. Both forms enforce workspace confinement and reject binary files; valid
+text in the configured encoding, including Portuguese UTF-8 text, is readable.
+
 == Memory
 
 The defining idea is two deliberate choices that set Qlawkus apart from agents that paste their whole memory into the system prompt:

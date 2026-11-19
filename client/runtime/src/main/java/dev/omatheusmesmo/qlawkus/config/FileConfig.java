@@ -26,4 +26,24 @@ public interface FileConfig {
      */
     @WithDefault("UTF-8")
     String encoding();
+
+    /**
+     * Limits for numbered, paginated reads. Omit offset and limit to retain the full-file format.
+     */
+    Read read();
+
+    interface Read {
+        /**
+         * Maximum lines returned by a paginated read. Larger requested pages are capped here.
+         */
+        @WithDefault("2000")
+        int maxLinesPerPage();
+
+        /**
+         * Maximum characters retained from one line in a paginated read. Longer lines are marked
+         * as truncated without loading the whole line into memory.
+         */
+        @WithDefault("2000")
+        int maxLineLength();
+    }
 }
