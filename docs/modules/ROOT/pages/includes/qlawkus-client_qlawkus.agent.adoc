@@ -70,6 +70,27 @@ endif::add-copy-button-to-env-var[]
 |boolean
 |`+++true+++`
 
+a| [[qlawkus-client_qlawkus-agent-tool-search-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-agent-tool-search-enabled[`+++qlawkus.agent.tool-search.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.agent.tool-search.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Enable semantic tool discovery for the REST/streaming AI service. The declarative messaging agent retains its full catalog until the Quarkus agentic integration supports it. Uses the configured embedding model and adds a search round before a tool can be used. Applied when the agent is created; restart after changing this property.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_AGENT_TOOL_SEARCH_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_AGENT_TOOL_SEARCH_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
 a| [[qlawkus-client_qlawkus-agent-memory-max-results]] [.property-path]##link:#qlawkus-client_qlawkus-agent-memory-max-results[`+++qlawkus.agent.memory.max-results+++`]##
 ifdef::add-copy-button-to-config-props[]
 config_property_copy_button:+++qlawkus.agent.memory.max-results+++[]

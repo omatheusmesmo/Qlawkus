@@ -28,6 +28,23 @@ public interface AgentConfig {
     SharedContext sharedContext();
 
     /**
+     * Discover tools on demand instead of sending the whole catalog with every model request.
+     */
+    ToolSearch toolSearch();
+
+    interface ToolSearch {
+
+        /**
+         * Enable semantic tool discovery for the REST/streaming AI service. The declarative
+         * messaging agent retains its full catalog until the Quarkus agentic integration supports it.
+         * Uses the configured embedding model and adds a search round before a tool can be used.
+         * Applied when the agent is created; restart after changing this property.
+         */
+        @WithDefault("false")
+        boolean enabled();
+    }
+
+    /**
      * The {@code searchMemories} tool: explicit retrieval over long-term facts.
      */
     Memory memory();

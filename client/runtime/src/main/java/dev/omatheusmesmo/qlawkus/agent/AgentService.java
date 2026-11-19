@@ -14,6 +14,7 @@ import dev.omatheusmesmo.qlawkus.cognition.UpdateSelfStateTool;
 import dev.omatheusmesmo.qlawkus.cognition.UpdateUserProfileTool;
 import dev.omatheusmesmo.qlawkus.cognition.ViewSkillTool;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProviderSupplier;
+import dev.omatheusmesmo.qlawkus.tool.QlawToolSearchStrategySupplier;
 import io.quarkiverse.langchain4j.RegisterAiService;
 import io.quarkiverse.langchain4j.runtime.aiservice.ChatEvent;
 import io.smallrye.mutiny.Multi;
@@ -35,6 +36,7 @@ import jakarta.enterprise.context.ApplicationScoped;
             SearchTranscriptsTool.class, RememberFactTool.class, RespondWithVoiceTool.class,
             ClearContextTool.class, ViewSkillTool.class, ManageSkillTool.class},
     toolProviderSupplier = QlawToolProviderSupplier.class,
+    toolSearchStrategySupplier = QlawToolSearchStrategySupplier.class,
     retrievalAugmentor = ActiveMemoryAugmentor.class,
     maxSequentialToolInvocations = 100
 )
