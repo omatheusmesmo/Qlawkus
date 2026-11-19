@@ -70,5 +70,47 @@ endif::add-copy-button-to-env-var[]
 |string
 |`+++UTF-8+++`
 
+a| [[qlawkus-client_qlawkus-file-read-max-lines-per-page]] [.property-path]##link:#qlawkus-client_qlawkus-file-read-max-lines-per-page[`+++qlawkus.file.read.max-lines-per-page+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.file.read.max-lines-per-page+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum lines returned by a paginated read. Larger requested pages are capped here.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_FILE_READ_MAX_LINES_PER_PAGE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_FILE_READ_MAX_LINES_PER_PAGE+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++2000+++`
+
+a| [[qlawkus-client_qlawkus-file-read-max-line-length]] [.property-path]##link:#qlawkus-client_qlawkus-file-read-max-line-length[`+++qlawkus.file.read.max-line-length+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.file.read.max-line-length+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum characters retained from one line in a paginated read. Longer lines are marked as truncated without loading the whole line into memory.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_FILE_READ_MAX_LINE_LENGTH+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_FILE_READ_MAX_LINE_LENGTH+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++2000+++`
+
 |===
 
