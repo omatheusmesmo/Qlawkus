@@ -87,6 +87,9 @@ include::includes/qlawkus-tools-brag.adoc[]
 === Skill Hub
 include::includes/qlawkus-tools-skill-hub.adoc[]
 
+=== Web Search
+include::includes/qlawkus-tools-web-search.adoc[]
+
 === Self Observe
 include::includes/qlawkus-tools-self-observe.adoc[]
 

@@ -115,6 +115,11 @@
       <artifactId>qlawkus-tools-google-storage-deployment</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-web-search-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 
   <build>

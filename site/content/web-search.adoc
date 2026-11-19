@@ -1,0 +1,77 @@
+= Web Search
+:page-title: Web Search
+:page-description: Free web search with a self-hosted SearXNG instance
+
+The optional `qlawkus-tools-web-search` extension gives the agent a `searchWeb` tool for
+current information, returning source URLs, titles and snippets for citations. It uses
+https://docs.langchain4j.dev/integrations/web-search-engines/searxng/[LangChain4j's SearXNG engine]
+and standard `WebSearchTool`. SearXNG is free software and requires no paid provider or API key.
+Search queries leave the instance and reach whichever search engines your SearXNG installation uses.
+
+== Enable the capability
+
+The reference distribution includes `web-search` in `app/src/main/resources/qlawkus/agent.yml`.
+Other distributions opt in with that capability or add the `qlawkus-tools-web-search` extension.
+The network client lives entirely in that extension; omitting it keeps web search out of the core.
+
+Search is disabled by default and has no default public endpoint. Point it explicitly at a trusted
+SearXNG installation with JSON output enabled:
+
+[source,properties]
+----
+qlawkus.web-search.enabled=true
+qlawkus.web-search.base-url=http://searxng:8080
+----
+
+These are runtime properties, available through the console configuration editor (`/console/config`).
+Save them there and apply them with the normal restart/deploy workflow. No search credential needs
+to be added to an environment file or the vault. With the extension disabled, no requests are sent;
+with no endpoint configured, the application still boots and the tool explains what is missing.
+
+== Optional Compose backend
+
+Both Compose stacks include a `searxng` service behind the `web-search` profile. It has no published
+host port and no dependency on PostgreSQL or the agent. Start only the new service from the repository root:
+
+[source,bash]
+----
+docker compose -f docker-compose.yml --profile web-search up -d searxng
+# For the local Ollama stack, use -f docker-compose.local.yml instead.
+----
+
+Then configure the two properties above in the console. Starting the backend alone does not restart
+the agent. The upstream image creates its signing secret randomly on first boot in the separate
+`searxng-config` volume; the checked-in template contains only the upstream replacement placeholder.
+The image is pinned by digest. The template enables JSON output and disables the public-instance
+limiter for this private backend; do not expose it publicly with these settings.
+
+For another SearXNG deployment, its `settings.yml` needs `json` under `search.formats`.
+A server answering 403 may have JSON disabled. A successful search can still be empty when upstream
+engines rate-limit, present a CAPTCHA, or return no matches. Self-hosting does not guarantee search
+engine availability. See https://docs.searxng.org/admin/installation-docker[the upstream container guide].
+
+== Limits and returned data
+
+The query is limited to 1000 characters. `qlawkus.web-search.max-results` defaults to 5 (clamped to 1–20),
+and `max-chars` defaults to 8000 (512–64000), including a closed data frame and truncation marker.
+Titles and snippets are bounded individually; non-http(s) result links and URLs containing
+credentials are omitted. Returned pages are never fetched. Backend redirects are refused by the
+Quarkiverse HTTP transport. The endpoint comes only from operator configuration, never model input.
+
+Every result is framed as untrusted external data. Frame markers inside snippets are defused;
+titles, URLs and snippets must never be treated as instructions. Backend error bodies are not
+returned to the model. The upstream engine buffers the JSON response before the tool applies its
+result/output caps, so use a trusted search instance and bound response sizes at its reverse proxy
+if an untrusted or publicly hosted backend is used.
+
+`qlawkus.web-search.timeout` defaults to 10 seconds for both connection and read. It is rounded up
+to whole seconds and clamped to 1–60 seconds because the current Quarkiverse transport rounds durations
+down to seconds; a subsecond value must never become an unlimited timeout. Search does not retry.
+
+== Replace the engine
+
+A distribution may supply a CDI bean implementing LangChain4j's `WebSearchEngine`. The extension's
+SearXNG producer is a `@DefaultBean`, so that bean replaces it. The same `searchWeb` tool, enabled
+switch, bounded request, output limits and framing remain in place. A replacement engine does not
+require `qlawkus.web-search.base-url`; configure any provider credentials through the existing
+vault/onboarding mechanism rather than adding them to environment files.

@@ -22,5 +22,6 @@
         <module>qlawkus-tools-brag</module>
         <module>qlawkus-tools-skill-hub</module>
         <module>qlawkus-tools-self-observe</module>
+        <module>qlawkus-tools-web-search</module>
     </modules>
 </project>

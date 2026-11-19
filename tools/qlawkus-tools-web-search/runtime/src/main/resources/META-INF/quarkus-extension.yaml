@@ -1,0 +1,10 @@
+name: "Web Search"
+metadata:
+  qlawkus:
+    capability: "web-search"
+  keywords:
+    - "web-search"
+    - "searxng"
+  categories:
+    - "ai"
+  status: "experimental"

@@ -1,0 +1,135 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-tools-web-search_qlawkus-web-search-enabled]] [.property-path]##link:#qlawkus-tools-web-search_qlawkus-web-search-enabled[`+++qlawkus.web-search.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.web-search.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Allow web searches. Disabled tools never send requests.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WEB_SEARCH_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WEB_SEARCH_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-tools-web-search_qlawkus-web-search-base-url]] [.property-path]##link:#qlawkus-tools-web-search_qlawkus-web-search-base-url[`+++qlawkus.web-search.base-url+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.web-search.base-url+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Trusted SearXNG instance with JSON search enabled, e.g. http://searxng:8080.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WEB_SEARCH_BASE_URL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WEB_SEARCH_BASE_URL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-web-search_qlawkus-web-search-timeout]] [.property-path]##link:#qlawkus-tools-web-search_qlawkus-web-search-timeout[`+++qlawkus.web-search.timeout+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.web-search.timeout+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Connection and read timeout, rounded up to whole seconds and clamped to 1–60 seconds.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WEB_SEARCH_TIMEOUT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WEB_SEARCH_TIMEOUT+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-tools-web-search_qlawkus-web-search[icon:question-circle[title=More information about the Duration format]]
+|`+++10S+++`
+
+a| [[qlawkus-tools-web-search_qlawkus-web-search-max-results]] [.property-path]##link:#qlawkus-tools-web-search_qlawkus-web-search-max-results[`+++qlawkus.web-search.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.web-search.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum results per search, clamped to the range 1–20.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WEB_SEARCH_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WEB_SEARCH_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++5+++`
+
+a| [[qlawkus-tools-web-search_qlawkus-web-search-max-chars]] [.property-path]##link:#qlawkus-tools-web-search_qlawkus-web-search-max-chars[`+++qlawkus.web-search.max-chars+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.web-search.max-chars+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum output characters including framing, clamped to the range 512–64000.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WEB_SEARCH_MAX_CHARS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WEB_SEARCH_MAX_CHARS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++8000+++`
+
+|===
+
+ifndef::no-duration-note[]
+[NOTE]
+[id=duration-note-anchor-qlawkus-tools-web-search_qlawkus-web-search]
+.About the Duration format
+====
+To write duration values, use the standard `java.time.Duration` format.
+See the link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html#parse(java.lang.CharSequence)[Duration#parse() Java API documentation] for more information.
+
+You can also use a simplified format, starting with a number:
+
+* If the value is only a number, it represents time in seconds.
+* If the value is a number followed by `ms`, it represents time in milliseconds.
+
+In other cases, the simplified format is translated to the `java.time.Duration` format for parsing:
+
+* If the value is a number followed by `h`, `m`, or `s`, it is prefixed with `PT`.
+* If the value is a number followed by `d`, it is prefixed with `P`.
+====
+endif::no-duration-note[]
