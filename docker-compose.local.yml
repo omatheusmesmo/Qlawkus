@@ -128,7 +128,15 @@ services:
     environment:
       OLLAMA_HOST: "http://ollama:11434"
 
+  # Opt-in only: start with --profile web-search, then configure the endpoint in /console/config.
+  searxng:
+    extends:
+      file: docker/searxng/compose.yml
+      service: searxng
+
 volumes:
+  searxng-config:
+  searxng-data:
   lgtm-data:
     name: qlawkus_lgtm-data
   pgdata:

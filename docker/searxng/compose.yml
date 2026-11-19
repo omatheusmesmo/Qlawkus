@@ -1,0 +1,18 @@
+# Optional free search backend. No public port, database or external API key.
+services:
+  searxng:
+    image: searxng/searxng:latest@sha256:5b72d7ef63a3d214c2a690016ecf53a17f1ab7f02dcc4a1de1669837d9340fc9
+    profiles: [web-search]
+    volumes:
+      - searxng-config:/etc/searxng
+      - searxng-data:/var/cache/searxng
+      # Upstream's entrypoint copies the template on first boot and replaces its secret placeholder
+      # with a randomly generated value. No credential belongs in the repository or an env file.
+      - ./settings.template.yml:/usr/local/searxng/settings.template.yml:ro
+    expose:
+      - "8080"
+    restart: unless-stopped
+
+volumes:
+  searxng-config:
+  searxng-data:

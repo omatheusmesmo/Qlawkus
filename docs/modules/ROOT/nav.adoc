@@ -19,6 +19,7 @@
 
 * xref:operations.adoc[Operations]
 * xref:secrets.adoc[Secrets]
+* xref:web-search.adoc[Web Search]
 * xref:google-workspace.adoc[Google Workspace Setup]
 * xref:messaging.adoc[Messaging Setup (Discord & Telegram)]
 * xref:voice.adoc[Voice (STT/TTS) Setup]

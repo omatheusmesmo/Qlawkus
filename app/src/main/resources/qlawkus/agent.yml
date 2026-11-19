@@ -18,3 +18,4 @@ build-time:
     - console
     - observability
     - self-observe
+    - web-search
