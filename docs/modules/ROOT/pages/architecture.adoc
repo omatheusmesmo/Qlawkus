@@ -97,6 +97,27 @@ Omit both parameters to keep the original full-file format, including its line
 endings. Both forms enforce workspace confinement and reject binary files; valid
 text in the configured encoding, including Portuguese UTF-8 text, is readable.
 
+== Tool discovery
+
+By default the model receives the full tool catalog. Set
+`qlawkus.agent.tool-search.enabled=true` and restart to enable semantic Tool Search
+on the REST/streaming `AgentService`.
+The model initially receives a search tool; discovered tools become available in
+later tool-calling rounds. This includes extension tools from `QlawToolProvider`.
+
+Search uses the existing embedding model, with upstream's embedding cache. It saves
+tool descriptions in the initial request, but adds a search round and embedding
+work. Keep it opt-in until token usage, latency and tool selection have been
+compared on representative conversations. `AgentService` selects its supplier
+explicitly: no global `ToolSearchStrategy` bean changes other AI services through
+auto-detection. The declarative messaging `QlawkusAgent` retains the full catalog:
+the Quarkus agentic integration does not yet propagate the upstream tool-search
+supplier to its generated AI service. Enabling this option does not change
+Discord or Telegram's tool selection.
+
+Memory recall and the skill index are still injected automatically. Tool discovery
+changes how the model chooses an action, not how it receives relevant memories.
+
 == Memory
 
 The defining idea is two deliberate choices that set Qlawkus apart from agents that paste their whole memory into the system prompt:
