@@ -112,5 +112,47 @@ endif::add-copy-button-to-env-var[]
 |int
 |`+++2000+++`
 
+a| [[qlawkus-client_qlawkus-file-edit-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-file-edit-enabled[`+++qlawkus.file.edit.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.file.edit.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Enable exact text editing. Unmatched or ambiguous text never changes a file.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_FILE_EDIT_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_FILE_EDIT_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-file-edit-max-diff-chars]] [.property-path]##link:#qlawkus-client_qlawkus-file-edit-max-diff-chars[`+++qlawkus.file.edit.max-diff-chars+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.file.edit.max-diff-chars+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum characters returned by an edit, including its diff preview. Clamped to 512–64000.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_FILE_EDIT_MAX_DIFF_CHARS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_FILE_EDIT_MAX_DIFF_CHARS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++12000+++`
+
 |===
 

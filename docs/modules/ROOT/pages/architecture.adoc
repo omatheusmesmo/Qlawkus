@@ -97,6 +97,62 @@ Omit both parameters to keep the original full-file format, including its line
 endings. Both forms enforce workspace confinement and reject binary files; valid
 text in the configured encoding, including Portuguese UTF-8 text, is readable.
 
+== Exact file edits
+
+`editFile` changes an existing workspace text file without asking the model to rewrite it.
+Supply `path`, `oldText` and `newText`, or an ordered `edits` array of those text pairs:
+
+[source,json]
+----
+{"path":"src/main/resources/application.properties","edits":[
+  {"oldText":"feature.enabled=false","newText":"feature.enabled=true"},
+  {"oldText":"timeout=10s","newText":"timeout=20s"}
+]}
+----
+
+Matching is exact: indentation and spaces are never guessed. A missing or ambiguous match
+rejects the entire call before writing. Use more surrounding text to select one occurrence,
+or set `replaceAll=true` to replace every non-overlapping occurrence for every edit. Edits are
+validated in order against the in-memory result of the preceding edit, then committed together.
+An empty `newText` deletes the matched text; an empty `oldText` is refused. Up to 50 edits are
+accepted in one call.
+
+The configured `qlawkus.file.encoding` is used with strict decoding and encoding. UTF-8 BOMs
+are preserved. For files with uniform line endings, LF/CRLF in the supplied arguments is
+converted to the existing ending; existing file content is never globally normalized. Mixed
+line-ending files use the arguments exactly as supplied. Binary or invalid text is refused.
+The existing read/write byte limits apply, with a 16 MiB ceiling for each file read or written.
+
+The tool returns a unified diff with three context lines around the changed region. Distant
+edits share one hunk, so the preview can include unchanged lines between them. The response is
+bounded by `qlawkus.file.edit.max-diff-chars` (default 12000, clamped to 512–64000); a truncated
+preview is explicitly marked and is not a complete patch. The edit itself is fully applied.
+Set `qlawkus.file.edit.enabled=false` to disable this tool.
+
+Paths resolve from the configured workspace. Canonical path checks reject symlink escapes.
+Calls editing the same canonical path are serialized within the process. The file identity,
+modification time and bytes are checked again before the atomic replacement, which also
+preserves POSIX permissions. A detected external modification aborts the edit. This recheck
+is not an inter-process compare-and-swap: another program should not write the same file during
+an edit. Filesystems without atomic replacement are refused, preserving the original file.
+
+=== Measuring exact-match failures
+
+Exact matching is a deliberate first step rather than a silent fuzzy fallback. Each call
+emits `FILE_EDIT | outcome=matched|no_match|ambiguous|...` with edit/replacement counts only;
+file paths, file content and search/replacement text are not logged by this tool. In Grafana
+Explore with the existing Loki datasource, compare outcomes over representative conversations:
+
+[source,logql]
+----
+sum by (edit_outcome) (count_over_time({service_name="qlawkus"} |= "FILE_EDIT | outcome="
+  | regexp "outcome=(?P<edit_outcome>[a-z_]+)" [1h]))
+----
+
+Adapt the stream selector to your deployment labels. Divide `no_match` plus `ambiguous` by
+those failures plus `matched` to measure the exact-match rejection rate before considering a
+fuzzy strategy. A rejected batch is counted once even if earlier replacements would have matched.
+
 == Tool discovery
 
 By default the model receives the full tool catalog. Set

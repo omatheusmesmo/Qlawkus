@@ -3,12 +3,18 @@
 ## Dev Mode Start
 
 ```bash
-mvn install -pl client -am -DskipTests   # must run first; client/ is a Quarkus extension
+mvn install -pl client/deployment -am -DskipTests # builds both runtime and deployment first
 mvn -pl app -am quarkus:dev              # from the root: app/ is the only runnable module, and
                                          # capability resolution needs the reactor (see below)
 ```
 
-Changing `client/` requires re-running `mvn install -pl client -am` then restarting dev mode. Hot reload does NOT apply to extension code.
+Changing `client/` requires re-running `mvn install -pl client/deployment -am` then restarting dev mode. Selecting only `-pl client` installs the aggregator POM, not the extension jars. Hot reload does NOT apply to extension code.
+
+## Worktree and Branch Cleanup
+
+After merging a PR, remove its clean feature worktree and both local and remote feature branches. Verify the merged PR and its head before deleting: rebase merges rewrite commit IDs, so use the merged PR head or patch equivalence when ancestry alone does not establish the merge. A branch already deleted remotely needs no further action.
+
+Preserve active worktrees, open PR branches, uncommitted changes, and ignored files containing configuration or user data. Only clear a worktree lock after confirming its owning process has ended. Generated build outputs may be removed with an otherwise clean worktree.
 
 ## Containerized Run
 

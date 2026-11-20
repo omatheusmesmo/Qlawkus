@@ -32,6 +32,25 @@ public interface FileConfig {
      */
     Read read();
 
+    /**
+     * Exact, atomic text edits within workspace files.
+     */
+    Edit edit();
+
+    interface Edit {
+        /**
+         * Enable exact text editing. Unmatched or ambiguous text never changes a file.
+         */
+        @WithDefault("true")
+        boolean enabled();
+
+        /**
+         * Maximum characters returned by an edit, including its diff preview. Clamped to 512–64000.
+         */
+        @WithDefault("12000")
+        int maxDiffChars();
+    }
+
     interface Read {
         /**
          * Maximum lines returned by a paginated read. Larger requested pages are capped here.
