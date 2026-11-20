@@ -5,6 +5,7 @@ import io.quarkus.runtime.annotations.ConfigRoot;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -91,6 +92,69 @@ public interface ShellConfig {
      * Regex patterns for shell prompt detection.
      */
     Optional<List<String>> prompts();
+
+    /** Limits for finding workspace files by glob. */
+    Glob glob();
+
+    /** Limits for searching workspace text. */
+    Grep grep();
+
+    /** Shared bounds for local workspace searches; no external binary is required. */
+    Search search();
+
+    interface Glob {
+        /** Enable the globFiles tool. */
+        @WithDefault("true")
+        boolean enabled();
+
+        /** Maximum files returned, capped to 5000. */
+        @WithDefault("500")
+        int maxResults();
+    }
+
+    interface Grep {
+        /** Enable the grepFiles tool. */
+        @WithDefault("true")
+        boolean enabled();
+
+        /** Maximum matching lines returned, capped to 1000. */
+        @WithDefault("100")
+        int maxResults();
+    }
+
+    interface Search {
+        /** Maximum directory entries visited, capped to 100000. */
+        @WithDefault("50000")
+        int maxVisitedPaths();
+
+        /** Maximum traversal depth, capped to 128. */
+        @WithDefault("64")
+        int maxDepth();
+
+        /** Cooperative deadline checked between filesystem operations and lines; capped to 30 seconds. */
+        @WithDefault("5s")
+        Duration timeout();
+
+        /** Maximum returned characters including limit and skip notices, clamped to 1024–128000. */
+        @WithDefault("32000")
+        int maxOutputChars();
+
+        /** Maximum bytes read from one text file, capped to 16 MiB. Larger files are skipped. */
+        @WithDefault("1048576")
+        int maxFileBytes();
+
+        /** Maximum total bytes read per call, including ignore files, capped to 64 MiB. */
+        @WithDefault("16777216")
+        int maxTotalBytes();
+
+        /** Maximum characters shown from one result line, capped to 10000. */
+        @WithDefault("4000")
+        int maxLineLength();
+
+        /** Maximum lines of context on each side of a match, capped to 20. */
+        @WithDefault("5")
+        int maxContextLines();
+    }
 
     /**
      * PTY session configuration.

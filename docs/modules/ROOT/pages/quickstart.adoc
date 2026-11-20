@@ -14,7 +14,7 @@
 ----
 git clone https://github.com/omatheusmesmo/qlawkus.git
 cd qlawkus
-mvn install -pl client -am -DskipTests
+mvn install -pl client/deployment -am -DskipTests
 mvn -pl app -am quarkus:dev
 ----
 
@@ -143,3 +143,60 @@ All HTTP endpoints require authentication. The bundled `app` verifies HTTP Basic
 * xref:config-reference.adoc[Configuration] -- All settings
 * xref:architecture.adoc[Architecture] -- Module layout and request flow
 * xref:skills.adoc[Skills] -- Procedural memory the agent writes and curates itself
+
+== Finding files and searching text
+
+The core agent supplies `globFiles` and `grepFiles` without requiring `rg`, `fd`, a database,
+or a network capability. Both use the configured workspace as the default search directory.
+Relative paths are resolved from that workspace, and results are sorted by workspace-relative path.
+With `qlawkus.workspace.restrict-to-workspace=true` (the default), search paths cannot leave it.
+Disabling that restriction explicitly permits outside paths, which are reported as absolute paths.
+
+`globFiles` accepts a required `pattern`, an optional directory `path`, and an optional result
+`limit` (default 500). Globs support `*`, `?`, `[abc]`, `[!abc]`, ranges and whole-segment `**`.
+For example, `**/*.java` includes Java files at the search root and at any directory depth;
+`*.java` matches only files directly in that directory. Use `/` between glob segments.
+
+`grepFiles` accepts a required regex `pattern`, optional file/directory `path`, optional file glob
+`include`, `ignoreCase`, `literal`, `context`, and `limit` (default 100 matching lines).
+An include such as `*.java` matches that basename at any depth. Match lines use
+`path:line:text`; context lines use `path-line-text`, without duplicating overlapping context.
+Set `literal=true` to search exact text containing regex punctuation.
+
+Regex matching uses https://github.com/google/re2j[RE2/J] to avoid catastrophic backtracking.
+It supports groups, alternation, repetition and character classes; lookaround and backreferences
+are rejected explicitly. It is not the full Java/PCRE regex dialect. Regexes apply to individual
+lines, not across newline boundaries.
+
+Both tools respect nested workspace `.gitignore` files through
+https://github.com/eclipse-jgit/jgit[JGit]'s ignore parser. Deeper rules and later matching rules
+win. As in Git, a child cannot be re-included while its parent directory remains ignored.
+This also applies when a subdirectory is selected explicitly. Global Git excludes and
+`.git/info/exclude` are not read: searches do not consult configuration outside the workspace.
+The `.git` entry is always omitted. Symbolic links, including links to paths inside the workspace,
+are never followed. Content and ignore files are opened through anchored `SecureDirectoryStream`
+handles with `NOFOLLOW_LINKS` on every component, including concurrent parent replacements.
+Filesystems without secure directory access have those reads skipped instead of using an unsafe fallback.
+An unreadable, non-UTF-8, binary, oversized or symlinked `.gitignore` causes that directory to
+be skipped, so missing rules never expose files by accident.
+JGit's wildcard matching uses backtracking, so ignore files also have a conservative complexity
+budget: 512 non-comment rules, 1024 characters per rule, at most two whole-segment `**` components,
+and at most two `*` characters in another segment (including adjacent stars). Matched paths are
+limited to 4096 characters, 128 components and 255 characters per component. A directory whose rules exceed this
+budget is skipped rather than partially applying its ignore rules. Glob queries themselves use
+the linear-time engine and do not have this wildcard-complexity restriction.
+
+`qlawkus.shell.glob.enabled` and `qlawkus.shell.grep.enabled` disable each tool. Their `max-results`
+settings cap a requested `limit`. The shared `qlawkus.shell.search.*` properties bound visited
+entries (50000), depth (64), time (5 seconds), output (32000 characters), bytes per file (1 MiB),
+and total bytes read (16 MiB, including ignore files). Ignore files are additionally limited to
+64 KiB each. The deadline is cooperative between filesystem operations and lines; an operating
+system filesystem call can take longer. A reached limit always adds a truncation notice.
+
+Grep skips binary, malformed-encoding, unreadable and oversized files and reports the count.
+It uses `qlawkus.file.encoding` (UTF-8 by default), preserves line numbers across LF/CRLF/CR,
+and strips a leading text BOM for searching. Lines over 65536 characters are skipped and counted;
+returned line text is capped at `qlawkus.shell.search.max-line-length` (4000), with a marker.
+Context is capped at `qlawkus.shell.search.max-context-lines` (5 on each side).
+When the matching-line limit is reached, grep returns the final allowed context and stops;
+its notice indicates that the rest of the search was not performed, rather than promising more matches.

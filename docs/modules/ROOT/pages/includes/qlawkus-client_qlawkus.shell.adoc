@@ -196,6 +196,48 @@ endif::add-copy-button-to-env-var[]
 |boolean
 |`+++true+++`
 
+a| [[qlawkus-client_qlawkus-shell-env-allowlist]] [.property-path]##link:#qlawkus-client_qlawkus-shell-env-allowlist[`+++qlawkus.shell.env-allowlist+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.env-allowlist+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Names of the process environment variables a command may inherit; everything else is withheld, so a command such as `env` cannot read the agent's own credentials. A trailing `++*++` makes the entry a prefix match (`LC_++*++`). The workspace env file and `secret-env()` are added on top of this list.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_ENV_ALLOWLIST+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_ENV_ALLOWLIST+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of string
+|`+++PATH+++`, `+++HOME+++`, `+++USER+++`, `+++LANG+++`, `+++LC_*+++`, `+++TZ+++`, `+++TERM+++`, `+++SHELL+++`, `+++JAVA_HOME+++`, `+++TMPDIR+++`
+
+a| [[qlawkus-client_qlawkus-shell-secret-env-secret-env]] [.property-path]##link:#qlawkus-client_qlawkus-shell-secret-env-secret-env[`+++qlawkus.shell.secret-env."secret-env"+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.secret-env."secret-env"+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Secrets deliberately handed to commands, keyed by the environment variable name they appear under, for example `qlawkus.shell.secret-env."GH_TOKEN"`. Empty by default. Values resolve through normal configuration, so they can come from `.env` or from a keystore alias. A blank value is skipped, which lets a distribution wire an entry to an environment variable that may be unset. Every value is redacted from command output and from the audit log, and these properties are never shown or written by the config editor. Passing `GH_TOKEN` also configures git to authenticate to github.com through `gh`, with nothing written to disk.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_SECRET_ENV__SECRET_ENV_+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_SECRET_ENV__SECRET_ENV_+++`
+endif::add-copy-button-to-env-var[]
+--
+|Map<String,Optional<String>>
+|
+
 a| [[qlawkus-client_qlawkus-shell-prompts]] [.property-path]##link:#qlawkus-client_qlawkus-shell-prompts[`+++qlawkus.shell.prompts+++`]##
 ifdef::add-copy-button-to-config-props[]
 config_property_copy_button:+++qlawkus.shell.prompts+++[]
@@ -216,6 +258,258 @@ endif::add-copy-button-to-env-var[]
 --
 |list of string
 |
+
+a| [[qlawkus-client_qlawkus-shell-glob-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-shell-glob-enabled[`+++qlawkus.shell.glob.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.glob.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Enable the globFiles tool.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_GLOB_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_GLOB_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-shell-glob-max-results]] [.property-path]##link:#qlawkus-client_qlawkus-shell-glob-max-results[`+++qlawkus.shell.glob.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.glob.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum files returned, capped to 5000.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_GLOB_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_GLOB_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++500+++`
+
+a| [[qlawkus-client_qlawkus-shell-grep-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-shell-grep-enabled[`+++qlawkus.shell.grep.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.grep.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Enable the grepFiles tool.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_GREP_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_GREP_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-shell-grep-max-results]] [.property-path]##link:#qlawkus-client_qlawkus-shell-grep-max-results[`+++qlawkus.shell.grep.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.grep.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum matching lines returned, capped to 1000.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_GREP_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_GREP_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++100+++`
+
+a| [[qlawkus-client_qlawkus-shell-search-max-visited-paths]] [.property-path]##link:#qlawkus-client_qlawkus-shell-search-max-visited-paths[`+++qlawkus.shell.search.max-visited-paths+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.search.max-visited-paths+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum directory entries visited, capped to 100000.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_SEARCH_MAX_VISITED_PATHS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_SEARCH_MAX_VISITED_PATHS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++50000+++`
+
+a| [[qlawkus-client_qlawkus-shell-search-max-depth]] [.property-path]##link:#qlawkus-client_qlawkus-shell-search-max-depth[`+++qlawkus.shell.search.max-depth+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.search.max-depth+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum traversal depth, capped to 128.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_SEARCH_MAX_DEPTH+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_SEARCH_MAX_DEPTH+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++64+++`
+
+a| [[qlawkus-client_qlawkus-shell-search-timeout]] [.property-path]##link:#qlawkus-client_qlawkus-shell-search-timeout[`+++qlawkus.shell.search.timeout+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.search.timeout+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cooperative deadline checked between filesystem operations and lines; capped to 30 seconds.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_SEARCH_TIMEOUT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_SEARCH_TIMEOUT+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-client_qlawkus-shell[icon:question-circle[title=More information about the Duration format]]
+|`+++5S+++`
+
+a| [[qlawkus-client_qlawkus-shell-search-max-output-chars]] [.property-path]##link:#qlawkus-client_qlawkus-shell-search-max-output-chars[`+++qlawkus.shell.search.max-output-chars+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.search.max-output-chars+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum returned characters including limit and skip notices, clamped to 1024–128000.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_SEARCH_MAX_OUTPUT_CHARS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_SEARCH_MAX_OUTPUT_CHARS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++32000+++`
+
+a| [[qlawkus-client_qlawkus-shell-search-max-file-bytes]] [.property-path]##link:#qlawkus-client_qlawkus-shell-search-max-file-bytes[`+++qlawkus.shell.search.max-file-bytes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.search.max-file-bytes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum bytes read from one text file, capped to 16 MiB. Larger files are skipped.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_SEARCH_MAX_FILE_BYTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_SEARCH_MAX_FILE_BYTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++1048576+++`
+
+a| [[qlawkus-client_qlawkus-shell-search-max-total-bytes]] [.property-path]##link:#qlawkus-client_qlawkus-shell-search-max-total-bytes[`+++qlawkus.shell.search.max-total-bytes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.search.max-total-bytes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum total bytes read per call, including ignore files, capped to 64 MiB.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_SEARCH_MAX_TOTAL_BYTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_SEARCH_MAX_TOTAL_BYTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++16777216+++`
+
+a| [[qlawkus-client_qlawkus-shell-search-max-line-length]] [.property-path]##link:#qlawkus-client_qlawkus-shell-search-max-line-length[`+++qlawkus.shell.search.max-line-length+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.search.max-line-length+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum characters shown from one result line, capped to 10000.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_SEARCH_MAX_LINE_LENGTH+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_SEARCH_MAX_LINE_LENGTH+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++4000+++`
+
+a| [[qlawkus-client_qlawkus-shell-search-max-context-lines]] [.property-path]##link:#qlawkus-client_qlawkus-shell-search-max-context-lines[`+++qlawkus.shell.search.max-context-lines+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.shell.search.max-context-lines+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum lines of context on each side of a match, capped to 20.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SHELL_SEARCH_MAX_CONTEXT_LINES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SHELL_SEARCH_MAX_CONTEXT_LINES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++5+++`
 
 a| [[qlawkus-client_qlawkus-shell-pty-max-sessions]] [.property-path]##link:#qlawkus-client_qlawkus-shell-pty-max-sessions[`+++qlawkus.shell.pty.max-sessions+++`]##
 ifdef::add-copy-button-to-config-props[]
@@ -324,3 +618,22 @@ endif::add-copy-button-to-env-var[]
 
 |===
 
+ifndef::no-duration-note[]
+[NOTE]
+[id=duration-note-anchor-qlawkus-client_qlawkus-shell]
+.About the Duration format
+====
+To write duration values, use the standard `java.time.Duration` format.
+See the link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html#parse(java.lang.CharSequence)[Duration#parse() Java API documentation] for more information.
+
+You can also use a simplified format, starting with a number:
+
+* If the value is only a number, it represents time in seconds.
+* If the value is a number followed by `ms`, it represents time in milliseconds.
+
+In other cases, the simplified format is translated to the `java.time.Duration` format for parsing:
+
+* If the value is a number followed by `h`, `m`, or `s`, it is prefixed with `PT`.
+* If the value is a number followed by `d`, it is prefixed with `P`.
+====
+endif::no-duration-note[]
