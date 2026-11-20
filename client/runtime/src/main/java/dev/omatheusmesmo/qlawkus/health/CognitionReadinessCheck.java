@@ -4,6 +4,7 @@ import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
+import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
 import dev.omatheusmesmo.qlawkus.store.SoulStore;
 import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
@@ -25,7 +26,9 @@ import org.eclipse.microprofile.health.Readiness;
  * persona, the owner profile and the skill index to build every system message, and every turn
  * appends to working memory. Writing facts, journals, skills, the persona and the profile happens in
  * tools and background jobs; when one of those cannot be written the agent still answers, it just
- * stops learning, so the check stays UP and names the store under {@code degraded}. The skill
+ * stops learning, so the check stays UP and names the store under {@code degraded}. The agent-created
+ * task records are one such store: when they cannot be written, a task scheduled now would not survive
+ * a restart, but the tasks already registered still run. The skill
  * probes run only while {@code qlawkus.skills.enabled} is on, since a turn reads the index only then.
  * An instance that is already DOWN skips the write probes: they could not change the verdict, and
  * against a database that hangs rather than refuses, each one would wait out a connection timeout.
@@ -61,6 +64,9 @@ public class CognitionReadinessCheck implements HealthCheck {
     EpisodicStore episodicStore;
 
     @Inject
+    ScheduledTaskStore scheduledTaskStore;
+
+    @Inject
     SkillsConfig skillsConfig;
 
     @Override
@@ -82,6 +88,7 @@ public class CognitionReadinessCheck implements HealthCheck {
         Map<String, Runnable> learning = new LinkedHashMap<>();
         learning.put("facts", factStore::verifyWritable);
         learning.put("episodic", episodicStore::verifyWritable);
+        learning.put("scheduledTasks", scheduledTaskStore::verifyWritable);
         if (skills) {
             learning.put("skills", skillStore::verifyWritable);
         }

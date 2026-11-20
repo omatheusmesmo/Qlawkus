@@ -1185,6 +1185,61 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "type": "row",
+      "title": "Scheduled tasks",
+      "id": 32,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 97
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Agent tasks registered at boot",
+      "description": "What the boot restore did with the tasks the agent scheduled earlier: registered again, marked missed (a one-time task that was due while the agent was down, so it was not run), marked invalid (a schedule that cannot run), or held back by the task cap. The counts are published once per process, so a step at a restart shows what that boot restored.",
+      "id": 33,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 98
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (outcome) (qlawkus_task_restored_total)",
+          "legendFormat": "{{outcome}}",
+          "refId": "A"
+        }
+      ]
     }
   ]
 }

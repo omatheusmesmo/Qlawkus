@@ -37,7 +37,8 @@ public class PgWriteProbe {
     EMBEDDINGS("embeddings", "INSERT", "UPDATE", "DELETE"),
     JOURNAL("journal", "INSERT", "DELETE"),
     CHAT_MESSAGES("chat_message_entity", "INSERT", "DELETE"),
-    SKILL("skill", "INSERT", "UPDATE", "DELETE");
+    SKILL("skill", "INSERT", "UPDATE", "DELETE"),
+    SCHEDULED_TASK("scheduled_task", "INSERT", "UPDATE", "DELETE");
 
     final String name;
     final List<String> privileges;

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;
+import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
 import io.quarkus.test.junit.QuarkusTest;
@@ -15,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -44,6 +46,9 @@ class TaskSchedulerToolTest {
 
     @Inject
     QlawToolProvider toolProvider;
+
+    @Inject
+    ScheduledTaskStore store;
 
     @BeforeEach
     void noConversationUnlessATestSetsOne() {
@@ -217,15 +222,17 @@ class TaskSchedulerToolTest {
     }
 
     @Test
-    void everyConfirmationWarnsThatSchedulesAreVolatile() {
+    void everyConfirmationStatesThatSchedulesSurviveARestartAndHowAMissedOneIsHandled() {
         delivery.set("telegram:42", "telegram", "42");
 
         String reply = tool.scheduleTask("stretch", RECURRING, null, null, null);
 
-        assertTrue(reply.contains("lost on restart"), reply);
+        assertTrue(reply.contains("survive a restart"), reply);
         assertTrue(reply.contains("redeploy"), reply);
-        assertTrue(reply.contains("not caught up"), reply);
+        assertTrue(reply.contains("reported as missed"), reply);
+        assertTrue(reply.contains("not run"), reply);
         assertTrue(reply.contains("best effort"), reply);
+        assertFalse(reply.contains("lost"), reply);
     }
 
     @Test
@@ -238,7 +245,25 @@ class TaskSchedulerToolTest {
         assertTrue(listing.contains("stretch"), listing);
         assertTrue(listing.contains("telegram:42"), listing);
         assertTrue(listing.contains("recurring"), listing);
-        assertTrue(listing.contains("lost on restart"), listing);
+        assertTrue(listing.contains("survive a restart"), listing);
+        assertFalse(listing.contains("lost"), listing);
+    }
+
+    @Test
+    void aTaskThatWasDueWhileTheAgentWasDownIsListedAsMissedAndCanBeCancelled() {
+        ScheduledTask due = new ScheduledTask("qlawkus-task-" + UUID.randomUUID(), "telegram:42",
+                new TaskDestination("telegram", "42"), "pay the bill", "0 0 12 15 6 ? 2020", true,
+                Instant.parse("2026-11-01T10:00:00Z"), TaskStatus.ACTIVE);
+        store.save(due);
+        tasks.restore();
+
+        String listing = tool.listScheduledTasks();
+
+        assertTrue(listing.contains(due.id()), listing);
+        assertTrue(listing.contains("missed while the agent was down"), listing);
+        assertTrue(listing.contains("cancel"), listing);
+        assertTrue(tool.cancelScheduledTask(due.id()).startsWith("Cancelled task " + due.id()));
+        assertFalse(tool.listScheduledTasks().contains(due.id()));
     }
 
     @Test

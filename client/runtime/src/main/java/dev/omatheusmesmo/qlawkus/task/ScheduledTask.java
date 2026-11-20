@@ -9,6 +9,11 @@ public record ScheduledTask(
         String task,
         String cron,
         boolean oneShot,
-        Instant createdAt
+        Instant createdAt,
+        TaskStatus status
 ) {
+
+    public ScheduledTask withStatus(TaskStatus next) {
+        return new ScheduledTask(id, memoryId, destination, task, cron, oneShot, createdAt, next);
+    }
 }
