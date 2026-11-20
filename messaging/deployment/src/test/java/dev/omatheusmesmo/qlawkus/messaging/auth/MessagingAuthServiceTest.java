@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -26,7 +25,7 @@ class MessagingAuthServiceTest {
 
     @Test
     void isAuthorized_allowedUser_returnsTrue() {
-        when(config.allowedUsers()).thenReturn(Map.of("telegram", Optional.of(List.of("123456"))));
+        when(config.allowedUsers()).thenReturn(Map.of("telegram", Optional.of("123456")));
         MessagingMessage msg = MessagingMessage.text("telegram", "chat-1", "123456", "hello");
 
         assertTrue(authService.isAuthorized(msg));
@@ -34,7 +33,7 @@ class MessagingAuthServiceTest {
 
     @Test
     void isAuthorized_unknownUser_returnsFalse() {
-        when(config.allowedUsers()).thenReturn(Map.of("telegram", Optional.of(List.of("123456"))));
+        when(config.allowedUsers()).thenReturn(Map.of("telegram", Optional.of("123456")));
         MessagingMessage msg = MessagingMessage.text("telegram", "chat-1", "999999", "hello");
 
         assertFalse(authService.isAuthorized(msg));
@@ -58,7 +57,7 @@ class MessagingAuthServiceTest {
 
     @Test
     void isAuthorized_emptyList_deniesEveryUser() {
-        when(config.allowedUsers()).thenReturn(Map.of("discord", Optional.of(List.of())));
+        when(config.allowedUsers()).thenReturn(Map.of("discord", Optional.of("")));
         MessagingMessage msg = MessagingMessage.text("discord", "ch", "user-a", "hi");
 
         assertFalse(authService.isAuthorized(msg));
@@ -66,7 +65,7 @@ class MessagingAuthServiceTest {
 
     @Test
     void isAuthorized_listOfBlankEntries_deniesEveryUser() {
-        when(config.allowedUsers()).thenReturn(Map.of("discord", Optional.of(List.of("", "  "))));
+        when(config.allowedUsers()).thenReturn(Map.of("discord", Optional.of(",  ")));
         MessagingMessage msg = MessagingMessage.text("discord", "ch", "user-a", "hi");
 
         assertFalse(authService.isAuthorized(msg));
@@ -75,7 +74,7 @@ class MessagingAuthServiceTest {
     @Test
     void isAuthorized_multipleAllowedUsers_correctlyMatches() {
         when(config.allowedUsers()).thenReturn(
-                Map.of("discord", Optional.of(List.of("user-a", "user-b", "user-c"))));
+                Map.of("discord", Optional.of("user-a,user-b,user-c")));
         MessagingMessage allowed = MessagingMessage.text("discord", "ch", "user-b", "hi");
         MessagingMessage denied = MessagingMessage.text("discord", "ch", "user-x", "hi");
 
@@ -85,7 +84,7 @@ class MessagingAuthServiceTest {
 
     @Test
     void isAuthorized_providerNotConfigured_deniesEveryUser() {
-        when(config.allowedUsers()).thenReturn(Map.of("telegram", Optional.of(List.of("123456"))));
+        when(config.allowedUsers()).thenReturn(Map.of("telegram", Optional.of("123456")));
         MessagingMessage msg = MessagingMessage.text("slack", "ch", "123456", "hi");
 
         assertFalse(authService.isAuthorized(msg));
@@ -93,9 +92,23 @@ class MessagingAuthServiceTest {
 
     @Test
     void isAuthorized_wildcardEntry_allowsAnyUser() {
-        when(config.allowedUsers()).thenReturn(Map.of("discord", Optional.of(List.of("*"))));
+        when(config.allowedUsers()).thenReturn(Map.of("discord", Optional.of("*")));
         MessagingMessage anyUser = MessagingMessage.text("discord", "ch", "random-user-id", "hi");
 
         assertTrue(authService.isAuthorized(anyUser));
+    }
+
+    @Test
+    void isAuthorized_escapedComma_preservesConfigListSyntax() {
+        when(config.allowedUsers()).thenReturn(Map.of("discord", Optional.of("user\\,one,user-two")));
+        assertTrue(authService.isAuthorized(MessagingMessage.text("discord", "ch", "user,one", "hi")));
+        assertFalse(authService.isAuthorized(MessagingMessage.text("discord", "ch", "user", "hi")));
+    }
+
+    @Test
+    void isAuthorized_whitespaceInId_preservesExactMatching() {
+        when(config.allowedUsers()).thenReturn(Map.of("discord", Optional.of(" user-a,user-b")));
+        assertTrue(authService.isAuthorized(MessagingMessage.text("discord", "ch", " user-a", "hi")));
+        assertFalse(authService.isAuthorized(MessagingMessage.text("discord", "ch", "user-a", "hi")));
     }
 }

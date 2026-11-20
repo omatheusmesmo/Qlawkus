@@ -7,6 +7,69 @@ h|[.header-title]##Configuration property##
 h|Type
 h|Default
 
+a| [[qlawkus-messaging_qlawkus-messaging-tool-progress-mode]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tool-progress-mode[`+++qlawkus.messaging.tool-progress.mode+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tool-progress.mode+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+What each chat sees of a tool call: `off` shows nothing, `status` the tool name and duration, `preview` adds the start of its arguments, `verbose` a longer part.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TOOL_PROGRESS_MODE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TOOL_PROGRESS_MODE+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`off`, `status`, `preview`, `verbose`
+|`+++preview+++`
+
+a| [[qlawkus-messaging_qlawkus-messaging-tool-progress-on-complete]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tool-progress-on-complete[`+++qlawkus.messaging.tool-progress.on-complete+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tool-progress.on-complete+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+What replaces the status message when the reply arrives: `summary` edits it to one line such as "7 tools, 4.2s", `delete` removes it.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TOOL_PROGRESS_ON_COMPLETE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TOOL_PROGRESS_ON_COMPLETE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++summary+++`
+
+a| [[qlawkus-messaging_qlawkus-messaging-tool-progress-max-lines]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-tool-progress-max-lines[`+++qlawkus.messaging.tool-progress.max-lines+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.tool-progress.max-lines+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Lines kept in the status message; older calls scroll off and a count of them remains.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TOOL_PROGRESS_MAX_LINES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TOOL_PROGRESS_MAX_LINES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++6+++`
+
 a| [[qlawkus-messaging_qlawkus-messaging-auth-allowed-users-allowed-users]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-auth-allowed-users-allowed-users[`+++qlawkus.messaging.auth.allowed-users."allowed-users"+++`]##
 ifdef::add-copy-button-to-config-props[]
 config_property_copy_button:+++qlawkus.messaging.auth.allowed-users."allowed-users"+++[]
@@ -15,7 +78,7 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-Allowed user identifiers per provider (e.g. chat_id for Telegram, user_id for Discord). Key is provider ID, value is the list of allowed identifiers. Example: qlawkus.messaging.auth.allowed-users.telegram=123456789,987654321
+Allowed user identifiers per provider (e.g. chat_id for Telegram, user_id for Discord). Key is provider ID, value is a comma-separated list of allowed identifiers. A provider with no entry, or an empty value, rejects every sender; the entry `++*++` allows everyone. The value is optional because an empty environment variable must read as absent: SmallRye rejects an empty value for a plain list at boot. Mapping the raw string also lets SmallRye track these dynamic keys as used. Example: qlawkus.messaging.auth.allowed-users.telegram=123456789,987654321
 
 
 ifdef::add-copy-button-to-env-var[]
@@ -25,7 +88,7 @@ ifndef::add-copy-button-to-env-var[]
 Environment variable: `+++QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS__ALLOWED_USERS_+++`
 endif::add-copy-button-to-env-var[]
 --
-|Map<String,List<String>>
+|Map<String,Optional<String>>
 |
 
 a| [[qlawkus-messaging_qlawkus-messaging-transcription-api-key]] [.property-path]##link:#qlawkus-messaging_qlawkus-messaging-transcription-api-key[`+++qlawkus.messaging.transcription.api-key+++`]##

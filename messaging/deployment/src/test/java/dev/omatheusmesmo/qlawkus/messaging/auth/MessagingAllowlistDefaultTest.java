@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.smallrye.config.PropertiesConfigSource;
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -22,8 +21,8 @@ class MessagingAllowlistDefaultTest {
                         "TELEGRAM_ALLOWED_USER_IDS", ""), "test", 100))
                 .build();
 
-        Optional<List<String>> telegram = config.getConfigMapping(MessagingAuthConfig.class).allowedUsers()
+        Optional<String> telegram = config.getConfigMapping(MessagingAuthConfig.class).allowedUsers()
                 .getOrDefault("telegram", Optional.empty());
-        assertTrue(telegram.map(List::isEmpty).orElse(true), "empty env must not grant anyone: " + telegram);
+        assertTrue(telegram.map(String::isEmpty).orElse(true), "empty env must not grant anyone: " + telegram);
     }
 }

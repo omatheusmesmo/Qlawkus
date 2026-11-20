@@ -77,7 +77,7 @@ export QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_DISCORD=123456789
 
 To find your ID, enable Developer Mode in Discord (User Settings, Advanced), then right-click your name and choose Copy User ID.
 
-`*` lets anyone who can reach the bot talk to the agent. Use it only for a throwaway bot. An unset or empty list rejects everyone.
+`*` lets anyone who can reach the bot talk to the agent. Use it only for a throwaway bot. An unset or empty list rejects everyone. Identifiers are matched exactly; blank entries never grant access.
 
 === 4. Slash Commands
 
