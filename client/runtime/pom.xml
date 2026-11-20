@@ -109,6 +109,28 @@
             <artifactId>jna-platform</artifactId>
             <version>5.19.1</version>
         </dependency>
+    <!-- Workspace search uses only the pure-Java ignore parser, not JGit repository/transport APIs.
+         These independent libraries are not managed by the Quarkus platform BOM. -->
+    <dependency>
+      <groupId>org.eclipse.jgit</groupId>
+      <artifactId>org.eclipse.jgit</artifactId>
+      <version>7.8.1.202611041320-r</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.googlecode.javaewah</groupId>
+          <artifactId>JavaEWAH</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>commons-codec</groupId>
+          <artifactId>commons-codec</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.google.re2j</groupId>
+      <artifactId>re2j</artifactId>
+      <version>1.8</version>
+    </dependency>
   </dependencies>
 
   <build>

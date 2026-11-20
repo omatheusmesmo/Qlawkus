@@ -33,6 +33,7 @@ import io.quarkus.deployment.builditem.RunTimeConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.ShutdownListenerBuildItem;
 import io.quarkus.deployment.builditem.StaticInitConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBundleBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedClassBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ServiceProviderBuildItem;
@@ -52,6 +53,7 @@ import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.AnnotationTransformation;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
+import org.eclipse.jgit.internal.JGitText;
 
 class ClientProcessor {
 
@@ -64,6 +66,17 @@ class ClientProcessor {
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
+    }
+
+    /** JGit's ignore parser loads its diagnostics bundle through NLS reflection, including invalid-pattern paths. */
+    @BuildStep
+    ReflectiveClassBuildItem gitIgnoreMessages() {
+        return ReflectiveClassBuildItem.builder(JGitText.class).constructors().fields().build();
+    }
+
+    @BuildStep
+    NativeImageResourceBundleBuildItem gitIgnoreMessageBundle() {
+        return new NativeImageResourceBundleBuildItem(JGitText.class.getName());
     }
 
     /**
