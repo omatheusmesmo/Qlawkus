@@ -53,6 +53,9 @@ services:
       - QLAWKUS_SELF_OBSERVE_LOKI_URL=http://lgtm:3100
       # The console links to Grafana from the browser, so this is the published port, not the in-network lgtm address.
       - QLAWKUS_CONSOLE_GRAFANA_URL=${QLAWKUS_CONSOLE_GRAFANA_URL:-http://localhost:3000}
+      # Web search against the bundled searxng service (docker/searxng/compose.yml), on by default.
+      - QLAWKUS_WEB_SEARCH_ENABLED=${QLAWKUS_WEB_SEARCH_ENABLED:-true}
+      - QLAWKUS_WEB_SEARCH_BASE_URL=${QLAWKUS_WEB_SEARCH_BASE_URL:-http://searxng:8080}
       # Memory tuning (AGENT_*) is read from .env via env_file above; unset keys use the
       # extension defaults, so they are not repeated here.
     volumes:
@@ -66,6 +69,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      searxng:
+        condition: service_started
       ollama-init:
         condition: service_completed_successfully
     restart: unless-stopped
@@ -128,7 +133,7 @@ services:
     environment:
       OLLAMA_HOST: "http://ollama:11434"
 
-  # Opt-in only: start with --profile web-search, then configure the endpoint in /console/config.
+  # Private search backend for the agent's searchWeb tool: no published port, no API key.
   searxng:
     extends:
       file: docker/searxng/compose.yml

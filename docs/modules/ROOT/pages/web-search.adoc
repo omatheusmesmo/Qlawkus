@@ -28,19 +28,18 @@ Save them there and apply them with the normal restart/deploy workflow. No searc
 to be added to an environment file or the vault. With the extension disabled, no requests are sent;
 with no endpoint configured, the application still boots and the tool explains what is missing.
 
-== Optional Compose backend
+== Compose backend
 
-Both Compose stacks include a `searxng` service behind the `web-search` profile. It has no published
-host port and no dependency on PostgreSQL or the agent. Start only the new service from the repository root:
+Both Compose stacks run a `searxng` service and start it with the agent, with web search already on:
+the agent service sets `QLAWKUS_WEB_SEARCH_ENABLED=true` and
+`QLAWKUS_WEB_SEARCH_BASE_URL=http://searxng:8080`. The service has no published host port and no
+dependency on PostgreSQL. Set `QLAWKUS_WEB_SEARCH_ENABLED=false` in `.env` to turn the tool off, or
+`QLAWKUS_WEB_SEARCH_BASE_URL` to point at another instance. Outside Compose the tool is on in the
+reference distribution but has no endpoint until `qlawkus.web-search.base-url` is set.
 
-[source,bash]
-----
-docker compose -f docker-compose.yml --profile web-search up -d searxng
-# For the local Ollama stack, use -f docker-compose.local.yml instead.
-----
+Changing either value in the console applies on the next restart of the agent.
 
-Then configure the two properties above in the console. Starting the backend alone does not restart
-the agent. The upstream image creates its signing secret randomly on first boot in the separate
+The upstream image creates its signing secret randomly on first boot in the separate
 `searxng-config` volume; the checked-in template contains only the upstream replacement placeholder.
 The image is pinned by digest. The template enables JSON output and disables the public-instance
 limiter for this private backend; do not expose it publicly with these settings.
