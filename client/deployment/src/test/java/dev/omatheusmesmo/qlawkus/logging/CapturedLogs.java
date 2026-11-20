@@ -47,6 +47,11 @@ public final class CapturedLogs implements AutoCloseable {
         return records.stream().filter(r -> r.getLevel().intValue() >= Level.INFO.intValue()).toList();
     }
 
+    /** Records at WARNING or above, the lines an operator is meant to read first. */
+    public List<LogRecord> warnings() {
+        return records.stream().filter(r -> r.getLevel().intValue() >= Level.WARNING.intValue()).toList();
+    }
+
     @Override
     public void close() {
         root.removeHandler(handler);

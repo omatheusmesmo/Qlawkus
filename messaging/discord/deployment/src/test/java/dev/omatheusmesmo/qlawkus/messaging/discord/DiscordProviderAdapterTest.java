@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.messaging.discord;
 
+import dev.omatheusmesmo.qlawkus.messaging.DeliveryFailure;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingFormat;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
@@ -7,7 +8,13 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.spec.MessageCreateFields;
 import discord4j.core.spec.MessageCreateSpec;
+import discord4j.rest.http.client.ClientException;
+import discord4j.rest.http.client.ClientRequest;
+import discord4j.rest.json.response.ErrorResponse;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.smallrye.mutiny.Uni;
+import reactor.netty.http.client.HttpClientResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -111,6 +118,29 @@ class DiscordProviderAdapterTest {
         try (InputStream content = files.get(0).inputStream()) {
             assertArrayEquals(audio, content.readAllBytes());
         }
+    }
+
+    @Test
+    void aRejectedDiscordCallNamesTheHttpStatusAndDiscordsErrorCodeAndMessage() {
+        ClientRequest request = Mockito.mock(ClientRequest.class);
+        when(request.getMethod()).thenReturn(HttpMethod.POST);
+        when(request.getUrl()).thenReturn("https://discord.com/api/channels/1/messages");
+        HttpClientResponse response = Mockito.mock(HttpClientResponse.class);
+        when(response.status()).thenReturn(HttpResponseStatus.FORBIDDEN);
+        ErrorResponse body = new ErrorResponse();
+        body.anySetter("code", 50013);
+        body.anySetter("message", "Missing Permissions");
+        Throwable failure = new IllegalStateException(new ClientException(request, response, body));
+
+        Optional<DeliveryFailure> detail = adapter.deliveryFailure(failure);
+
+        assertEquals("httpStatus=403 providerCode=50013 providerMessage=Missing Permissions",
+                detail.orElseThrow().describe(text -> text));
+    }
+
+    @Test
+    void aFailureOutsideDiscordHasNoDiscordDetail() {
+        assertTrue(adapter.deliveryFailure(new IllegalStateException("Discord Gateway not connected")).isEmpty());
     }
 
     private DiscordConfig config(boolean respondToAll, boolean respondToDirect) {

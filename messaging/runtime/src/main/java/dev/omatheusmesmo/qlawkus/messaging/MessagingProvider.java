@@ -30,4 +30,12 @@ public interface MessagingProvider {
     default Optional<ToolProgressSink> progressSink() {
         return Optional.empty();
     }
+
+    /**
+     * What the platform reported for a failed {@link #send(String, String)}, or empty when the failure
+     * carries nothing the platform said. Adapters override this for their own client's exception types.
+     */
+    default Optional<DeliveryFailure> deliveryFailure(Throwable failure) {
+        return Optional.empty();
+    }
 }

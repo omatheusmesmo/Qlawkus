@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.omatheusmesmo.qlawkus.logging.CapturedLogs;
+import dev.omatheusmesmo.qlawkus.logging.FailureSummary;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.logging.LogRecord;
 import org.jboss.logmanager.MDC;
@@ -53,6 +55,34 @@ class AgentTurnLogTest {
             assertTrue(line.contains("tier=unknown"), line);
             assertTrue(line.contains("tools=0"), line);
             assertTrue(line.contains("outcome=error"), line);
+        }
+    }
+
+    @Test
+    void anErrorTurnEndsWithTheRootCauseAndItsRedactedMessage() {
+        try (CapturedLogs logs = new CapturedLogs()) {
+            AgentTurn turn = AgentTurn.open("qlawkus-rest", "rest", false);
+            Throwable failure = new IllegalStateException(new InvocationTargetException(
+                    new RuntimeException("exceeded 10 sequential tool executions for key sk-live-123456789")));
+            turn.close("error", FailureSummary.of(failure, text -> text.replace("sk-live-123456789", "[redacted]")));
+
+            String line = turnLines(logs).get(0);
+            assertTrue(line.contains("outcome=error"), line);
+            assertTrue(line.endsWith(" error=RuntimeException cause=exceeded 10 sequential tool executions"
+                    + " for key [redacted]"), line);
+            assertFalse(line.contains("sk-live"), line);
+        }
+    }
+
+    @Test
+    void anOkTurnCarriesNoErrorFields() {
+        try (CapturedLogs logs = new CapturedLogs()) {
+            AgentTurn turn = AgentTurn.open("qlawkus-rest", "rest", false);
+            turn.close("ok");
+
+            String line = turnLines(logs).get(0);
+            assertFalse(line.contains(" error="), line);
+            assertFalse(line.contains(" cause="), line);
         }
     }
 

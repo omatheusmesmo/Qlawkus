@@ -8,20 +8,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.service.tool.ToolExecutor;
 import dev.omatheusmesmo.qlawkus.logging.CapturedLogs;
+import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
+import java.io.IOException;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import org.jboss.logmanager.MDC;
 import org.junit.jupiter.api.Test;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class MeteredToolExecutorLogTest {
 
     private static final String ARGUMENTS = "{\"query\":\"my dentist appointment\"}";
     private static final String RESULT = "SECRET-RESULT-BODY";
+    private static final String SECRET = "sk-live-123456789";
 
     @Test
     void oneInfoLinePerToolCallNamesTheToolAndItsOutcomeButNotTheArgumentsOrResult() {
         ToolExecutor delegate = (request, memoryId) -> RESULT;
-        MeteredToolExecutor executor = new MeteredToolExecutor("searchMemories", delegate, AgentMeters.disabled());
+        MeteredToolExecutor executor = new MeteredToolExecutor("searchMemories", delegate, AgentMeters.disabled(),
+                redactor());
 
         try (CapturedLogs logs = new CapturedLogs()) {
             executor.execute(request(), "qlawkus-rest");
@@ -38,18 +47,45 @@ class MeteredToolExecutorLogTest {
     }
 
     @Test
-    void aFailingToolLogsItsOutcomeAsError() {
+    void aFailingToolWarnsOnOneLineWithItsNameRootCauseAndRedactedMessage() {
         ToolExecutor delegate = (request, memoryId) -> {
-            throw new IllegalStateException("boom");
+            throw new IllegalStateException("wrapper", new IOException("disk gone with " + SECRET));
         };
-        MeteredToolExecutor executor = new MeteredToolExecutor("deleteSkill", delegate, AgentMeters.disabled());
+        MeteredToolExecutor executor = new MeteredToolExecutor("deleteSkill", delegate, AgentMeters.disabled(),
+                redactor());
 
         try (CapturedLogs logs = new CapturedLogs()) {
             assertThrows(executor);
 
-            String line = logs.info().get(0).getMessage();
-            assertTrue(line.contains("deleteSkill") && line.contains("outcome=error"), line);
+            assertEquals(1, logs.info().size(), () -> "one line per failed call: " + logs.info());
+            LogRecord warning = logs.warnings().get(0);
+            assertEquals(Level.WARNING, warning.getLevel());
+            String line = warning.getMessage();
+            assertTrue(line.contains("Tool call deleteSkill outcome=error"), line);
+            assertTrue(line.endsWith(" error=IOException cause=disk gone with [redacted]"), line);
+            assertFalse(line.contains(SECRET), line);
+            assertNull(warning.getThrown(), "the stack trace stays with the framework's own line");
         }
+    }
+
+    @Test
+    void aReturnedResultLogsNoWarning() {
+        ToolExecutor delegate = (request, memoryId) -> RESULT;
+        MeteredToolExecutor executor = new MeteredToolExecutor("searchMemories", delegate, AgentMeters.disabled(),
+                redactor());
+
+        try (CapturedLogs logs = new CapturedLogs()) {
+            executor.execute(request(), "qlawkus-rest");
+
+            assertTrue(logs.warnings().isEmpty(), () -> "a returned result is not a failure: " + logs.warnings());
+        }
+    }
+
+    private static SecretRedactor redactor() {
+        SecretRedactor redactor = mock(SecretRedactor.class);
+        when(redactor.redact(anyString())).thenAnswer(invocation ->
+                invocation.getArgument(0, String.class).replace(SECRET, "[redacted]"));
+        return redactor;
     }
 
     @Test
@@ -58,7 +94,8 @@ class MeteredToolExecutorLogTest {
             assertEquals("searchMemories", MDC.get("tool"));
             return RESULT;
         };
-        MeteredToolExecutor executor = new MeteredToolExecutor("searchMemories", delegate, AgentMeters.disabled());
+        MeteredToolExecutor executor = new MeteredToolExecutor("searchMemories", delegate, AgentMeters.disabled(),
+                redactor());
 
         try (CapturedLogs ignored = new CapturedLogs()) {
             executor.execute(request(), "qlawkus-rest");

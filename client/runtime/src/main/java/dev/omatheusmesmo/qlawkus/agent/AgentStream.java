@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.agent;
 
+import dev.omatheusmesmo.qlawkus.logging.FailureSummary;
 import dev.omatheusmesmo.qlawkus.model.ServedTier;
 import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import io.quarkiverse.langchain4j.runtime.aiservice.ChatEvent;
@@ -79,14 +80,15 @@ public class AgentStream {
         try (AgentTurn.Binding ignored = logged.bind()) {
             events = agent.chatEvents(conversationId, message);
         } catch (RuntimeException e) {
-            logged.close("error");
+            logged.close("error", FailureSummary.of(e, redactor::redact));
             streamedTools.release(conversationId);
             throw e;
         }
         return events.onItem().transformToIterable(turn::translate)
                 .onCompletion().continueWith(turn::done)
                 .onTermination().invoke((failure, cancelled) -> {
-                    logged.close(AgentTurn.outcomeOf(failure, cancelled));
+                    logged.close(AgentTurn.outcomeOf(failure, cancelled), failure == null ? null
+                            : FailureSummary.of(failure, redactor::redact));
                     streamedTools.release(conversationId);
                 });
     }

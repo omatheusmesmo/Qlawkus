@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.agent;
 
+import dev.omatheusmesmo.qlawkus.logging.FailureSummary;
+import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Multi;
 import jakarta.annotation.Priority;
@@ -26,6 +28,9 @@ class AgentLogInterceptor {
     @Inject
     AgentDeliveryContext delivery;
 
+    @Inject
+    SecretRedactor redactor;
+
     @AroundInvoke
     Object logInvocation(InvocationContext context) throws Exception {
         if (!TURN_METHODS.contains(context.getMethod().getName())) {
@@ -38,13 +43,14 @@ class AgentLogInterceptor {
         try (AgentTurn.Binding ignored = turn.bind()) {
             result = context.proceed();
         } catch (Exception e) {
-            turn.close("error");
+            turn.close("error", FailureSummary.of(e, redactor::redact));
             Log.errorf(e, "Agent turn failed");
             throw e;
         }
         if (result instanceof Multi<?> text) {
-            return text.onTermination().invoke((failure, cancelled) ->
-                    turn.close(AgentTurn.outcomeOf(failure, cancelled)));
+            return text.onTermination().invoke((failure, cancelled) -> turn.close(
+                    AgentTurn.outcomeOf(failure, cancelled), failure == null ? null
+                            : FailureSummary.of(failure, redactor::redact)));
         }
         turn.close("ok");
         return result;

@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.messaging.discord;
 
+import dev.omatheusmesmo.qlawkus.logging.FailureChain;
+import dev.omatheusmesmo.qlawkus.messaging.DeliveryFailure;
 import dev.omatheusmesmo.qlawkus.messaging.MediaDownloader;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingFormat;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
@@ -23,6 +25,8 @@ import discord4j.core.spec.MessageCreateSpec;
 import discord4j.core.spec.MessageEditSpec;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
+import discord4j.rest.http.client.ClientException;
+import discord4j.rest.json.response.ErrorResponse;
 import discord4j.rest.response.ResponseFunction;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
@@ -33,6 +37,7 @@ import jakarta.inject.Inject;
 import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayInputStream;
+import java.util.Map;
 import java.util.Optional;
 
 @ApplicationScoped
@@ -285,6 +290,20 @@ public class DiscordProviderAdapter implements MessagingProvider {
     @Override
     public Optional<ToolProgressSink> progressSink() {
         return Optional.ofNullable(gatewayClient).map(DiscordProgressSink::new);
+    }
+
+    @Override
+    public Optional<DeliveryFailure> deliveryFailure(Throwable failure) {
+        return FailureChain.first(failure, ClientException.class).map(DiscordProviderAdapter::discordFailure);
+    }
+
+    private static DeliveryFailure discordFailure(ClientException rejected) {
+        Map<String, Object> body = rejected.getErrorResponse().map(ErrorResponse::getFields).orElse(Map.of());
+        return new DeliveryFailure(rejected.getStatus().code(), text(body.get("code")), text(body.get("message")));
+    }
+
+    private static String text(Object value) {
+        return value == null ? null : String.valueOf(value);
     }
 
     private record DiscordProgressSink(GatewayDiscordClient gateway) implements ToolProgressSink {
