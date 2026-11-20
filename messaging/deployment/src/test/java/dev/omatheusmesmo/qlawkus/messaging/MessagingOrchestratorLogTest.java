@@ -16,13 +16,16 @@ import dev.omatheusmesmo.qlawkus.messaging.transcription.VoiceTranscriptionServi
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsConfig;
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsRouter;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
+import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.inject.Instance;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.logging.Level;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -57,6 +60,9 @@ class MessagingOrchestratorLogTest {
         orchestrator.ttsRouter = Mockito.mock(TtsRouter.class);
         orchestrator.progressRouter = new ToolProgressRouter();
         orchestrator.providerRegistry = Mockito.mock(ProviderRegistry.class);
+        SecretRedactor redactor = Mockito.mock(SecretRedactor.class);
+        when(redactor.redact(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
+        orchestrator.redactor = redactor;
 
         ToolProgressSettings toolProgress = Mockito.mock(ToolProgressSettings.class);
         when(toolProgress.modeFor(anyString())).thenReturn(ToolProgress.OFF);
@@ -127,6 +133,30 @@ class MessagingOrchestratorLogTest {
             assertTrue(rejected.get(0).message().contains("userId=intruder-9"), rejected.get(0).message());
             assertTrue(logs.containing("Message accepted").isEmpty());
             assertTrue(logs.lines().stream().noneMatch(l -> l.message().contains("secret hello")));
+        }
+    }
+
+    @Test
+    void aFailedAgentRunNamesItsRootCauseOnTheFallbackLine() {
+        AgentRunner runner = Mockito.mock(AgentRunner.class);
+        when(runner.chat(anyString(), anyString())).thenThrow(new IllegalStateException(
+                new InvocationTargetException(new RuntimeException("exceeded 10 sequential tool executions"))));
+        @SuppressWarnings("unchecked")
+        Instance<AgentRunner> runnerInstance = Mockito.mock(Instance.class);
+        when(runnerInstance.isUnsatisfied()).thenReturn(false);
+        when(runnerInstance.get()).thenReturn(runner);
+        orchestrator.agentRunnerInstance = runnerInstance;
+        when(agentService.chatSync(any(), any())).thenReturn("fallback reply");
+
+        try (MessagingLogCapture logs = new MessagingLogCapture()) {
+            orchestrator.process(MessagingMessage.text("telegram", "chat-in-4", "user-4", "question"))
+                    .await().indefinitely();
+
+            List<MessagingLogCapture.Line> fallback = logs.containing("falling back to AgentService");
+            assertEquals(1, fallback.size(), () -> "expected one fallback warning, got " + logs.lines());
+            assertEquals(Level.WARNING, fallback.get(0).level());
+            assertTrue(fallback.get(0).message().endsWith(
+                    " error=RuntimeException cause=exceeded 10 sequential tool executions"), fallback.get(0).message());
         }
     }
 

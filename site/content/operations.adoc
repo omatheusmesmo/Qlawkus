@@ -201,13 +201,15 @@ Each turn ends with one line, whatever channel it came from (REST, Discord, Tele
 Agent turn channel=telegram conversation=qlawkus-shared workload=interactive outcome=ok tier=primary duration=2310ms tools=2 [searchMemories,remember] facts=3 tokens=1204/233
 ----
 
-`tier` is the model that produced the reply (`primary`, `secondary` or `fallback`), or `unknown` when the path does not report it. `tools` is the count and the names, `facts` is how many memories active memory injected, and `tokens` is `unknown` when the provider did not report them. A turn that was cut short by an error or a disconnect ends with `outcome=error` or `outcome=cancelled`.
+`tier` is the model that produced the reply (`primary`, `secondary` or `fallback`), or `unknown` when the path does not report it. `tools` is the count and the names, `facts` is how many memories active memory injected, and `tokens` is `unknown` when the provider did not report them. A turn that was cut short by an error or a disconnect ends with `outcome=error` or `outcome=cancelled`. An `outcome=error` line ends with two more fields, `error` and `cause`, which say what failed (see the troubleshooting section below).
 
 Each `@QlawTool` call ends with one line that names the tool and says how it went:
 
 ----
 Tool call searchMemories outcome=ok duration=41ms
 ----
+
+A call that throws logs a warning instead, on the same line shape, with `error` and `cause` appended. The framework also logs its own `ERROR Tool Error` line for that call, but that line carries no tool name, so the `Tool call` line is the one to read.
 
 Background jobs (memory review, memory curation, episodic consolidation, skill curation and lifecycle) log a start and an end with their counts, whether the scheduler or the admin endpoint started them:
 
@@ -217,12 +219,12 @@ Job memory-review finished duration=812ms removed=3 threshold=0.92
 
 A job that fails logs one warning with the exception class, not its message.
 
-Each messaging channel adds lines for what it received and what it sent. An accepted message logs once with its kind and a length (characters for text, bytes for voice); a sender outside the allowlist logs one warning with the provider and user id. A reply logs once, after the platform accepted every part, with the number of parts and the send time; a failed delivery logs one warning with the exception class. Voice logs the transcription and the synthesis:
+Each messaging channel adds lines for what it received and what it sent. An accepted message logs once with its kind and a length (characters for text, bytes for voice); a sender outside the allowlist logs one warning with the provider and user id. A reply logs once, after the platform accepted every part, with the number of parts and the send time; a failed delivery logs one warning with the exception class and, when the platform answered, the HTTP status and its error code and message. Voice logs the transcription and the synthesis:
 
 ----
 Message accepted provider=telegram chatId=123456 userId=789 kind=text length=42
 Reply delivered provider=telegram chatId=123456 parts=2 kind=text elapsedMs=318
-Reply delivery failed provider=telegram chatId=123456 kind=text sentParts=0 of 1 exception=ClientWebApplicationException elapsedMs=212
+Reply delivery failed provider=telegram chatId=123456 kind=text sentParts=0 of 1 exception=ClientWebApplicationException elapsedMs=212 httpStatus=400
 Voice transcribed engine=whisper audioBytes=48213 elapsedMs=1270 outcome=ok
 Speech synthesized provider=openai language=pt chars=180 elapsedMs=940 outcome=ok
 ----
@@ -232,6 +234,8 @@ The messaging lines carry `channel` (the provider) and `conversation` (the memor
 The turn and tool lines also carry `channel`, `conversation`, `workload` or `tool` as MDC fields, which the JSON console writes as `mdc.channel`, `mdc.conversation`, `mdc.workload` and `mdc.tool` next to `mdc.traceId`. The fields are set for the duration of the turn or tool call and cleared afterwards, and the same values appear in the message text, so a plain-text search finds them too (`|= "channel=telegram"`, `|= "Tool call searchMemories"`).
 
 What the agent writes at INFO never includes message text, reply text, prompts, extracted facts, skill bodies, tool arguments or tool results. Those go to DEBUG only, so turning on DEBUG for a category is a deliberate act that brings the content back into the log. Structured identifiers (a conversation id, a tool name, a skill name, a count) are INFO; anything the owner or the model wrote is not.
+
+The one exception is the failure fields. `cause` carries the message of the root exception, which a failing dependency can make echo part of its input. It is limited to one line of at most 200 characters and passed through the same redaction as command output, so configured secrets are masked, but it is not scrubbed of content. Read it as an error message, not as proof that nothing else was written.
 
 === What the agent measures about itself
 
@@ -351,6 +355,34 @@ quarkus.smallrye-health.management.enabled=false
 Both are build-time properties. The scrape on 9000 takes no credential, deliberately: every authenticated identity in this distribution is the admin, so a credential for Prometheus would be the admin one, sitting in plaintext next to the Argon2id hash meant to protect it. The boundary is the network instead. Compose never publishes 9000, and the reference Kubernetes Deployment names it `management` so it can be kept out of any Service that leaves the cluster.
 
 If you build your own distribution, either keep the same split or put `/q/metrics` behind whichever auth mechanism you wired in. The extension deliberately imposes no policy, because the mechanism is the integrator's choice.
+
+== Troubleshooting
+
+=== How to read an agent turn
+
+A failed turn can be explained from its own log lines, without the source. Collect them by the conversation id that the turn line names: in the JSON console filter on `mdc.conversation`, in Loki filter on `|= "conversation=qlawkus-shared"`. Roughly in the order they are written, the lines are the fallback warning if one fired, the `Tool call` lines of the turn, the `Agent turn` line, and the `Reply delivery` line for the reply.
+
+The `Agent turn` line carries these fields:
+
+* `channel`: where the turn arrived (`rest`, or the messaging provider; `system` for the startup reflection).
+* `conversation`: the memory id, the key for every other line of the turn.
+* `workload`: `interactive` for the owner's turns, `batch` for background work.
+* `outcome`: `ok`, `error` or `cancelled`.
+* `tier`: the model that answered (`primary`, `secondary`, `fallback`), or `unknown`.
+* `duration`, `tools` (count and names), `facts` and `tokens`, as described above.
+* `error` and `cause`, only when `outcome=error`: the class and the message of the root exception.
+
+The `Tool call` line carries `tool` in the MDC and in its text, with `outcome` and `duration`. A failed call is a warning with `error` and `cause` appended. A tool that reports a failure in its returned text instead of throwing gets no `cause`, because there is no exception to read; its text is content, and content is logged only at DEBUG.
+
+The `Reply delivery failed` line carries `provider`, `chatId`, `kind`, `sentParts` of the total, the exception class and `elapsedMs`. When the platform answered, it also carries `httpStatus`, `providerCode` and `providerMessage`. The status is present for Telegram and Slack when their client raised an HTTP error, and for Discord; the Discord code and message are Discord's own (`10003` is an unknown channel, `50001` a missing access, `50013` missing permissions). Any 4xx other than 429 is permanent and is not retried; a 429 or a 5xx is retried first, so the line appears only after the retries are spent.
+
+To find the cause of each outcome:
+
+* `outcome=error` with `error` and `cause`: the `error` class is the innermost exception, not the wrapper that reached the caller, so search the code for that class and read `cause` against it. A failure that reaches the `chatSync` or `chat` entry points is also logged as `ERROR Agent turn failed`, with the full stack trace.
+* `MessagingOrchestrator: agent failed, falling back to AgentService` with `error` and `cause`: the primary path failed and the reply came from the fallback. The same conversation then has a second `Agent turn` line with `outcome=ok`. The cause on the warning is the first failure to read.
+* `Tool call <name> outcome=error` with `error` and `cause`: the named tool threw. Its root cause is the `error` class, and the tool's own code is the place to look.
+* `Reply delivery failed` with `httpStatus`: the reply never reached the platform. A `401` or `403` points at the bot token or the bot's permissions. A `404` on Discord means the channel does not exist or is not visible to the bot. A `400` is a rejected request, and on Telegram a wrong chat id is reported that way. Discord's `providerCode` narrows the cause further.
+* `outcome=cancelled`: the caller went away before the turn finished; there is no error to find.
 
 
 == Native footprint

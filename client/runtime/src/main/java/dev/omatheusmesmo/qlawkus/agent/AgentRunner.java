@@ -1,6 +1,8 @@
 package dev.omatheusmesmo.qlawkus.agent;
 
 import dev.omatheusmesmo.qlawkus.cognition.SoulEngine;
+import dev.omatheusmesmo.qlawkus.logging.FailureSummary;
+import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -22,16 +24,20 @@ public class AgentRunner {
     @Inject
     AgentDeliveryContext delivery;
 
+    @Inject
+    SecretRedactor redactor;
+
     public String chat(String memoryId, String message) {
         AgentTurn turn = AgentTurn.open(memoryId, AgentTurn.channelOf(memoryId, delivery), false);
-        String outcome = "error";
+        FailureSummary failure = null;
         try (AgentTurn.Binding ignored = turn.bind()) {
             String soul = soulEngine.getSystemMessage(memoryId).orElse("");
-            String reply = agent.chat(memoryId, soul, message);
-            outcome = "ok";
-            return reply;
+            return agent.chat(memoryId, soul, message);
+        } catch (RuntimeException | Error e) {
+            failure = FailureSummary.of(e, redactor::redact);
+            throw e;
         } finally {
-            turn.close(outcome);
+            turn.close(failure == null ? "ok" : "error", failure);
         }
     }
 }

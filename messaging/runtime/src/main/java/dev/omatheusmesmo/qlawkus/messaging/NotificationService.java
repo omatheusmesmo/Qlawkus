@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.messaging;
 
 import dev.omatheusmesmo.qlawkus.messaging.format.FormatterRegistry;
 import dev.omatheusmesmo.qlawkus.messaging.format.MessageFormatter;
+import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -22,6 +23,9 @@ public class NotificationService {
 
     @Inject
     FormatterRegistry formatterRegistry;
+
+    @Inject
+    SecretRedactor redactor;
 
     @Inject
     ChunkingService chunkingService;
@@ -60,8 +64,8 @@ public class NotificationService {
                 .map(provider -> Uni.createFrom().item(System::nanoTime)
                         .flatMap(startNanos -> provider.sendVoice(chatId, audio, filename, fallbackText)
                                 .onItem().invoke(() -> logDelivered(providerId, chatId, conversation, VOICE, 1, startNanos))
-                                .onFailure().invoke(err -> logFailed(providerId, chatId, conversation, VOICE, 0, 1,
-                                        err, startNanos))))
+                                .onFailure().invoke(err -> logFailed(provider, providerId, chatId, conversation,
+                                        VOICE, 0, 1, err, startNanos))))
                 .orElseGet(() -> {
                     MessagingLog.warn(providerId, conversation,
                             "NotificationService: no active provider=%s, dropping voice message to chatId=%s",
@@ -92,7 +96,7 @@ public class NotificationService {
                         if (firstFailure.get() == null) {
                             logDelivered(providerId, chatId, conversation, TEXT, sent, startNanos);
                         } else {
-                            logFailed(providerId, chatId, conversation, TEXT, sent, outcomes.size(),
+                            logFailed(provider, providerId, chatId, conversation, TEXT, sent, outcomes.size(),
                                     firstFailure.get(), startNanos);
                         }
                     })
@@ -107,11 +111,21 @@ public class NotificationService {
                 providerId, chatId, parts, kind, elapsedMs(startNanos));
     }
 
-    private static void logFailed(String providerId, String chatId, String conversation, String kind,
-                                  long sent, long total, Throwable failure, long startNanos) {
+    private void logFailed(MessagingProvider provider, String providerId, String chatId, String conversation,
+                           String kind, long sent, long total, Throwable failure, long startNanos) {
         MessagingLog.warn(providerId, conversation,
-                "Reply delivery failed provider=%s chatId=%s kind=%s sentParts=%d of %d exception=%s elapsedMs=%d",
-                providerId, chatId, kind, sent, total, MessagingLog.exceptionName(failure), elapsedMs(startNanos));
+                "Reply delivery failed provider=%s chatId=%s kind=%s sentParts=%d of %d exception=%s elapsedMs=%d%s",
+                providerId, chatId, kind, sent, total, MessagingLog.exceptionName(failure), elapsedMs(startNanos),
+                describeDelivery(provider, failure));
+    }
+
+    private String describeDelivery(MessagingProvider provider, Throwable failure) {
+        return provider.deliveryFailure(failure)
+                .or(() -> DeliveryFailure.fromHttpStatus(failure))
+                .map(detail -> detail.describe(redactor::redact))
+                .filter(text -> !text.isEmpty())
+                .map(text -> " " + text)
+                .orElse("");
     }
 
     private static long elapsedMs(long startNanos) {

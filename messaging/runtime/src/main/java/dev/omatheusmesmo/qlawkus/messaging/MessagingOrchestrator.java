@@ -8,7 +8,9 @@ import dev.omatheusmesmo.qlawkus.agent.ToolProgress;
 import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
+import dev.omatheusmesmo.qlawkus.logging.FailureSummary;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
+import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
 import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressReporter;
 import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressRouter;
@@ -84,6 +86,9 @@ public class MessagingOrchestrator {
 
     @Inject
     AgentConfig agentConfig;
+
+    @Inject
+    SecretRedactor redactor;
 
     public Uni<Void> process(MessagingMessage message) {
         String channel = message.providerId();
@@ -277,7 +282,9 @@ public class MessagingOrchestrator {
                     Log.debugf("MessagingOrchestrator: agent completed for conversationId=%s", conversationId);
                     return response;
                 } catch (Exception e) {
-                    Log.warnf(e, "MessagingOrchestrator: agent failed, falling back to AgentService");
+                    FailureSummary summary = FailureSummary.of(e, redactor::redact);
+                    Log.warnf(e, "MessagingOrchestrator: agent failed, falling back to AgentService error=%s cause=%s",
+                            summary.error(), summary.cause());
                 }
             }
             return agentService.chatSync(conversationId, text);

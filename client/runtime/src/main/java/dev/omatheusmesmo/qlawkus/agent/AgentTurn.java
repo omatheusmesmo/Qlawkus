@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.agent;
 
+import dev.omatheusmesmo.qlawkus.logging.FailureSummary;
 import dev.omatheusmesmo.qlawkus.model.ServedTier;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import io.quarkus.logging.Log;
@@ -140,6 +141,14 @@ public final class AgentTurn {
      * finishes a turn and a failure path can both call it.
      */
     public void close(String outcome) {
+        close(outcome, null);
+    }
+
+    /**
+     * Closes the turn as a failure: the line ends with {@code error} and {@code cause} from
+     * {@code failure}. A {@code null} failure leaves the line as an ordinary one.
+     */
+    public void close(String outcome, FailureSummary failure) {
         if (!closed.compareAndSet(false, true)) {
             return;
         }
@@ -148,12 +157,16 @@ public final class AgentTurn {
         putMdc();
         try {
             Log.infof("Agent turn channel=%s conversation=%s workload=%s outcome=%s tier=%s duration=%dms "
-                            + "tools=%s facts=%d tokens=%s",
+                            + "tools=%s facts=%d tokens=%s%s",
                     channel, conversation, workload, outcome, orUnknown(tier), durationMs, describeTools(),
-                    facts.get(), describeTokens());
+                    facts.get(), describeTokens(), describeFailure(failure));
         } finally {
             clearMdc();
         }
+    }
+
+    private static String describeFailure(FailureSummary failure) {
+        return failure == null ? "" : " error=" + failure.error() + " cause=" + failure.cause();
     }
 
     private void putMdc() {

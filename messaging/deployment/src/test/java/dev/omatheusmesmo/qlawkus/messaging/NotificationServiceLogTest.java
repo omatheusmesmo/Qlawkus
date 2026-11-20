@@ -3,7 +3,9 @@ package dev.omatheusmesmo.qlawkus.messaging;
 import dev.omatheusmesmo.qlawkus.messaging.format.FormatterRegistry;
 import dev.omatheusmesmo.qlawkus.messaging.format.MessageFormatter;
 import dev.omatheusmesmo.qlawkus.messaging.logging.MessagingLogCapture;
+import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import io.smallrye.mutiny.Uni;
+import jakarta.ws.rs.WebApplicationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -34,6 +36,9 @@ class NotificationServiceLogTest {
         service.providerRegistry = providerRegistry;
         service.formatterRegistry = formatterRegistry;
         service.chunkingService = chunkingService;
+        SecretRedactor redactor = Mockito.mock(SecretRedactor.class);
+        when(redactor.redact(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
+        service.redactor = redactor;
 
         MessageFormatter passThrough = new MessageFormatter() {
             @Override public MessagingFormat format() { return MessagingFormat.PLAIN_TEXT; }
@@ -87,6 +92,46 @@ class NotificationServiceLogTest {
             assertEquals("telegram", failed.get(0).mdc().get("channel"));
             assertNoContent(logs, "secret");
             assertTrue(logs.containing("Reply delivered").isEmpty());
+        }
+    }
+
+    @Test
+    void aRejectedReplyNamesTheHttpStatusTheProviderAnswered() {
+        when(chunkingService.chunk(any(), eq("telegram"))).thenReturn(List.of("secret reply body"));
+        when(provider.send(any(), any())).thenReturn(
+                Uni.createFrom().failure(new WebApplicationException("rejected", 400)));
+
+        try (MessagingLogCapture logs = new MessagingLogCapture()) {
+            service.send("telegram", "chat-log-5", "secret reply body", "conv-log-5").await().indefinitely();
+
+            List<MessagingLogCapture.Line> failed = logs.containing("Reply delivery failed");
+            assertEquals(1, failed.size(), () -> "expected one failure warning, got " + logs.lines());
+            String line = failed.get(0).message();
+            assertTrue(line.contains("exception=WebApplicationException"), line);
+            assertTrue(line.endsWith(" httpStatus=400"), line);
+            assertNoContent(logs, "secret");
+        }
+    }
+
+    @Test
+    void aProviderThatExposesItsOwnErrorDetailHasItRedactedAndBoundedOnTheLine() {
+        when(chunkingService.chunk(any(), eq("telegram"))).thenReturn(List.of("secret reply body"));
+        when(provider.send(any(), any())).thenReturn(Uni.createFrom().failure(new IllegalStateException("opaque")));
+        when(provider.deliveryFailure(any())).thenReturn(Optional.of(
+                new DeliveryFailure(403, "50013", "Missing token " + "sk-live-123456789 " + "x".repeat(300))));
+        SecretRedactor redactor = Mockito.mock(SecretRedactor.class);
+        when(redactor.redact(anyString())).thenAnswer(invocation ->
+                invocation.getArgument(0, String.class).replace("sk-live-123456789", "[redacted]"));
+        service.redactor = redactor;
+
+        try (MessagingLogCapture logs = new MessagingLogCapture()) {
+            service.send("telegram", "chat-log-6", "secret reply body", "conv-log-6").await().indefinitely();
+
+            String line = logs.containing("Reply delivery failed").get(0).message();
+            assertTrue(line.contains(" httpStatus=403 providerCode=50013 providerMessage=Missing token [redacted] x"),
+                    line);
+            assertFalse(line.contains("sk-live"), line);
+            assertTrue(line.matches("(?s).*providerMessage=[^\\n]{0,200}$"), line);
         }
     }
 
