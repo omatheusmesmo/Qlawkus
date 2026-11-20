@@ -336,7 +336,7 @@ User-facing catalog: `site/content/operations.adoc` under "What the agent measur
 
 ## Key Entry Points
 
-- `client/runtime/.../agent/AgentService.java` - `@RegisterAiService` interface (ReAct agent, `maxSequentialToolInvocations=100`); wires `systemMessageProviderSupplier`, `retrievalAugmentor` (Active Memory), tools, and `toolProviderSupplier`
+- `client/runtime/.../agent/AgentService.java` - `@RegisterAiService` interface (ReAct agent, `maxSequentialToolInvocations = AgentToolLimits.MAX_SEQUENTIAL_TOOL_INVOCATIONS`); wires `systemMessageProviderSupplier`, `retrievalAugmentor` (Active Memory), tools, and `toolProviderSupplier`. The declarative `QlawkusAgent` (messaging) cannot take that attribute, so `AgentToolLimitConfigSourceFactory` publishes the same constant as `quarkus.langchain4j.ai-service.max-tool-executions` (ordinal 100); without it the upstream default of 10 applies and a turn with more tool rounds fails and replays on the fallback path (#446)
 - `client/runtime/.../rest/ApiResource.java` - `POST /api/chat` (SSE) and `POST /api/chat/sync`
 - `client/runtime/.../cognition/SoulEngine.java` - Builds the dynamic system prompt: `Soul` persona + `UserProfile` owner block + execution-bias section, injected every turn
 - `client/runtime/.../deployment/ClientProcessor.java` - Build step: discovers `@QlawTool` beans + DTOs for reflection

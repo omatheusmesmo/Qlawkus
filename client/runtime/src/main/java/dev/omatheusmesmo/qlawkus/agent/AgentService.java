@@ -38,7 +38,7 @@ import jakarta.enterprise.context.ApplicationScoped;
     toolProviderSupplier = QlawToolProviderSupplier.class,
     toolSearchStrategySupplier = QlawToolSearchStrategySupplier.class,
     retrievalAugmentor = ActiveMemoryAugmentor.class,
-    maxSequentialToolInvocations = 100
+    maxSequentialToolInvocations = AgentToolLimits.MAX_SEQUENTIAL_TOOL_INVOCATIONS
 )
 @ApplicationScoped
 @Logged
