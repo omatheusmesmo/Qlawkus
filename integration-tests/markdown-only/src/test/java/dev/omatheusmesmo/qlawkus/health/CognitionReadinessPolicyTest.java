@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.health;
 import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
+import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.SoulStore;
 import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
@@ -38,6 +39,7 @@ class CognitionReadinessPolicyTest {
         check.workingMemoryStore = mock(WorkingMemoryStore.class);
         check.factStore = mock(FactStore.class);
         check.episodicStore = mock(EpisodicStore.class);
+        check.scheduledTaskStore = mock(ScheduledTaskStore.class);
         check.skillsConfig = skillsConfig;
         when(skillsConfig.enabled()).thenReturn(true);
     }

@@ -258,9 +258,13 @@ Schedules come in two forms, both expressed as Quartz crons in `qlawkus.agent.ti
 * A recurring cron, such as `0 0 9 * * ?`, stays scheduled after each run.
 * A one-time task is an exact-date cron with a year and literal fields, such as `0 0 12 15 6 ? 2027`, or a delay in minutes that the tool converts into one. It is unscheduled before the model is called, so it is removed even when its run fails.
 
-Limits are deliberately small: at most 20 agent-created tasks, 500 characters of task text, and a delay of at most one year. A cron that never fires again is refused.
+Limits are deliberately small: at most 20 agent-created tasks, 500 characters of task text, and a delay of at most one year. A cron that never fires again is refused. Missed and invalid tasks, described below, count toward the 20 until they are cancelled.
 
-Schedules are volatile in this release. They live in memory only, so a restart, redeploy or crash loses them, a run missed while the agent is down is not caught up, and delivery is best effort. Persistence is tracked separately. The console's schedule page lists the static jobs only and does not show agent-created tasks.
+Schedules are persisted. Before the agent reports a task as scheduled, the task is written to a `ScheduledTaskStore`. It is removed from that store when the owner cancels it or, for a one-time task, when it retires. The default backend keeps one `<id>.json` file per task under `scheduled-tasks` in `qlawkus.agent.state.root`. With `qlawkus.cognition.backend=pgvector` the tasks are rows in the `scheduled_task` table, added by migration `V8`. With `hybrid` the files stay the source of truth and the table is a mirror of them.
+
+At boot, `DynamicTaskRestorer` registers every stored task again under the same id, cron, timezone and overlap policy. A recurring task simply resumes, and so does a one-time task whose time is still ahead. A one-time task whose time passed while the agent was down is not run: it is marked missed, `listScheduledTasks` reports it with a note, and it stays listed until the owner cancels it, which removes it. A schedule the scheduler cannot run is marked invalid the same way and is not retried on every start. A record that cannot be read is skipped with a warning that names only its file, so the other tasks still load. The restore never exceeds the cap: tasks beyond it stay stored and are counted as held.
+
+The restore runs only in the instance that holds the single-instance lock, so a second instance refused at boot never rewrites a record. Two boundaries remain. A one-time task is removed before its model call, so a run interrupted by a crash is not repeated after the restart. Delivery is best effort, so a reply that was not sent before the crash is not sent again. Each boot publishes `qlawkus.task.restored` by outcome (`restored`, `missed`, `invalid`, `held`), and the reference dashboard charts it under Scheduled tasks.
 
 == Skills (procedural memory)
 

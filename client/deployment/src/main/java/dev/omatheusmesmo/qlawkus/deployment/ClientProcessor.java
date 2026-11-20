@@ -261,6 +261,18 @@ class ClientProcessor {
     }
 
     @BuildStep
+    ReflectiveClassBuildItem registerScheduledTaskForReflection() {
+        return ReflectiveClassBuildItem.builder(
+                "dev.omatheusmesmo.qlawkus.task.ScheduledTask",
+                "dev.omatheusmesmo.qlawkus.task.TaskDestination",
+                "dev.omatheusmesmo.qlawkus.task.TaskStatus")
+                .methods()
+                .fields()
+                .constructors()
+                .build();
+    }
+
+    @BuildStep
     void registerLlmKindConfigSource(BuildProducer<StaticInitConfigBuilderBuildItem> staticInit,
             BuildProducer<RunTimeConfigBuilderBuildItem> runTime) {
         staticInit.produce(new StaticInitConfigBuilderBuildItem(LlmKindConfigBuilder.class.getName()));

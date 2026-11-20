@@ -85,6 +85,20 @@ public class AgentMeters {
     public static final String REDEPLOY_PHASE_DURATION = "qlawkus.redeploy.phase.duration";
     public static final String REDEPLOY_LAST_SUCCESS_AGE = "qlawkus.redeploy.last.success.age";
 
+    public static final String TASK_RESTORED = "qlawkus.task.restored";
+
+    /** The {@code outcome} tag of {@link #TASK_RESTORED} for a stored task registered again. */
+    public static final String TASK_OUTCOME_RESTORED = "restored";
+
+    /** The {@code outcome} tag of {@link #TASK_RESTORED} for a one-time task that was due while down. */
+    public static final String TASK_OUTCOME_MISSED = "missed";
+
+    /** The {@code outcome} tag of {@link #TASK_RESTORED} for a schedule that cannot run. */
+    public static final String TASK_OUTCOME_INVALID = "invalid";
+
+    /** The {@code outcome} tag of {@link #TASK_RESTORED} for a stored task left over the task cap. */
+    public static final String TASK_OUTCOME_HELD = "held";
+
     private static final String TAG_OUTCOME = "outcome";
     private static final String TAG_QUESTION = "question";
     private static final String TAG_JOB = "job";
@@ -333,6 +347,16 @@ public class AgentMeters {
             FunctionTimer.builder(REDEPLOY_PHASE_DURATION, source, count, totalMillis, TimeUnit.MILLISECONDS)
                     .tags(Tags.of(TAG_PHASE, phase, TAG_OUTCOME, outcome))
                     .register(registry);
+        }
+    }
+
+    /**
+     * Records what one boot restore did with the stored agent tasks. Called with zero counts too, so
+     * every outcome series exists from the first boot rather than appearing on its first task.
+     */
+    public void taskRestore(String outcome, long count) {
+        if (registry != null) {
+            registry.counter(TASK_RESTORED, Tags.of(TAG_OUTCOME, outcome)).increment(count);
         }
     }
 

@@ -13,8 +13,12 @@ import java.util.List;
 @ApplicationScoped
 public class TaskSchedulerTool {
 
-    private static final String VOLATILE_WARNING = "Schedules live in memory only: they are lost on restart, "
-            + "redeploy or crash, runs missed while the agent is down are not caught up, and delivery is best effort.";
+    private static final String DURABILITY = "Schedules survive a restart, redeploy or crash. A one-time task "
+            + "that was due while the agent was down is reported as missed and is not run; it stays listed until "
+            + "it is cancelled. Delivery is best effort.";
+
+    private static final String MISSED_NOTE = "missed while the agent was down, not run: cancel it to remove it";
+    private static final String INVALID_NOTE = "invalid schedule, it never runs: cancel it to remove it";
 
     private static final String REST_CHANNEL = "rest";
 
@@ -33,7 +37,9 @@ public class TaskSchedulerTool {
             + "(seconds minutes hours day-of-month month day-of-week year, with ? in the day you do not use) for a "
             + "recurring task. A cron with a fixed day, month and year runs once on that date. In a chat, leave "
             + "providerId and chatId empty to deliver back to that chat; from the REST API both are required. The "
-            + "task runs with the full agent and its tools, in the conversation that scheduled it. " + VOLATILE_WARNING)
+            + "task runs with the full agent and its tools, in the conversation that scheduled it. Schedules are "
+            + "stored under the agent's state (as files with the markdown backend) and are registered again after "
+            + "a restart. " + DURABILITY)
     public String scheduleTask(
             @P("What to do when the task runs, written as a complete instruction") String task,
             @P("Quartz cron for a recurring task, or a fixed date for a one-time task; empty when inMinutes is used")
@@ -54,18 +60,20 @@ public class TaskSchedulerTool {
         }
     }
 
-    @Tool("List the tasks scheduled so far, with the next run of each and where it delivers.")
+    @Tool("List the tasks scheduled so far, with the next run of each and where it delivers. A task that was due "
+            + "while the agent was down is listed as missed and was not run.")
     public String listScheduledTasks() {
         List<TaskView> views = scheduler.list();
         if (views.isEmpty()) {
             return "No scheduled tasks.";
         }
-        StringBuilder listing = new StringBuilder("Scheduled tasks (" + VOLATILE_WARNING + "):");
+        StringBuilder listing = new StringBuilder("Scheduled tasks (" + DURABILITY + "):");
         for (TaskView view : views) {
             ScheduledTask task = view.task();
             listing.append("\n- ").append(task.id())
                     .append(" | next run ").append(formatted(view.nextFire()))
                     .append(" | ").append(schedule(task))
+                    .append(" | ").append(state(task))
                     .append(" | to ").append(task.destination().providerId()).append(':')
                     .append(task.destination().chatId())
                     .append(" | task: ").append(task.task());
@@ -73,10 +81,15 @@ public class TaskSchedulerTool {
         return listing.toString();
     }
 
-    @Tool("Cancel a scheduled task by its id, as returned when it was scheduled or listed.")
+    @Tool("Cancel a scheduled task by its id, as returned when it was scheduled or listed. Cancelling also removes "
+            + "a task that was marked missed or invalid.")
     public String cancelScheduledTask(@P("The task id, such as qlawkus-task-...") String taskId) {
-        if (scheduler.cancel(taskId)) {
-            return "Cancelled task " + taskId + ".";
+        try {
+            if (scheduler.cancel(taskId)) {
+                return "Cancelled task " + taskId + ".";
+            }
+        } catch (IllegalStateException e) {
+            return error(e.getMessage());
         }
         return error("no task scheduled by the agent has id " + taskId);
     }
@@ -110,11 +123,19 @@ public class TaskSchedulerTool {
     private String scheduled(TaskView view) {
         return "Scheduled task " + view.task().id() + ". Next run " + formatted(view.nextFire())
                 + " (" + schedule(view.task()) + "), delivering to " + view.task().destination().providerId()
-                + ":" + view.task().destination().chatId() + ". " + VOLATILE_WARNING;
+                + ":" + view.task().destination().chatId() + ". " + DURABILITY;
     }
 
     private String schedule(ScheduledTask task) {
         return task.oneShot() ? "one-time" : "recurring " + task.cron();
+    }
+
+    private static String state(ScheduledTask task) {
+        return switch (task.status()) {
+            case ACTIVE -> "active";
+            case MISSED -> MISSED_NOTE;
+            case INVALID -> INVALID_NOTE;
+        };
     }
 
     private String formatted(Instant instant) {

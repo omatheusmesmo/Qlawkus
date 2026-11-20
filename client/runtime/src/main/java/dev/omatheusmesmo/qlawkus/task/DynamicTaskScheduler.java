@@ -5,6 +5,7 @@ import dev.omatheusmesmo.qlawkus.agent.AgentRunner;
 import dev.omatheusmesmo.qlawkus.agent.WorkflowResultReadyEvent;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
+import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
 import io.quarkus.arc.Arc;
 import io.quarkus.arc.ManagedContext;
 import io.quarkus.logging.Log;
@@ -14,7 +15,9 @@ import io.quarkus.scheduler.Trigger;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import java.time.DateTimeException;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -22,20 +25,27 @@ import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
  * Tasks the agent schedules at the owner's request, kept apart from the application's own
- * {@code @Scheduled} jobs. A task is an in-memory record plus a Quartz job registered with the
- * scheduler under a namespaced UUID, so cancelling one can never touch a static job.
+ * {@code @Scheduled} jobs. A task is a record plus a Quartz job registered under a namespaced UUID, so
+ * cancelling one can never touch a static job.
+ *
+ * <p>Every task is written to a {@link ScheduledTaskStore} before it is reported as scheduled, and
+ * removed from it when cancelled or when a one-time task retires. {@link #restore()} registers the
+ * stored tasks again after a restart. A one-time task whose time passed while the agent was down is
+ * marked {@link TaskStatus#MISSED} and never run; a schedule the scheduler cannot run is marked
+ * {@link TaskStatus#INVALID}. Both stay listed until cancelled, so the owner can be told.
  *
  * <p>A run replays the task into the conversation that scheduled it, through {@link AgentRunner}, with the
  * destination restored as the delivery context, and hands the reply to {@link WorkflowResultReadyEvent}
- * for whichever messaging channel the destination names. A one-shot task removes itself before the model
- * is called, so a run that fails still leaves nothing scheduled. Everything here is volatile: a restart,
- * redeploy or crash loses the tasks, and a run missed while the agent was down is not caught up.
+ * for whichever messaging channel the destination names. A one-time task removes its record before the
+ * model is called, so a run that fails still leaves nothing scheduled. Delivery is best effort: a reply
+ * that was not sent when the process died is not sent again.
  */
 @ApplicationScoped
 public class DynamicTaskScheduler {
@@ -55,16 +65,18 @@ public class DynamicTaskScheduler {
     private final AgentRunner agentRunner;
     private final AgentDeliveryContext delivery;
     private final Event<WorkflowResultReadyEvent> resultEvent;
+    private final ScheduledTaskStore store;
     private final ZoneId zone;
     private final Map<String, ScheduledTask> tasks = new ConcurrentHashMap<>();
 
     @Inject
     public DynamicTaskScheduler(Scheduler scheduler, AgentRunner agentRunner, AgentDeliveryContext delivery,
-            Event<WorkflowResultReadyEvent> resultEvent, AgentConfig config) {
+            Event<WorkflowResultReadyEvent> resultEvent, AgentConfig config, ScheduledTaskStore store) {
         this.scheduler = scheduler;
         this.agentRunner = agentRunner;
         this.delivery = delivery;
         this.resultEvent = resultEvent;
+        this.store = store;
         this.zone = ZoneId.of(config.timezone());
     }
 
@@ -77,9 +89,23 @@ public class DynamicTaskScheduler {
         }
         String id = ID_PREFIX + UUID.randomUUID();
         ScheduledTask scheduled = new ScheduledTask(id, memoryId, destination, task.strip(), cron.strip(),
-                isOneShot(cron), Instant.now());
+                isOneShot(cron), Instant.now(), TaskStatus.ACTIVE);
         tasks.put(id, scheduled);
-        Instant nextFire = register(scheduled);
+        Instant nextFire;
+        try {
+            nextFire = schedule(scheduled);
+        } catch (IllegalArgumentException e) {
+            tasks.remove(id);
+            throw e;
+        }
+        try {
+            store.save(scheduled);
+        } catch (RuntimeException e) {
+            tasks.remove(id);
+            unschedule(id);
+            removeRecordQuietly(id);
+            throw new IllegalStateException("could not save the task, so it was not scheduled", e);
+        }
         Log.infof("Scheduled agent task %s oneShot=%s", id, scheduled.oneShot());
         return new TaskView(scheduled, nextFire);
     }
@@ -92,9 +118,15 @@ public class DynamicTaskScheduler {
     }
 
     public synchronized boolean cancel(String id) {
-        if (id == null || !id.startsWith(ID_PREFIX) || tasks.remove(id) == null) {
+        if (id == null || !id.startsWith(ID_PREFIX) || !tasks.containsKey(id)) {
             return false;
         }
+        try {
+            store.delete(id);
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("could not remove the task record, so the task stays scheduled", e);
+        }
+        tasks.remove(id);
         scheduler.unscheduleJob(id);
         Log.infof("Cancelled agent task %s", id);
         return true;
@@ -102,14 +134,47 @@ public class DynamicTaskScheduler {
 
     public void fire(String id) {
         ScheduledTask task = tasks.get(id);
-        if (task == null) {
-            Log.debugf("Agent task %s is gone, nothing to run", id);
+        if (task == null || task.status() != TaskStatus.ACTIVE) {
+            Log.debugf("Agent task %s is not due to run, nothing to do", id);
             return;
         }
         if (task.oneShot()) {
             retire(id);
         }
         run(task);
+    }
+
+    /**
+     * Registers every stored task again, once per id. A task already in the registry is left alone, and
+     * the task cap is never exceeded: the rest stay stored and are counted as held.
+     */
+    public synchronized TaskRestoreReport restore() {
+        int restored = 0;
+        int missed = 0;
+        int invalid = 0;
+        int held = 0;
+        for (ScheduledTask stored : store.loadAll()) {
+            if (tasks.containsKey(stored.id())) {
+                continue;
+            }
+            if (tasks.size() >= MAX_TASKS) {
+                held++;
+                continue;
+            }
+            ScheduledTask restoredTask = restoreOne(stored);
+            tasks.put(restoredTask.id(), restoredTask);
+            if (stored.status() == TaskStatus.ACTIVE) {
+                switch (restoredTask.status()) {
+                    case ACTIVE -> restored++;
+                    case MISSED -> missed++;
+                    case INVALID -> invalid++;
+                }
+            }
+        }
+        if (held > 0) {
+            Log.warnf("%d stored agent task(s) held back by the cap of %d", held, MAX_TASKS);
+        }
+        return new TaskRestoreReport(restored, missed, invalid, held);
     }
 
     public String cronInMinutes(long minutes) {
@@ -151,7 +216,64 @@ public class DynamicTaskScheduler {
         }
     }
 
-    private Instant register(ScheduledTask task) {
+    private ScheduledTask restoreOne(ScheduledTask stored) {
+        if (stored.status() != TaskStatus.ACTIVE) {
+            return stored;
+        }
+        TaskStatus outcome = reschedule(stored);
+        if (outcome == TaskStatus.ACTIVE) {
+            return stored;
+        }
+        ScheduledTask changed = stored.withStatus(outcome);
+        recordStatus(changed);
+        if (outcome == TaskStatus.MISSED) {
+            Log.infof("Agent task %s was due while the agent was down and was not run", stored.id());
+        } else {
+            Log.warnf("Agent task %s has a schedule that cannot run, so it is marked invalid", stored.id());
+        }
+        return changed;
+    }
+
+    private TaskStatus reschedule(ScheduledTask stored) {
+        scheduler.unscheduleJob(stored.id());
+        if (isOneShot(stored.cron())) {
+            Optional<Instant> fireAt = oneShotFireTime(stored.cron());
+            if (fireAt.isEmpty()) {
+                return TaskStatus.INVALID;
+            }
+            if (!fireAt.get().isAfter(Instant.now())) {
+                return TaskStatus.MISSED;
+            }
+        }
+        try {
+            schedule(stored);
+            return TaskStatus.ACTIVE;
+        } catch (IllegalArgumentException e) {
+            return TaskStatus.INVALID;
+        }
+    }
+
+    private Optional<Instant> oneShotFireTime(String cron) {
+        String[] fields = cron.strip().split("\\s+");
+        try {
+            LocalDateTime at = LocalDateTime.of(
+                    Integer.parseInt(fields[6]), Integer.parseInt(fields[4]), Integer.parseInt(fields[3]),
+                    Integer.parseInt(fields[2]), Integer.parseInt(fields[1]), Integer.parseInt(fields[0]));
+            return Optional.of(at.atZone(zone).toInstant());
+        } catch (DateTimeException | NumberFormatException e) {
+            return Optional.empty();
+        }
+    }
+
+    private void recordStatus(ScheduledTask task) {
+        try {
+            store.save(task);
+        } catch (RuntimeException e) {
+            Log.warnf(e, "Could not record that agent task %s is %s", task.id(), task.status());
+        }
+    }
+
+    private Instant schedule(ScheduledTask task) {
         Trigger trigger;
         try {
             trigger = scheduler.newJob(task.id())
@@ -161,16 +283,26 @@ public class DynamicTaskScheduler {
                     .setTask(execution -> fire(task.id()))
                     .schedule();
         } catch (RuntimeException e) {
-            tasks.remove(task.id());
             throw new IllegalArgumentException("cron is not a valid schedule: " + task.cron(), e);
         }
         Instant nextFire = trigger == null ? null : trigger.getNextFireTime();
         if (nextFire == null) {
-            tasks.remove(task.id());
             scheduler.unscheduleJob(task.id());
             throw new IllegalArgumentException("cron never fires again: " + task.cron());
         }
         return nextFire;
+    }
+
+    private void unschedule(String id) {
+        scheduler.unscheduleJob(id);
+    }
+
+    private void removeRecordQuietly(String id) {
+        try {
+            store.delete(id);
+        } catch (RuntimeException e) {
+            Log.warnf(e, "Could not remove the record of agent task %s after a failed save", id);
+        }
     }
 
     private Instant nextFire(String id) {
@@ -181,6 +313,11 @@ public class DynamicTaskScheduler {
     private void retire(String id) {
         tasks.remove(id);
         scheduler.unscheduleJob(id);
+        try {
+            store.delete(id);
+        } catch (RuntimeException e) {
+            Log.errorf(e, "Could not remove the record of one-time agent task %s", id);
+        }
     }
 
     private void run(ScheduledTask task) {
