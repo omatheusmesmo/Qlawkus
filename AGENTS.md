@@ -199,6 +199,8 @@ In Docker, `docker/postgres-init/01-create-databases.sql` creates the extra DBs.
 
 One source, one generated mirror. **Edit only `site/content/`** - everything else is built from it.
 
+**Every PR documents its own change, in the same commit.** A feature PR ships the user-facing page or section under `site/content/` (mirrored to `docs/modules/ROOT/pages/`, see below), a `config-reference.adoc` include for each new `qlawkus.*` config root, and the matching bullet in this file's Architecture inventory when it adds a subsystem or changes how an existing one is wired. A fix updates the page that already describes the behavior it changes. Documentation is part of the definition of done, never a follow-up PR; a reviewer can ask for it before merge.
+
 - **`site/content/*.adoc`** - hand-written pages (the Roq site): `index`, `architecture`, `config-reference`, `quickstart`, `messaging`, `voice`, `google-workspace`. This is the source of truth.
 - **`site/content/includes/*.adoc`** - **generated** config reference. `docs/pom.xml` runs `quarkus-config-doc-maven-plugin` (build-time augmentation, no datasource, depends on every `*-deployment` artifact) which writes one file per config root from the `@ConfigMapping` JavaDoc into `site/content/includes/`. Never edit these by hand - they are overwritten every build.
 - **`docs/modules/ROOT/pages/*`** - the Antora copy. The `sync-site-to-antora` execution in `docs/pom.xml` (`maven-resources-plugin`, `verify` phase) copies all of `site/content/` here. It is a generated mirror; **never edit `docs/` directly** (the next build overwrites it). If you must commit the mirror without a full build, copy the changed file from `site/content/` to the matching `docs/modules/ROOT/pages/` path.
