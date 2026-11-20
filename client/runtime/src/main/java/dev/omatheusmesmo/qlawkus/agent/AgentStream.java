@@ -49,25 +49,46 @@ public class AgentStream {
     }
 
     public Multi<AgentEvent> stream(String conversationId, String message) {
-        return Multi.createFrom().deferred(() -> {
-            AgentTurn logged = AgentTurn.open(conversationId, AgentTurn.channelOf(conversationId, delivery), true);
-            Turn turn = new Turn(conversationId, logged);
-            streamedTools.capture(conversationId);
-            Multi<ChatEvent> events;
-            try (AgentTurn.Binding ignored = logged.bind()) {
-                events = agent.chatEvents(conversationId, message);
-            } catch (RuntimeException e) {
-                logged.close("error");
-                streamedTools.release(conversationId);
-                throw e;
-            }
-            return events.onItem().transformToIterable(turn::translate)
-                    .onCompletion().continueWith(turn::done)
-                    .onTermination().invoke((failure, cancelled) -> {
-                        logged.close(AgentTurn.outcomeOf(failure, cancelled));
-                        streamedTools.release(conversationId);
-                    });
-        });
+        return Multi.createFrom().deferred(() -> open(conversationId, message));
+    }
+
+    /**
+     * Streams a turn whose tools run with {@code origin} as their delivery context, whatever the calling
+     * thread carries. The caller's own delivery context is restored before this returns, so the thread
+     * that subscribes is left as it was found.
+     */
+    public Multi<AgentEvent> stream(String conversationId, String message, AgentDeliveryContext.Snapshot origin) {
+        return Multi.createFrom().deferred(() -> openFrom(origin, conversationId, message));
+    }
+
+    private Multi<AgentEvent> openFrom(AgentDeliveryContext.Snapshot origin, String conversationId, String message) {
+        AgentDeliveryContext.Snapshot previous = delivery.snapshot();
+        delivery.restore(origin);
+        try {
+            return open(conversationId, message);
+        } finally {
+            delivery.restore(previous);
+        }
+    }
+
+    private Multi<AgentEvent> open(String conversationId, String message) {
+        AgentTurn logged = AgentTurn.open(conversationId, AgentTurn.channelOf(conversationId, delivery), true);
+        Turn turn = new Turn(conversationId, logged);
+        streamedTools.capture(conversationId);
+        Multi<ChatEvent> events;
+        try (AgentTurn.Binding ignored = logged.bind()) {
+            events = agent.chatEvents(conversationId, message);
+        } catch (RuntimeException e) {
+            logged.close("error");
+            streamedTools.release(conversationId);
+            throw e;
+        }
+        return events.onItem().transformToIterable(turn::translate)
+                .onCompletion().continueWith(turn::done)
+                .onTermination().invoke((failure, cancelled) -> {
+                    logged.close(AgentTurn.outcomeOf(failure, cancelled));
+                    streamedTools.release(conversationId);
+                });
     }
 
     private final class Turn {
