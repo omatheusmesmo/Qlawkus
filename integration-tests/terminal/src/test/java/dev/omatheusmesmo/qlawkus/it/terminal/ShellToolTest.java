@@ -90,7 +90,7 @@ class ShellToolTest {
     }
 
     @Test
-    void listActiveProcesses_afterCommand() throws Exception {
+    void listActiveProcesses_finishedCommandIsNotListed() throws Exception {
         HttpRequest runReq = HttpRequest.newBuilder()
                 .uri(URI.create(baseUri + "api/test/shell/run?cmd=echo%20process-track-test"))
                 .header("Authorization", auth())
@@ -106,8 +106,8 @@ class ShellToolTest {
 
         HttpResponse<String> response = client().send(listReq, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode());
-        assertTrue(response.body().contains("process-track-test") || response.body().contains("pid"),
-                "listActiveProcesses should return tracked processes: " + response.body());
+        assertFalse(response.body().contains("process-track-test"),
+                "listActiveProcesses should list only running processes: " + response.body());
     }
 
     @Test
