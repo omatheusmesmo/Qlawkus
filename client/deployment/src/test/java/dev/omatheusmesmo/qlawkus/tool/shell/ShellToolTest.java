@@ -7,6 +7,7 @@ import dev.omatheusmesmo.qlawkus.dto.SecurityResult;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -14,10 +15,20 @@ import org.junit.jupiter.api.condition.OS;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
@@ -32,6 +43,67 @@ class ShellToolTest {
 
     @Inject
     WorkspaceConfinement workspaceConfinement;
+
+    private static final String ACCOUNTING_PREFIX = "acct-";
+
+    private final ExecutorService executor = Executors.newCachedThreadPool();
+
+    private final List<Future<CommandResult>> backgroundRuns = new ArrayList<>();
+
+    @AfterEach
+    void stopBackgroundRuns() {
+        for (ProcessInfo process : shellTool.listActiveProcesses()) {
+            if (process.command().contains(ACCOUNTING_PREFIX)) {
+                shellTool.killProcess(process.pid());
+            }
+        }
+        for (Future<CommandResult> run : backgroundRuns) {
+            try {
+                run.get(10, TimeUnit.SECONDS);
+            } catch (Exception ignored) {
+                run.cancel(true);
+            }
+        }
+        executor.shutdownNow();
+    }
+
+    private static String marker(String name) {
+        return ACCOUNTING_PREFIX + name + "-" + UUID.randomUUID();
+    }
+
+    private static String sleeper(String marker) {
+        return "exec sleep 300 # " + marker;
+    }
+
+    private Future<CommandResult> background(Callable<CommandResult> task) {
+        Future<CommandResult> run = executor.submit(task);
+        backgroundRuns.add(run);
+        return run;
+    }
+
+    private Future<CommandResult> runInBackground(String command, Integer timeoutSeconds) {
+        return background(() -> shellTool.runCommand(command, null, timeoutSeconds));
+    }
+
+    private long rejectedRuns() {
+        return backgroundRuns.stream().filter(Future::isDone).count();
+    }
+
+    private Optional<ProcessInfo> findTracked(String marker) {
+        return shellTool.listActiveProcesses().stream()
+                .filter(p -> p.command().contains(marker))
+                .findFirst();
+    }
+
+    private long awaitTracked(String marker) {
+        await().atMost(Duration.ofSeconds(10)).until(() -> findTracked(marker).isPresent());
+        return findTracked(marker).orElseThrow().pid();
+    }
+
+    private void assertNotTracked(String marker) {
+        Optional<ProcessInfo> leftover = findTracked(marker);
+        assertTrue(leftover.isEmpty(), "Finished process must not stay listed: " + leftover);
+    }
 
     @Test
     void runCommand_success_returnsStdoutAndZeroExitCode() {
@@ -200,37 +272,88 @@ class ShellToolTest {
     }
 
     @Test
-    void listActiveProcesses_tracksSpawnedProcesses() {
-        shellTool.runCommand("echo tracked_process_test", null, null);
+    @DisabledOnOs(OS.WINDOWS)
+    void listActiveProcesses_listsRunningProcessWhileInFlight() throws Exception {
+        String marker = marker("listed");
+        Future<CommandResult> run = runInBackground(sleeper(marker), null);
+        long pid = awaitTracked(marker);
 
-        List<ProcessInfo> processes = shellTool.listActiveProcesses();
+        ProcessInfo info = findTracked(marker).orElseThrow();
 
-        assertFalse(processes.isEmpty(), "Should have tracked at least one process");
-        boolean found = processes.stream()
-                .anyMatch(p -> p.command().contains("tracked_process_test"));
-        assertTrue(found, "Should find the tracked process by command, got: " + processes);
+        assertEquals(pid, info.pid(), "Listed pid should be the running process");
+        assertEquals("running", info.status(), "In-flight process should report 'running', got: " + info);
+        shellTool.killProcess(pid);
+        run.get(10, TimeUnit.SECONDS);
     }
 
     @Test
-    void listActiveProcesses_completedProcessHasCompletedStatus() {
-        shellTool.runCommand("echo completed_status_test", null, null);
+    void listActiveProcesses_completedProcessIsNotListed() {
+        String marker = marker("completed");
 
-        List<ProcessInfo> processes = shellTool.listActiveProcesses();
+        CommandResult result = shellTool.runCommand("echo " + marker, null, null);
 
-        boolean found = processes.stream()
-                .anyMatch(p -> p.command().contains("completed_status_test") && "completed".equals(p.status()));
-        assertTrue(found, "Completed process should have 'completed' status, got: " + processes);
+        assertEquals(0, result.exitCode(), "Command should succeed: " + result);
+        assertNotTracked(marker);
     }
 
     @Test
-    void listActiveProcesses_timedOutProcessHasTimedOutStatus() {
-        shellTool.runCommand("sleep 60", null, 1);
+    @DisabledOnOs(OS.WINDOWS)
+    void runCommand_timeout_releasesSlotAndUnlists() {
+        String marker = marker("timed-out");
+        int baseline = shellTool.getRunningCount();
 
-        List<ProcessInfo> processes = shellTool.listActiveProcesses();
+        CommandResult result = shellTool.runCommand(sleeper(marker), null, 1);
 
-        boolean found = processes.stream()
-                .anyMatch(p -> p.command().contains("sleep 60") && "timed_out".equals(p.status()));
-        assertTrue(found, "Timed out process should have 'timed_out' status, got: " + processes);
+        assertEquals(-1, result.exitCode(), "Command should time out: " + result);
+        assertEquals(baseline, shellTool.getRunningCount(), "Timeout must release the slot exactly once");
+        assertNotTracked(marker);
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void runCommand_interrupted_releasesSlotAndUnlists() throws Exception {
+        String marker = marker("interrupted");
+        int baseline = shellTool.getRunningCount();
+        Future<CommandResult> run = runInBackground(sleeper(marker), null);
+        awaitTracked(marker);
+
+        run.cancel(true);
+
+        await().atMost(Duration.ofSeconds(10)).until(() -> shellTool.getRunningCount() == baseline);
+        assertNotTracked(marker);
+    }
+
+    @Test
+    void runCommand_startFailure_releasesSlot() {
+        String marker = marker("start-failure");
+        String missingWorkdir = workspaceConfinement.getWorkspacePath()
+                .resolve("missing-" + UUID.randomUUID()).toString();
+        int baseline = shellTool.getRunningCount();
+
+        CommandResult result = shellTool.runCommand("echo " + marker, missingWorkdir, null);
+
+        assertEquals(-1, result.exitCode(), "Command that cannot start should report -1: " + result);
+        assertTrue(result.stderr().contains("Failed to start command"),
+                "stderr should explain the start failure, got: " + result);
+        assertEquals(baseline, shellTool.getRunningCount(), "A command that never started must not hold a slot");
+        assertNotTracked(marker);
+    }
+
+    @Test
+    void listActiveProcesses_duringChurn_neverFailsAndDropsFinishedCommands() {
+        String prefix = marker("churn") + "-";
+        for (int i = 0; i < 40; i++) {
+            String command = "echo " + prefix + i;
+            background(() -> shellTool.runCommand(command, null, null));
+        }
+
+        await().atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(1)).until(() -> {
+            shellTool.listActiveProcesses();
+            return backgroundRuns.stream().allMatch(Future::isDone);
+        });
+
+        assertTrue(shellTool.listActiveProcesses().stream().noneMatch(p -> p.command().contains(prefix)),
+                "Finished churn commands must not stay listed");
     }
 
     @Test
@@ -526,18 +649,68 @@ class ShellToolTest {
 
     @Test
     @DisabledOnOs(OS.WINDOWS)
-    void killProcess_trackedProcess_killsSuccessfully() throws Exception {
-        CommandResult startResult = shellTool.runCommand("sleep 300", null, 60);
-        if (startResult.exitCode() != 0 && startResult.exitCode() != ShellTool.CONCURRENT_LIMIT_EXIT_CODE) {
-            return;
+    void killProcess_liveProcess_releasesSlotExactlyOnce() throws Exception {
+        String marker = marker("kill-once");
+        int baseline = shellTool.getRunningCount();
+        Future<CommandResult> run = runInBackground(sleeper(marker), null);
+        long pid = awaitTracked(marker);
+        assertEquals(baseline + 1, shellTool.getRunningCount(), "Starting a command should take one slot");
+
+        CommandResult killed = shellTool.killProcess(pid);
+
+        assertEquals(0, killed.exitCode(), "Kill of a live tracked process should succeed: " + killed);
+        run.get(10, TimeUnit.SECONDS);
+        assertEquals(baseline, shellTool.getRunningCount(), "Kill must release the slot exactly once, not twice");
+        assertNotTracked(marker);
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void killProcess_repeatedKill_neverMovesCounter() throws Exception {
+        String marker = marker("kill-twice");
+        int baseline = shellTool.getRunningCount();
+        Future<CommandResult> run = runInBackground(sleeper(marker), null);
+        long pid = awaitTracked(marker);
+
+        shellTool.killProcess(pid);
+        shellTool.killProcess(pid);
+
+        run.get(10, TimeUnit.SECONDS);
+        assertEquals(baseline, shellTool.getRunningCount(), "Repeated kills must not change the running count");
+        assertNotTracked(marker);
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void killProcess_afterProcessEndedExternally_reportsUntrackedAndReleasesOnce() throws Exception {
+        String marker = marker("external");
+        int baseline = shellTool.getRunningCount();
+        Future<CommandResult> run = runInBackground(sleeper(marker), null);
+        long pid = awaitTracked(marker);
+        ProcessHandle.of(pid).orElseThrow().destroyForcibly();
+
+        run.get(10, TimeUnit.SECONDS);
+        CommandResult late = shellTool.killProcess(pid);
+
+        assertEquals(baseline, shellTool.getRunningCount(), "External termination must release the slot exactly once");
+        assertEquals(-1, late.exitCode(), "A finished process is no longer tracked: " + late);
+        assertNotTracked(marker);
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void killProcess_untrackedLiveProcess_isNeverKilled() throws Exception {
+        int baseline = shellTool.getRunningCount();
+        Process external = new ProcessBuilder("sleep", "300").start();
+        try {
+            CommandResult result = shellTool.killProcess(external.pid());
+
+            assertEquals(-1, result.exitCode(), "A process the agent did not spawn is not tracked: " + result);
+            assertTrue(external.isAlive(), "killProcess must never signal a process it does not track");
+            assertEquals(baseline, shellTool.getRunningCount(), "Untracked kill must not move the counter");
+        } finally {
+            external.destroyForcibly();
         }
-        List<ProcessInfo> processes = shellTool.listActiveProcesses();
-        if (processes.isEmpty()) {
-            return;
-        }
-        long pid = processes.get(0).pid();
-        CommandResult killResult = shellTool.killProcess(pid);
-        assertTrue(killResult.exitCode() == 0, "Kill should succeed for tracked process, got: " + killResult);
     }
 
     @Test
@@ -577,21 +750,67 @@ class ShellToolTest {
     }
 
     @Test
-    void concurrentLimit_rejectionWhenFull() throws Exception {
+    @DisabledOnOs(OS.WINDOWS)
+    void concurrentLimit_rejectsAtCapacity_andAdmitsAfterKill() throws Exception {
         int savedLimit = shellTool.maxConcurrent;
-        shellTool.maxConcurrent = 1;
+        int baseline = shellTool.getRunningCount();
+        shellTool.maxConcurrent = baseline + 2;
+        String first = marker("capacity-first");
+        String second = marker("capacity-second");
         try {
-            Process blocker = new ProcessBuilder("sh", "-c", "sleep 300").start();
-            Thread.sleep(100);
+            Future<CommandResult> firstRun = runInBackground(sleeper(first), null);
+            Future<CommandResult> secondRun = runInBackground(sleeper(second), null);
+            long firstPid = awaitTracked(first);
+            long secondPid = awaitTracked(second);
+            assertEquals(baseline + 2, shellTool.getRunningCount(), "Both commands should hold a slot");
 
-            CommandResult firstResult = shellTool.runCommand("sleep 300", null, 2);
-            if (firstResult.exitCode() == 0) {
-                CommandResult secondResult = shellTool.runCommand("echo should_be_rejected", null, null);
-                assertEquals(ShellTool.CONCURRENT_LIMIT_EXIT_CODE, secondResult.exitCode(),
-                    "Should reject when concurrent limit reached");
+            CommandResult rejected = shellTool.runCommand("echo over_limit", null, null);
+
+            assertEquals(ShellTool.CONCURRENT_LIMIT_EXIT_CODE, rejected.exitCode(),
+                    "Should reject at capacity: " + rejected);
+            assertEquals(baseline + 2, shellTool.getRunningCount(), "A rejected command must not take a slot");
+
+            shellTool.killProcess(firstPid);
+            firstRun.get(10, TimeUnit.SECONDS);
+            assertEquals(baseline + 1, shellTool.getRunningCount(), "Killing one command frees exactly one slot");
+
+            CommandResult admitted = shellTool.runCommand("echo after_kill", null, null);
+            assertEquals(0, admitted.exitCode(), "The freed slot should admit a new command: " + admitted);
+
+            shellTool.killProcess(secondPid);
+            secondRun.get(10, TimeUnit.SECONDS);
+            assertEquals(baseline, shellTool.getRunningCount(), "All slots should be free again");
+        } finally {
+            shellTool.maxConcurrent = savedLimit;
+        }
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void concurrentAdmission_neverExceedsMaxConcurrent() {
+        int savedLimit = shellTool.maxConcurrent;
+        int baseline = shellTool.getRunningCount();
+        int capacity = 3;
+        int callers = 16;
+        String prefix = marker("admission") + "-";
+        shellTool.maxConcurrent = baseline + capacity;
+        CyclicBarrier gate = new CyclicBarrier(callers);
+        try {
+            for (int i = 0; i < callers; i++) {
+                String command = sleeper(prefix + i);
+                background(() -> {
+                    gate.await();
+                    return shellTool.runCommand(command, null, 60);
+                });
             }
 
-            blocker.destroyForcibly();
+            await().atMost(Duration.ofSeconds(30)).until(() -> rejectedRuns() == callers - capacity);
+
+            long admitted = shellTool.listActiveProcesses().stream()
+                    .filter(p -> p.command().contains(prefix))
+                    .count();
+            assertEquals(capacity, admitted, "Exactly maxConcurrent callers may hold a slot at once");
+            assertEquals(baseline + capacity, shellTool.getRunningCount(), "Counter should match admitted callers");
         } finally {
             shellTool.maxConcurrent = savedLimit;
         }

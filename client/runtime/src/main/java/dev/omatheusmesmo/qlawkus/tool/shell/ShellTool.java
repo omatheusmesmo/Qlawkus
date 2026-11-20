@@ -15,15 +15,16 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 @QlawTool
 public class ShellTool {
@@ -85,7 +86,7 @@ public class ShellTool {
     @Inject
     SecretRedactor secretRedactor;
 
-    private final Map<Long, TrackedProcess> activeProcesses = new LinkedHashMap<>();
+    private final Map<Long, TrackedProcess> activeProcesses = new ConcurrentHashMap<>();
     private final AtomicInteger runningCount = new AtomicInteger(0);
 
     private volatile List<String> cachedPathCommands;
@@ -125,7 +126,7 @@ public class ShellTool {
             return result;
         }
 
-        if (runningCount.get() >= maxConcurrent) {
+        if (!tryReserveSlot()) {
             Log.warnf("ShellTool: concurrent limit reached (%d/%d) — rejecting '%s'",
                     runningCount.get(), maxConcurrent, loggable);
             CommandResult result = new CommandResult(
@@ -135,6 +136,28 @@ public class ShellTool {
             return result;
         }
 
+        try {
+            CommandResult result = execute(command, workdir, timeoutSeconds, start, loggable);
+            auditLog(command, workdir, result.exitCode(), result.durationMs());
+            return result;
+        } finally {
+            runningCount.decrementAndGet();
+        }
+    }
+
+    private boolean tryReserveSlot() {
+        while (true) {
+            int current = runningCount.get();
+            if (current >= maxConcurrent) {
+                return false;
+            }
+            if (runningCount.compareAndSet(current, current + 1)) {
+                return true;
+            }
+        }
+    }
+
+    private CommandResult execute(String command, String workdir, Integer timeoutSeconds, long start, String loggable) {
         Path dir = workspaceConfinement.resolveCanonical(workdir);
 
         Log.debugf("ShellTool: executing '%s' in %s (timeout=%s)", loggable, dir,
@@ -149,20 +172,24 @@ public class ShellTool {
 
         Process process;
         try {
-            runningCount.incrementAndGet();
             process = pb.start();
         } catch (IOException e) {
-            runningCount.decrementAndGet();
             Log.errorf(e, "ShellTool: failed to start command '%s'", loggable);
-            CommandResult result = new CommandResult("", "Failed to start command: " + e.getMessage(), -1,
+            return new CommandResult("", "Failed to start command: " + e.getMessage(), -1,
                     System.currentTimeMillis() - start, false);
-            auditLog(command, workdir, result.exitCode(), result.durationMs());
-            return result;
         }
 
-        TrackedProcess tracked = new TrackedProcess(process.pid(), loggable, start, "running");
-        activeProcesses.put(process.pid(), tracked);
+        TrackedProcess tracked = new TrackedProcess(process, loggable, start);
+        activeProcesses.put(tracked.pid, tracked);
+        try {
+            return awaitOutcome(process, tracked, timeoutSeconds, start, loggable);
+        } finally {
+            activeProcesses.remove(tracked.pid, tracked);
+        }
+    }
 
+    private CommandResult awaitOutcome(Process process, TrackedProcess tracked, Integer timeoutSeconds,
+                                       long start, String loggable) {
         OutputCapture stdoutCapture = new OutputCapture(process.getInputStream(), maxOutputBytes, maxOutputLines);
         OutputCapture stderrCapture = new OutputCapture(process.getErrorStream(), maxOutputBytes, maxOutputLines);
         stdoutCapture.start();
@@ -179,33 +206,27 @@ public class ShellTool {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             process.destroyForcibly();
-            tracked.status = "interrupted";
-            runningCount.decrementAndGet();
-            CommandResult result = new CommandResult(
+            tracked.settle("interrupted");
+            return new CommandResult(
                     redacted(stdoutCapture),
                     redacted(stderrCapture) + "\n[Command interrupted]",
                     -1,
                     System.currentTimeMillis() - start,
                     stdoutCapture.isTruncated() || stderrCapture.isTruncated()
             );
-            auditLog(command, workdir, result.exitCode(), result.durationMs());
-            return result;
         }
 
         if (!finished) {
             process.destroyForcibly();
-            tracked.status = "timed_out";
-            runningCount.decrementAndGet();
+            tracked.settle("timed_out");
             Log.warnf("ShellTool: command '%s' timed out after %ds", loggable, timeoutSeconds);
-            CommandResult result = new CommandResult(
+            return new CommandResult(
                     redacted(stdoutCapture),
                     redacted(stderrCapture) + "\n[Command timed out after " + timeoutSeconds + "s]",
                     -1,
                     System.currentTimeMillis() - start,
                     stdoutCapture.isTruncated() || stderrCapture.isTruncated()
             );
-            auditLog(command, workdir, result.exitCode(), result.durationMs());
-            return result;
         }
 
         try {
@@ -215,23 +236,20 @@ public class ShellTool {
             Thread.currentThread().interrupt();
         }
 
-        runningCount.decrementAndGet();
         int exitCode = process.exitValue();
         long duration = System.currentTimeMillis() - start;
         boolean truncated = stdoutCapture.isTruncated() || stderrCapture.isTruncated();
 
-        tracked.status = "completed";
+        tracked.settle("completed");
         Log.debugf("ShellTool: command '%s' finished with exitCode=%d in %dms", loggable, exitCode, duration);
 
-        CommandResult result = new CommandResult(
+        return new CommandResult(
                 redacted(stdoutCapture),
                 redacted(stderrCapture),
                 exitCode,
                 duration,
                 truncated
         );
-        auditLog(command, workdir, exitCode, duration);
-        return result;
     }
 
     @Tool("Discover the execution environment: OS, default shell, workspace path, and available CLI tools. " +
@@ -297,11 +315,10 @@ public class ShellTool {
 
     @Tool("List processes spawned by the agent that are still tracked, with pid, command, and status")
     public List<ProcessInfo> listActiveProcesses() {
-        List<ProcessInfo> processes = new ArrayList<>();
-
-        for (TrackedProcess tp : activeProcesses.values()) {
-            processes.add(new ProcessInfo(tp.pid, tp.command, tp.startedAtMs, tp.status));
-        }
+        List<ProcessInfo> processes = activeProcesses.values().stream()
+                .sorted(Comparator.comparingLong(tp -> tp.startedAtMs))
+                .map(tp -> new ProcessInfo(tp.pid, tp.command, tp.startedAtMs, tp.status.get()))
+                .toList();
 
         Log.debugf("ShellTool: listActiveProcesses — %d tracked processes", processes.size());
         return processes;
@@ -316,20 +333,14 @@ public class ShellTool {
         }
 
         try {
-            ProcessHandle handle = ProcessHandle.of(pid).orElse(null);
-            if (handle != null && handle.isAlive()) {
-                handle.destroyForcibly();
-                tracked.status = "killed";
-                runningCount.decrementAndGet();
+            if (tracked.process.isAlive()) {
+                tracked.process.destroyForcibly();
+                tracked.settle("killed");
                 Log.infof("ShellTool: killed process pid=%d command='%s'", pid, tracked.command);
                 return new CommandResult("Process " + pid + " killed", "", 0, 0, false);
-            } else {
-                if ("running".equals(tracked.status)) {
-                    runningCount.decrementAndGet();
-                }
-                tracked.status = "already_dead";
-                return new CommandResult("Process " + pid + " was already terminated", "", 0, 0, false);
             }
+            tracked.settle("already_dead");
+            return new CommandResult("Process " + pid + " was already terminated", "", 0, 0, false);
         } catch (Exception e) {
             return new CommandResult("", "Failed to kill process " + pid + ": " + e.getMessage(), -1, 0, false);
         }
@@ -450,15 +461,24 @@ public class ShellTool {
 
     static class TrackedProcess {
         final long pid;
+        final Process process;
         final String command;
         final long startedAtMs;
-        volatile String status;
+        final AtomicReference<String> status = new AtomicReference<>("running");
 
-        TrackedProcess(long pid, String command, long startedAtMs, String status) {
-            this.pid = pid;
+        TrackedProcess(Process process, String command, long startedAtMs) {
+            this.pid = process.pid();
+            this.process = process;
             this.command = command;
             this.startedAtMs = startedAtMs;
-            this.status = status;
+        }
+
+        /**
+         * Records an outcome only while the process is still running, so a kill recorded first
+         * is not overwritten by the completion that follows it.
+         */
+        void settle(String outcome) {
+            status.compareAndSet("running", outcome);
         }
     }
 }
