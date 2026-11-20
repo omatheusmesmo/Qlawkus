@@ -133,6 +133,48 @@ endif::add-copy-button-to-env-var[]
 |list of string
 |
 
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-max-installs-per-call]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-max-installs-per-call[`+++qlawkus.skill-hub.max-installs-per-call+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.max-installs-per-call+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Largest number of skills one install call may write, whether it installs a folder, an archive or a selection. A larger selection is refused before anything is written, so the owner can split it.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_MAX_INSTALLS_PER_CALL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_MAX_INSTALLS_PER_CALL+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++10+++`
+
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-max-skill-bytes]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-max-skill-bytes[`+++qlawkus.skill-hub.max-skill-bytes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.max-skill-bytes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Largest SKILL.md accepted, in bytes: fetched text, pasted text and the entries of an archive are all held to it. A larger file is refused rather than truncated.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_MAX_SKILL_BYTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_MAX_SKILL_BYTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|long
+|`+++262144+++`
+
 a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-publish-enabled]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-publish-enabled[`+++qlawkus.skill-hub.publish.enabled+++`]##
 ifdef::add-copy-button-to-config-props[]
 config_property_copy_button:+++qlawkus.skill-hub.publish.enabled+++[]
@@ -174,6 +216,69 @@ endif::add-copy-button-to-env-var[]
 --
 |string
 |`+++${user.home}/.qlawkus/published+++`
+
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-archive-max-bytes]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-archive-max-bytes[`+++qlawkus.skill-hub.archive.max-bytes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.archive.max-bytes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Largest archive downloaded, in bytes. The download stops at this size, so an oversized archive is never read past it.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_ARCHIVE_MAX_BYTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_ARCHIVE_MAX_BYTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|long
+|`+++10485760+++`
+
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-archive-max-entries]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-archive-max-entries[`+++qlawkus.skill-hub.archive.max-entries+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.archive.max-entries+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Most entries (files and folders) an archive may hold. More is refused before any skill is read.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_ARCHIVE_MAX_ENTRIES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_ARCHIVE_MAX_ENTRIES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++500+++`
+
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-archive-max-expanded-bytes]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-archive-max-expanded-bytes[`+++qlawkus.skill-hub.archive.max-expanded-bytes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.archive.max-expanded-bytes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Most bytes the archive may expand to in total, as declared by its entries and as decompressed.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_ARCHIVE_MAX_EXPANDED_BYTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_ARCHIVE_MAX_EXPANDED_BYTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|long
+|`+++20971520+++`
 
 |===
 

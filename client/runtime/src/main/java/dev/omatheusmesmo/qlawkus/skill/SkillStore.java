@@ -53,6 +53,18 @@ public interface SkillStore {
   int sweepLifecycle(int staleAfterDays, int archiveAfterDays);
 
   /**
+   * Records where a skill was installed from, so it can be updated from the same source. Backends that
+   * keep no provenance ignore the call; {@link #originOf(String)} then reports nothing for the skill.
+   */
+  default void recordOrigin(String name, SkillOrigin origin) {
+  }
+
+  /** The recorded install source of a skill, or empty when none was recorded. */
+  default Optional<SkillOrigin> originOf(String name) {
+    return Optional.empty();
+  }
+
+  /**
    * Proves this store could persist a change right now, without changing anything, because readiness
    * calls it on every poll. Throws when a write would fail: a read-only volume, a root owned by
    * another uid, a read-only database session, or a missing table privilege.

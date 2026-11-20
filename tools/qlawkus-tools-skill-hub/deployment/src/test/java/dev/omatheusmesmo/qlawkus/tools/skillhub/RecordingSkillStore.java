@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.skillhub;
 
 import dev.omatheusmesmo.qlawkus.skill.Skill;
+import dev.omatheusmesmo.qlawkus.skill.SkillOrigin;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
 import java.util.LinkedHashMap;
@@ -8,14 +9,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/** Test double for {@link SkillStore}: records saved skills in memory; the rest are no-ops. */
+/** Test double for {@link SkillStore}: records saved skills and their origins in memory; the rest are no-ops. */
 class RecordingSkillStore implements SkillStore {
 
   final Map<String, Skill> saved = new LinkedHashMap<>();
+  final Map<String, SkillOrigin> origins = new LinkedHashMap<>();
 
   @Override
   public List<SkillSummary> index() {
-    return List.of();
+    return saved.values().stream().map(s -> new SkillSummary(s.name(), s.description())).toList();
   }
 
   @Override
@@ -26,11 +28,13 @@ class RecordingSkillStore implements SkillStore {
   @Override
   public Skill save(Skill skill) {
     saved.put(skill.name(), skill);
+    origins.remove(skill.name());
     return skill;
   }
 
   @Override
   public boolean delete(String name) {
+    origins.remove(name);
     return saved.remove(name) != null;
   }
 
@@ -50,5 +54,15 @@ class RecordingSkillStore implements SkillStore {
 
   @Override
   public void verifyWritable() {
+  }
+
+  @Override
+  public void recordOrigin(String name, SkillOrigin origin) {
+    origins.put(name, origin);
+  }
+
+  @Override
+  public Optional<SkillOrigin> originOf(String name) {
+    return Optional.ofNullable(origins.get(name));
   }
 }

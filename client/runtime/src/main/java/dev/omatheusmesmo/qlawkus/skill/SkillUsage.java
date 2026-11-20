@@ -5,21 +5,26 @@ package dev.omatheusmesmo.qlawkus.skill;
  * milliseconds so the JSON round-trips without a Jackson time module. {@code lastUsedEpochMs} is
  * {@code 0} when the skill has never been used.
  */
-public record SkillUsage(long lastUsedEpochMs, long useCount, SkillState state, boolean pinned) {
+public record SkillUsage(long lastUsedEpochMs, long useCount, SkillState state, boolean pinned,
+    SkillOrigin origin) {
 
   public static SkillUsage initial() {
-    return new SkillUsage(0L, 0L, SkillState.ACTIVE, false);
+    return new SkillUsage(0L, 0L, SkillState.ACTIVE, false, null);
   }
 
   public SkillUsage usedAt(long epochMs) {
-    return new SkillUsage(epochMs, useCount + 1, SkillState.ACTIVE, pinned);
+    return new SkillUsage(epochMs, useCount + 1, SkillState.ACTIVE, pinned, origin);
   }
 
   public SkillUsage withState(SkillState newState) {
-    return new SkillUsage(lastUsedEpochMs, useCount, newState, pinned);
+    return new SkillUsage(lastUsedEpochMs, useCount, newState, pinned, origin);
   }
 
   public SkillUsage withPinned(boolean newPinned) {
-    return new SkillUsage(lastUsedEpochMs, useCount, state, newPinned);
+    return new SkillUsage(lastUsedEpochMs, useCount, state, newPinned, origin);
+  }
+
+  public SkillUsage withOrigin(SkillOrigin newOrigin) {
+    return new SkillUsage(lastUsedEpochMs, useCount, state, pinned, newOrigin);
   }
 }
