@@ -418,3 +418,11 @@ body {
   .chat-form { padding: 10px 16px; }
   .msg { max-width: 94%; }
 }
+
+.voice-controls { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.voice-status { font-weight: 600; }
+.voice-adapter, .voice-hint { font-size: 0.9rem; opacity: 0.85; }
+.voice-log { min-height: 12rem; max-height: 28rem; overflow-y: auto; }
+.voice-line { padding: 0.35rem 0.5rem; border-radius: 6px; margin: 0.25rem 0; white-space: pre-wrap; }
+.voice-user { font-weight: 600; }
+.voice-agent { opacity: 0.95; }

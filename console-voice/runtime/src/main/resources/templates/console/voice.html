@@ -1,0 +1,21 @@
+{#include console/base}
+{#title}Qlawkus Console - Voice{/title}
+{#head}
+    <script src="/console/voice.js" defer></script>
+{/head}
+<header class="content-head">
+    <h1>Voice</h1>
+    <p class="lede">Talk to the agent live. Your speech is sent in utterances and the replies are spoken back. The speech adapters are buffered: each sentence is synthesized whole before it plays, so there is a pause before each one. No real-time latency is promised.</p>
+</header>
+
+<section class="panel voice" id="voice" data-socket="{socketPath}" data-hangover-ms="{hangoverMs}" data-speech-threshold="{speechThreshold}" data-max-utterance-ms="{maxUtteranceMs}">
+    <div class="voice-controls">
+        <button type="button" id="voice-toggle" aria-pressed="false">Start microphone</button>
+        <span class="voice-status" id="voice-status" role="status" aria-live="polite">Idle</span>
+    </div>
+    <p class="voice-adapter" id="voice-adapter" data-buffered="true">Speech output: buffered, one sentence at a time.</p>
+    <p class="voice-hint">Use headphones so the agent's voice is not picked up by the microphone and taken for your interruption.</p>
+    <div class="chat-log voice-log" id="voice-log" role="log" aria-live="polite"></div>
+    <div class="chat-error" id="voice-error" role="alert" hidden></div>
+</section>
+{/include}

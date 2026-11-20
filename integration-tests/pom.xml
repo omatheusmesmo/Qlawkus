@@ -15,6 +15,7 @@
     <module>argon2-auth</module>
     <module>cognition</module>
     <module>console</module>
+    <module>console-voice</module>
     <module>markdown-only</module>
     <module>skill-hub</module>
     <module>google</module>

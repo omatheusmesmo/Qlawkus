@@ -28,6 +28,11 @@
     </dependency>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-console-voice</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-tools-skill-hub</artifactId>
       <version>${project.version}</version>
     </dependency>
