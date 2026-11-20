@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.rest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.AgentEvent;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.agent.AgentStream;
@@ -37,6 +38,7 @@ public class ApiResource {
     static final String TOOL_START = "tool-start";
     static final String TOOL_END = "tool-end";
     static final String DONE = "done";
+    static final String REST_PROVIDER = "rest";
 
     @Inject
     AgentService agentService;
@@ -48,6 +50,9 @@ public class ApiResource {
     AgentConfig agentConfig;
 
     @Inject
+    AgentDeliveryContext delivery;
+
+    @Inject
     ObjectMapper json;
 
     @POST
@@ -55,7 +60,14 @@ public class ApiResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
     public String chatSync(@Valid ChatRequest request) {
-        return agentService.chatSync(conversationId(), request.message());
+        String conversation = conversationId();
+        AgentDeliveryContext.Snapshot previous = delivery.snapshot();
+        delivery.restore(restOrigin(conversation));
+        try {
+            return agentService.chatSync(conversation, request.message());
+        } finally {
+            delivery.restore(previous);
+        }
     }
 
     @POST
@@ -64,7 +76,8 @@ public class ApiResource {
     @Produces(MediaType.SERVER_SENT_EVENTS)
     public Multi<OutboundSseEvent> chat(@Valid ChatRequest request, @Context Sse sse) {
         ToolProgress mode = request.effectiveToolProgress();
-        return agentStream.stream(conversationId(), request.message())
+        String conversation = conversationId();
+        return agentStream.stream(conversation, request.message(), restOrigin(conversation))
                 .onItem().transformToIterable(event -> frame(event, mode, sse));
     }
 
@@ -116,6 +129,10 @@ public class ApiResource {
             node.put("outputTokens", done.outputTokens());
         }
         return node;
+    }
+
+    private static AgentDeliveryContext.Snapshot restOrigin(String conversation) {
+        return new AgentDeliveryContext.Snapshot(conversation, REST_PROVIDER, null);
     }
 
     private String conversationId() {

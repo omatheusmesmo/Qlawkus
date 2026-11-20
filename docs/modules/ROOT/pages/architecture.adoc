@@ -238,6 +238,28 @@ All five are registered with an explicit `@Scheduled(identity = ...)`, which is 
 * The shared conversation (`AGENT_SHARED_CONTEXT=true`) means the owner is continuous across Discord, Telegram, and REST.
 * To inspect or reset memory, use `GET` / `DELETE /api/admin/memory` (see xref:config-reference.adoc[Configuration]).
 
+== Scheduled tasks
+
+The agent can schedule work at the owner's request, such as "remind me in two hours" or "every weekday at nine". `TaskSchedulerTool` exposes three tools: `scheduleTask`, `listScheduledTasks` and `cancelScheduledTask`. Tasks are kept apart from the application's own `@Scheduled` jobs: each is a Quartz job registered with the Quarkus `Scheduler` under a namespaced `qlawkus-task-` UUID, so cancelling a task can never touch a static job.
+
+Where a task delivers depends on where it was made:
+
+* From a messaging channel, the task reuses the origin chat by default. An explicit `providerId` and `chatId` override it for any channel.
+* From REST or the console, `providerId` and `chatId` are required, because a REST conversation is not a chat. `rest` is not a messaging channel and is refused as a destination.
+
+The REST chat endpoints (`/api/chat` and `/api/chat/sync`) run each turn with the conversation as the delivery origin, so the tool knows where it was called from. The streamed variant captures that origin when the turn starts, so tool calls on the model's callback thread see it too.
+
+A firing replays the task into the conversation that scheduled it through `AgentRunner`, with the full agent and its tools available. The run uses the interactive workload, not batch, so a reminder is never abandoned by the background bulkhead. A non-blank reply is handed to `WorkflowResultReadyEvent`, which the messaging delivery listener sends to the destination. A blank reply delivers nothing.
+
+Schedules come in two forms, both expressed as Quartz crons in `qlawkus.agent.timezone`:
+
+* A recurring cron, such as `0 0 9 * * ?`, stays scheduled after each run.
+* A one-time task is an exact-date cron with a year and literal fields, such as `0 0 12 15 6 ? 2027`, or a delay in minutes that the tool converts into one. It is unscheduled before the model is called, so it is removed even when its run fails.
+
+Limits are deliberately small: at most 20 agent-created tasks, 500 characters of task text, and a delay of at most one year. A cron that never fires again is refused.
+
+Schedules are volatile in this release. They live in memory only, so a restart, redeploy or crash loses them, a run missed while the agent is down is not caught up, and delivery is best effort. Persistence is tracked separately. The console's schedule page lists the static jobs only and does not show agent-created tasks.
+
 == Skills (procedural memory)
 
 Skills are the agent's *procedural* memory: reusable how-to procedures, complementing the *declarative* memory above (facts, owner profile). Each skill is a `SKILL.md` file (YAML frontmatter `name` + `description`, then a Markdown body).

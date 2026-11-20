@@ -14,6 +14,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class StreamedContextProbe {
 
     static final List<Observation> SEEN = new CopyOnWriteArrayList<>();
+    public static final List<DeliveryObservation> DELIVERY_SEEN = new CopyOnWriteArrayList<>();
 
     @Inject
     AgentDeliveryContext delivery;
@@ -34,6 +35,15 @@ public class StreamedContextProbe {
         return "requested";
     }
 
+    @Tool("Test probe: records the delivery origin this tool runs with. Call it when asked to probe the delivery.")
+    public String probeDelivery() {
+        DELIVERY_SEEN.add(new DeliveryObservation(delivery.memoryId(), delivery.providerId(), delivery.chatId()));
+        return "recorded";
+    }
+
     record Observation(String chatId, boolean requestActive, boolean voiceRequested) {
+    }
+
+    public record DeliveryObservation(String memoryId, String providerId, String chatId) {
     }
 }

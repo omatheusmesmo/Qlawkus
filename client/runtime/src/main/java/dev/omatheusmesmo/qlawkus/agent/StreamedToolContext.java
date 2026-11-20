@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>With no request context on the caller a fresh one is used and terminated afterwards, so
  * {@code @RequestScoped} beans still work for that call without outliving it. A thread that already has
- * its own context is left alone (see {@link #enter(Object)}).
+ * its own request context keeps it (see {@link #enter(Object)}).
  */
 @ApplicationScoped
 public class StreamedToolContext {
@@ -44,19 +44,24 @@ public class StreamedToolContext {
     }
 
     /**
-     * Restores the captured context for a tool call of {@code memoryId}, but only on a thread that has
-     * none of its own: the model client's callback thread. A thread that already carries a request
-     * context or delivery values is a synchronous caller (REST, console and messaging can share one
-     * conversation id), and its context is the right one for its tools.
+     * Restores the captured context for a tool call of {@code memoryId}, but only on a thread that carries
+     * no delivery values of its own. A thread that already has delivery values is a synchronous caller
+     * (messaging can share one conversation id with REST), and its values are the right ones for its
+     * tools. A thread that has only a request context keeps it, and gets the captured delivery values:
+     * the streamed REST turn's callbacks can land on the request thread, with that thread's delivery
+     * already cleared.
      */
     public Entered enter(Object memoryId) {
         Caller caller = memoryId instanceof String conversationId ? callers.get(conversationId) : null;
-        ManagedContext requests = Arc.container().requestContext();
-        if (caller == null || requests.isActive() || delivery.hasDeliveryInfo()) {
+        if (caller == null || delivery.hasDeliveryInfo()) {
             return Entered.NONE;
         }
+        ManagedContext requests = Arc.container().requestContext();
         AgentDeliveryContext.Snapshot previousDelivery = delivery.snapshot();
         delivery.restore(caller.delivery());
+        if (requests.isActive()) {
+            return new Scope(previousDelivery, null, false);
+        }
         boolean fresh = caller.request() == null;
         if (fresh) {
             requests.activate();
@@ -97,11 +102,13 @@ public class StreamedToolContext {
         @Override
         public void close() {
             try {
-                if (fresh) {
-                    requests.terminate();
-                }
-                if (requests.isActive()) {
-                    requests.deactivate();
+                if (requests != null) {
+                    if (fresh) {
+                        requests.terminate();
+                    }
+                    if (requests.isActive()) {
+                        requests.deactivate();
+                    }
                 }
             } finally {
                 delivery.restore(previousDelivery);
