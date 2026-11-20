@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.tools.skillhub;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.omatheusmesmo.qlawkus.skill.Skill;
@@ -41,6 +42,19 @@ class SkillHubToolTest {
 
     assertTrue(hub.installed, "YOLO installs without confirmation");
     assertEquals("Installed skill: foo", done);
+  }
+
+  @Test
+  void failedInstall_propagatesSoTheFrameworkReportsAnError() {
+    RecordingHub hub = new RecordingHub();
+    hub.failure = new IllegalStateException("Could not find a SKILL.md for acme/skills/triage");
+    SkillHubTool tool = new SkillHubTool(hub, new RecordingSkillStore(),
+        new TestConfig(true, false, ApprovalMode.YOLO));
+
+    IllegalStateException thrown = assertThrows(IllegalStateException.class,
+        () -> tool.installSkill("acme/skills/triage", true));
+
+    assertEquals(hub.failure, thrown);
   }
 
   @Test
@@ -97,6 +111,7 @@ class SkillHubToolTest {
     boolean installed;
     boolean searched;
     boolean published;
+    RuntimeException failure;
 
     @Override
     public List<SkillRef> search(String query, int limit) {
@@ -107,6 +122,9 @@ class SkillHubToolTest {
     @Override
     public Skill install(String source) {
       installed = true;
+      if (failure != null) {
+        throw failure;
+      }
       return new Skill("foo", "does foo", "# Foo");
     }
 

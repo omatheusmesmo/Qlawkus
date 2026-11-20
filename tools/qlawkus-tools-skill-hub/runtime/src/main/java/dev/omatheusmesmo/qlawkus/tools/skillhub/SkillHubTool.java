@@ -66,6 +66,10 @@ public class SkillHubTool {
     }
   }
 
+  /**
+   * A failed install throws instead of returning text: the tool framework turns the exception into an
+   * error result for the model, and {@code MeteredToolExecutor} counts it as {@code outcome=error}.
+   */
   @Tool("""
       Install a skill from the remote registry into your procedural memory, identified by the \
       'source' from searchSkillHub (an owner/repo slug or a SKILL.md URL). In HITL approval mode you \
@@ -73,7 +77,8 @@ public class SkillHubTool {
       then call again with confirm=true; without approval nothing is written. In YOLO mode it \
       installs immediately.""")
   public String installSkill(
-      @P("The skill source (owner/repo slug or SKILL.md URL) from searchSkillHub") String source,
+      @P("The skill source (owner/repo or owner/repo/skill slug, or SKILL.md URL) from searchSkillHub")
+          String source,
       @P("Set true only after the owner explicitly approved this install (HITL mode)")
           boolean confirm) {
     if (!config.enabled()) {
@@ -86,14 +91,8 @@ public class SkillHubTool {
       return "Installing '" + source + "' will download a SKILL.md from the internet and add it to "
           + "your skills. Ask the owner to approve, then call installSkill again with confirm=true.";
     }
-    try {
-      Skill saved = skillHub.install(source.strip());
-      return "Installed skill: " + saved.name();
-    } catch (RuntimeException e) {
-      Log.warnf(e, "installSkill failed");
-      Log.debugf("installSkill source: '%s'", source);
-      return "Install failed for '" + source + "': " + e.getMessage();
-    }
+    Skill saved = skillHub.install(source.strip());
+    return "Installed skill: " + saved.name();
   }
 
   @Tool("""

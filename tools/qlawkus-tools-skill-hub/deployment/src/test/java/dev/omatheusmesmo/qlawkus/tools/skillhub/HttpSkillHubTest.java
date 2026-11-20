@@ -1,11 +1,13 @@
 package dev.omatheusmesmo.qlawkus.tools.skillhub;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -53,7 +55,23 @@ class HttpSkillHubTest {
 
   private HttpSkillHub hub(Optional<List<String>> wellKnownHosts) {
     return new HttpSkillHub(
-        new TestConfig(baseUrl(), ApprovalMode.HITL, wellKnownHosts, publishDir.toString()), store);
+        new TestConfig(baseUrl(), ApprovalMode.HITL, wellKnownHosts, publishDir.toString()), store,
+        baseUrl(), baseUrl());
+  }
+
+  private void stubGitHubFile(String repo, String branch, String path, String markdown) {
+    server.stubFor(get(urlPathEqualTo("/" + repo + "/" + branch + "/" + path))
+        .willReturn(aResponse().withStatus(200).withBody(markdown)));
+  }
+
+  private void stubGitHubTree(String repo, String branch, String treeJson) {
+    server.stubFor(get(urlPathEqualTo("/repos/" + repo + "/git/trees/" + branch))
+        .withQueryParam("recursive", equalTo("1"))
+        .willReturn(okJson(treeJson)));
+  }
+
+  private static String skillMarkdown(String name, String description) {
+    return "---\nname: " + name + "\ndescription: " + description + "\n---\n# " + name + "\nSteps.";
   }
 
   @Test
@@ -141,6 +159,161 @@ class HttpSkillHubTest {
   void install_throwsOnNotFound() {
     assertThrows(IllegalStateException.class,
         () -> hub(Optional.empty()).install(baseUrl() + "/skills/missing/SKILL.md"));
+  }
+
+  @Test
+  void search_keepsSkillIdInTheInstallReference() {
+    server.stubFor(get(urlPathEqualTo("/api/search")).willReturn(okJson("""
+        {"query":"triage","searchType":"fuzzy","skills":[
+          {"id":"mattpocock/skills/triage","source":"mattpocock/skills","skillId":"triage","name":"triage","installs":1095452}
+        ]}""")));
+
+    List<SkillRef> hits = hub(Optional.empty()).search("triage", 10);
+
+    assertEquals(1, hits.size());
+    assertEquals("triage", hits.get(0).name());
+    assertEquals("mattpocock/skills/triage", hits.get(0).source());
+  }
+
+  @Test
+  void search_omitsHitsWhoseSourceIsABareHost() {
+    server.stubFor(get(urlPathEqualTo("/api/search")).willReturn(okJson("""
+        {"skills":[
+          {"id":"code.deepline.com/deepline-triage","source":"code.deepline.com","skillId":"deepline-triage","name":"deepline-triage"},
+          {"id":"mattpocock/skills/triage","source":"mattpocock/skills","skillId":"triage","name":"triage"}
+        ]}""")));
+
+    List<SkillRef> hits = hub(Optional.empty()).search("triage", 10);
+
+    assertEquals(1, hits.size());
+    assertEquals("mattpocock/skills/triage", hits.get(0).source());
+  }
+
+  @Test
+  void install_resolvesNamedSkillInSkillsFolder() {
+    stubGitHubFile("acme/skills", "main", "skills/triage/SKILL.md", skillMarkdown("triage", "Triage"));
+
+    Skill saved = hub(Optional.empty()).install("acme/skills/triage");
+
+    assertEquals("triage", saved.name());
+    assertTrue(store.saved.containsKey("triage"));
+  }
+
+  @Test
+  void install_resolvesNamedSkillInFolderNamedAfterTheSkillOnMasterBranch() {
+    stubGitHubFile("acme/skills", "master", "triage/SKILL.md", skillMarkdown("triage", "Triage"));
+
+    Skill saved = hub(Optional.empty()).install("acme/skills/triage");
+
+    assertEquals("triage", saved.name());
+    assertTrue(store.saved.containsKey("triage"));
+  }
+
+  @Test
+  void install_prefersTheNamedSkillOverARootSkillMd() {
+    stubGitHubFile("acme/skills", "main", "SKILL.md", skillMarkdown("umbrella", "Index of skills"));
+    stubGitHubFile("acme/skills", "main", "skills/triage/SKILL.md", skillMarkdown("triage", "Triage"));
+
+    Skill saved = hub(Optional.empty()).install("acme/skills/triage");
+
+    assertEquals("triage", saved.name());
+    assertFalse(store.saved.containsKey("umbrella"));
+  }
+
+  @Test
+  void install_findsNestedSkillThroughTheRepositoryTree() {
+    stubGitHubTree("acme/skills", "main", """
+        {"truncated":false,"tree":[
+          {"path":"README.md","type":"blob"},
+          {"path":"skills/engineering/triage","type":"tree"},
+          {"path":"skills/engineering/triage/SKILL.md","type":"blob"},
+          {"path":"skills/engineering/tdd/SKILL.md","type":"blob"}
+        ]}""");
+    stubGitHubFile("acme/skills", "main", "skills/engineering/triage/SKILL.md",
+        skillMarkdown("triage", "Triage"));
+
+    Skill saved = hub(Optional.empty()).install("acme/skills/triage");
+
+    assertEquals("triage", saved.name());
+    assertTrue(store.saved.containsKey("triage"));
+  }
+
+  @Test
+  void install_prefersANestedNamedSkillOverARootSkillMdOfAnotherSkill() {
+    stubGitHubFile("acme/skills", "main", "SKILL.md", skillMarkdown("umbrella", "Index of skills"));
+    stubGitHubTree("acme/skills", "main", """
+        {"truncated":false,"tree":[
+          {"path":"skills/engineering/triage/SKILL.md","type":"blob"}
+        ]}""");
+    stubGitHubFile("acme/skills", "main", "skills/engineering/triage/SKILL.md",
+        skillMarkdown("triage", "Triage"));
+
+    Skill saved = hub(Optional.empty()).install("acme/skills/triage");
+
+    assertEquals("triage", saved.name());
+    assertFalse(store.saved.containsKey("umbrella"));
+  }
+
+  @Test
+  void install_refusesARootSkillMdThatIsAnotherSkill() {
+    stubGitHubFile("acme/skills", "main", "SKILL.md", skillMarkdown("umbrella", "Index of skills"));
+    stubGitHubTree("acme/skills", "main", "{\"truncated\":false,\"tree\":[]}");
+
+    assertThrows(IllegalStateException.class,
+        () -> hub(Optional.empty()).install("acme/skills/triage"));
+    assertTrue(store.saved.isEmpty());
+  }
+
+  @Test
+  void install_acceptsARootSkillMdThatIsTheNamedSkill() {
+    stubGitHubFile("acme/solo", "main", "SKILL.md", skillMarkdown("solo", "The only skill"));
+    stubGitHubTree("acme/solo", "main", "{\"truncated\":false,\"tree\":[]}");
+
+    Skill saved = hub(Optional.empty()).install("acme/solo/solo");
+
+    assertEquals("solo", saved.name());
+  }
+
+  @Test
+  void install_refusesWhenTheTreeHoldsSeveralMatchingSkills() {
+    stubGitHubTree("acme/skills", "main", """
+        {"truncated":false,"tree":[
+          {"path":"skills/engineering/triage/SKILL.md","type":"blob"},
+          {"path":"skills/personal/triage/SKILL.md","type":"blob"}
+        ]}""");
+
+    assertThrows(IllegalStateException.class,
+        () -> hub(Optional.empty()).install("acme/skills/triage"));
+    assertTrue(store.saved.isEmpty());
+  }
+
+  @Test
+  void install_failureNamesTheSourceAndThePathsTried() {
+    stubGitHubTree("acme/skills", "main", "{\"truncated\":false,\"tree\":[]}");
+    stubGitHubTree("acme/skills", "master", "{\"truncated\":false,\"tree\":[]}");
+
+    IllegalStateException failure = assertThrows(IllegalStateException.class,
+        () -> hub(Optional.empty()).install("acme/skills/triage"));
+
+    assertTrue(failure.getMessage().contains("acme/skills/triage"), failure.getMessage());
+    assertTrue(failure.getMessage().contains("skills/triage/SKILL.md"), failure.getMessage());
+    assertTrue(failure.getMessage().contains("triage/SKILL.md"), failure.getMessage());
+    assertTrue(store.saved.isEmpty());
+  }
+
+  @Test
+  void install_ownerRepoStillResolvesTheRootSkillMd() {
+    stubGitHubFile("acme/skills", "main", "SKILL.md", skillMarkdown("umbrella", "Root skill"));
+
+    Skill saved = hub(Optional.empty()).install("acme/skills");
+
+    assertEquals("umbrella", saved.name());
+  }
+
+  @Test
+  void install_rejectsABareHostSource() {
+    assertThrows(IllegalArgumentException.class,
+        () -> hub(Optional.empty()).install("code.deepline.com"));
   }
 
   @Test

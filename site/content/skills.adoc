@@ -131,9 +131,19 @@ Three tools (`@Tool`) drive it:
 |Tool |What it does
 
 |`searchSkillHub` |Searches the registry at `<base-url>/api/search` and, for each configured `well-known-hosts` entry, the `/.well-known/agent-skills/index.json` index (the agentskills.io standard). Results are deduped and capped by `max-results`.
-|`installSkill` |Resolves an `owner/repo` slug (raw GitHub `SKILL.md`) or a direct URL, validates the name against path traversal, and saves it into the owned root - so it enters the injected index on the next turn. Only the `SKILL.md` text is fetched; executable assets are never pulled or run.
+|`installSkill` |Resolves an `owner/repo` slug, an `owner/repo/skill` reference, or a direct URL to a raw GitHub `SKILL.md`, validates the name against path traversal, and saves it into the owned root - so it enters the injected index on the next turn. Only the `SKILL.md` text is fetched; executable assets are never pulled or run. A failed install is an error result for the agent and counts as `outcome=error` in the tool metrics.
 |`publishSkill` |Renders one of your own skills to `<publish.dir>/<name>/SKILL.md`. It never runs `git`: in a container, mount `publish.dir` to a host git working copy and push from the host (credentials stay out of the container).
 |===
+
+Many registry skills live in a subfolder of their repository (for example `skills/engineering/triage/SKILL.md`). `searchSkillHub` returns those as `owner/repo/skill`, and `installSkill` resolves them in this order on `main`, then `master`:
+
+. `skills/<skill>/SKILL.md`, then `<skill>/SKILL.md`;
+. if neither exists, one GitHub REST API tree lookup per branch for a single `<skill>/SKILL.md` at any depth. Two matches fail the install rather than guessing;
+. last, the root `SKILL.md`, only when it declares the named skill, because the root file of a multi-skill repository usually describes a different one.
+
+The tree lookup is the only call to `api.github.com`. Unauthenticated GitHub API access allows 60 requests an hour per address, so a burst of nested installs can exhaust it; the install then fails with the reason and succeeds again after the window resets. Search also leaves out hits that have no installable source, such as a bare host with no repository.
+
+A failed install names the source and the paths it tried, and the same reason is logged at `WARN`.
 
 Install and publish honor `qlawkus.skill-hub.approval-mode`: `yolo` acts immediately, while `hitl` previews first and requires a confirmed re-call.
 

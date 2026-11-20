@@ -7,6 +7,7 @@ import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillFrontmatter;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import io.quarkus.arc.DefaultBean;
+import io.quarkus.logging.Log;
 import io.smallrye.faulttolerance.api.ExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -24,17 +25,19 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Default {@link SkillHub}: talks to the registry over plain HTTP from Java (native-image friendly,
  * no external CLI). Search hits {@code <base-url>/api/search?q=} and, for each configured
  * {@code well-known-hosts} entry, the {@code /.well-known/agent-skills/index.json} index. Install
- * resolves an {@code owner/repo} slug (or a direct SKILL.md URL) to the raw SKILL.md, parses its
- * frontmatter, and saves it through {@link SkillStore} into the owned root. Publish renders a skill
- * to a SKILL.md under the configured publish directory (no {@code git push} - that stays with the
- * owner on the host).
+ * resolves an {@code owner/repo} slug, an {@code owner/repo/skill} reference (a skill in a subfolder),
+ * or a direct SKILL.md URL to the raw SKILL.md, parses its frontmatter, and saves it through
+ * {@link SkillStore} into the owned root. Publish renders a skill to a SKILL.md under the configured
+ * publish directory (no {@code git push} - that stays with the owner on the host).
  *
  * <p>This is a {@link DefaultBean} so an alternative backend can override it without touching
  * callers.
@@ -43,7 +46,12 @@ import java.util.regex.Pattern;
 @DefaultBean
 public class HttpSkillHub implements SkillHub {
 
+  private static final String GITHUB_RAW = "https://raw.githubusercontent.com";
+  private static final String GITHUB_API = "https://api.github.com";
   private static final Pattern OWNER_REPO = Pattern.compile("^[\\w.-]+/[\\w.-]+$");
+  private static final Pattern GITHUB_SOURCE =
+      Pattern.compile("^([\\w.-]+/[\\w.-]+)(?:/([a-zA-Z0-9][a-zA-Z0-9._-]*))?$");
+  private static final String ROOT_SKILL = "SKILL.md";
   private static final Pattern SAFE_NAME = Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9._-]*$");
   private static final List<String> DEFAULT_BRANCHES = List.of("main", "master");
 
@@ -51,12 +59,20 @@ public class HttpSkillHub implements SkillHub {
   private final SkillStore skillStore;
   private final HttpClient httpClient;
   private final ObjectMapper mapper = new ObjectMapper();
+  private final String githubRawBase;
+  private final String githubApiBase;
 
   @Inject
   public HttpSkillHub(SkillHubConfig config, SkillStore skillStore) {
+    this(config, skillStore, GITHUB_RAW, GITHUB_API);
+  }
+
+  HttpSkillHub(SkillHubConfig config, SkillStore skillStore, String githubRawBase, String githubApiBase) {
     this.config = config;
     this.skillStore = skillStore;
     this.httpClient = HttpClient.newBuilder().connectTimeout(config.requestTimeout()).build();
+    this.githubRawBase = githubRawBase;
+    this.githubApiBase = githubApiBase;
   }
 
   @Override
@@ -99,11 +115,33 @@ public class HttpSkillHub implements SkillHub {
     for (JsonNode node : hits) {
       String name = text(node, "name", "slug", "title");
       String source = text(node, "source", "repo", "full_name", "repository", "url");
-      if (!name.isBlank() && !source.isBlank()) {
-        refs.add(new SkillRef(name, text(node, "description", "summary"), source));
+      Optional<String> reference = installReference(source, text(node, "skillId"));
+      if (!name.isBlank() && reference.isPresent()) {
+        refs.add(new SkillRef(name, text(node, "description", "summary"), reference.get()));
+      } else if (!name.isBlank()) {
+        Log.debugf("Skipped skill hub hit '%s' from '%s': no installable source", name, source);
       }
     }
     return refs;
+  }
+
+  /**
+   * A skills.sh hit names its repository and its skill folder separately; the reference keeps both
+   * so install can find a skill nested below the repository root. A bare host has no install path.
+   */
+  private Optional<String> installReference(String source, String skillId) {
+    if (source.startsWith("http://") || source.startsWith("https://")) {
+      return Optional.of(source);
+    }
+    if (!OWNER_REPO.matcher(source).matches()) {
+      return Optional.empty();
+    }
+    if (skillId.isBlank()) {
+      return Optional.of(source);
+    }
+    return SAFE_NAME.matcher(skillId).matches()
+        ? Optional.of(source + "/" + skillId)
+        : Optional.empty();
   }
 
   private List<SkillRef> searchWellKnown(String host, String query) {
@@ -141,15 +179,24 @@ public class HttpSkillHub implements SkillHub {
     return refs;
   }
 
+  /**
+   * Every failure is logged at WARN with the source and rethrown, so the tool framework reports it to
+   * the model as an error result and {@code MeteredToolExecutor} counts it as {@code outcome=error}.
+   */
   @Override
   public Skill install(String source) {
-    String content = fetchSkillMarkdown(source);
-    Frontmatter fm = parseFrontmatter(content);
-    String name = fm.name().isBlank() ? deriveName(source) : fm.name();
-    if (!SAFE_NAME.matcher(name).matches() || name.contains("..")) {
-      throw new IllegalArgumentException("Refusing to install skill with unsafe name: " + name);
+    try {
+      String content = fetchSkillMarkdown(source);
+      Frontmatter fm = parseFrontmatter(content);
+      String name = fm.name().isBlank() ? deriveName(source) : fm.name();
+      if (!SAFE_NAME.matcher(name).matches() || name.contains("..")) {
+        throw new IllegalArgumentException("Refusing to install skill with unsafe name: " + name);
+      }
+      return skillStore.save(new Skill(name, fm.description(), fm.body()));
+    } catch (RuntimeException e) {
+      Log.warnf("Skill install failed for source '%s': %s", source, e.getMessage());
+      throw e;
     }
-    return skillStore.save(new Skill(name, fm.description(), fm.body()));
   }
 
   @Override
@@ -173,21 +220,106 @@ public class HttpSkillHub implements SkillHub {
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
       return get(trimmed);
     }
-    if (OWNER_REPO.matcher(trimmed).matches()) {
-      RuntimeException last = null;
-      for (String branch : DEFAULT_BRANCHES) {
-        String url = "https://raw.githubusercontent.com/" + trimmed + "/" + branch + "/SKILL.md";
+    Matcher reference = GITHUB_SOURCE.matcher(trimmed);
+    if (!reference.matches()) {
+      throw new IllegalArgumentException("Unrecognized skill source "
+          + "(expected owner/repo, owner/repo/skill or a SKILL.md URL): " + source);
+    }
+    String repo = reference.group(1);
+    String skill = reference.group(2);
+    return skill == null ? fetchRootSkill(repo) : fetchNamedSkill(repo, skill);
+  }
+
+  private String fetchRootSkill(String repo) {
+    RuntimeException last = null;
+    for (String branch : DEFAULT_BRANCHES) {
+      try {
+        return get(rawUrl(repo, branch, ROOT_SKILL));
+      } catch (RuntimeException e) {
+        last = e;
+      }
+    }
+    throw new IllegalStateException("Could not fetch SKILL.md for " + repo
+        + " on any default branch", last);
+  }
+
+  /**
+   * A skill named by the hit lives in a folder, so the folder paths are tried first, then the
+   * repository tree (one API call per branch) for a nested folder such as
+   * {@code skills/engineering/<skill>/SKILL.md}. The root SKILL.md is the last resort and is used only
+   * when it declares the named skill, since in a multi-skill repository it may belong to another one.
+   */
+  private String fetchNamedSkill(String repo, String skill) {
+    List<String> direct = List.of("skills/" + skill + "/" + ROOT_SKILL, skill + "/" + ROOT_SKILL);
+    RuntimeException last = null;
+    for (String branch : DEFAULT_BRANCHES) {
+      for (String path : direct) {
         try {
-          return get(url);
+          return get(rawUrl(repo, branch, path));
         } catch (RuntimeException e) {
           last = e;
         }
       }
-      throw new IllegalStateException("Could not fetch SKILL.md for " + trimmed
-          + " on any default branch", last);
     }
-    throw new IllegalArgumentException(
-        "Unrecognized skill source (expected owner/repo or a SKILL.md URL): " + source);
+    String truncation = "";
+    for (String branch : DEFAULT_BRANCHES) {
+      JsonNode tree;
+      try {
+        String url = githubApiBase + "/repos/" + repo + "/git/trees/" + branch + "?recursive=1";
+        tree = readTree(get(url), url);
+      } catch (RuntimeException e) {
+        last = e;
+        continue;
+      }
+      List<String> matches = skillPathsInTree(tree, skill);
+      if (matches.size() > 1) {
+        throw new IllegalStateException("Several SKILL.md files named " + skill + " in " + repo
+            + ": " + String.join(", ", matches));
+      }
+      if (!matches.isEmpty()) {
+        return get(rawUrl(repo, branch, matches.get(0)));
+      }
+      truncation = tree.path("truncated").asBoolean(false) ? " (GitHub truncated the tree)" : "";
+      break;
+    }
+    String rootSkill = rootSkillNamed(repo, skill);
+    if (rootSkill != null) {
+      return rootSkill;
+    }
+    throw new IllegalStateException("Could not find a SKILL.md for " + repo + "/" + skill
+        + ". Tried " + String.join(", ", direct) + " on main and master, then the repository tree"
+        + truncation + ". Choose another skill from searchSkillHub.", last);
+  }
+
+  private String rootSkillNamed(String repo, String skill) {
+    for (String branch : DEFAULT_BRANCHES) {
+      try {
+        String content = get(rawUrl(repo, branch, ROOT_SKILL));
+        if (skill.equalsIgnoreCase(parseFrontmatter(content).name())) {
+          return content;
+        }
+        return null;
+      } catch (RuntimeException e) {
+        continue;
+      }
+    }
+    return null;
+  }
+
+  private List<String> skillPathsInTree(JsonNode tree, String skill) {
+    String suffix = "/" + skill + "/" + ROOT_SKILL;
+    List<String> matches = new ArrayList<>();
+    for (JsonNode entry : tree.path("tree")) {
+      String path = entry.path("path").asText("");
+      if ("blob".equals(entry.path("type").asText()) && ("/" + path).endsWith(suffix)) {
+        matches.add(path);
+      }
+    }
+    return matches;
+  }
+
+  private String rawUrl(String repo, String branch, String path) {
+    return githubRawBase + "/" + repo + "/" + branch + "/" + path;
   }
 
   /**
