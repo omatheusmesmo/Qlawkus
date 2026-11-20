@@ -111,6 +111,41 @@ class MarkdownSkillStoreTest {
   }
 
   @Test
+  void aRecordedOriginSurvivesReopeningTheStore() {
+    storeWithRoots(tempDir).save(new Skill("triage", "Triage", "body"));
+    storeWithRoots(tempDir).recordOrigin("triage", new SkillOrigin("acme/skills", "triage", 1_700_000_000_000L));
+
+    Optional<SkillOrigin> reopened = storeWithRoots(tempDir).originOf("triage");
+
+    assertEquals(Optional.of(new SkillOrigin("acme/skills", "triage", 1_700_000_000_000L)), reopened);
+  }
+
+  @Test
+  void aSkillRewrittenWithoutItsSourceLosesTheRecordedOrigin() {
+    MarkdownSkillStore store = storeWithRoots(tempDir);
+    store.save(new Skill("triage", "Triage", "body"));
+    store.recordOrigin("triage", new SkillOrigin("acme/skills", null, 1L));
+
+    store.save(new Skill("triage", "Triage", "rewritten by the agent"));
+
+    assertTrue(store.originOf("triage").isEmpty());
+  }
+
+  @Test
+  void aSidecarWrittenBeforeOriginsExistedStillLoads() throws IOException {
+    MarkdownSkillStore store = storeWithRoots(tempDir);
+    store.save(new Skill("triage", "Triage", "body"));
+    Files.writeString(tempDir.resolve(".qlawkus-usage.json"),
+        "{\"triage\":{\"lastUsedEpochMs\":0,\"useCount\":0,\"state\":\"ACTIVE\",\"pinned\":false}}",
+        StandardCharsets.UTF_8);
+
+    MarkdownSkillStore reopened = storeWithRoots(tempDir);
+
+    assertTrue(reopened.originOf("triage").isEmpty());
+    assertTrue(reopened.get("triage").isPresent());
+  }
+
+  @Test
   void get_unknownSkill_returnsEmpty() {
     assertTrue(storeWithRoots(tempDir).get("nope").isEmpty());
   }

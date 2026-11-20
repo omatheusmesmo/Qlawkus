@@ -116,43 +116,100 @@ All endpoints are under `/api/admin/skills` (Basic auth, same as the rest of the
 |`POST /api/admin/skills/curate` |Run curation now (dedup redundant skills).
 |`POST /api/admin/skills/lifecycle` |Run the lifecycle sweep now (age unused skills).
 |`POST /api/admin/skills/{name}/pin` |Pin a skill so it never ages out (`?pinned=false` to unpin).
+|`POST /api/admin/skills/install` |Install the one skill a link or `owner/repo` slug names (JSON `{"source": "..."}`). Requires the optional skill-hub extension.
+|`POST /api/admin/skills/install/list` |List the skills a repository folder, repository, archive or gist holds (JSON `{"source": "..."}`), without installing.
+|`POST /api/admin/skills/install/selection` |Install a selection from that listing (JSON `{"source": "...", "skills": "all"}` or `"triage,tdd"`), within the per-call cap.
+|`POST /api/admin/skills/install/text` |Install a SKILL.md sent as the request body (`text/plain`).
 |===
 
 The optional xref:console.adoc[Console] admin UI drives all of these from a `/console/skills` page, so pinning, deleting, curating and running the lifecycle sweep are available without hand-rolling `curl`.
 
 == Remote Skill Hub
 
-Everything above is *local* and offline. The optional `qlawkus-tools-skill-hub` extension adds the outward-facing registry client, so the agent can discover, install, and publish skills mid-conversation. It is a separate module: omit it and a locked-down distribution physically cannot reach a registry (stronger than a config flag). The default implementation is plain Java (`java.net.http`), native-friendly, with no external CLI; it is an overridable `@DefaultBean`. Qlawkus never hosts or manages a registry itself.
+Everything above is *local* and offline. The optional `qlawkus-tools-skill-hub` extension adds the outward-facing side, so the agent can discover, install, update and publish skills mid-conversation, and the owner can install from any link they can copy. It is a separate module: omit it and a locked-down distribution physically cannot reach a registry (stronger than a config flag). The default implementation is plain Java (`java.net.http`), native-friendly, with no external CLI; it is an overridable `@DefaultBean`. Qlawkus never hosts or manages a registry itself.
 
-Three tools (`@Tool`) drive it:
+== Installing from a source
+
+Whatever the owner pastes is normalized to one of these forms before anything is fetched. The owner does not need to know how the registry models a skill.
+
+[cols="1,2,2",options="header"]
+|===
+|Source |Example |What is installed
+
+|A skill name |`triage` |The registry is searched. One clear match is installed (after approval); several are listed so the agent can ask which one. When several match, an exact name is taken as the clear one.
+|An `owner/repo` slug |`acme/skills` |The repository's root `SKILL.md`, as before.
+|An `owner/repo/skill` reference |`acme/skills/triage` |That skill folder, found under `skills/<skill>/` or anywhere in the repository tree.
+|A repository or folder link |`https://github.com/acme/skills/tree/main/skills` |Every `SKILL.md` under the folder. List them, then install a selection under one approval.
+|A file link |GitHub `blob` or `raw` links, GitLab `/-/blob` links, Bitbucket `/src` links, or any https link to a `SKILL.md` |That one skill.
+|A skills.sh page |`https://skills.sh/acme/skills/triage` |That skill (the page is normalized to its repository and folder).
+|A gist |`https://gist.github.com/<user>/<id>` |The gist's `SKILL.md`.
+|An archive |`https://example.com/bundle.zip` or `.tar.gz` |Every skill folder inside it. List them, then select.
+|Pasted text |A SKILL.md the owner pastes in chat (`installSkillFromText`) |That skill, after the same validation and approval.
+|===
+
+Only the `SKILL.md` text is ever read or saved. Scripts, reference files and other assets beside it are never fetched, extracted or run.
+
+A selection is capped by `qlawkus.skill-hub.max-installs-per-call` (default 10). A larger selection is refused before anything is written, so the owner can split it. A partial failure installs what it can, then reports both the installed names and the failures.
+
+== Safety of every fetch
+
+[cols="1,3",options="header"]
+|===
+|Rule |What it does
+
+|https only |Plain `http://` links are refused by the outbound policy, on the first request and on every redirect.
+|No loopback, private or reserved targets |Every address a host resolves to is checked. Loopback, link-local, private (RFC 1918 and unique-local), carrier-grade NAT, `0.0.0.0/8` and multicast addresses are refused, including after a redirect. A redirect is followed at most three times, each hop resolved and checked again.
+|No credentials in URLs |A link carrying `user:password` is refused, and the password is never echoed back.
+|Size caps |A SKILL.md is capped at `max-skill-bytes` (default 256 KiB), an archive download at `archive.max-bytes` (10 MiB). Responses are read under the cap and the download stops at it.
+|Archive limits |`archive.max-entries` (500) and `archive.max-expanded-bytes` (20 MiB, declared and decompressed). Entries with absolute paths, backslashes, `..` segments, symlinks, hard links or encryption are refused before any skill is read.
+|In memory only |An archive is read from memory. Nothing is extracted to disk.
+|Name validation |A skill name from frontmatter must use letters, digits, `.`, `_` and `-`, start with a letter or digit, and contain no `..`.
+|Per-call timeouts |Each HTTP request uses `request-timeout`. A transient failure (429, 5xx, a network error) is retried up to three times per request, with backoff; permanent statuses are not retried.
+|===
+
+A residual risk remains: the host is resolved when the request is checked and again when the connection opens, so a DNS answer that changes between the two could point elsewhere. The check covers the answers the owner's host gives under normal conditions, but it is not a sandbox against an adversarial DNS server.
+
+== Approval
+
+Every install path honors `qlawkus.skill-hub.approval-mode`. In `hitl` the agent's tools preview first (listing the names for a multi-skill install, and the resolved source for a plain name) and write only on a confirmed re-call. In `yolo` they write immediately. The admin REST install endpoints do not preview: the request itself is the owner's approval, since the owner is authenticated and posts it directly. They keep every other limit above.
+
+== Where skills come from later
+
+Each installed skill records its source and install time. The agent's `listSkillSources` tool shows this for every skill, and `updateSkill` re-fetches a skill from its recorded source (approval applies). A skill that was pasted or written by the agent has no recorded source and cannot be updated this way. To remove a skill, use `deleteSkill`.
+
+Provenance is kept in the `.qlawkus-usage.json` sidecar beside the files, so it is recorded for the `markdown` and `hybrid` backends. The `pgvector` backend does not store it yet: installs still work there, but `listSkillSources` shows no source and `updateSkill` refuses. Adding it needs a column in the `skill` table (a migration), which is not part of this change.
+
+== Tools
+
+The agent drives the hub with these tools:
 
 [cols="2,3",options="header"]
 |===
 |Tool |What it does
 
 |`searchSkillHub` |Searches the registry at `<base-url>/api/search` and, for each configured `well-known-hosts` entry, the `/.well-known/agent-skills/index.json` index (the agentskills.io standard). Results are deduped and capped by `max-results`.
-|`installSkill` |Resolves an `owner/repo` slug, an `owner/repo/skill` reference, or a direct URL to a raw GitHub `SKILL.md`, validates the name against path traversal, and saves it into the owned root - so it enters the injected index on the next turn. Only the `SKILL.md` text is fetched; executable assets are never pulled or run. A failed install is an error result for the agent and counts as `outcome=error` in the tool metrics.
+|`installSkill` |Installs one skill from a name, a slug or a link (see the table above). A failed install is an error result for the agent and counts as `outcome=error` in the tool metrics.
+|`listSkillsInSource` |Lists the skills a repository folder, repository, archive or gist holds, without installing any.
+|`installSkillsFromSource` |Installs a selection (`all` or comma-separated names) from such a source under one approval, within the per-call cap.
+|`installSkillFromText` |Installs a SKILL.md the owner pasted, with the same validation and approval.
+|`updateSkill` |Re-fetches an installed skill from its recorded source.
+|`listSkillSources` |Shows where each installed skill came from and when.
 |`publishSkill` |Renders one of your own skills to `<publish.dir>/<name>/SKILL.md`. It never runs `git`: in a container, mount `publish.dir` to a host git working copy and push from the host (credentials stay out of the container).
 |===
 
-Many registry skills live in a subfolder of their repository (for example `skills/engineering/triage/SKILL.md`). `searchSkillHub` returns those as `owner/repo/skill`, and `installSkill` resolves them in this order on `main`, then `master`:
+The admin REST endpoints under `/api/admin/skills/install` (listed above) are the same operations for the console and other admin clients.
 
-. `skills/<skill>/SKILL.md`, then `<skill>/SKILL.md`;
-. if neither exists, one GitHub REST API tree lookup per branch for a single `<skill>/SKILL.md` at any depth. Two matches fail the install rather than guessing;
-. last, the root `SKILL.md`, only when it declares the named skill, because the root file of a multi-skill repository usually describes a different one.
-
-The tree lookup is the only call to `api.github.com`. Unauthenticated GitHub API access allows 60 requests an hour per address, so a burst of nested installs can exhaust it; the install then fails with the reason and succeeds again after the window resets. Search also leaves out hits that have no installable source, such as a bare host with no repository.
-
-A failed install names the source and the paths it tried, and the same reason is logged at `WARN`.
-
-Install and publish honor `qlawkus.skill-hub.approval-mode`: `yolo` acts immediately, while `hitl` previews first and requires a confirmed re-call.
+[NOTE]
+====
+The console install box on `/console/skills` and chat attachments on Discord and Telegram are not part of this release. The REST endpoints above are what that box will call.
+====
 
 [IMPORTANT]
 ====
 The extension defaults to `hitl`, but the reference `app` ships `yolo` - so a stock build installs a skill the moment the agent asks for one. Set `SKILL_HUB_APPROVAL_MODE=hitl` (or `qlawkus.skill-hub.approval-mode=hitl`) to be asked first.
 ====
 
-All settings live under `qlawkus.skill-hub.*` (`enabled`, `base-url`, `well-known-hosts`, `approval-mode`, `max-results`, `request-timeout`, `publish.enabled`, `publish.dir`); publishing is opt-in (`publish.enabled=false` by default).
+All settings live under `qlawkus.skill-hub.*`: `enabled`, `base-url`, `well-known-hosts`, `approval-mode`, `max-results`, `request-timeout`, `max-installs-per-call`, `max-skill-bytes`, `archive.max-bytes`, `archive.max-entries`, `archive.max-expanded-bytes`, `publish.enabled` and `publish.dir`. Publishing is opt-in (`publish.enabled=false` by default).
 
 == Roadmap
 

@@ -7,12 +7,17 @@ import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static dev.omatheusmesmo.qlawkus.tools.skillhub.ArchiveFixtures.file;
+import static dev.omatheusmesmo.qlawkus.tools.skillhub.ArchiveFixtures.zip;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
+import dev.omatheusmesmo.qlawkus.skill.SkillOrigin;
 import dev.omatheusmesmo.qlawkus.tools.skillhub.SkillHubConfig.ApprovalMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,6 +62,18 @@ class HttpSkillHubTest {
     return new HttpSkillHub(
         new TestConfig(baseUrl(), ApprovalMode.HITL, wellKnownHosts, publishDir.toString()), store,
         baseUrl(), baseUrl());
+  }
+
+  private HttpSkillHub hubWithSkillCap(long maxSkillBytes) {
+    return new HttpSkillHub(
+        new TestConfig(baseUrl(), ApprovalMode.HITL, Optional.empty(), publishDir.toString(), maxSkillBytes),
+        store, baseUrl(), baseUrl());
+  }
+
+  private HttpSkillHub productionPolicyHub() {
+    return new HttpSkillHub(
+        new TestConfig(baseUrl(), ApprovalMode.HITL, Optional.empty(), publishDir.toString()), store,
+        baseUrl(), baseUrl(), new OutboundPolicy());
   }
 
   private void stubGitHubFile(String repo, String branch, String path, String markdown) {
@@ -333,11 +350,216 @@ class HttpSkillHubTest {
         () -> hub(Optional.empty()).publish(new Skill("../evil", "x", "y")));
   }
 
+  @Test
+  void install_refusesPlainHttpUnderTheProductionPolicy() {
+    IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+        () -> productionPolicyHub().install(baseUrl() + "/skills/foo/SKILL.md"));
+
+    assertTrue(refused.getMessage().contains("https"), refused.getMessage());
+    assertTrue(store.saved.isEmpty());
+  }
+
+  @Test
+  void install_refusesLoopbackEvenWhenSpelledAsHttps() {
+    assertThrows(IllegalArgumentException.class,
+        () -> productionPolicyHub().install("https://127.0.0.1/skills/foo/SKILL.md"));
+    server.verify(0, getRequestedFor(urlPathEqualTo("/skills/foo/SKILL.md")));
+  }
+
+  @Test
+  void aRedirectToAPrivateAddressIsRefusedOnTheHop() {
+    server.stubFor(get(urlPathEqualTo("/skills/bounce/SKILL.md")).willReturn(aResponse()
+        .withStatus(302).withHeader("Location", "http://10.0.0.5/SKILL.md")));
+
+    IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+        () -> hub(Optional.empty()).install(baseUrl() + "/skills/bounce/SKILL.md"));
+
+    assertTrue(refused.getMessage().contains("private"), refused.getMessage());
+    assertTrue(store.saved.isEmpty());
+    server.verify(1, getRequestedFor(urlPathEqualTo("/skills/bounce/SKILL.md")));
+  }
+
+  @Test
+  void aRelativeRedirectToAnAllowedTargetIsFollowed() {
+    server.stubFor(get(urlPathEqualTo("/skills/moved/SKILL.md")).willReturn(aResponse()
+        .withStatus(301).withHeader("Location", "/skills/real/SKILL.md")));
+    server.stubFor(get(urlPathEqualTo("/skills/real/SKILL.md")).willReturn(aResponse()
+        .withStatus(200).withBody(skillMarkdown("real", "Moved here"))));
+
+    Skill saved = hub(Optional.empty()).install(baseUrl() + "/skills/moved/SKILL.md");
+
+    assertEquals("real", saved.name());
+  }
+
+  @Test
+  void aRedirectLoopIsStoppedWithAReason() {
+    server.stubFor(get(urlPathEqualTo("/skills/loop/SKILL.md")).willReturn(aResponse()
+        .withStatus(302).withHeader("Location", "/skills/loop/SKILL.md")));
+
+    IllegalStateException failure = assertThrows(IllegalStateException.class,
+        () -> hub(Optional.empty()).install(baseUrl() + "/skills/loop/SKILL.md"));
+
+    assertTrue(failure.getMessage().contains("redirect"), failure.getMessage());
+  }
+
+  @Test
+  void aSkillMdOverTheSizeCapIsRefusedBeforeItIsSaved() {
+    server.stubFor(get(urlPathEqualTo("/skills/huge/SKILL.md")).willReturn(aResponse()
+        .withStatus(200).withBody(skillMarkdown("huge", "x".repeat(600)))));
+
+    IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+        () -> hubWithSkillCap(256).install(baseUrl() + "/skills/huge/SKILL.md"));
+
+    assertTrue(refused.getMessage().contains("256"), refused.getMessage());
+    assertTrue(store.saved.isEmpty());
+  }
+
+  @Test
+  void aNamedSourceIsNotAnInstallLocation() {
+    assertThrows(IllegalArgumentException.class, () -> hub(Optional.empty()).install("triage"));
+  }
+
+  @Test
+  void install_recordsWhereTheSkillCameFrom() {
+    stubGitHubFile("acme/skills", "main", "skills/triage/SKILL.md", skillMarkdown("triage", "Triage"));
+
+    hub(Optional.empty()).install("acme/skills/triage");
+
+    SkillOrigin origin = store.origins.get("triage");
+    assertEquals("acme/skills/triage", origin.source());
+    assertNull(origin.candidate());
+    assertTrue(origin.installedEpochMs() > 0);
+  }
+
+  @Test
+  void discover_folderOfARepositoryListsEachSkillMd() {
+    stubGitHubTree("acme/skills", "main", """
+        {"truncated":false,"tree":[
+          {"path":"README.md","type":"blob"},
+          {"path":"skills/triage/SKILL.md","type":"blob"},
+          {"path":"skills/tdd/SKILL.md","type":"blob"},
+          {"path":"other/x/SKILL.md","type":"blob"}
+        ]}""");
+
+    List<SkillCandidate> found = hub(Optional.empty())
+        .discover("https://github.com/acme/skills/tree/main/skills");
+
+    assertEquals(List.of("triage", "tdd"), found.stream().map(SkillCandidate::name).toList());
+    assertEquals(baseUrl() + "/acme/skills/main/skills/tdd/SKILL.md", found.get(1).location());
+  }
+
+  @Test
+  void discover_repositoryRootSkillMdIsNamedAfterTheRepository() {
+    stubGitHubTree("acme/solo", "main", """
+        {"truncated":false,"tree":[{"path":"SKILL.md","type":"blob"}]}""");
+
+    List<SkillCandidate> found = hub(Optional.empty()).discover("acme/solo");
+
+    assertEquals(List.of("solo"), found.stream().map(SkillCandidate::name).toList());
+  }
+
+  @Test
+  void installCandidate_savesTheFolderSkillAndRecordsItsSource() {
+    stubGitHubTree("acme/skills", "main", """
+        {"truncated":false,"tree":[{"path":"skills/tdd/SKILL.md","type":"blob"}]}""");
+    stubGitHubFile("acme/skills", "main", "skills/tdd/SKILL.md", skillMarkdown("tdd", "Test first"));
+    HttpSkillHub hub = hub(Optional.empty());
+    SkillCandidate candidate = hub.discover("acme/skills").get(0);
+
+    Skill saved = hub.installCandidate(candidate);
+
+    assertEquals("tdd", saved.name());
+    assertEquals("tdd", store.origins.get("tdd").candidate());
+    assertEquals("acme/skills", store.origins.get("tdd").source());
+  }
+
+  @Test
+  void discover_archiveListsTheSkillFoldersItHolds() throws Exception {
+    server.stubFor(get(urlPathEqualTo("/bundle.zip")).willReturn(aResponse()
+        .withStatus(200)
+        .withBody(zip(file("bundle/triage/SKILL.md", skillMarkdown("triage", "Triage")),
+            file("bundle/triage/scripts/run.sh", "rm -rf /"),
+            file("bundle/tdd/SKILL.md", skillMarkdown("tdd", "Test first")))
+            )));
+
+    List<SkillCandidate> found = hub(Optional.empty()).discover(baseUrl() + "/bundle.zip");
+
+    assertEquals(List.of("triage", "tdd"), found.stream().map(SkillCandidate::name).toList());
+    assertTrue(found.get(0).content().contains("# triage"));
+    server.verify(1, getRequestedFor(urlPathEqualTo("/bundle.zip")));
+  }
+
+  @Test
+  void installOfAnArchiveHoldingSeveralSkillsFailsAndSaysSo() throws Exception {
+    server.stubFor(get(urlPathEqualTo("/two.zip")).willReturn(aResponse()
+        .withStatus(200)
+        .withBody(zip(file("a/SKILL.md", skillMarkdown("a", "A")), file("b/SKILL.md", skillMarkdown("b", "B"))))));
+
+    IllegalStateException failure = assertThrows(IllegalStateException.class,
+        () -> hub(Optional.empty()).install(baseUrl() + "/two.zip"));
+
+    assertTrue(failure.getMessage().contains("2 skills"), failure.getMessage());
+    assertTrue(store.saved.isEmpty());
+  }
+
+  @Test
+  void discover_gistReadsTheSkillMdOfTheGist() {
+    server.stubFor(get(urlPathEqualTo("/gists/abc123")).willReturn(okJson("""
+        {"files":{"SKILL.md":{"raw_url":"%s/gist-raw/SKILL.md"}}}""".formatted(baseUrl()))));
+    server.stubFor(get(urlPathEqualTo("/gist-raw/SKILL.md")).willReturn(aResponse()
+        .withStatus(200).withBody(skillMarkdown("gisted", "From a gist"))));
+
+    List<SkillCandidate> found = hub(Optional.empty()).discover("https://gist.github.com/someone/abc123");
+    Skill saved = hub(Optional.empty()).installCandidate(found.get(0));
+
+    assertEquals("gisted", saved.name());
+  }
+
+  @Test
+  void install_folderWithoutSkillMdNamesWhatWasTried() {
+    IllegalStateException failure = assertThrows(IllegalStateException.class,
+        () -> hub(Optional.empty()).install("https://github.com/acme/skills/tree/main/nothing"));
+
+    assertTrue(failure.getMessage().contains("nothing/SKILL.md"), failure.getMessage());
+  }
+
   private record TestConfig(String baseUrl, ApprovalMode approvalMode,
-      Optional<List<String>> wellKnownHosts, String publishDir) implements SkillHubConfig {
+      Optional<List<String>> wellKnownHosts, String publishDir, long maxSkillBytes)
+      implements SkillHubConfig {
+
+    TestConfig(String baseUrl, ApprovalMode approvalMode, Optional<List<String>> wellKnownHosts,
+        String publishDir) {
+      this(baseUrl, approvalMode, wellKnownHosts, publishDir, 262_144L);
+    }
+
     @Override
     public boolean enabled() {
       return true;
+    }
+
+    @Override
+    public int maxInstallsPerCall() {
+      return 10;
+    }
+
+    @Override
+    public Archive archive() {
+      return new Archive() {
+        @Override
+        public long maxBytes() {
+          return 10_485_760L;
+        }
+
+        @Override
+        public int maxEntries() {
+          return 500;
+        }
+
+        @Override
+        public long maxExpandedBytes() {
+          return 20_971_520L;
+        }
+      };
     }
 
     @Override

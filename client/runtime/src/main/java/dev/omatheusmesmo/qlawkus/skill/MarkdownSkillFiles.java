@@ -75,9 +75,23 @@ public class MarkdownSkillFiles {
     }
     Map<String, SkillUsage> usage = readUsage();
     SkillUsage current = usage.getOrDefault(skill.name(), SkillUsage.initial());
-    usage.put(skill.name(), current.withState(SkillState.ACTIVE));
+    usage.put(skill.name(), current.withState(SkillState.ACTIVE).withOrigin(null));
     writeUsage(usage);
     return skill;
+  }
+
+  public void recordOrigin(String name, SkillOrigin origin) {
+    if (!loadAll().containsKey(name)) {
+      return;
+    }
+    Map<String, SkillUsage> usage = readUsage();
+    SkillUsage current = usage.getOrDefault(name, SkillUsage.initial());
+    usage.put(name, current.withOrigin(origin));
+    writeUsage(usage);
+  }
+
+  public Optional<SkillOrigin> originOf(String name) {
+    return Optional.ofNullable(readUsage().get(name)).map(SkillUsage::origin);
   }
 
   public boolean delete(String name) {

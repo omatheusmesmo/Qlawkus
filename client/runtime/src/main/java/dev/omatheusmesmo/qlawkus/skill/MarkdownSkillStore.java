@@ -63,6 +63,16 @@ public class MarkdownSkillStore implements SkillStore {
   }
 
   @Override
+  public void recordOrigin(String name, SkillOrigin origin) {
+    files.recordOrigin(name, origin);
+  }
+
+  @Override
+  public Optional<SkillOrigin> originOf(String name) {
+    return files.originOf(name);
+  }
+
+  @Override
   public void verifyWritable() {
     files.verifyWritable();
   }

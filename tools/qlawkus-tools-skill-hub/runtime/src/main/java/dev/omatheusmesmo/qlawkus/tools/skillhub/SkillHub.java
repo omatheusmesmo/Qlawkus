@@ -26,11 +26,20 @@ public interface SkillHub {
   List<SkillRef> search(String query, int limit);
 
   /**
-   * Fetches the skill identified by {@code source} (an {@code owner/repo} slug or a direct URL to a
-   * SKILL.md) and saves it to the owned root, returning the saved skill. Throws when the source
-   * cannot be resolved, fetched, or carries an unsafe skill name.
+   * Fetches the one skill {@code source} names (a single SKILL.md link, an {@code owner/repo} slug, a
+   * gist) and saves it to the owned root, recording the source as its origin. Throws when the source
+   * is a name, holds several skills, cannot be resolved, or carries an unsafe skill name.
    */
   Skill install(String source);
+
+  /**
+   * Lists the skills a source holds without installing any: every SKILL.md under a repository folder,
+   * every skill folder of an archive, or the single skill a link names. Throws when nothing is found.
+   */
+  List<SkillCandidate> discover(String source);
+
+  /** Fetches (unless already read) and saves one candidate from {@link #discover(String)}. */
+  Skill installCandidate(SkillCandidate candidate);
 
   /**
    * Renders {@code skill} to a SKILL.md and writes it into the configured publish directory (a path

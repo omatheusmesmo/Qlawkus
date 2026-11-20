@@ -4,6 +4,7 @@ import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.skill.BundledSkills;
 import dev.omatheusmesmo.qlawkus.skill.MarkdownSkillFiles;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
+import dev.omatheusmesmo.qlawkus.skill.SkillOrigin;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
 import io.quarkus.arc.properties.IfBuildProperty;
@@ -85,6 +86,16 @@ public class HybridSkillStore implements SkillStore {
   @Transactional
   public int sweepLifecycle(int staleAfterDays, int archiveAfterDays) {
     return SkillEntity.sweep(staleAfterDays, archiveAfterDays);
+  }
+
+  @Override
+  public void recordOrigin(String name, SkillOrigin origin) {
+    files.recordOrigin(name, origin);
+  }
+
+  @Override
+  public Optional<SkillOrigin> originOf(String name) {
+    return files.originOf(name);
   }
 
   @Override
