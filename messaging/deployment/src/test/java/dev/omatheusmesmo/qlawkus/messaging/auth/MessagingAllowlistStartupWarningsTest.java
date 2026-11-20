@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 
 class MessagingAllowlistStartupWarningsTest {
 
-    private MessagingAllowlistStartupWarnings warnings(Map<String, Optional<List<String>>> allowedUsers, String... providers) {
+    private MessagingAllowlistStartupWarnings warnings(Map<String, Optional<String>> allowedUsers, String... providers) {
         MessagingAuthConfig config = Mockito.mock(MessagingAuthConfig.class);
         when(config.allowedUsers()).thenReturn(allowedUsers);
         MessagingAllowlistStartupWarnings warnings = new MessagingAllowlistStartupWarnings();
@@ -32,19 +32,19 @@ class MessagingAllowlistStartupWarningsTest {
     void emptyList_warnsThatEveryMessageIsRejected() {
         assertEquals(List.of(
                 "Messaging channel discord has no allowlist: every message is rejected until qlawkus.messaging.auth.allowed-users.discord lists a user id"),
-                warnings(Map.of("discord", Optional.of(List.of())), "discord").messages());
+                warnings(Map.of("discord", Optional.of("")), "discord").messages());
     }
 
     @Test
     void wildcard_warnsThatAnyoneIsAccepted() {
         assertEquals(List.of(
                 "Messaging channel discord accepts messages from anyone (qlawkus.messaging.auth.allowed-users.discord=*)"),
-                warnings(Map.of("discord", Optional.of(List.of("*"))), "discord").messages());
+                warnings(Map.of("discord", Optional.of("*")), "discord").messages());
     }
 
     @Test
     void listedUserId_hasNoWarning() {
-        assertTrue(warnings(Map.of("telegram", Optional.of(List.of("123456"))), "telegram").messages().isEmpty());
+        assertTrue(warnings(Map.of("telegram", Optional.of("123456")), "telegram").messages().isEmpty());
     }
 
     @Test
