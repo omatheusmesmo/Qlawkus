@@ -14,6 +14,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -49,12 +50,17 @@ public class WhisperTranscriptionService implements VoiceTranscriptionService {
 
     @Override
     public String transcribe(byte[] audioBytes) {
+        return transcribe(audioBytes, "audio/ogg");
+    }
+
+    @Override
+    public String transcribe(byte[] audioBytes, String mimeType) {
         String apiKey = config.apiKey().filter(key -> !key.isBlank())
                 .orElseThrow(() -> new IllegalStateException(
                         "Whisper transcription requires qlawkus.messaging.transcription.api-key to be configured"));
 
         String boundary = "----WhisperBoundary" + UUID.randomUUID().toString().replace("-", "");
-        byte[] body = buildMultipartBody(boundary, audioBytes, config.model());
+        byte[] body = buildMultipartBody(boundary, audioBytes, config.model(), mimeType);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(config.baseUrl() + "/v1/audio/transcriptions"))
@@ -79,12 +85,13 @@ public class WhisperTranscriptionService implements VoiceTranscriptionService {
         }
     }
 
-    private byte[] buildMultipartBody(String boundary, byte[] audioBytes, String model) {
+    private byte[] buildMultipartBody(String boundary, byte[] audioBytes, String model, String mimeType) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             out.write(("--" + boundary + "\r\n"
-                    + "Content-Disposition: form-data; name=\"file\"; filename=\"audio.ogg\"\r\n"
-                    + "Content-Type: audio/ogg\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+                    + "Content-Disposition: form-data; name=\"file\"; filename=\"audio." + extensionFor(mimeType)
+                    + "\"\r\n"
+                    + "Content-Type: " + mimeType + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
             out.write(audioBytes);
             out.write(("\r\n--" + boundary + "\r\n"
                     + "Content-Disposition: form-data; name=\"model\"\r\n\r\n"
@@ -94,6 +101,16 @@ public class WhisperTranscriptionService implements VoiceTranscriptionService {
             throw new RuntimeException("Failed to build multipart body", e);
         }
         return out.toByteArray();
+    }
+
+    private static String extensionFor(String mimeType) {
+        return switch (mimeType.toLowerCase(Locale.ROOT)) {
+            case "audio/wav", "audio/x-wav" -> "wav";
+            case "audio/webm" -> "webm";
+            case "audio/mpeg" -> "mp3";
+            case "audio/mp4" -> "m4a";
+            default -> "ogg";
+        };
     }
 
     record TranscriptionResponse(@JsonProperty("text") String text) {}

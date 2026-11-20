@@ -1,0 +1,59 @@
+package dev.omatheusmesmo.qlawkus.it.consolevoice;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+
+import com.github.tomakehurst.wiremock.client.WireMock;
+import java.net.URI;
+
+/**
+ * WireMock stubs for the Ollama chat and embedding endpoints the agent calls, and the origin a browser on
+ * the test server would send.
+ */
+final class VoiceTestSupport {
+
+    static final String USER = "qlawkus";
+    static final String PASSWORD = "qlawkus-test";
+
+    private VoiceTestSupport() {
+    }
+
+    static String origin(URI base) {
+        return "http://" + base.getAuthority();
+    }
+
+    static void stubAgentReply(WireMock wiremock, String reply) {
+        wiremock.register(post(urlEqualTo("/api/chat"))
+                .willReturn(aResponse().withHeader("Content-Type", "application/x-ndjson")
+                        .withBody(textNdjson(reply))));
+    }
+
+    static void stubEmbeddings(WireMock wiremock) {
+        wiremock.register(post(urlEqualTo("/api/embed")).willReturn(WireMock.okJson(
+                "{\"model\":\"nomic-embed-text\",\"embeddings\":[" + vector(768) + "],\"total_duration\":0}")));
+        wiremock.register(post(urlEqualTo("/v1/embeddings")).willReturn(WireMock.okJson(
+                "{\"data\":[{\"embedding\":" + vector(1024) + ",\"index\":0}],"
+                        + "\"usage\":{\"prompt_tokens\":1,\"total_tokens\":1}}")));
+    }
+
+    private static String textNdjson(String text) {
+        String ts = "2026-04-25T00:00:01Z";
+        return "{\"model\":\"gemma4:e2b\",\"created_at\":\"" + ts + "\",\"message\":{\"role\":\"assistant\","
+                + "\"content\":\"" + text + "\"},\"done\":false}\n"
+                + "{\"model\":\"gemma4:e2b\",\"created_at\":\"" + ts
+                + "\",\"message\":{\"role\":\"assistant\",\"content\":\"\"},\"done\":true,\"done_reason\":\"stop\","
+                + "\"prompt_eval_count\":9,\"eval_count\":4}\n";
+    }
+
+    private static String vector(int size) {
+        StringBuilder embedding = new StringBuilder("[");
+        for (int i = 0; i < size; i++) {
+            if (i > 0) {
+                embedding.append(',');
+            }
+            embedding.append("0.01");
+        }
+        return embedding.append(']').toString();
+    }
+}

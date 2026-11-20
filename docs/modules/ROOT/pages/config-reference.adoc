@@ -62,6 +62,10 @@ include::includes/qlawkus-client_qlawkus.runtime.adoc[]
 
 include::includes/qlawkus-console_qlawkus.console.adoc[]
 
+== Console voice (qlawkus-console-voice)
+
+include::includes/qlawkus-console-voice_qlawkus.console.adoc[]
+
 == Messaging
 
 === Core
