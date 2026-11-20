@@ -1,2 +1,3 @@
 dev.omatheusmesmo.qlawkus.secrets.KeystoreSecretConfigSourceFactory
 dev.omatheusmesmo.qlawkus.config.RuntimeToggleConfigSourceFactory
+dev.omatheusmesmo.qlawkus.agent.AgentToolLimitConfigSourceFactory

@@ -171,6 +171,8 @@ the Quarkus agentic integration does not yet propagate the upstream tool-search
 supplier to its generated AI service. Enabling this option does not change
 Discord or Telegram's tool selection.
 
+Both agents share one ceiling of 100 sequential tool calls per turn, so a messaging turn can chain as many tool rounds as a REST turn. The declarative `QlawkusAgent` cannot take the limit as an annotation attribute, so it reads `quarkus.langchain4j.ai-service.max-tool-executions`, which Qlawkus publishes from the same constant at a low config ordinal. Setting that property in `application.properties`, a config file or the environment changes the messaging agent's ceiling only; `AgentService` keeps the value in its annotation.
+
 Memory recall and the skill index are still injected automatically. Tool discovery
 changes how the model chooses an action, not how it receives relevant memories.
 
