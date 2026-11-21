@@ -141,7 +141,7 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-Language the reply is spoken in, passed to the text-to-speech router.
+Language of the live session. `auto` detects the language of each utterance and of each reply, falling back to the language the session has settled on and then to the text-to-speech default. An ISO 639-1 code, such as `pt`, forces that language for speech recognition and for speech.
 
 
 ifdef::add-copy-button-to-env-var[]
@@ -152,7 +152,28 @@ Environment variable: `+++QLAWKUS_CONSOLE_VOICE_LANGUAGE+++`
 endif::add-copy-button-to-env-var[]
 --
 |string
-|`+++en+++`
+|`+++auto+++`
+
+a| [[qlawkus-console-voice_qlawkus-console-voice-max-text-chars]] [.property-path]##link:#qlawkus-console-voice_qlawkus-console-voice-max-text-chars[`+++qlawkus.console.voice.max-text-chars+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.console.voice.max-text-chars+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Longest typed message the owner may send from the text box. A longer message is refused.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_CONSOLE_VOICE_MAX_TEXT_CHARS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_CONSOLE_VOICE_MAX_TEXT_CHARS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++2000+++`
 
 a| [[qlawkus-console-voice_qlawkus-console-voice-hangover]] [.property-path]##link:#qlawkus-console-voice_qlawkus-console-voice-hangover[`+++qlawkus.console.voice.hangover+++`]##
 ifdef::add-copy-button-to-config-props[]

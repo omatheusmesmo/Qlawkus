@@ -63,7 +63,7 @@ class VoiceTurnsTest {
     @Test
     void aSpokenUtteranceIsTranscribedAnsweredAndSpokenInOrder() {
         VoiceTestSupport.stubAgentReply(wiremock, "First sentence. Second sentence.");
-        ScriptedTranscriber.SCRIPT.add("what time is it");
+        ScriptedTranscriber.say("what time is it");
 
         try (VoiceClient client = open()) {
             client.awaitType("ready");
@@ -83,8 +83,8 @@ class VoiceTurnsTest {
     @Test
     void consecutiveTurnsShareTheChatConversation() {
         VoiceTestSupport.stubAgentReply(wiremock, "Noted.");
-        ScriptedTranscriber.SCRIPT.add("my favourite colour is green");
-        ScriptedTranscriber.SCRIPT.add("what did I say my colour was");
+        ScriptedTranscriber.say("my favourite colour is green");
+        ScriptedTranscriber.say("what did I say my colour was");
 
         try (VoiceClient client = open()) {
             client.awaitType("ready");
@@ -104,8 +104,8 @@ class VoiceTurnsTest {
     @Test
     void speakingAgainStopsTheObsoleteTurnAndItsAudioNeverArrives() throws InterruptedException {
         VoiceTestSupport.stubAgentReply(wiremock, "Slow answer. Later part.");
-        ScriptedTranscriber.SCRIPT.add("first question");
-        ScriptedTranscriber.SCRIPT.add("second question");
+        ScriptedTranscriber.say("first question");
+        ScriptedTranscriber.say("second question");
         CountDownLatch gate = new CountDownLatch(1);
         ScriptedSpeech.slowGate = gate;
 

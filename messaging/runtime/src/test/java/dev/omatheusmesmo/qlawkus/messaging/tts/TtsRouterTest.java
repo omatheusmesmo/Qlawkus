@@ -60,6 +60,23 @@ class TtsRouterTest {
         assertFalse(router(new RecordingClient(), true, "en", Map.of()).enabled());
     }
 
+    @Test
+    void languagesListsOnlyTheProviderKeysTheRouterCanResolve() {
+        TtsRouter router = router(new RecordingClient(), true, "en", Map.of(
+                "pt", provider("pt-model"),
+                "en", provider("en-model"),
+                "en_local", providerWith("openai", "local-model", null)));
+
+        assertEquals(List.of("en", "pt"), List.copyOf(router.languages()));
+    }
+
+    @Test
+    void defaultLanguageIsNormalizedLikeARequestedLanguage() {
+        TtsRouter router = router(new RecordingClient(), true, "en-US", Map.of("en", provider("m")));
+
+        assertEquals("en", router.defaultLanguage());
+    }
+
     private TtsRouter router(TtsClient client, boolean enabled, String defaultLang,
                              Map<String, TtsConfig.TtsProvider> providers) {
         TtsRouter router = new TtsRouter();

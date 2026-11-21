@@ -21,6 +21,8 @@ import java.util.UUID;
 @ApplicationScoped
 public class WhisperTranscriptionService implements VoiceTranscriptionService {
 
+    private static final String VERBOSE_JSON = "verbose_json";
+
     private static final ObjectMapper MAPPER = new ObjectMapper()
         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
@@ -55,12 +57,22 @@ public class WhisperTranscriptionService implements VoiceTranscriptionService {
 
     @Override
     public String transcribe(byte[] audioBytes, String mimeType) {
+        return send(audioBytes, mimeType, null, null).text();
+    }
+
+    @Override
+    public Transcription transcribe(byte[] audioBytes, String mimeType, String languageHint) {
+        String hint = WhisperLanguages.hint(languageHint).orElse(null);
+        return send(audioBytes, mimeType, VERBOSE_JSON, hint);
+    }
+
+    private Transcription send(byte[] audioBytes, String mimeType, String responseFormat, String language) {
         String apiKey = config.apiKey().filter(key -> !key.isBlank())
                 .orElseThrow(() -> new IllegalStateException(
                         "Whisper transcription requires qlawkus.messaging.transcription.api-key to be configured"));
 
         String boundary = "----WhisperBoundary" + UUID.randomUUID().toString().replace("-", "");
-        byte[] body = buildMultipartBody(boundary, audioBytes, config.model(), mimeType);
+        byte[] body = buildMultipartBody(boundary, audioBytes, config.model(), mimeType, responseFormat, language);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(config.baseUrl() + "/v1/audio/transcriptions"))
@@ -76,7 +88,11 @@ public class WhisperTranscriptionService implements VoiceTranscriptionService {
                 throw new RuntimeException(
                         "Whisper API error %d: %s".formatted(response.statusCode(), response.body()));
             }
-            return MAPPER.readValue(response.body(), TranscriptionResponse.class).text();
+            TranscriptionResponse parsed = MAPPER.readValue(response.body(), TranscriptionResponse.class);
+            String detected = VERBOSE_JSON.equals(responseFormat)
+                    ? WhisperLanguages.isoCode(parsed.language()).orElse(null)
+                    : null;
+            return new Transcription(parsed.text(), detected);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Transcription request interrupted", e);
@@ -85,7 +101,8 @@ public class WhisperTranscriptionService implements VoiceTranscriptionService {
         }
     }
 
-    private byte[] buildMultipartBody(String boundary, byte[] audioBytes, String model, String mimeType) {
+    private byte[] buildMultipartBody(String boundary, byte[] audioBytes, String model, String mimeType,
+                                      String responseFormat, String language) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             out.write(("--" + boundary + "\r\n"
@@ -95,12 +112,25 @@ public class WhisperTranscriptionService implements VoiceTranscriptionService {
             out.write(audioBytes);
             out.write(("\r\n--" + boundary + "\r\n"
                     + "Content-Disposition: form-data; name=\"model\"\r\n\r\n"
-                    + model + "\r\n"
-                    + "--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+                    + model + "\r\n").getBytes(StandardCharsets.UTF_8));
+            if (responseFormat != null) {
+                writeField(out, boundary, "response_format", responseFormat);
+            }
+            if (language != null) {
+                writeField(out, boundary, "language", language);
+            }
+            out.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             throw new RuntimeException("Failed to build multipart body", e);
         }
         return out.toByteArray();
+    }
+
+    private static void writeField(ByteArrayOutputStream out, String boundary, String name, String value)
+            throws IOException {
+        out.write(("--" + boundary + "\r\n"
+                + "Content-Disposition: form-data; name=\"" + name + "\"\r\n\r\n"
+                + value + "\r\n").getBytes(StandardCharsets.UTF_8));
     }
 
     private static String extensionFor(String mimeType) {
@@ -113,5 +143,5 @@ public class WhisperTranscriptionService implements VoiceTranscriptionService {
         };
     }
 
-    record TranscriptionResponse(@JsonProperty("text") String text) {}
+    record TranscriptionResponse(@JsonProperty("text") String text, @JsonProperty("language") String language) {}
 }
