@@ -1,6 +1,8 @@
 package dev.omatheusmesmo.qlawkus.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import dev.omatheusmesmo.qlawkus.config.ReplyLanguageConfig;
 import dev.omatheusmesmo.qlawkus.model.ReplyLanguageModel;
 import io.quarkus.arc.DefaultBean;
@@ -27,7 +29,15 @@ public class PromptReplyLanguageDecision implements ReplyLanguageDecision {
             input.put("recognizedLanguage", recognizerHint);
             input.put("stableLanguage", stableLanguage);
             input.set("choices", json.valueToTree(choices));
-            return model.classify(json.writeValueAsString(input));
+            String answer = model.classify(json.writeValueAsString(input));
+            if (answer == null || answer.length() > 256) return fallback;
+            answer = answer.trim();
+            if (answer.matches("[a-zA-Z]{2,3}(?:[-_][a-zA-Z0-9]{2,8})*")) return answer;
+            // Some registered models return a JSON object despite the code-only instruction.
+            // Accept only the bounded, exact schema, never prose or an embedded code fragment.
+            JsonNode result = json.reader().with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS).readTree(answer);
+            return result != null && result.isObject() && result.size() == 1
+                    && result.path("language").isTextual() ? result.path("language").textValue() : fallback;
         } catch (Exception failure) {
             // No provider messages: they can contain owner text or authentication material.
             return fallback;
