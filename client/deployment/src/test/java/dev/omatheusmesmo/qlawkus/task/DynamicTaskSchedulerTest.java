@@ -15,6 +15,7 @@ import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.AgentRunner;
 import dev.omatheusmesmo.qlawkus.agent.WorkflowResultReadyEvent;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
+import dev.omatheusmesmo.qlawkus.logging.CapturedLogs;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import io.quarkus.scheduler.Scheduler;
 import io.quarkus.test.InjectMock;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.LogRecord;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -188,6 +190,68 @@ class DynamicTaskSchedulerTest {
 
         Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> !ResultProbe.RESULTS.isEmpty());
         assertEquals(List.of(new Delivered("telegram", "42", "hello")), ResultProbe.RESULTS);
+    }
+
+    @Test
+    void aScheduledTaskLogsItsDestinationCronAndNextRunButNotItsText() {
+        try (CapturedLogs logs = new CapturedLogs()) {
+            TaskView view = tasks.create(MEMORY, TELEGRAM, "bake the cake", RECURRING);
+
+            String line = logs.info().stream().map(LogRecord::getMessage)
+                    .filter(m -> m.startsWith("Scheduled agent task " + view.task().id()))
+                    .findFirst().orElseThrow();
+            assertTrue(line.contains("provider=telegram"), line);
+            assertTrue(line.contains("chatId=42"), line);
+            assertTrue(line.contains("cron=" + RECURRING), line);
+            assertTrue(line.contains("nextFire=" + view.nextFire()), line);
+            assertFalse(line.contains("bake the cake"), line);
+        }
+    }
+
+    @Test
+    void aFiredTaskLogsItsStartAndDeliveredOutcomeButNotItsText() {
+        String id = tasks.create(MEMORY, TELEGRAM, "bake the cake", RECURRING).task().id();
+        when(runner.chat(eq(MEMORY), anyString())).thenReturn("cake is ready");
+
+        try (CapturedLogs logs = new CapturedLogs()) {
+            tasks.fire(id);
+
+            List<String> lines = logs.info().stream().map(LogRecord::getMessage)
+                    .filter(m -> m.contains(id)).toList();
+            assertTrue(lines.stream().anyMatch(m -> m.equals("Job " + id + " started")), lines.toString());
+            assertTrue(lines.stream().anyMatch(m -> m.startsWith("Job " + id + " finished")
+                    && m.contains("destination=telegram") && m.contains("outcome=delivered")), lines.toString());
+            assertTrue(lines.stream().noneMatch(m -> m.contains("bake the cake")), lines.toString());
+        }
+    }
+
+    @Test
+    void aFiredTaskWithNoReplyLogsThatItDeliveredNothing() {
+        String id = tasks.create(MEMORY, TELEGRAM, "stay quiet", RECURRING).task().id();
+        when(runner.chat(eq(MEMORY), anyString())).thenReturn("  ");
+
+        try (CapturedLogs logs = new CapturedLogs()) {
+            tasks.fire(id);
+
+            assertTrue(logs.info().stream().map(LogRecord::getMessage)
+                    .anyMatch(m -> m.startsWith("Job " + id + " finished") && m.contains("outcome=no-reply")));
+        }
+    }
+
+    @Test
+    void aFailedFiredTaskLogsItsOutcomeByExceptionClassOnly() {
+        String id = tasks.create(MEMORY, TELEGRAM, "pay the bill", RECURRING).task().id();
+        when(runner.chat(eq(MEMORY), anyString())).thenThrow(new IllegalStateException("model unavailable at 10.0.0.7"));
+
+        try (CapturedLogs logs = new CapturedLogs()) {
+            tasks.fire(id);
+
+            String failure = logs.warnings().stream().map(LogRecord::getMessage)
+                    .filter(m -> m.startsWith("Job " + id + " failed"))
+                    .findFirst().orElseThrow();
+            assertTrue(failure.contains("error=IllegalStateException"), failure);
+            assertFalse(failure.contains("10.0.0.7"), failure);
+        }
     }
 
     @Test

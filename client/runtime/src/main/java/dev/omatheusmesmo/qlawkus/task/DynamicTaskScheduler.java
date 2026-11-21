@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.task;
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.AgentRunner;
 import dev.omatheusmesmo.qlawkus.agent.WorkflowResultReadyEvent;
+import dev.omatheusmesmo.qlawkus.cognition.JobLog;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
@@ -106,7 +107,8 @@ public class DynamicTaskScheduler {
             removeRecordQuietly(id);
             throw new IllegalStateException("could not save the task, so it was not scheduled", e);
         }
-        Log.infof("Scheduled agent task %s oneShot=%s", id, scheduled.oneShot());
+        Log.infof("Scheduled agent task %s provider=%s chatId=%s cron=%s nextFire=%s oneShot=%s", id,
+                destination.providerId(), destination.chatId(), scheduled.cron(), nextFire, scheduled.oneShot());
         return new TaskView(scheduled, nextFire);
     }
 
@@ -328,18 +330,19 @@ public class DynamicTaskScheduler {
             requests.activate();
         }
         delivery.set(task.memoryId(), destination.providerId(), destination.chatId());
+        JobLog.Run run = JobLog.start(task.id()).count("destination", destination.providerId());
         try {
             String response = WorkloadContext.callAs(WorkloadContext.INTERACTIVE,
                     () -> agentRunner.chat(task.memoryId(), prompt(task)));
             if (response == null || response.isBlank()) {
-                Log.infof("Agent task %s produced no reply to deliver", task.id());
+                run.count("outcome", "no-reply").finish();
                 return;
             }
             resultEvent.fireAsync(new WorkflowResultReadyEvent(destination.providerId(), destination.chatId(),
                     response));
-            Log.infof("Agent task %s delivered a reply", task.id());
+            run.count("outcome", "delivered").finish();
         } catch (RuntimeException e) {
-            Log.errorf(e, "Agent task %s failed", task.id());
+            run.fail(e);
         } finally {
             delivery.clear();
             if (activated) {

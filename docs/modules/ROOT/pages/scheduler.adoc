@@ -1,0 +1,236 @@
+= Scheduler
+:page-title: Scheduler
+:page-description: Reminders and recurring tasks the agent schedules at the owner's request: timing, where replies go, persistence, logs and troubleshooting
+
+The agent can schedule work for later at the owner's request: a reminder in twenty minutes, a recurring check every weekday at nine. Each task runs the full agent with its tools, and its reply is sent to a messaging chat. This page describes the code as it is today. The tools are in `TaskSchedulerTool`, the registry in `DynamicTaskScheduler`, and the stores behind them in `ScheduledTaskStore` and `OwnerChatStore`.
+
+Agent-created tasks are kept apart from the application's own background jobs (memory review, curation, consolidation, skill lifecycle). Each task is a Quartz job registered under an id that starts with `qlawkus-task-`, so cancelling a task can never touch one of those jobs.
+
+== What the agent can do
+
+Three tools, all available to the model in every conversation:
+
+[cols="1,3", options="header"]
+|===
+|Tool |What it does
+
+|`scheduleTask`
+|Schedules a task. Arguments: `task` (required, the instruction to carry out later), `cron` or `inMinutes` (exactly one of them), and `providerId` (optional, a messaging provider name).
+
+|`listScheduledTasks`
+|Lists every task the agent holds: id, next run, schedule, state, where the reply goes, and the task text.
+
+|`cancelScheduledTask`
+|Cancels a task by its id, as printed by `scheduleTask` or `listScheduledTasks`. It also removes a task marked missed or invalid.
+|===
+
+The tool descriptions the model reads say the same things this page does: worked cron examples, the timezone, that optional arguments are omitted rather than sent empty, that `task` must be self-contained and must not ask the owner questions, and that the model should confirm recurring tasks with `listScheduledTasks`.
+
+=== Examples
+
+These show the owner's request, the call the model makes, and the text the tool returns. The model then tells the owner in its own words, and the owner receives the reply at the scheduled time.
+
+Owner, in a Telegram chat: "remind me in 20 minutes to stretch"::
+`scheduleTask(task="Remind the owner to stretch.", inMinutes="20")`. The result reads `Scheduled task qlawkus-task-... Next run 2026-11-20 21:50 America/Sao_Paulo (one-time), delivers to your Telegram chat.` followed by the durability note. The reply is sent back to that Telegram chat.
+
+Owner, in a Discord chat: "every weekday at nine, ask me what I want for lunch"::
+`scheduleTask(task="Ask the owner what they want for lunch today.", cron="0 0 9 ? * MON-FRI *")`. The result names the next weekday at nine, the zone and `delivers to your Discord chat`.
+
+Owner, over REST or the console: "send me a reminder on Telegram at six tomorrow"::
+`scheduleTask(task="...", cron="0 0 18 21 11 ? 2026", providerId="telegram")`. The destination is the owner's last Telegram chat, so this only works once the owner has written to the agent on Telegram. Otherwise the result is `Error: no chat to deliver to on Telegram yet: write to me there first.`
+
+Owner: "what do you have scheduled?"::
+`listScheduledTasks()`. Each line reads, for example, `qlawkus-task-... | next run 2026-11-20 21:50 America/Sao_Paulo | one-time | active | delivers to your Telegram chat | task: Remind the owner to stretch.`
+
+Owner: "cancel the lunch question"::
+The model finds the id in the listing and calls `cancelScheduledTask` with it. It never invents an id. The result is `Cancelled task qlawkus-task-....`, or an error when the id is not one the agent holds.
+
+== Timing
+
+Give exactly one timing per task.
+
+inMinutes:: A one-time task that many whole minutes from now. The value must be between 1 and 525600 (one year). The agent converts it to an exact-date cron in the scheduler's zone at the moment of scheduling.
+
+cron:: A Quartz cron with seven fields: seconds, minutes, hours, day of month, month, day of week, year. Use `?` in the day of month or day of week you do not use. A cron is one-time only when its first five fields are plain numbers, its day of week is `?`, and its year is four digits: it fires once, on that date. Any wildcard, step, range or list makes it recurring. Examples:
++
+[cols="2,3", options="header"]
+|===
+|Cron |Meaning
+
+|`0 0/5 * * * ? *`
+|Every 5 minutes
+
+|`0 0 9 ? * MON-FRI *`
+|Every weekday at nine
+
+|`0 0 12 15 6 ? 2027`
+|Once, at noon on 15 June 2027
+|===
+
+Empty values are absent. The model is told to omit an optional argument, not send an empty string or `0`. The tool also reads a blank `cron` or `inMinutes`, and a zero `inMinutes`, as absent. Sending both a cron and a non-zero `inMinutes` is refused.
+
+=== Timezone
+
+Every cron is read in the agent's timezone, `qlawkus.agent.timezone`, which defaults to `America/Sao_Paulo`. This is the same setting that dates the agent's system prompt. It is not the server's zone and not the owner's device zone. The tool descriptions cannot carry the configured value, because they are fixed text, so each result names the zone in use: the schedule reply and the listing both print it next to the next run.
+
+== Where a reply goes
+
+A task has one destination: a messaging provider and a chat on it. Ids for chats are never asked of the owner or the model. The destination is resolved from what the conversation already knows.
+
+[cols="2,1,3", options="header"]
+|===
+|Where the owner is talking |`providerId` |Destination
+
+|A messaging chat
+|omitted, or the same provider
+|The chat the owner is writing from.
+
+|A messaging chat
+|another provider name
+|The owner's most recent chat on that provider.
+
+|REST or the console chat
+|omitted
+|The owner's most recent chat on any messaging provider.
+
+|REST or the console chat
+|a provider name
+|The owner's most recent chat on that provider.
+
+|Any
+|`rest`
+|Refused: `rest` is not a messaging channel.
+|===
+
+The most recent chat is kept by `OwnerChatDirectory`. Each inbound message that the messaging orchestrator accepts, after the allowlist check, records its provider and chat there, so the latest accepted message sets the most recent chat. A rejected message records nothing. The directory keeps one chat per provider.
+
+When the directory has no chat for the request, the tool refuses in plain words and asks for nothing else:
+
+* no provider given and no chat yet: `no chat to deliver to yet: write to me on Telegram or Discord first`
+* a provider given and no chat on it yet: `no chat to deliver to on Telegram yet: write to me there first`
+
+Both are returned as `Error: ...` and nothing is scheduled.
+
+The schedule reply and the listing use the same words for the destination: `delivers to your Telegram chat`, `delivers to your Discord chat`. The chat id is stored with the task so a firing can deliver, but no tool result shows it.
+
+== Persistence and restart
+
+Every task is written to the scheduled-task store before the agent reports it as scheduled. A cancel, or the retirement of a one-time task, removes its record. The backend follows `qlawkus.cognition.backend`:
+
+[cols="1,3", options="header"]
+|===
+|Backend |Where the tasks are kept
+
+|`markdown` (the default, and the only backend when the pgvector extension is absent)
+|One `<id>.json` file per task under `scheduled-tasks` in `qlawkus.agent.state.root`. A save writes a temporary file and moves it into place. The markdown store reads at most 100 records at load.
+
+|`pgvector` (default with the pgvector extension)
+|Rows in the `scheduled_task` table, added by migration `V8`.
+
+|`hybrid`
+|The files stay the source of truth, and the table mirrors them. Loading reads the files.
+|===
+
+The owner's last chat per provider is kept separately, by `OwnerChatStore`. Its only backend is the markdown store: one `<provider>.json` file per provider under `owner-chats` in the state root, so it is written as files even when the tasks use pgvector or hybrid. A pgvector or hybrid counterpart is not built yet.
+
+=== Restore at boot
+
+`DynamicTaskRestorer` runs at startup, after the single-instance lock is taken, so a second instance refused at boot never rewrites a record. It registers every stored task again under the same id, cron, timezone and overlap policy:
+
+* A recurring task resumes.
+* A one-time task whose time is still ahead resumes.
+* A one-time task whose time passed while the agent was down is marked `missed`. It is not run. It stays listed, with a note, until it is cancelled.
+* A schedule the scheduler cannot run is marked `invalid`. It is not retried on each start, and stays listed until cancelled.
+* A record that cannot be read is skipped with a warning that names only its file.
+* The restore never registers more than 20 tasks. Stored tasks beyond the cap stay stored, are counted as `held`, and register at a later boot once there is room.
+
+Because every stored cron is read in the zone in effect at boot, changing `qlawkus.agent.timezone` moves every task at the next restart. The stored cron fields are not converted.
+
+The restore report is logged once per boot:
+
+----
+Restored agent tasks: 2 registered, 1 missed, 0 invalid, 0 held by the cap
+----
+
+and published as the counter `qlawkus.task.restored` with an `outcome` tag: `restored`, `missed`, `invalid` or `held`. Every series exists from boot, zero included, so a step at a restart shows what that boot restored. The reference dashboard charts it under Scheduled tasks.
+
+=== Readiness
+
+`/q/health/ready` includes the scheduled-task store in its write probe, through the same check as the other cognition stores. When the store cannot be written, the instance stays UP and the response lists `scheduledTasks` under `degraded`: the tasks already registered still run, but a task scheduled now would not survive a restart.
+
+== Failure behaviour
+
+At schedule time:
+
+* A task whose cron is invalid, or never fires again, is refused and not stored.
+* A task that cannot be saved is not scheduled, and the reply says so. The registration is undone.
+* At most 20 tasks exist at once, counting missed and invalid ones until they are cancelled. A new task over the cap is refused with the cap in the message.
+* A task text longer than 500 characters, or a blank one, is refused.
+
+At fire time:
+
+* A one-time task is removed from the scheduler and the store before the model is called. A run that then fails is not repeated.
+* The run uses the interactive workload, so it is not abandoned by the background bulkhead. Overlapping runs of the same task are skipped.
+* A reply that is blank delivers nothing.
+* A run that throws is logged and sends nothing. The owner is not told about the failure, so check the logs.
+* Delivery is best effort. A reply that was not sent before a crash is not sent again after the restart. The messaging listener logs an error when a platform refuses a reply.
+
+== What the logs say
+
+Scheduling writes one INFO line with the destination, the cron, the next run and whether it is one-time. It never contains the task text:
+
+----
+Scheduled agent task qlawkus-task-... provider=telegram chatId=123456 cron=0 0 9 ? * MON-FRI * nextFire=2026-11-23T12:00:00Z oneShot=false
+----
+
+A firing writes a start and an end line, both named by the task id, with the destination and the outcome. A failure writes a warning with the exception class only, never its message:
+
+----
+Job qlawkus-task-... started
+Job qlawkus-task-... finished duration=3120ms destination=telegram outcome=delivered
+Job qlawkus-task-... finished duration=840ms destination=telegram outcome=no-reply
+Job qlawkus-task-... failed duration=512ms error=IllegalStateException
+----
+
+The run itself also writes an `Agent turn` line, with `channel` set to the provider and `conversation` set to the memory id of the conversation that scheduled the task. How to read that line is described in xref:operations.adoc#_how_to_read_an_agent_turn[How to read an agent turn].
+
+== Limits and configuration
+
+[cols="2,3", options="header"]
+|===
+|Limit |Value
+
+|Tasks held by the agent, including missed and invalid ones
+|20
+
+|Task text
+|500 characters
+
+|Destination provider name and chat id
+|200 characters each
+
+|Cron text
+|100 characters
+
+|`inMinutes`
+|1 to 525600
+
+|Records read from the markdown store at load
+|100
+|===
+
+These limits are fixed in code. The only configuration is `qlawkus.agent.timezone` (default `America/Sao_Paulo`), plus the state root and cognition backend described above.
+
+== Troubleshooting
+
+Task did not fire::
+Run `listScheduledTasks`. A `missed` task was due while the agent was down and was not run: cancel it and schedule it again. An `invalid` task has a schedule the scheduler cannot run. For an `active` task, look for its `Job ... started` line at the fire time. If there is none, check that the agent was running at that time and that the boot log shows `Restored agent tasks` with the task registered. Check the zone in the schedule reply, because a time that is correct in your zone may not be correct in `qlawkus.agent.timezone`.
+
+Delivered nowhere::
+A `finished ... outcome=no-reply` line means the run produced a blank reply, which delivers nothing. A `failed` line means the run threw. A `finished ... outcome=delivered` line with no message on the chat means the platform refused it: look for `WorkflowResultDeliveryListener: failed to deliver result` and the provider's own error. Also confirm the owner's sender is on the messaging allowlist, because only accepted messages record the owner's chat. A task that names a provider with no recorded chat is refused at schedule time, so it cannot be scheduled to go nowhere.
+
+Wrong timezone::
+Every cron is read in `qlawkus.agent.timezone`, not in the server's zone or the owner's. Set that property to the owner's zone and restart. Restoring at that restart re-registers every task in the new zone, so check `listScheduledTasks` afterwards.
+
+Task scheduled from REST went to an unexpected chat::
+From REST or the console, a task without a provider goes to the owner's most recent chat on any provider, which is the chat that wrote last. Name the provider in `providerId` to choose.

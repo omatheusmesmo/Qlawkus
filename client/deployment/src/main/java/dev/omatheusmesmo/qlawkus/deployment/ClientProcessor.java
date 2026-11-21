@@ -265,7 +265,8 @@ class ClientProcessor {
         return ReflectiveClassBuildItem.builder(
                 "dev.omatheusmesmo.qlawkus.task.ScheduledTask",
                 "dev.omatheusmesmo.qlawkus.task.TaskDestination",
-                "dev.omatheusmesmo.qlawkus.task.TaskStatus")
+                "dev.omatheusmesmo.qlawkus.task.TaskStatus",
+                "dev.omatheusmesmo.qlawkus.task.OwnerChat")
                 .methods()
                 .fields()
                 .constructors()

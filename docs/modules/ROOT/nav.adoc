@@ -13,6 +13,7 @@
 * xref:memory.adoc[Memory]
 * xref:storage.adoc[Storage]
 * xref:skills.adoc[Skills]
+* xref:scheduler.adoc[Scheduler]
 
 [.list-top-item]
 .Configuration

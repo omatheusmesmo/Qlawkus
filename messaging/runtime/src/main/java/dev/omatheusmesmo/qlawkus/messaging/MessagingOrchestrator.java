@@ -10,6 +10,7 @@ import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.logging.FailureSummary;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
+import dev.omatheusmesmo.qlawkus.task.OwnerChatDirectory;
 import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
 import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressReporter;
@@ -88,6 +89,9 @@ public class MessagingOrchestrator {
     AgentConfig agentConfig;
 
     @Inject
+    OwnerChatDirectory ownerChats;
+
+    @Inject
     SecretRedactor redactor;
 
     public Uni<Void> process(MessagingMessage message) {
@@ -98,6 +102,7 @@ public class MessagingOrchestrator {
             return Uni.createFrom().voidItem();
         }
 
+        ownerChats.remember(channel, message.chatId());
         String conversation = memoryId(message);
         MessagingLog.info(channel, conversation, "Message accepted provider=%s chatId=%s userId=%s kind=%s length=%d",
                 channel, message.chatId(), message.userId(), kindOf(message), lengthOf(message));
