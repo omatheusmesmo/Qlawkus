@@ -292,7 +292,7 @@ class SkillHubToolTest {
     SkillHubTool tool = new SkillHubTool(new RecordingHub(), store,
         new TestConfig(true, false, ApprovalMode.YOLO, 10));
 
-    IllegalStateException failure = assertThrows(IllegalStateException.class,
+    IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
         () -> tool.updateSkill("handwritten", true));
 
     assertTrue(failure.getMessage().contains("No recorded source"), failure.getMessage());
@@ -398,6 +398,11 @@ class SkillHubToolTest {
 
     @Override
     public List<SkillCandidate> discover(String source) {
+      return discovered;
+    }
+
+    @Override
+    public List<SkillCandidate> discoverUpload(String fileName, byte[] content) {
       return discovered;
     }
 

@@ -107,6 +107,106 @@ class SkillInstallEndpointTest {
     assertTrue(skillStore.get("tdd").isEmpty(), "only the selected skill is installed");
   }
 
+  @Test
+  void anUploadedArchiveIsListedThenInstalledFromASelectionAndRecordsTheUpload() throws Exception {
+    HttpResponse<String> listed = upload("install/upload/list", "bundle.zip", bundle(), null);
+    assertEquals(200, listed.statusCode(), listed.body());
+    assertTrue(listed.body().contains("triage") && listed.body().contains("tdd"), listed.body());
+
+    HttpResponse<String> installed = upload("install/upload/selection", "bundle.zip", bundle(), "triage");
+
+    assertEquals(200, installed.statusCode(), installed.body());
+    assertTrue(skillStore.get("triage").isPresent());
+    assertTrue(skillStore.get("tdd").isEmpty(), "only the selected skill is installed");
+    assertEquals("upload:bundle.zip", skillStore.originOf("triage").orElseThrow().source());
+  }
+
+  @Test
+  void anUploadedSkillMdIsInstalledAsOneSkill() throws Exception {
+    byte[] markdown = "---\nname: uploaded-skill\ndescription: From a file\n---\n# Uploaded".getBytes(StandardCharsets.UTF_8);
+
+    HttpResponse<String> installed = upload("install/upload/selection", "SKILL.md", markdown, "uploaded-skill");
+
+    assertEquals(200, installed.statusCode(), installed.body());
+    assertTrue(skillStore.get("uploaded-skill").isPresent());
+  }
+
+  @Test
+  void aLinkInstalledSkillIsUpdatedFromItsSource() throws Exception {
+    post("install", "{\"source\":\"" + wiremockUrl("/skills/bar/SKILL.md") + "\"}", "application/json");
+    wiremock.register(WireMock.get(WireMock.urlEqualTo("/skills/bar/SKILL.md"))
+        .willReturn(WireMock.aResponse().withStatus(200).withBody(
+            "---\nname: bar-skill\ndescription: Does bar, now better\n---\n# Bar\nNew steps.")));
+
+    HttpResponse<String> updated = post("install/update/bar-skill", "", "application/json");
+
+    assertEquals(204, updated.statusCode(), updated.body());
+    assertEquals("Does bar, now better", skillStore.get("bar-skill").orElseThrow().description());
+  }
+
+  @Test
+  void updateRefusesAnUploadedSkillAndAPastedOne() throws Exception {
+    upload("install/upload/selection", "SKILL.md",
+        "---\nname: filed\ndescription: Filed\n---\n# Filed".getBytes(StandardCharsets.UTF_8), "filed");
+    post("install/text", "---\nname: pasted\ndescription: Pasted\n---\n# Pasted", "text/plain");
+
+    HttpResponse<String> uploaded = post("install/update/filed", "", "application/json");
+    HttpResponse<String> pasted = post("install/update/pasted", "", "application/json");
+
+    assertEquals(400, uploaded.statusCode(), uploaded.body());
+    assertTrue(uploaded.body().contains("uploaded file"), uploaded.body());
+    assertEquals(400, pasted.statusCode(), pasted.body());
+    assertTrue(pasted.body().contains("No recorded source"), pasted.body());
+  }
+
+  @Test
+  void updateRequiresAuthentication() throws Exception {
+    HttpResponse<String> response = client.send(HttpRequest.newBuilder(endpoint("install/update/bar-skill"))
+        .POST(HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
+
+    assertEquals(401, response.statusCode());
+  }
+
+  @Test
+  void aRefusalCarriesItsKindSoTheConsoleCanSayWhatHappened() throws Exception {
+    HttpResponse<String> response = post("install", "{\"source\":\"triage\"}", "application/json");
+
+    assertEquals(400, response.statusCode(), response.body());
+    assertTrue(response.body().contains("\"kind\":\"refused\""), response.body());
+  }
+
+  @Test
+  void anUnreachableSourceIsReportedAsUnreachable() throws Exception {
+    HttpResponse<String> response = post("install", "{\"source\":\"http://localhost:1/none/SKILL.md\"}",
+        "application/json");
+
+    assertEquals(422, response.statusCode(), response.body());
+    assertTrue(response.body().contains("\"kind\":\"unreachable\""), response.body());
+  }
+
+  private HttpResponse<String> upload(String path, String fileName, byte[] content, String skills) throws Exception {
+    String boundary = "----qlawkus" + System.nanoTime();
+    ByteArrayOutputStream body = new ByteArrayOutputStream();
+    body.write(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" + fileName
+        + "\"\r\nContent-Type: application/octet-stream\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+    body.write(content);
+    body.write("\r\n".getBytes(StandardCharsets.UTF_8));
+    if (skills != null) {
+      body.write(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"skills\"\r\n\r\n" + skills
+          + "\r\n").getBytes(StandardCharsets.UTF_8));
+    }
+    body.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+    return client.send(HttpRequest.newBuilder(endpoint(path))
+        .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+        .header("Authorization", basicAuth())
+        .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray())).build(),
+        HttpResponse.BodyHandlers.ofString());
+  }
+
+  private String basicAuth() {
+    return "Basic " + Base64.getEncoder().encodeToString("qlawkus:qlawkus-test".getBytes(StandardCharsets.UTF_8));
+  }
+
   private HttpResponse<String> post(String path, String body, String contentType) throws Exception {
     return client.send(HttpRequest.newBuilder(endpoint(path))
         .header("Content-Type", contentType)
