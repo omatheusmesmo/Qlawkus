@@ -23,6 +23,10 @@ public class ConsoleNavigation {
     }
 
     public boolean isVoiceEnabled() {
-        return features.stream().anyMatch(feature -> VOICE.equals(feature.name()));
+        return hasFeature(VOICE);
+    }
+
+    public boolean hasFeature(String name) {
+        return features.stream().anyMatch(feature -> name.equals(feature.name()));
     }
 }

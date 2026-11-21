@@ -66,7 +66,7 @@ final class SkillSelection {
 
   static void requireWithinCap(int selected, int cap) {
     if (selected > cap) {
-      throw new IllegalArgumentException(selected + " skills selected, but at most " + cap
+      throw new SkillLimitException(selected + " skills selected, but at most " + cap
           + " are installed per call. Select fewer, or raise qlawkus.skill-hub.max-installs-per-call.");
     }
   }

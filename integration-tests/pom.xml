@@ -16,6 +16,7 @@
     <module>cognition</module>
     <module>console</module>
     <module>console-voice</module>
+    <module>console-skill-hub</module>
     <module>markdown-only</module>
     <module>skill-hub</module>
     <module>google</module>

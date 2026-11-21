@@ -42,6 +42,13 @@ public interface SkillHub {
   Skill installCandidate(SkillCandidate candidate);
 
   /**
+   * Lists the skills in a file the owner uploaded: a SKILL.md, or a {@code .zip} or {@code .tar.gz} archive of
+   * skill folders. Nothing is fetched or written. Candidates carry their text and the {@code upload:} source
+   * name, so {@link #installCandidate(SkillCandidate)} saves them without a second read.
+   */
+  List<SkillCandidate> discoverUpload(String fileName, byte[] content);
+
+  /**
    * Renders {@code skill} to a SKILL.md and writes it into the configured publish directory (a path
    * the owner pushes from the host - the hub never runs {@code git push}), returning the written
    * file. Throws when the skill name is unsafe or the file cannot be written.

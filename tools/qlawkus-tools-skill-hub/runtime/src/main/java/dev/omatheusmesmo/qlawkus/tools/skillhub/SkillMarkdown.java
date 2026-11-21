@@ -43,8 +43,7 @@ final class SkillMarkdown {
   static Skill parsePasted(String text, long maxBytes) {
     long bytes = text.getBytes(StandardCharsets.UTF_8).length;
     if (bytes > maxBytes) {
-      throw new IllegalArgumentException("The pasted SKILL.md is " + bytes + " bytes; the limit is "
-          + maxBytes + " bytes.");
+      throw new SkillLimitException("The SKILL.md is " + bytes + " bytes; the limit is " + maxBytes + " bytes.");
     }
     return parse(text, null);
   }

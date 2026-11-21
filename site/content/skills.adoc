@@ -120,9 +120,25 @@ All endpoints are under `/api/admin/skills` (Basic auth, same as the rest of the
 |`POST /api/admin/skills/install/list` |List the skills a repository folder, repository, archive or gist holds (JSON `{"source": "..."}`), without installing.
 |`POST /api/admin/skills/install/selection` |Install a selection from that listing (JSON `{"source": "...", "skills": "all"}` or `"triage,tdd"`), within the per-call cap.
 |`POST /api/admin/skills/install/text` |Install a SKILL.md sent as the request body (`text/plain`).
+|`POST /api/admin/skills/install/upload/list` |List the skills in an uploaded file: a SKILL.md, or a `.zip` or `.tar.gz` archive (multipart field `file`), without installing.
+|`POST /api/admin/skills/install/upload/selection` |Install a selection from an uploaded file (multipart `file` plus `skills`, `all` or comma-separated names), within the per-call cap.
+|`POST /api/admin/skills/install/update/{name}` |Re-fetch an installed skill from the source it was installed from. Returns `204`. Refuses a skill with no recorded source and one installed from an uploaded file.
 |===
 
 The optional xref:console.adoc[Console] admin UI drives all of these from a `/console/skills` page, so pinning, deleting, curating and running the lifecycle sweep are available without hand-rolling `curl`.
+
+== The install panel
+
+The optional `qlawkus-console-skill-hub` extension (composition capability `console.skill-hub`) adds an install page to the console at `/console/skills/install`. The skills page links to it only when the extension is present, so a distribution without it has no link and no page. The panel is a front end for the endpoints above, not a second install path: it never fetches or writes a skill itself.
+
+* *From a link or repository* - paste a link, an `owner/repo` slug, a folder or a gist. The panel lists the skills found, with checkboxes, and installs the ones you select.
+* *Pasted text* - paste a SKILL.md and install it.
+* *Upload* - choose a SKILL.md, or a `.zip` or `.tar.gz` archive. An archive is listed, then a selection is installed. The upload is read in memory and held to the same caps as a download: `archive.max-bytes` for an archive, `max-skill-bytes` for a SKILL.md.
+* *Installed skills* - each skill with its recorded source and install time. A skill installed from a link or repository offers *Update* (re-fetch from the same source) and *Uninstall*. A pasted skill has no source, so it offers only *Uninstall*. An uploaded skill cannot be fetched again, so it offers *Uninstall* only; upload a newer file to replace it.
+
+Every result states what happened: *Installed*, *Refused* (with the reason), *Over a cap* (the selection exceeds `max-installs-per-call`, or the upload exceeds the upload limit), *Source unreachable* (the host could not be reached), or *Skill hub disabled*. Skill names, descriptions, sources and reasons are shown as text, never as markup.
+
+The panel's per-call cap is `qlawkus.skill-hub.max-installs-per-call` and its upload limit is `qlawkus.skill-hub.archive.max-bytes`; both are shown on the page. An install from the panel is approved by the owner's request, the same as the admin REST endpoints. The panel does not preview in HITL mode.
 
 == Remote Skill Hub
 
@@ -179,6 +195,8 @@ Each installed skill records its source and install time. The agent's `listSkill
 
 Provenance is kept in the `.qlawkus-usage.json` sidecar beside the files, so it is recorded for the `markdown` and `hybrid` backends. The `pgvector` backend does not store it yet: installs still work there, but `listSkillSources` shows no source and `updateSkill` refuses. Adding it needs a column in the `skill` table (a migration), which is not part of this change.
 
+A skill installed from an uploaded file records the source `upload:<file name>`. It has no address to fetch from, so `updateSkill` and the update endpoint refuse it with the reason.
+
 == Tools
 
 The agent drives the hub with these tools:
@@ -201,7 +219,7 @@ The admin REST endpoints under `/api/admin/skills/install` (listed above) are th
 
 [NOTE]
 ====
-The console install box on `/console/skills` and chat attachments on Discord and Telegram are not part of this release. The REST endpoints above are what that box will call.
+Chat attachments on Discord and Telegram are not part of this release. The console install panel is described in <<_the_install_panel>>.
 ====
 
 [IMPORTANT]
@@ -209,7 +227,7 @@ The console install box on `/console/skills` and chat attachments on Discord and
 The extension defaults to `hitl`, but the reference `app` ships `yolo` - so a stock build installs a skill the moment the agent asks for one. Set `SKILL_HUB_APPROVAL_MODE=hitl` (or `qlawkus.skill-hub.approval-mode=hitl`) to be asked first.
 ====
 
-All settings live under `qlawkus.skill-hub.*`: `enabled`, `base-url`, `well-known-hosts`, `approval-mode`, `max-results`, `request-timeout`, `max-installs-per-call`, `max-skill-bytes`, `archive.max-bytes`, `archive.max-entries`, `archive.max-expanded-bytes`, `publish.enabled` and `publish.dir`. Publishing is opt-in (`publish.enabled=false` by default).
+All settings live under `qlawkus.skill-hub.*`: `enabled`, `base-url`, `well-known-hosts`, `approval-mode`, `max-results`, `request-timeout`, `max-installs-per-call`, `max-skill-bytes`, `archive.max-bytes`, `archive.max-entries`, `archive.max-expanded-bytes`, `publish.enabled` and `publish.dir`. Publishing is opt-in (`publish.enabled=false` by default). The install panel adds no settings of its own.
 
 == Roadmap
 

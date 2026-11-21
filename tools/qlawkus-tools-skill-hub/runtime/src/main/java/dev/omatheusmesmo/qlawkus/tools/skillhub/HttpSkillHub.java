@@ -373,13 +373,36 @@ public class HttpSkillHub implements SkillHub {
 
   private List<SkillCandidate> archiveCandidates(String url, String source) {
     byte[] archive = download(url, config.archive().maxBytes());
+    return candidatesFromArchive(archive, deriveName(url), source);
+  }
+
+  @Override
+  public List<SkillCandidate> discoverUpload(String fileName, byte[] content) {
+    String source = SkillUpdates.UPLOAD_PREFIX + fileName;
+    try {
+      if (ArchiveSkillReader.isArchive(content)) {
+        if (content.length > config.archive().maxBytes()) {
+          throw new SkillLimitException("The uploaded archive is " + content.length + " bytes; the limit is "
+              + config.archive().maxBytes() + " bytes.");
+        }
+        return candidatesFromArchive(content, deriveName(fileName), source);
+      }
+      String text = new String(content, StandardCharsets.UTF_8);
+      Skill skill = SkillMarkdown.parsePasted(text, config.maxSkillBytes());
+      return List.of(new SkillCandidate(skill.name(), source, null, text));
+    } catch (RuntimeException e) {
+      Log.warnf("Skill upload '%s' could not be read: %s", fileName, e.getMessage());
+      throw e;
+    }
+  }
+
+  private List<SkillCandidate> candidatesFromArchive(byte[] archive, String archiveName, String source) {
     List<ArchivedSkill> skills = ArchiveSkillReader.read(archive,
         new ArchiveSkillReader.Limits(config.archive().maxEntries(), config.archive().maxExpandedBytes(),
             config.maxSkillBytes()));
     if (skills.isEmpty()) {
       throw new IllegalStateException("The archive at '" + source + "' holds no SKILL.md file.");
     }
-    String archiveName = deriveName(url);
     List<SkillCandidate> candidates = new ArrayList<>();
     for (ArchivedSkill skill : skills) {
       candidates.add(new SkillCandidate(skill.folder().isEmpty() ? archiveName : folderName(skill.folder(), archiveName),
@@ -478,7 +501,7 @@ public class HttpSkillHub implements SkillHub {
     while ((read = in.read(chunk)) >= 0) {
       total += read;
       if (total > limit) {
-        throw new IllegalArgumentException("'" + uri + "' is larger than the " + limit + "-byte limit.");
+        throw new SkillLimitException("'" + uri + "' is larger than the " + limit + "-byte limit.");
       }
       out.write(chunk, 0, read);
     }

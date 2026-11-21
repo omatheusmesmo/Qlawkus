@@ -58,15 +58,27 @@ final class ArchiveSkillReader {
    * @throws IllegalArgumentException when the bytes are neither zip nor gzip, an entry is unsafe (path
    *     traversal, absolute or backslash name, symlink, hard link, encryption), or a cap is exceeded
    */
+  static boolean isArchive(byte[] bytes) {
+    return isZip(bytes) || isGzip(bytes);
+  }
+
   static List<ArchivedSkill> read(byte[] archive, Limits limits) {
-    if (archive.length >= 4 && archive[0] == 'P' && archive[1] == 'K' && archive[2] == 3 && archive[3] == 4) {
+    if (isZip(archive)) {
       return readZip(archive, limits);
     }
-    if (archive.length >= 2 && (archive[0] & 0xff) == 0x1f && (archive[1] & 0xff) == 0x8b) {
+    if (isGzip(archive)) {
       return readTarGz(archive, limits);
     }
     throw new IllegalArgumentException("The download is neither a .zip nor a .tar.gz archive, so no skill "
         + "could be read from it.");
+  }
+
+  private static boolean isZip(byte[] bytes) {
+    return bytes.length >= 4 && bytes[0] == 'P' && bytes[1] == 'K' && bytes[2] == 3 && bytes[3] == 4;
+  }
+
+  private static boolean isGzip(byte[] bytes) {
+    return bytes.length >= 2 && (bytes[0] & 0xff) == 0x1f && (bytes[1] & 0xff) == 0x8b;
   }
 
   private static List<ArchivedSkill> readZip(byte[] data, Limits limits) {
@@ -317,7 +329,7 @@ final class ArchiveSkillReader {
 
   private static byte[] readAll(InputStream in, long size, long limit) throws IOException {
     if (size > limit) {
-      throw new IllegalArgumentException("A tar header record of " + size + " bytes is over the limit of "
+      throw new SkillLimitException("A tar header record of " + size + " bytes is over the limit of "
           + limit + " bytes.");
     }
     byte[] buffer = new byte[(int) size];
@@ -393,18 +405,18 @@ final class ArchiveSkillReader {
     return slash < 0 ? "" : name.substring(0, slash);
   }
 
-  private static IllegalArgumentException tooManyEntries(long count, Limits limits) {
-    return new IllegalArgumentException("The archive holds " + count + " entries; the limit is "
+  private static SkillLimitException tooManyEntries(long count, Limits limits) {
+    return new SkillLimitException("The archive holds " + count + " entries; the limit is "
         + limits.maxEntries() + " per archive.");
   }
 
-  private static IllegalArgumentException expandedTooLarge(Limits limits) {
-    return new IllegalArgumentException("The archive expands to more than " + limits.maxExpandedBytes()
+  private static SkillLimitException expandedTooLarge(Limits limits) {
+    return new SkillLimitException("The archive expands to more than " + limits.maxExpandedBytes()
         + " bytes; the limit is " + limits.maxExpandedBytes() + " bytes in total.");
   }
 
-  private static IllegalArgumentException skillTooLarge(String name, long limit) {
-    return new IllegalArgumentException("'" + name + "' is larger than the " + limit
+  private static SkillLimitException skillTooLarge(String name, long limit) {
+    return new SkillLimitException("'" + name + "' is larger than the " + limit
         + "-byte limit for a SKILL.md.");
   }
 
@@ -459,7 +471,7 @@ final class ArchiveSkillReader {
     private void count(long bytes) {
       total += bytes;
       if (total > limit) {
-        throw new IllegalArgumentException("The .tar.gz archive expands to more than " + limit
+        throw new SkillLimitException("The .tar.gz archive expands to more than " + limit
             + " bytes; the limit is " + limit + " bytes in total.");
       }
     }

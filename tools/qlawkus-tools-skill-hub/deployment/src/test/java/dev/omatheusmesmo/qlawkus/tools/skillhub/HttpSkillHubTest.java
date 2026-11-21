@@ -11,6 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static dev.omatheusmesmo.qlawkus.tools.skillhub.ArchiveFixtures.file;
 import static dev.omatheusmesmo.qlawkus.tools.skillhub.ArchiveFixtures.zip;
@@ -19,11 +21,13 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillOrigin;
 import dev.omatheusmesmo.qlawkus.tools.skillhub.SkillHubConfig.ApprovalMode;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,6 +71,13 @@ class HttpSkillHubTest {
   private HttpSkillHub hubWithSkillCap(long maxSkillBytes) {
     return new HttpSkillHub(
         new TestConfig(baseUrl(), ApprovalMode.HITL, Optional.empty(), publishDir.toString(), maxSkillBytes),
+        store, baseUrl(), baseUrl());
+  }
+
+  private HttpSkillHub hubWithArchiveCap(long archiveMaxBytes) {
+    return new HttpSkillHub(
+        new TestConfig(baseUrl(), ApprovalMode.HITL, Optional.empty(), publishDir.toString(), 262_144L,
+            archiveMaxBytes),
         store, baseUrl(), baseUrl());
   }
 
@@ -503,6 +514,47 @@ class HttpSkillHubTest {
   }
 
   @Test
+  void discoverUpload_listsTheSkillFoldersOfAnUploadedArchiveWithoutTouchingTheNetwork() throws Exception {
+    List<SkillCandidate> found = hub(Optional.empty()).discoverUpload("bundle.zip", zip(
+        file("bundle/triage/SKILL.md", skillMarkdown("triage", "Triage")),
+        file("bundle/triage/scripts/run.sh", "rm -rf /"),
+        file("bundle/tdd/SKILL.md", skillMarkdown("tdd", "Test first"))));
+
+    assertEquals(List.of("triage", "tdd"), found.stream().map(SkillCandidate::name).toList());
+    assertEquals("upload:bundle.zip", found.get(0).source());
+    assertTrue(found.get(0).content().contains("# triage"));
+    server.verify(0, anyRequestedFor(anyUrl()));
+  }
+
+  @Test
+  void discoverUpload_readsAnUploadedSkillMdAsOneSkill() {
+    List<SkillCandidate> found = hub(Optional.empty())
+        .discoverUpload("SKILL.md", skillMarkdown("solo", "Alone").getBytes(StandardCharsets.UTF_8));
+
+    assertEquals(List.of("solo"), found.stream().map(SkillCandidate::name).toList());
+    assertEquals("upload:SKILL.md", found.get(0).source());
+  }
+
+  @Test
+  void discoverUpload_refusesAnArchiveOverTheByteCapAsALimit() throws Exception {
+    byte[] noise = new byte[6000];
+    new Random(7).nextBytes(noise);
+    byte[] archive = zip(file("bundle/triage/SKILL.md", skillMarkdown("triage", "Triage")),
+        new ArchiveFixtures.Entry("bundle/triage/assets/blob.bin", noise));
+
+    SkillLimitException refused = assertThrows(SkillLimitException.class,
+        () -> hubWithArchiveCap(4096).discoverUpload("bundle.zip", archive));
+
+    assertTrue(refused.getMessage().contains("4096"), refused.getMessage());
+  }
+
+  @Test
+  void discoverUpload_refusesAnUploadedSkillMdOverTheSkillCap() {
+    assertThrows(SkillLimitException.class, () -> hubWithSkillCap(64)
+        .discoverUpload("SKILL.md", skillMarkdown("big", "x".repeat(200)).getBytes(StandardCharsets.UTF_8)));
+  }
+
+  @Test
   void discover_gistReadsTheSkillMdOfTheGist() {
     server.stubFor(get(urlPathEqualTo("/gists/abc123")).willReturn(okJson("""
         {"files":{"SKILL.md":{"raw_url":"%s/gist-raw/SKILL.md"}}}""".formatted(baseUrl()))));
@@ -524,12 +576,17 @@ class HttpSkillHubTest {
   }
 
   private record TestConfig(String baseUrl, ApprovalMode approvalMode,
-      Optional<List<String>> wellKnownHosts, String publishDir, long maxSkillBytes)
+      Optional<List<String>> wellKnownHosts, String publishDir, long maxSkillBytes, long archiveMaxBytes)
       implements SkillHubConfig {
 
     TestConfig(String baseUrl, ApprovalMode approvalMode, Optional<List<String>> wellKnownHosts,
         String publishDir) {
-      this(baseUrl, approvalMode, wellKnownHosts, publishDir, 262_144L);
+      this(baseUrl, approvalMode, wellKnownHosts, publishDir, 262_144L, 10_485_760L);
+    }
+
+    TestConfig(String baseUrl, ApprovalMode approvalMode, Optional<List<String>> wellKnownHosts,
+        String publishDir, long maxSkillBytes) {
+      this(baseUrl, approvalMode, wellKnownHosts, publishDir, maxSkillBytes, 10_485_760L);
     }
 
     @Override
@@ -547,7 +604,7 @@ class HttpSkillHubTest {
       return new Archive() {
         @Override
         public long maxBytes() {
-          return 10_485_760L;
+          return archiveMaxBytes;
         }
 
         @Override

@@ -1,0 +1,80 @@
+{#include console/base}
+{#title}Qlawkus Console - Install skills{/title}
+{#head}
+    <script src="/console/skill-install.js" defer></script>
+{/head}
+<header class="content-head">
+    <h1>Install skills</h1>
+    <p class="lede">Add a skill from a link, a repository, an archive, pasted text or a file you upload. One install writes at most {maxInstalls} skills. The same source rules and limits apply as to the agent's install tools.</p>
+    <p><a href="/console/skills">Back to skills</a></p>
+</header>
+
+<div id="skill-install" data-max-installs="{maxInstalls}" data-upload-limit="{uploadLimit}">
+
+<section class="panel">
+    <h2 class="panel-title">From a link or repository</h2>
+    <form class="form" id="install-link-form">
+        <label>Link, owner/repo slug, folder or gist
+            <input type="text" name="source" id="install-source" autocomplete="off" required placeholder="https://github.com/owner/repo/tree/main/skills">
+        </label>
+        <button class="btn btn-primary" type="submit">Find skills</button>
+    </form>
+</section>
+
+<section class="panel">
+    <h2 class="panel-title">Pasted text</h2>
+    <form class="form" id="install-text-form">
+        <label>SKILL.md text, frontmatter included
+            <textarea name="text" id="install-text" rows="8" required></textarea>
+        </label>
+        <button class="btn btn-primary" type="submit">Install pasted skill</button>
+    </form>
+</section>
+
+<section class="panel">
+    <h2 class="panel-title">Upload</h2>
+    <form class="form" id="install-upload-form">
+        <label>SKILL.md, .zip or .tar.gz (up to {uploadLimitKib} KiB)
+            <input type="file" name="file" id="install-file" accept=".md,.zip,.tgz,.tar.gz,application/zip,application/gzip" required>
+        </label>
+        <button class="btn btn-primary" type="submit">Find skills</button>
+    </form>
+</section>
+
+<section class="panel" id="skill-candidates" hidden>
+    <h2 class="panel-title">Skills found</h2>
+    <form class="form" id="candidate-form">
+        <ul class="mem-list" id="candidate-list"></ul>
+        <button class="btn btn-primary" type="submit">Install selected</button>
+    </form>
+</section>
+
+<div id="install-result" class="result" role="status" aria-live="polite"></div>
+
+<section class="step" id="installed-skills">
+    <h2 class="step-title">Installed skills</h2>
+    <table class="tbl tbl-stack">
+        <thead><tr><th>Name</th><th>Description</th><th>Source</th><th>Installed</th><th>Actions</th></tr></thead>
+        <tbody>
+        {#for s in installed}
+            <tr>
+                <td class="mono" data-label="Name">{s.name}</td>
+                <td data-label="Description">{s.description}</td>
+                <td data-label="Source">{#if s.source}<span class="mono">{s.source}</span>{#else}<span class="muted">pasted or written by the agent</span>{/if}</td>
+                <td data-label="Installed">{#if s.installedAt}{s.installedAt}{#else}<span class="muted">-</span>{/if}</td>
+                <td data-label="Actions">
+                    <div class="row-actions">
+                        {#if s.updatable}<button class="btn btn-secondary btn-sm" hx-post="/api/admin/skills/install/update/{s.name}" hx-target="#install-result" hx-swap="innerHTML" data-ok="Updated {s.name}.">Update</button>{/if}
+                        <button class="btn btn-danger btn-sm" hx-delete="/api/admin/skills/{s.name}" hx-confirm="Uninstall {s.name}?" hx-target="#install-result" hx-swap="innerHTML" data-ok="Uninstalled {s.name}." data-remove-row>Uninstall</button>
+                    </div>
+                </td>
+            </tr>
+        {#else}
+            <tr><td colspan="5" class="muted">No skills installed yet.</td></tr>
+        {/for}
+        </tbody>
+    </table>
+</section>
+
+</div>
+{/include}

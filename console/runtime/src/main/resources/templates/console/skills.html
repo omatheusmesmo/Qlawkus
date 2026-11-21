@@ -3,6 +3,9 @@
 <header class="content-head">
     <h1>Skills</h1>
     <p class="lede">The agent's procedural memory. {skillCount} skills.</p>
+    {#if inject:consoleNavigation.hasFeature('skill-hub')}
+    <p><a class="btn btn-primary" href="/console/skills/install">Install skills</a></p>
+    {/if}
 </header>
 
 <section class="panel">

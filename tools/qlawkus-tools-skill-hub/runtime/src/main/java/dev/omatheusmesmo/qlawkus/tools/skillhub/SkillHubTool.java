@@ -187,26 +187,12 @@ public class SkillHubTool {
       return "Provide the exact name of the skill to update.";
     }
     String skillName = name.strip();
-    Optional<SkillOrigin> origin = skillStore.originOf(skillName);
-    if (origin.isEmpty()) {
-      throw new IllegalStateException("No recorded source for skill '" + skillName + "': it was pasted or "
-          + "written by the agent, so there is nowhere to update it from. Install it from a source to record one.");
-    }
-    SkillOrigin recorded = origin.get();
+    SkillOrigin recorded = SkillUpdates.recordedOrigin(skillStore, skillName);
     if (config.approvalMode() == ApprovalMode.HITL && !confirm) {
       return "Updating '" + skillName + "' from " + recorded.source() + " will overwrite its SKILL.md with the "
           + "current version there. Ask the owner to approve, then call updateSkill again with confirm=true.";
     }
-    if (recorded.candidate() == null) {
-      Skill updated = skillHub.install(recorded.source());
-      return "Updated skill: " + updated.name() + " from " + recorded.source();
-    }
-    SkillCandidate candidate = skillHub.discover(recorded.source()).stream()
-        .filter(c -> c.name().equals(recorded.candidate()))
-        .findFirst()
-        .orElseThrow(() -> new IllegalStateException("'" + recorded.source() + "' no longer holds a skill named '"
-            + recorded.candidate() + "', so '" + skillName + "' cannot be updated from it."));
-    Skill updated = skillHub.installCandidate(candidate);
+    Skill updated = SkillUpdates.refresh(skillHub, skillStore, skillName);
     return "Updated skill: " + updated.name() + " from " + recorded.source();
   }
 

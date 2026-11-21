@@ -16,6 +16,8 @@ build-time:
     - brag
     - skill-hub
     - console
+    - console.voice
+    - console.skill-hub
     - observability
     - self-observe
     - web-search
