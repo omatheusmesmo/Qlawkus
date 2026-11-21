@@ -7,12 +7,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-/**
- * The language rules of a live voice session. In {@code auto} the speech recognizer detects each utterance
- * and each reply takes the language of its own text, falling back to the session's stable language and then
- * to the configured default. An explicit code forces that language for recognition and for speech.
- * Only languages a speech adapter can speak are offered or chosen for a reply.
- */
+/** Speech-provider choices and recognition hints; reply policy lives in the core resolver. */
 final class VoiceLanguages {
 
     static final String AUTO = "auto";
@@ -66,14 +61,4 @@ final class VoiceLanguages {
         return AUTO.equals(choice) ? Optional.empty() : Optional.ofNullable(choice);
     }
 
-    String replyLanguage(String choice, Optional<String> stable, String replyText) {
-        if (!AUTO.equals(choice)) {
-            return speakable.contains(choice) ? choice : fallback;
-        }
-        Optional<String> fromText = ReplyLanguageDetector.detect(replyText, speakable);
-        if (fromText.isPresent()) {
-            return fromText.get();
-        }
-        return stable.filter(speakable::contains).orElse(fallback);
-    }
 }

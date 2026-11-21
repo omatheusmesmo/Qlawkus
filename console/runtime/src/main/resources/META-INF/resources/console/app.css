@@ -617,7 +617,7 @@ body {
 .voice-quiet select:disabled { opacity: 0.45; }
 .voice-quiet .voice-hint { width: 100%; margin: 2px 0 0; font-size: 12px; color: var(--muted); }
 
-.voice-conversation { display: flex; flex-direction: column; min-width: 0; min-height: 540px; }
+.voice-conversation { display: flex; flex-direction: column; min-width: 0; height: clamp(360px, 72dvh, 760px); overflow: hidden; }
 .voice-log {
   flex: 1;
   display: flex;
@@ -626,10 +626,13 @@ body {
   min-height: 0;
   overflow-y: auto;
   padding: 10px 4px 16px;
-  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+  overflow-anchor: none;
+  scrollbar-gutter: stable;
 }
+.voice-log:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 12px; }
 .voice-log:empty::before { content: "Your conversation appears here."; margin: auto; color: var(--muted); font-size: 15px; }
-.voice-line { max-width: 84%; padding: 10px 15px; border-radius: 18px; font-size: 15px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.voice-line { flex-shrink: 0; max-width: 84%; padding: 10px 15px; border-radius: 18px; font-size: 15px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .voice-user { align-self: flex-end; background: var(--accent-soft); border-bottom-right-radius: 6px; color: var(--text); }
 .voice-agent { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 6px; }
 .voice-agent.is-typing::after { content: "\258d"; margin-left: 2px; color: var(--speak); animation: voice-caret 1s steps(2, jump-none) infinite; }
@@ -639,6 +642,7 @@ body {
 
 .voice-text {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 8px;
   margin-top: 12px;
@@ -673,8 +677,7 @@ body {
 @media (max-width: 900px) {
   .voice-body { grid-template-columns: minmax(0, 1fr); gap: 18px; }
   .voice-stage { padding: 28px 16px 22px; border-radius: 22px; }
-  .voice-conversation { min-height: 0; }
-  .voice-log { max-height: 340px; min-height: 180px; }
+  .voice-conversation { height: clamp(260px, 52dvh, 420px); }
 }
 
 @media (max-width: 480px) {

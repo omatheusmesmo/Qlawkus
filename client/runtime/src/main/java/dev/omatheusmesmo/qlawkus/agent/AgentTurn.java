@@ -42,6 +42,7 @@ public final class AgentTurn {
     private final String channel;
     private final String workload;
     private final boolean streamed;
+    private final AgentReplyStyle replyStyle;
     private final long startedAt = System.nanoTime();
     private final List<String> tools = new CopyOnWriteArrayList<>();
     private final AtomicInteger facts = new AtomicInteger();
@@ -50,11 +51,12 @@ public final class AgentTurn {
     private volatile Integer outputTokens;
     private volatile String tier;
 
-    private AgentTurn(String conversation, String channel, String workload, boolean streamed) {
+    private AgentTurn(String conversation, String channel, String workload, boolean streamed, AgentReplyStyle replyStyle) {
         this.conversation = conversation;
         this.channel = channel;
         this.workload = workload;
         this.streamed = streamed;
+        this.replyStyle = replyStyle;
     }
 
     /**
@@ -62,7 +64,11 @@ public final class AgentTurn {
      * does, and every turn must be closed exactly once.
      */
     public static AgentTurn open(String conversation, String channel, boolean streamed) {
-        AgentTurn turn = new AgentTurn(conversation, channel, WorkloadContext.current(), streamed);
+        return open(conversation, channel, streamed, AgentReplyStyle.DEFAULT);
+    }
+
+    public static AgentTurn open(String conversation, String channel, boolean streamed, AgentReplyStyle replyStyle) {
+        AgentTurn turn = new AgentTurn(conversation, channel, WorkloadContext.current(), streamed, replyStyle);
         OPEN.put(conversation, turn);
         return turn;
     }
@@ -111,6 +117,10 @@ public final class AgentTurn {
 
     public boolean streamed() {
         return streamed;
+    }
+
+    public AgentReplyStyle replyStyle() {
+        return replyStyle;
     }
 
     public void tool(String name) {

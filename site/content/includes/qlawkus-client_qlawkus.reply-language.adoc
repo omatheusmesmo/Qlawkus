@@ -1,0 +1,32 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-reply-language-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-reply-language-enabled[`+++qlawkus.reply-language.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.reply-language.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Ask the already registered chat model to select the reply language once per turn. Its existing provider/fallback chain is reused. Disabled distributions rely on the shared prompt policy; the reference app enables classification for both text and voice.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_REPLY_LANGUAGE_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_REPLY_LANGUAGE_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+|===
+

@@ -62,6 +62,7 @@ class AgentRunnerLogTest {
         runner.soulEngine = mock(SoulEngine.class);
         runner.delivery = mock(AgentDeliveryContext.class);
         runner.redactor = redactor();
+        runner.languages = new ReplyLanguageResolver(new PromptReplyLanguageDecision());
         return runner;
     }
 
