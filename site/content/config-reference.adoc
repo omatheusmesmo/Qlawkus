@@ -19,6 +19,9 @@ include::includes/qlawkus-client_qlawkus.cost.adoc[]
 === Agent & memory
 include::includes/qlawkus-client_qlawkus.agent.adoc[]
 
+=== Shared reply language
+include::includes/qlawkus-client_qlawkus.reply-language.adoc[]
+
 === Cognition backend
 include::includes/qlawkus-client_qlawkus.cognition.adoc[]
 

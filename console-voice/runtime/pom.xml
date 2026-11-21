@@ -14,9 +14,25 @@
 
     <properties>
         <argLine></argLine>
+        <commonmark.version>0.32.0</commonmark.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark</artifactId>
+            <version>${commonmark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark-ext-gfm-strikethrough</artifactId>
+            <version>${commonmark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark-ext-gfm-tables</artifactId>
+            <version>${commonmark.version}</version>
+        </dependency>
         <dependency>
             <groupId>dev.omatheusmesmo</groupId>
             <artifactId>qlawkus-client</artifactId>

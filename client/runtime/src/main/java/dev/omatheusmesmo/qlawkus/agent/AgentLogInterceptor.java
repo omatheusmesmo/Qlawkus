@@ -22,8 +22,7 @@ import java.util.Set;
 @Priority(Interceptor.Priority.APPLICATION)
 class AgentLogInterceptor {
 
-    private static final Set<String> TURN_METHODS = Set.of("chatSync", "chat");
-    private static final String STREAMED_METHOD = "chat";
+    private static final Set<String> TURN_METHODS = Set.of("chatSync", "chat", "chatEvents");
 
     @Inject
     AgentDeliveryContext delivery;
@@ -31,14 +30,20 @@ class AgentLogInterceptor {
     @Inject
     SecretRedactor redactor;
 
+    @Inject
+    ReplyLanguageResolver languages;
+
     @AroundInvoke
     Object logInvocation(InvocationContext context) throws Exception {
         if (!TURN_METHODS.contains(context.getMethod().getName())) {
             return context.proceed();
         }
+        if (AgentTurn.current() != null) return context.proceed();
         String conversation = (String) context.getParameters()[0];
-        boolean streamed = STREAMED_METHOD.equals(context.getMethod().getName());
-        AgentTurn turn = AgentTurn.open(conversation, AgentTurn.channelOf(conversation, delivery), streamed);
+        String message = (String) context.getParameters()[1];
+        boolean streamed = !"chatSync".equals(context.getMethod().getName());
+        AgentReplyStyle style = languages.resolve(conversation, message, AgentReplyStyle.DEFAULT);
+        AgentTurn turn = AgentTurn.open(conversation, AgentTurn.channelOf(conversation, delivery), streamed, style);
         Object result;
         try (AgentTurn.Binding ignored = turn.bind()) {
             result = context.proceed();

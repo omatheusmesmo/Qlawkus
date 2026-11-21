@@ -38,19 +38,32 @@ public class AgentStream {
     private final SecretRedactor redactor;
     private final AgentDeliveryContext delivery;
     private final StreamedToolContext streamedTools;
+    private final ReplyLanguageResolver languages;
 
     @Inject
     public AgentStream(AgentService agent, Event<ToolActivityEvent> activity, SecretRedactor redactor,
-            AgentDeliveryContext delivery, StreamedToolContext streamedTools) {
+            AgentDeliveryContext delivery, StreamedToolContext streamedTools, ReplyLanguageResolver languages) {
         this.agent = agent;
         this.activity = activity;
         this.redactor = redactor;
         this.delivery = delivery;
         this.streamedTools = streamedTools;
+        this.languages = languages;
     }
 
     public Multi<AgentEvent> stream(String conversationId, String message) {
         return Multi.createFrom().deferred(() -> open(conversationId, message));
+    }
+
+    /** Applies presentation instructions to this turn's system prompt, never to the user's message. */
+    public Multi<AgentEvent> stream(String conversationId, String message, AgentReplyStyle replyStyle) {
+        return Multi.createFrom().deferred(() -> open(conversationId, message,
+                languages.resolve(conversationId, message, replyStyle)));
+    }
+
+    /** A channel that already resolved the turn policy uses this path, even for an unknown language. */
+    public Multi<AgentEvent> streamPrepared(String conversationId, String message, AgentReplyStyle replyStyle) {
+        return Multi.createFrom().deferred(() -> open(conversationId, message, replyStyle));
     }
 
     /**
@@ -73,7 +86,11 @@ public class AgentStream {
     }
 
     private Multi<AgentEvent> open(String conversationId, String message) {
-        AgentTurn logged = AgentTurn.open(conversationId, AgentTurn.channelOf(conversationId, delivery), true);
+        return open(conversationId, message, languages.resolve(conversationId, message, AgentReplyStyle.DEFAULT));
+    }
+
+    private Multi<AgentEvent> open(String conversationId, String message, AgentReplyStyle replyStyle) {
+        AgentTurn logged = AgentTurn.open(conversationId, AgentTurn.channelOf(conversationId, delivery), true, replyStyle);
         Turn turn = new Turn(conversationId, logged);
         streamedTools.capture(conversationId);
         Multi<ChatEvent> events;
