@@ -40,33 +40,4 @@ class VoiceLanguagesTest {
         assertEquals(Optional.of("pt"), languages.sttHint("pt"));
     }
 
-    @Test
-    void inAutoModeTheReplyFollowsItsOwnTextFirst() {
-        Optional<String> stable = Optional.of("en");
-
-        assertEquals("pt", languages.replyLanguage(VoiceLanguages.AUTO, stable,
-                "Claro, eu não sei, mas posso ajudar você com isso."));
-    }
-
-    @Test
-    void inAutoModeAnUninformativeReplyFallsBackToTheSessionLanguageThenTheDefault() {
-        assertEquals("pt", languages.replyLanguage(VoiceLanguages.AUTO, Optional.of("pt"), "Ok."));
-        assertEquals("en", languages.replyLanguage(VoiceLanguages.AUTO, Optional.empty(), "Ok."));
-    }
-
-    @Test
-    void aSessionLanguageWithoutAProviderIsNotUsedForSpeech() {
-        assertEquals("en", languages.replyLanguage(VoiceLanguages.AUTO, Optional.of("ja"), "Ok."));
-    }
-
-    @Test
-    void anExplicitChoiceForcesTheReplyLanguageWhateverTheTextSays() {
-        assertEquals("es", languages.replyLanguage("es", Optional.of("pt"),
-                "The weather is fine and you can see it with the window open."));
-    }
-
-    @Test
-    void anExplicitChoiceWithoutAProviderSpeaksInTheDefaultLanguage() {
-        assertEquals("en", languages.replyLanguage("de", Optional.empty(), "Guten Tag."));
-    }
 }

@@ -5,6 +5,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 
 /**
@@ -25,11 +26,19 @@ final class VoiceTestSupport {
 
     static void stubAgentReply(WireMock wiremock, String reply) {
         wiremock.register(post(urlEqualTo("/api/chat"))
+                .withRequestBody(WireMock.notMatching("(?s).*LANGUAGE_DECISION.*"))
                 .willReturn(aResponse().withHeader("Content-Type", "application/x-ndjson")
                         .withBody(textNdjson(reply))));
     }
 
     static void stubEmbeddings(WireMock wiremock) {
+        // Ordinary voice tests exercise the local fallback; decision-specific tests override this stub.
+        wiremock.register(post(urlEqualTo("/api/chat")).withRequestBody(WireMock.containing("LANGUAGE_DECISION"))
+                .atPriority(10).willReturn(WireMock.okJson("""
+                {"model":"gemma4:e2b","created_at":"2026-11-21T00:00:00Z",
+                 "message":{"role":"assistant","content":"UNKNOWN"},"done":true,
+                 "prompt_eval_count":1,"eval_count":1}
+                """)));
         wiremock.register(post(urlEqualTo("/api/embed")).willReturn(WireMock.okJson(
                 "{\"model\":\"nomic-embed-text\",\"embeddings\":[" + vector(768) + "],\"total_duration\":0}")));
         wiremock.register(post(urlEqualTo("/v1/embeddings")).willReturn(WireMock.okJson(
@@ -39,8 +48,9 @@ final class VoiceTestSupport {
 
     private static String textNdjson(String text) {
         String ts = "2026-04-25T00:00:01Z";
+        String encoded = new ObjectMapper().valueToTree(text).toString();
         return "{\"model\":\"gemma4:e2b\",\"created_at\":\"" + ts + "\",\"message\":{\"role\":\"assistant\","
-                + "\"content\":\"" + text + "\"},\"done\":false}\n"
+                + "\"content\":" + encoded + "},\"done\":false}\n"
                 + "{\"model\":\"gemma4:e2b\",\"created_at\":\"" + ts
                 + "\",\"message\":{\"role\":\"assistant\",\"content\":\"\"},\"done\":true,\"done_reason\":\"stop\","
                 + "\"prompt_eval_count\":9,\"eval_count\":4}\n";

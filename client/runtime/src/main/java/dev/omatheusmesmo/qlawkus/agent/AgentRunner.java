@@ -27,8 +27,12 @@ public class AgentRunner {
     @Inject
     SecretRedactor redactor;
 
+    @Inject
+    ReplyLanguageResolver languages;
+
     public String chat(String memoryId, String message) {
-        AgentTurn turn = AgentTurn.open(memoryId, AgentTurn.channelOf(memoryId, delivery), false);
+        AgentReplyStyle style = languages.resolve(memoryId, message, AgentReplyStyle.DEFAULT);
+        AgentTurn turn = AgentTurn.open(memoryId, AgentTurn.channelOf(memoryId, delivery), false, style);
         FailureSummary failure = null;
         try (AgentTurn.Binding ignored = turn.bind()) {
             String soul = soulEngine.getSystemMessage(memoryId).orElse("");

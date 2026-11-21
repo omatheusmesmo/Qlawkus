@@ -8,10 +8,13 @@ import dev.omatheusmesmo.qlawkus.health.ModelReadinessCheck;
 import dev.omatheusmesmo.qlawkus.metrics.Metered;
 import dev.omatheusmesmo.qlawkus.metrics.StoreMeterInterceptor;
 import dev.omatheusmesmo.qlawkus.model.LlmKindConfigBuilder;
+import dev.omatheusmesmo.qlawkus.model.ReplyLanguageModel;
 import dev.omatheusmesmo.qlawkus.skill.BundledSkills;
 import dev.omatheusmesmo.qlawkus.skill.SkillsRecorder;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
+import dev.omatheusmesmo.qlawkus.agent.ReplyLanguageResolver;
+import dev.omatheusmesmo.qlawkus.agent.PromptReplyLanguageDecision;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProviderSupplier;
 import dev.omatheusmesmo.qlawkus.tool.shell.PtyShutdownListener;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
@@ -284,6 +287,9 @@ class ClientProcessor {
     AdditionalBeanBuildItem registerQlawToolInfrastructure() {
         return AdditionalBeanBuildItem.builder()
                 .addBeanClass(QlawToolProvider.class)
+                .addBeanClass(ReplyLanguageResolver.class)
+                .addBeanClass(PromptReplyLanguageDecision.class)
+                .addBeanClass(ReplyLanguageModel.class)
                 .addBeanClass(QlawToolProviderSupplier.class)
                 .setUnremovable()
                 .build();

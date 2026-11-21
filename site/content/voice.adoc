@@ -145,11 +145,29 @@ Turns share the chat's conversation. The live session goes through the same agen
 
 The *Language* selector offers *Auto (detect)* and every language a speech provider is configured for (the `TTS_<LANG>_*` providers, see the text-to-speech section). The detected language is shown under the status line, and the language each reply is spoken in is shown next to it.
 
-* *Auto* is the default (`qlawkus.console.voice.language=auto`). The speech recognizer detects the language of each utterance and reports it with the transcript. Each reply is spoken in the language of its own text, judged from its words and writing system. A reply with too little evidence uses the session language, and then `TTS_DEFAULT_LANGUAGE`.
-* The session language is the one the most recent utterances agree on: the majority of the last five, with at least two votes. One short, misdetected utterance does not switch the voice.
-* An explicit code, such as `pt`, forces that language. It is sent to the recognizer as a hint and used for every reply. A code with no speech provider is refused.
+* *Auto* is the default (`qlawkus.console.voice.language=auto`). The speech recognizer reports its detected language with the transcript. Before generating a reply, the decision model selects the reply language once for the whole turn, considering the utterance, recognition result and stable session language. It can also follow a request to answer in another language. The selected code guides both the agent's spoken response and every TTS segment; there is no model call per sentence.
+* The displayed session language summarizes recognizer results: the majority of the last five, with at least two votes. It is informational; the shared resolver decides each reply from the current request and recent reply language.
+* An explicit code, such as `pt`, forces that language and skips the decision call. It is sent to the recognizer as a hint and used for every reply. A code with no speech provider is refused.
 
-The reply detector is a small local heuristic over stopwords and writing systems. It makes no network call and loads no model, and it only ever chooses a language that has a configured provider.
+Text and voice use the same core `ReplyLanguageResolver`. In the reference app,
+`qlawkus.reply-language.enabled=true` asks the already registered chat model to classify the reply
+language once per turn. This is the same registration used by fact extraction: with the NVIDIA profile,
+NVIDIA is tried first, then its configured secondary tier, and Ollama remains the last resort.
+No additional model provider, API key or decision endpoint is required. Other distributions default to
+`false` and keep the shared system-prompt policy without an extra model call.
+
+The classification receives at most 2000 characters of the current request and language codes only.
+It has no agent tools, conversation memory or RAG. A separate four-second fault-tolerance deadline,
+bulkhead and circuit breaker protect the operation, and the `decision` workload isolates provider
+breakers from interactive replies and background extraction. An invalid result or provider failure
+leaves the shared language policy in charge; a current speech-recognition code can still guide the
+first short Portuguese utterance. Unknown results never force an older language onto a new request.
+
+The reply language is not limited to the configured speech providers. If there is no provider for the
+selected language, the TTS router uses its configured provider fallback while retaining the reply text
+in the selected language. An explicit selector choice is still offered only for configured providers.
+
+The conversation panel has its own bounded scrolling area on desktop and phone screens. New messages follow the bottom while you are reading the latest reply. Scrolling up to review older messages pauses that automatic movement; scrolling back to the bottom resumes it.
 
 === Typed messages
 
@@ -163,6 +181,23 @@ The speech adapters in the reference build are buffered, and the page says so:
 * *Text-to-speech* synthesizes each reply sentence in full through the messaging providers (`TTS_<LANG>_*`), then plays it. Each sentence waits for its own synthesis before it plays, so expect a pause before each one. No real-time latency is promised.
 
 A streaming adapter can replace either one. The speech adapter is the `VoiceSpeech` interface, which also lists the languages it can speak; a streaming implementation reports `buffered` as false and the page labels the mode accordingly.
+
+=== Spoken replies and screen text
+
+Live voice turns add presentation instructions to the system prompt: answer in conversational sentences,
+in the selected language, without Markdown, lists, code blocks, raw URLs or emoji. The owner's message
+is stored exactly as received. This presentation setting belongs to that turn and does not carry over
+to ordinary text chat. All channels also ask the agent to follow the language of the current owner's
+request, unless the owner requests another language; quoted material and retrieved documents do not
+choose the reply language.
+
+As a fallback, the voice extension renders the reply's CommonMark syntax into speech text before
+sentence splitting. Emphasis and list markers disappear, links keep their labels, and fenced or indented
+code, tables, HTML blocks, images and emoji are omitted. The on-screen transcript keeps the original
+reply. Rendering waits for complete blocks, or the end of the turn, so a single long paragraph can delay
+the first audio even while text is already streaming. At most 65536 source characters per turn enter
+this speech renderer; the rest remain visible but are not spoken, and the socket reports
+`speech-text-truncated`. The existing sentence and speech queue limits still apply afterwards.
 
 === How a turn works
 

@@ -7,11 +7,14 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.omatheusmesmo.qlawkus.agent.AgentEvent;
 import dev.omatheusmesmo.qlawkus.agent.AgentStream;
+import dev.omatheusmesmo.qlawkus.agent.AgentReplyStyle;
+import dev.omatheusmesmo.qlawkus.agent.ReplyLanguageResolver;
 import dev.omatheusmesmo.qlawkus.messaging.transcription.VoiceTranscriptionService;
 import io.quarkus.logging.Log;
 import io.quarkus.websockets.next.WebSocketConnection;
 import io.smallrye.mutiny.subscription.Cancellable;
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
@@ -44,12 +47,11 @@ final class VoiceSession {
     private static final int MIN_SAMPLE_RATE = 8_000;
     private static final int MAX_SAMPLE_RATE = 96_000;
     private static final int SENTENCE_LIMIT = 240;
-    private static final int REPLY_CONTEXT = 1_000;
 
     record Services(ConsoleVoiceConfig config, String conversationId, AgentStream agent,
             VoiceTranscriptionService transcriber, VoiceSpeech speech, VoiceLanguages languages,
             String initialLanguage, VoiceSessionLimiter limiter, ObjectMapper json,
-            ScheduledExecutorService clock) {
+            ScheduledExecutorService clock, ReplyLanguageResolver languageResolver) {
     }
 
     private final String connectionId;
@@ -252,6 +254,7 @@ final class VoiceSession {
         }
         String utteranceText = heard.text() == null ? "" : heard.text().trim();
         String detected = heard.language();
+        turn.transcribedLanguage = detected;
         if (detected != null && services.languages().speakable(detected)) {
             tracker.observe(detected);
         }
@@ -276,7 +279,13 @@ final class VoiceSession {
     }
 
     private void answer(Turn turn, String text) {
-        Cancellable subscription = services.agent().stream(services.conversationId(), text)
+        String chosen = language;
+        AgentReplyStyle requested = AgentReplyStyle.speech(VoiceLanguages.AUTO.equals(chosen) ? null : chosen);
+        AgentReplyStyle replyStyle = services.languageResolver().resolve(services.conversationId(), text,
+                requested, turn.transcribedLanguage, List.of(), null);
+        turn.replyLanguage = replyStyle.language() == null ? services.languages().fallback() : replyStyle.language();
+        if (!current(turn)) return;
+        Cancellable subscription = services.agent().streamPrepared(services.conversationId(), text, replyStyle)
                 .subscribe().with(
                         event -> submit(() -> onAgentEvent(turn, event)),
                         failure -> submit(() -> onAgentFailure(turn, failure)),
@@ -293,10 +302,7 @@ final class VoiceSession {
         }
         if (event instanceof AgentEvent.Text text) {
             sendRaw(event("text", turn.id).put("chunk", text.chunk()));
-            turn.recordReply(text.chunk(), REPLY_CONTEXT);
-            for (String sentence : turn.splitter.accept(text.chunk())) {
-                enqueueSpeech(turn, sentence);
-            }
+            queueRenderedSpeech(turn, turn.speechText.accept(text.chunk()));
         } else if (event instanceof AgentEvent.ToolStart start) {
             sendRaw(event("tool", turn.id).put("phase", "start").put("name", start.name()));
         } else if (event instanceof AgentEvent.ToolEnd end) {
@@ -308,7 +314,11 @@ final class VoiceSession {
         if (!current(turn)) {
             return;
         }
+        queueRenderedSpeech(turn, turn.speechText.flush());
         turn.splitter.flush().ifPresent(rest -> enqueueSpeech(turn, rest));
+        if (turn.speechText.truncated()) {
+            sendRaw(event("notice", turn.id).put("code", "speech-text-truncated"));
+        }
         submit(() -> {
             if (current(turn)) {
                 sendRaw(event("turn-done", turn.id));
@@ -337,9 +347,15 @@ final class VoiceSession {
             }
             return;
         }
-        String replyLanguage = services.languages().replyLanguage(language, tracker.stable(), turn.replyText());
         int segment = turn.nextSegment++;
-        submit(() -> speak(turn, sentence, replyLanguage, segment));
+        submit(() -> speak(turn, sentence, turn.replyLanguage, segment));
+    }
+
+    private void queueRenderedSpeech(Turn turn, String text) {
+        if (text.isBlank()) return;
+        for (String sentence : turn.splitter.accept(text + " ")) {
+            enqueueSpeech(turn, sentence);
+        }
     }
 
     private void speak(Turn turn, String sentence, String replyLanguage, int segment) {
@@ -432,7 +448,9 @@ final class VoiceSession {
         private final int id;
         private final SentenceSplitter splitter = new SentenceSplitter(SENTENCE_LIMIT);
         private final AtomicBoolean queueFullReported = new AtomicBoolean();
-        private final StringBuilder reply = new StringBuilder();
+        private final SpeechText speechText = new SpeechText();
+        private String transcribedLanguage;
+        private String replyLanguage;
         private volatile boolean superseded;
         private volatile Cancellable agentSubscription;
         private int nextSegment = 1;
@@ -441,15 +459,5 @@ final class VoiceSession {
             this.id = id;
         }
 
-        private void recordReply(String chunk, int limit) {
-            reply.append(chunk);
-            if (reply.length() > limit) {
-                reply.delete(0, reply.length() - limit);
-            }
-        }
-
-        private String replyText() {
-            return reply.toString();
-        }
     }
 }

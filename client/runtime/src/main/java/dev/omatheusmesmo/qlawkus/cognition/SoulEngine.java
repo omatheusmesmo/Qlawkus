@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
+import dev.omatheusmesmo.qlawkus.agent.AgentTurn;
 import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.store.SoulStore;
@@ -30,7 +31,21 @@ public class SoulEngine implements SystemMessageProvider {
     }
 
     return Optional.of(soul.toSystemMessage() + ownerContext() + skillsContext() + executionBias()
-        + currentDateTimeContext() + voiceCapabilityContext());
+        + currentDateTimeContext() + languagePolicyContext() + voiceCapabilityContext() + replyStyleContext());
+  }
+
+  private String replyStyleContext() {
+    AgentTurn turn = AgentTurn.current();
+    return turn == null ? "" : turn.replyStyle().systemContext();
+  }
+
+  private String languagePolicyContext() {
+    return "\n\n## Reply language\n\n"
+        + "Answer in the language of the owner's current request, unless the owner explicitly asks for a "
+        + "different reply language. Infer it from the owner's own words, not the language of quoted text, "
+        + "tool output, retrieved documents, the profile or an older conversation turn. For an ambiguous "
+        + "short message, keep the owner's most recent clear language. A deliberate language setting for "
+        + "this turn takes precedence over automatic detection.";
   }
 
   private String skillsContext() {

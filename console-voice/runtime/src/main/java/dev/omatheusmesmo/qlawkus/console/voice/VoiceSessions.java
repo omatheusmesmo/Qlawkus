@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.console.voice;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.omatheusmesmo.qlawkus.agent.AgentStream;
+import dev.omatheusmesmo.qlawkus.agent.ReplyLanguageResolver;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.messaging.transcription.VoiceTranscriptionService;
@@ -35,14 +36,14 @@ public class VoiceSessions {
     @Inject
     public VoiceSessions(ConsoleVoiceConfig config, AgentConfig agentConfig, AgentStream agent,
             VoiceTranscriptionService transcriber, VoiceSpeech speech, VoiceSessionLimiter limiter,
-            ObjectMapper json) {
+            ObjectMapper json, ReplyLanguageResolver languageResolver) {
         this.limiter = limiter;
         this.clock = Executors.newSingleThreadScheduledExecutor(daemon());
         String conversation = agentConfig.sharedContext().enabled() ? ConversationId.SHARED : ConversationId.REST;
         VoiceLanguages languages = new VoiceLanguages(speech.languages(), speech.defaultLanguage());
         String initialLanguage = VoiceLanguages.choice(config.language()).orElse(VoiceLanguages.AUTO);
         this.services = new VoiceSession.Services(config, conversation, agent, transcriber, speech, languages,
-                initialLanguage, limiter, json, clock);
+                initialLanguage, limiter, json, clock, languageResolver);
     }
 
     void open(WebSocketConnection connection, String owner) {

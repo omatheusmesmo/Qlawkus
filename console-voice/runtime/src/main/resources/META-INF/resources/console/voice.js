@@ -108,6 +108,7 @@
         "speech-failed": "The speech adapter failed for one sentence.",
         "agent-failed": "The agent could not finish that reply.",
         "speech-queue-full": "The speech queue is full, so some sentences are not spoken.",
+        "speech-text-truncated": "This reply is too long to speak fully; the rest remains in the conversation.",
         "empty-utterance": "Nothing was captured in that utterance.",
         "unknown-language": "That language has no speech provider, so it cannot be chosen.",
         "empty-text": "Type a message before sending it.",
@@ -178,14 +179,25 @@
         var line = document.createElement("div");
         line.className = "voice-line voice-" + kind;
         line.textContent = text;
-        logEl.appendChild(line);
-        logEl.scrollTop = logEl.scrollHeight;
+        updateLog(function () {
+            logEl.appendChild(line);
+        });
         return line;
+    }
+
+    function updateLog(change) {
+        var following = logEl.scrollHeight - logEl.clientHeight - logEl.scrollTop <= 48;
+        change();
+        if (following) {
+            logEl.scrollTop = logEl.scrollHeight;
+        }
     }
 
     function flushReveal() {
         if (revealTarget && revealQueue) {
-            revealTarget.textContent += revealQueue;
+            updateLog(function () {
+                revealTarget.textContent += revealQueue;
+            });
         }
         revealQueue = "";
         if (revealTimer) {
@@ -209,7 +221,9 @@
     function revealText(turn, chunk) {
         var bubble = agentBubble(turn);
         if (reducedMotion) {
-            bubble.textContent += chunk;
+            updateLog(function () {
+                bubble.textContent += chunk;
+            });
             return;
         }
         revealTarget = bubble;
@@ -218,9 +232,10 @@
         if (!revealTimer) {
             revealTimer = setInterval(function () {
                 var count = Math.max(1, Math.ceil(revealQueue.length / 24));
-                revealTarget.textContent += revealQueue.slice(0, count);
+                updateLog(function () {
+                    revealTarget.textContent += revealQueue.slice(0, count);
+                });
                 revealQueue = revealQueue.slice(count);
-                logEl.scrollTop = logEl.scrollHeight;
                 if (!revealQueue) {
                     flushReveal();
                 }
@@ -1010,7 +1025,7 @@
     }
 
     function isTypingTarget(target) {
-        return Boolean(target && target.closest && target.closest("input, select, textarea"));
+        return Boolean(target && target.closest && target.closest("input, select, textarea, #voice-log"));
     }
 
     toggle.addEventListener("click", function () {

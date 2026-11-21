@@ -8,6 +8,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.data.message.UserMessage;
+import dev.omatheusmesmo.qlawkus.agent.AgentStream;
+import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.common.http.TestHTTPResource;
@@ -19,6 +23,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
+import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +45,12 @@ class VoiceTurnsTest {
 
     @Inject
     BasicWebSocketConnector connector;
+
+    @Inject
+    WorkingMemoryStore memory;
+
+    @Inject
+    AgentStream agent;
 
     WireMock wiremock;
 
@@ -99,6 +111,60 @@ class VoiceTurnsTest {
                 .anyMatch(body -> body.contains("what did I say my colour was")
                         && body.contains("my favourite colour is green"));
         assertTrue(secondTurnSeesFirst, "the second turn is answered with the first turn in its history");
+    }
+
+    @Test
+    void markdownStaysOnScreenButOnlyPlainSpeechReachesTheTtsAdapter() {
+        String markdown = "**First sentence.** [Second sentence.](https://example.org)";
+        VoiceTestSupport.stubAgentReply(wiremock, markdown);
+        ScriptedTranscriber.say("formatting check owner text");
+        try (VoiceClient client = open()) {
+            client.awaitType("ready");
+            client.speakUtterance(3200);
+            client.awaitTypeWhere("turn-done", event -> event.path("turn").asInt() == 1);
+            String displayed = client.snapshot().stream().filter(event -> "text".equals(event.path("type").asText()))
+                    .map(event -> event.path("chunk").asText()).collect(Collectors.joining());
+            assertEquals(markdown, displayed);
+            assertEquals(List.of("speech:First sentence.", "speech:Second sentence."), spokenSentences(client.snapshot()));
+        }
+    }
+
+    @Test
+    void spokenPresentationIsInTheSystemPromptAndLeavesTheOwnerMessageAndNextTextTurnUnchanged() throws Exception {
+        String ownerText = "keep this owner message unchanged";
+        VoiceTestSupport.stubAgentReply(wiremock, "Noted.");
+        ScriptedTranscriber.say(ownerText);
+        String conversation;
+        try (VoiceClient client = open()) {
+            conversation = client.awaitType("ready").path("conversation").asText();
+            client.speakUtterance(3200);
+            client.awaitTypeWhere("turn-done", event -> event.path("turn").asInt() == 1);
+        }
+        var requests = wiremock.find(postRequestedFor(urlEqualTo("/api/chat")));
+        assertTrue(requests.stream().anyMatch(request -> request.getBodyAsString().contains("Spoken conversation")));
+        assertTrue(memory.getMessages(conversation).stream().filter(UserMessage.class::isInstance)
+                .map(UserMessage.class::cast).anyMatch(message -> message.singleText().equals(ownerText)));
+        String regularMessage = "ordinary text turn after spoken turn";
+        agent.stream("voice-style-reset-check", regularMessage).collect().asList().await().atMost(Duration.ofSeconds(15));
+        ObjectMapper json = new ObjectMapper();
+        boolean ordinaryRequestSeen = false;
+        for (var request : wiremock.find(postRequestedFor(urlEqualTo("/api/chat")))) {
+            JsonNode messages = json.readTree(request.getBodyAsString()).path("messages");
+            boolean ordinary = false;
+            for (JsonNode message : messages) {
+                if ("user".equals(message.path("role").asText()) && regularMessage.equals(message.path("content").asText())) ordinary = true;
+            }
+            if (ordinary) {
+                ordinaryRequestSeen = true;
+                for (JsonNode message : messages) {
+                    if ("system".equals(message.path("role").asText())) {
+                        assertTrue(!message.path("content").asText().contains("Spoken conversation"),
+                                "speech presentation must not leak into an ordinary turn on the same worker");
+                    }
+                }
+            }
+        }
+        assertTrue(ordinaryRequestSeen, "the ordinary turn must reach the model before checking its prompt");
     }
 
     @Test

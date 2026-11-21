@@ -74,6 +74,23 @@ sequenceDiagram
 </div>
 ++++
 
+== Reply language across channels
+
+`ReplyLanguageResolver` is shared by streamed REST/console chat, synchronous AI-service calls,
+the messaging agent runner and live voice. A decision supplies one ISO language code to
+`AgentReplyStyle`; `SoulEngine` adds it to the system prompt for text as well as speech. Voice uses
+that same result for TTS and passes the prepared turn into the stream without classifying it again.
+The owner's message and conversation transcript remain unchanged.
+
+When enabled with `qlawkus.reply-language.enabled`, the default decision implementation calls the
+already registered chat-model chain, with the same NVIDIA and Ollama configuration used for fact
+extraction. The classification is stateless and tool-free, bounded to 2000 input characters, and
+isolated on the `decision` workload. Distributions may replace the `ReplyLanguageDecision` SPI.
+The 256-entry conversation cache stores codes only; it provides context for ambiguous messages and
+does not override a clear language change. Manual choices win. Model failures retain the prompt rule
+to answer the owner's current language rather than copying the language of stored profile text,
+retrieved documents or tool results. The reference app enables model-assisted selection.
+
 == Workspace file reads
 
 `readFile` can read a numbered page instead of sending a whole file to the model.
