@@ -3,18 +3,29 @@ package dev.omatheusmesmo.qlawkus.task;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.service.tool.ToolExecutor;
+import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
+import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
+import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;
+import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -25,8 +36,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Pins the agent-facing contract of the scheduling tools: which destination a task gets from the
- * conversation it was made in, when a call is refused, and the warning every confirmation carries.
+ * Pins the agent-facing contract of the scheduling tools: the wording the model reads, which destination a
+ * task gets from the conversation it was made in, how blank optional arguments are read, and the plain-words
+ * answers that say where a reply will go.
  */
 @QuarkusTest
 class TaskSchedulerToolTest {
@@ -50,9 +62,17 @@ class TaskSchedulerToolTest {
     @Inject
     ScheduledTaskStore store;
 
+    @Inject
+    AgentConfig config;
+
+    @InjectMock
+    OwnerChatDirectory owners;
+
     @BeforeEach
-    void noConversationUnlessATestSetsOne() {
+    void noConversationAndNoOwnerChatUnlessATestSetsOne() {
         delivery.clear();
+        when(owners.lastChat(anyString())).thenReturn(Optional.empty());
+        when(owners.mostRecent()).thenReturn(Optional.empty());
     }
 
     @AfterEach
@@ -63,77 +83,158 @@ class TaskSchedulerToolTest {
 
     @Test
     void theSchedulingToolsAreDiscoveredAtBuildTime() {
-        Set<String> names = toolProvider.provideTools(null).tools().keySet().stream()
-                .map(ToolSpecification::name)
+        Set<String> names = toolSpecifications().stream().map(ToolSpecification::name)
                 .collect(Collectors.toSet());
 
         assertTrue(names.containsAll(List.of("scheduleTask", "listScheduledTasks", "cancelScheduledTask")), names.toString());
     }
 
     @Test
-    void aMessagingConversationReusesItsChatWhenNoDestinationIsGiven() {
+    void theScheduleDescriptionCarriesTheWorkedCronExamplesAndTheTimezone() {
+        String description = specification("scheduleTask").description();
+
+        assertTrue(description.contains("0 0/5 * * * ? *"), description);
+        assertTrue(description.contains("0 0 9 ? * MON-FRI *"), description);
+        assertTrue(description.contains("inMinutes"), description);
+        assertTrue(description.contains("qlawkus.agent.timezone"), description);
+        assertTrue(description.contains("must not ask the owner"), description);
+    }
+
+    @Test
+    void theScheduleToolTakesNoChatIdAndOnlyTheTaskIsRequired() {
+        ToolSpecification spec = specification("scheduleTask");
+
+        assertEquals(Set.of("task", "cron", "inMinutes", "providerId"), spec.parameters().properties().keySet());
+        assertEquals(List.of("task"), spec.parameters().required());
+    }
+
+    @Test
+    void everyOptionalParameterTellsTheModelToOmitItRatherThanSendEmpty() {
+        Map<String, JsonSchemaElement> properties = specification("scheduleTask").parameters().properties();
+
+        for (String optional : List.of("cron", "inMinutes", "providerId")) {
+            assertTrue(descriptionOf(properties.get(optional)).contains("do not send an empty string"),
+                    optional + ": " + descriptionOf(properties.get(optional)));
+        }
+    }
+
+    @Test
+    void noToolDescriptionAsksTheModelForAChatId() {
+        for (ToolSpecification spec : toolSpecifications()) {
+            assertFalse(spec.description().toLowerCase().contains("chat id")
+                    || spec.description().contains("chatId"), spec.name() + ": " + spec.description());
+            assertFalse(spec.parameters() != null && spec.parameters().properties().containsKey("chatId"), spec.name());
+        }
+    }
+
+    @Test
+    void theListAndCancelDescriptionsSayToConfirmRecurringTasksAndCancelOnlyListedIds() {
+        assertTrue(specification("listScheduledTasks").description().contains("confirm a recurring task"),
+                specification("listScheduledTasks").description());
+        assertTrue(specification("cancelScheduledTask").description().contains("never make one up"),
+                specification("cancelScheduledTask").description());
+    }
+
+    @Test
+    void aBlankOptionalArgumentSentAsAnEmptyStringIsAbsentNotAConversionError() {
         delivery.set("telegram:42", "telegram", "42");
 
-        String reply = tool.scheduleTask("drink water", RECURRING, null, null, null);
+        String reply = execute("scheduleTask",
+                "{\"task\":\"stretch\",\"cron\":\"0 0 9 * * ? 2099\",\"inMinutes\":\"\",\"providerId\":\"\"}");
 
         assertTrue(reply.startsWith("Scheduled task qlawkus-task-"), reply);
-        assertTrue(reply.contains("telegram:42"), reply);
         assertEquals(1, tasks.list().size());
-        assertEquals("telegram", tasks.list().get(0).task().destination().providerId());
-        assertEquals("42", tasks.list().get(0).task().destination().chatId());
+    }
+
+    @Test
+    void aZeroInMinutesWithACronIsTheSameAsOmittingIt() {
+        delivery.set("telegram:42", "telegram", "42");
+
+        String reply = tool.scheduleTask("stretch", RECURRING, "0", null);
+
+        assertTrue(reply.startsWith("Scheduled task qlawkus-task-"), reply);
+        assertFalse(tasks.list().get(0).task().oneShot());
+    }
+
+    @Test
+    void aZeroInMinutesWithoutACronIsStillNoTiming() {
+        delivery.set("telegram:42", "telegram", "42");
+
+        String reply = tool.scheduleTask("stretch", "", "0", null);
+
+        assertTrue(reply.startsWith("Error:"), reply);
+        assertEquals(0, tasks.list().size());
+    }
+
+    @Test
+    void aMessagingConversationDeliversBackToItsChatWhenNoProviderIsGiven() {
+        delivery.set("telegram:42", "telegram", "42");
+
+        String reply = tool.scheduleTask("drink water", RECURRING, null, null);
+
+        assertTrue(reply.startsWith("Scheduled task qlawkus-task-"), reply);
+        assertTrue(reply.contains("delivers to your Telegram chat"), reply);
+        assertEquals(1, tasks.list().size());
+        assertEquals(new TaskDestination("telegram", "42"), tasks.list().get(0).task().destination());
         assertEquals("telegram:42", tasks.list().get(0).task().memoryId());
     }
 
     @Test
-    void anExplicitDestinationOverridesTheOriginForAnyChannel() {
+    void theSameProviderNamedInAMessagingConversationStillMeansThatChat() {
         delivery.set("telegram:42", "telegram", "42");
 
-        String reply = tool.scheduleTask("call mum", RECURRING, null, "discord", "99");
+        tool.scheduleTask("drink water", RECURRING, null, "Telegram");
 
-        assertTrue(reply.contains("discord:99"), reply);
-        assertFalse(reply.contains("telegram:42"), reply);
-        assertEquals("discord", tasks.list().get(0).task().destination().providerId());
+        assertEquals(new TaskDestination("telegram", "42"), tasks.list().get(0).task().destination());
     }
 
     @Test
-    void aRestConversationNeedsAnExplicitDestination() {
-        delivery.set(ConversationId.REST, "rest", null);
+    void aProviderOtherThanTheOriginResolvesToTheOwnersLastChatOnIt() {
+        delivery.set("telegram:42", "telegram", "42");
+        when(owners.lastChat("discord")).thenReturn(Optional.of(new OwnerChat("discord", "99", Instant.now())));
 
-        String reply = tool.scheduleTask("ping me", RECURRING, null, null, null);
+        String reply = tool.scheduleTask("call mum", RECURRING, null, "discord");
 
-        assertTrue(reply.startsWith("Error:"), reply);
-        assertTrue(reply.contains("providerId") && reply.contains("chatId"), reply);
-        assertEquals(0, tasks.list().size());
+        assertTrue(reply.contains("delivers to your Discord chat"), reply);
+        assertEquals(new TaskDestination("discord", "99"), tasks.list().get(0).task().destination());
     }
 
     @Test
-    void aRestConversationWithAnExplicitDestinationSchedulesIt() {
+    void aRestCallWithNoProviderDeliversToTheOwnersMostRecentChat() {
         delivery.set(ConversationId.REST, "rest", null);
+        when(owners.mostRecent()).thenReturn(Optional.of(new OwnerChat("discord", "99", Instant.now())));
 
-        String reply = tool.scheduleTask("ping me", RECURRING, null, "telegram", "42");
+        String reply = tool.scheduleTask("ping me", RECURRING, null, null);
 
         assertTrue(reply.startsWith("Scheduled task qlawkus-task-"), reply);
+        assertTrue(reply.contains("delivers to your Discord chat"), reply);
+        assertEquals(new TaskDestination("discord", "99"), tasks.list().get(0).task().destination());
         assertEquals(ConversationId.REST, tasks.list().get(0).task().memoryId(),
                 "the task still belongs to the REST conversation that created it");
-        assertEquals("telegram", tasks.list().get(0).task().destination().providerId());
     }
 
     @Test
-    void providerIdAndChatIdAreGivenTogether() {
+    void aRestCallWithNoChatYetSaysSoInPlainWordsAndAsksForNoId() {
         delivery.set(ConversationId.REST, "rest", null);
 
-        assertTrue(tool.scheduleTask("ping", RECURRING, null, "telegram", null).startsWith("Error:"));
-        assertTrue(tool.scheduleTask("ping", RECURRING, null, null, "42").startsWith("Error:"));
+        String reply = tool.scheduleTask("ping me", RECURRING, null, null);
+
+        assertTrue(reply.startsWith("Error:"), reply);
+        assertTrue(reply.contains("no chat to deliver to yet"), reply);
+        assertTrue(reply.contains("write to me on Telegram or Discord first"), reply);
+        assertFalse(reply.contains("providerId") || reply.contains("chatId"), reply);
         assertEquals(0, tasks.list().size());
     }
 
     @Test
-    void aMessagingConversationAlsoRefusesAHalfGivenOverride() {
-        delivery.set("telegram:42", "telegram", "42");
+    void aRestCallNamingAProviderWithNoChatYetSaysSoInPlainWords() {
+        delivery.set(ConversationId.REST, "rest", null);
+        when(owners.lastChat("telegram")).thenReturn(Optional.empty());
 
-        String reply = tool.scheduleTask("ping", RECURRING, null, "discord", null);
+        String reply = tool.scheduleTask("ping me", RECURRING, null, "telegram");
 
         assertTrue(reply.startsWith("Error:"), reply);
+        assertTrue(reply.contains("no chat to deliver to on Telegram yet"), reply);
         assertEquals(0, tasks.list().size());
     }
 
@@ -141,7 +242,7 @@ class TaskSchedulerToolTest {
     void restIsNotAMessagingChannelAndCannotBeADestination() {
         delivery.set(ConversationId.REST, "rest", null);
 
-        String reply = tool.scheduleTask("ping", RECURRING, null, "rest", "42");
+        String reply = tool.scheduleTask("ping", RECURRING, null, "rest");
 
         assertTrue(reply.startsWith("Error:"), reply);
         assertEquals(0, tasks.list().size());
@@ -149,7 +250,7 @@ class TaskSchedulerToolTest {
 
     @Test
     void aCallWithNoConversationIsRefused() {
-        String reply = tool.scheduleTask("ping", RECURRING, null, "telegram", "42");
+        String reply = tool.scheduleTask("ping", RECURRING, null, "telegram");
 
         assertTrue(reply.startsWith("Error:"), reply);
         assertTrue(reply.contains("conversation"), reply);
@@ -160,8 +261,9 @@ class TaskSchedulerToolTest {
     void exactlyOneOfCronOrInMinutesIsAccepted() {
         delivery.set("telegram:42", "telegram", "42");
 
-        assertTrue(tool.scheduleTask("ping", RECURRING, 30, null, null).startsWith("Error:"));
-        assertTrue(tool.scheduleTask("ping", null, null, null, null).startsWith("Error:"));
+        assertTrue(tool.scheduleTask("ping", RECURRING, "30", null).startsWith("Error:"));
+        assertTrue(tool.scheduleTask("ping", null, null, null).startsWith("Error:"));
+        assertTrue(tool.scheduleTask("ping", "", "", null).startsWith("Error:"));
         assertEquals(0, tasks.list().size());
     }
 
@@ -169,7 +271,7 @@ class TaskSchedulerToolTest {
     void inMinutesSchedulesAOneTimeTaskAtThatDelay() {
         delivery.set("telegram:42", "telegram", "42");
 
-        String reply = tool.scheduleTask("stretch", null, 120, null, null);
+        String reply = tool.scheduleTask("stretch", "", "120", null);
 
         assertTrue(reply.startsWith("Scheduled task qlawkus-task-"), reply);
         TaskView view = tasks.list().get(0);
@@ -179,12 +281,22 @@ class TaskSchedulerToolTest {
     }
 
     @Test
+    void inMinutesThatIsNotAWholeNumberIsRefusedInWords() {
+        delivery.set("telegram:42", "telegram", "42");
+
+        String reply = tool.scheduleTask("stretch", "", "soon", null);
+
+        assertTrue(reply.startsWith("Error:"), reply);
+        assertTrue(reply.contains("whole number of minutes"), reply);
+        assertEquals(0, tasks.list().size());
+    }
+
+    @Test
     void inMinutesOutsideTheAllowedRangeIsRefused() {
         delivery.set("telegram:42", "telegram", "42");
 
-        assertTrue(tool.scheduleTask("stretch", null, 0, null, null).startsWith("Error:"));
-        assertTrue(tool.scheduleTask("stretch", null, -5, null, null).startsWith("Error:"));
-        assertTrue(tool.scheduleTask("stretch", null, 525_601, null, null).startsWith("Error:"));
+        assertTrue(tool.scheduleTask("stretch", "", "-5", null).startsWith("Error:"));
+        assertTrue(tool.scheduleTask("stretch", "", "525601", null).startsWith("Error:"));
         assertEquals(0, tasks.list().size());
     }
 
@@ -192,9 +304,9 @@ class TaskSchedulerToolTest {
     void aBlankOrOverlongTaskIsRefusedWithoutScheduling() {
         delivery.set("telegram:42", "telegram", "42");
 
-        assertTrue(tool.scheduleTask("   ", RECURRING, null, null, null).startsWith("Error:"));
+        assertTrue(tool.scheduleTask("   ", RECURRING, null, null).startsWith("Error:"));
         String overlong = "x".repeat(DynamicTaskScheduler.MAX_TASK_LENGTH + 1);
-        assertTrue(tool.scheduleTask(overlong, RECURRING, null, null, null).startsWith("Error:"));
+        assertTrue(tool.scheduleTask(overlong, RECURRING, null, null).startsWith("Error:"));
         assertEquals(0, tasks.list().size());
     }
 
@@ -202,7 +314,7 @@ class TaskSchedulerToolTest {
     void anInvalidCronIsRefusedWithoutScheduling() {
         delivery.set("telegram:42", "telegram", "42");
 
-        String reply = tool.scheduleTask("stretch", "every tuesday", null, null, null);
+        String reply = tool.scheduleTask("stretch", "every tuesday", null, null);
 
         assertTrue(reply.startsWith("Error:"), reply);
         assertEquals(0, tasks.list().size());
@@ -215,17 +327,26 @@ class TaskSchedulerToolTest {
             tasks.create("telegram:42", new TaskDestination("telegram", "42"), "task " + i, RECURRING);
         }
 
-        String reply = tool.scheduleTask("one too many", RECURRING, null, null, null);
+        String reply = tool.scheduleTask("one too many", RECURRING, null, null);
 
         assertTrue(reply.startsWith("Error:"), reply);
         assertTrue(reply.contains(String.valueOf(DynamicTaskScheduler.MAX_TASKS)), reply);
     }
 
     @Test
+    void aConfirmationNamesTheTimezoneTheCronRunsIn() {
+        delivery.set("telegram:42", "telegram", "42");
+
+        String reply = tool.scheduleTask("stretch", RECURRING, null, null);
+
+        assertTrue(reply.contains(config.timezone()), reply);
+    }
+
+    @Test
     void everyConfirmationStatesThatSchedulesSurviveARestartAndHowAMissedOneIsHandled() {
         delivery.set("telegram:42", "telegram", "42");
 
-        String reply = tool.scheduleTask("stretch", RECURRING, null, null, null);
+        String reply = tool.scheduleTask("stretch", RECURRING, null, null);
 
         assertTrue(reply.contains("survive a restart"), reply);
         assertTrue(reply.contains("redeploy"), reply);
@@ -236,14 +357,16 @@ class TaskSchedulerToolTest {
     }
 
     @Test
-    void listShowsTheTasksOfTheAgentWithTheirNextRun() {
+    void listShowsWhereEachReplyGoesInTheSameWordsAsTheConfirmation() {
         delivery.set("telegram:42", "telegram", "42");
-        tool.scheduleTask("stretch", RECURRING, null, null, null);
+        String reply = tool.scheduleTask("stretch", RECURRING, null, null);
 
         String listing = tool.listScheduledTasks();
 
+        assertTrue(reply.contains("delivers to your Telegram chat"), reply);
+        assertTrue(listing.contains("delivers to your Telegram chat"), listing);
+        assertFalse(listing.contains("telegram:"), listing);
         assertTrue(listing.contains("stretch"), listing);
-        assertTrue(listing.contains("telegram:42"), listing);
         assertTrue(listing.contains("recurring"), listing);
         assertTrue(listing.contains("survive a restart"), listing);
         assertFalse(listing.contains("lost"), listing);
@@ -274,7 +397,7 @@ class TaskSchedulerToolTest {
     @Test
     void cancelRemovesATaskAndRefusesOneAlreadyGone() {
         delivery.set("telegram:42", "telegram", "42");
-        String id = idOf(tool.scheduleTask("stretch", RECURRING, null, null, null));
+        String id = idOf(tool.scheduleTask("stretch", RECURRING, null, null));
 
         String cancelled = tool.cancelScheduledTask(id);
         String again = tool.cancelScheduledTask(id);
@@ -289,6 +412,33 @@ class TaskSchedulerToolTest {
         String reply = tool.cancelScheduledTask("not-a-task");
 
         assertTrue(reply.startsWith("Error:"), reply);
+    }
+
+    private List<ToolSpecification> toolSpecifications() {
+        return toolProvider.provideTools(null).tools().keySet().stream().toList();
+    }
+
+    private ToolSpecification specification(String name) {
+        return toolSpecifications().stream().filter(spec -> spec.name().equals(name)).findFirst().orElseThrow();
+    }
+
+    private String execute(String name, String arguments) {
+        ToolExecutor executor = toolProvider.provideTools(null).tools().entrySet().stream()
+                .filter(entry -> entry.getKey().name().equals(name))
+                .map(Map.Entry::getValue)
+                .findFirst().orElseThrow();
+        return executor.execute(ToolExecutionRequest.builder().name(name).arguments(arguments).build(),
+                "task-tool-test");
+    }
+
+    private static String descriptionOf(JsonSchemaElement element) {
+        if (element instanceof JsonStringSchema text) {
+            return text.description();
+        }
+        if (element instanceof JsonIntegerSchema number) {
+            return number.description();
+        }
+        throw new AssertionError("no description on " + element);
     }
 
     private static String idOf(String reply) {

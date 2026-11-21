@@ -151,6 +151,8 @@ The second path is why voice works even when the model forgets the tool - the sa
 
 For STT/TTS setup, see xref:voice.adoc[Voice Setup].
 
+Reminders and recurring tasks that the owner asks for are delivered back to the chat they were made in, or to the owner's most recent chat on a named provider. See xref:scheduler.adoc[Scheduler].
+
 == Message Chunking
 
 Long responses are automatically split to fit each platform's limit:

@@ -16,6 +16,7 @@ import dev.omatheusmesmo.qlawkus.messaging.transcription.VoiceTranscriptionServi
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsConfig;
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsRouter;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
+import dev.omatheusmesmo.qlawkus.task.OwnerChatDirectory;
 import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.inject.Instance;
@@ -57,6 +58,7 @@ class MessagingOrchestratorLogTest {
         orchestrator.voicePreference = voicePreference;
         orchestrator.conversationControl = conversationControl;
         orchestrator.workingMemoryStore = workingMemoryStore;
+orchestrator.ownerChats = Mockito.mock(OwnerChatDirectory.class);
         orchestrator.ttsRouter = Mockito.mock(TtsRouter.class);
         orchestrator.progressRouter = new ToolProgressRouter();
         orchestrator.providerRegistry = Mockito.mock(ProviderRegistry.class);

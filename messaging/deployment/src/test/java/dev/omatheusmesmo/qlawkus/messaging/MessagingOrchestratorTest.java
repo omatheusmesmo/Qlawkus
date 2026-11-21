@@ -14,6 +14,7 @@ import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressSettings;
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsConfig;
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsRouter;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
+import dev.omatheusmesmo.qlawkus.task.OwnerChatDirectory;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.inject.Instance;
 import java.util.Optional;
@@ -31,6 +32,7 @@ class MessagingOrchestratorTest {
     private AgentService agentService;
     private MessagingAuthService authService;
     private NotificationService notificationService;
+    private OwnerChatDirectory ownerChats;
 
     @BeforeEach
     void setUp() {
@@ -52,6 +54,8 @@ class MessagingOrchestratorTest {
         orchestrator.ttsRouter = ttsRouter;
         orchestrator.progressRouter = new ToolProgressRouter();
         orchestrator.providerRegistry = Mockito.mock(ProviderRegistry.class);
+        ownerChats = Mockito.mock(OwnerChatDirectory.class);
+        orchestrator.ownerChats = ownerChats;
 
         ToolProgressSettings toolProgress = Mockito.mock(ToolProgressSettings.class);
         when(toolProgress.modeFor(anyString())).thenReturn(ToolProgress.OFF);
@@ -93,6 +97,25 @@ class MessagingOrchestratorTest {
 
         verify(agentService).chatSync(any(), eq("hello"));
         verify(notificationService).send("telegram", "chat-1", "Hi there!", ConversationId.SHARED);
+    }
+
+    @Test
+    void process_authorizedMessage_remembersTheChatAsTheOwnersLastChatOnItsProvider() {
+        when(authService.isAuthorized(any())).thenReturn(true);
+        when(agentService.chatSync(anyString(), anyString())).thenReturn("ok");
+
+        orchestrator.process(MessagingMessage.text("telegram", "chat-1", "user-1", "hello")).await().indefinitely();
+
+        verify(ownerChats).remember("telegram", "chat-1");
+    }
+
+    @Test
+    void process_unauthorizedMessage_doesNotRememberItsChat() {
+        when(authService.isAuthorized(any())).thenReturn(false);
+
+        orchestrator.process(MessagingMessage.text("telegram", "chat-1", "intruder", "hello")).await().indefinitely();
+
+        verify(ownerChats, never()).remember(any(), any());
     }
 
     @Test

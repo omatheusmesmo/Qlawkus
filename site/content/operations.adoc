@@ -288,7 +288,7 @@ The meters above arrive from upstream. These are the ones Qlawkus emits itself, 
 |Whether redeploys are succeeding, which phase they fail in, how long each phase takes, and how long it has been since one last worked. The redeploy restarts the agent mid-run, so these are read from the persisted redeploy history (see xref:composition.adoc#_reporting_each_run[reporting each run]) rather than counted in memory; a restarted instance publishes the totals its predecessor reached. `outcome` on the duration is the phase's own, so a build that failed is not a slow successful one. The age gauge is `NaN` before the first success.
 |`outcome`, `failed_phase` (`none` on a success); `phase`, `outcome`
 |`qlawkus.task.restored`
-|How the boot restore of the owner's scheduled tasks went: `restored` tasks registered again, `missed` one-time tasks that were due while the agent was down (not run, listed until cancelled), `invalid` schedules that cannot run, and `held` tasks left stored because the task cap was full. It is published once per boot, so a step at a restart shows what that boot restored.
+|How the boot restore of the owner's scheduled tasks went: `restored` tasks registered again, `missed` one-time tasks that were due while the agent was down (not run, listed until cancelled), `invalid` schedules that cannot run, and `held` tasks left stored because the task cap was full. It is published once per boot, so a step at a restart shows what that boot restored. See xref:scheduler.adoc#_restore_at_boot[Restore at boot].
 |`outcome`
 |===
 

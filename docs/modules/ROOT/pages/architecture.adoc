@@ -125,7 +125,7 @@ The existing read/write byte limits apply, with a 16 MiB ceiling for each file r
 
 The tool returns a unified diff with three context lines around the changed region. Distant
 edits share one hunk, so the preview can include unchanged lines between them. The response is
-bounded by `qlawkus.file.edit.max-diff-chars` (default 12000, clamped to 512–64000); a truncated
+bounded by `qlawkus.file.edit.max-diff-chars` (default 12000, clamped to 512 to 64000); a truncated
 preview is explicitly marked and is not a complete patch. The edit itself is fully applied.
 Set `qlawkus.file.edit.enabled=false` to disable this tool.
 
@@ -242,29 +242,7 @@ All five are registered with an explicit `@Scheduled(identity = ...)`, which is 
 
 == Scheduled tasks
 
-The agent can schedule work at the owner's request, such as "remind me in two hours" or "every weekday at nine". `TaskSchedulerTool` exposes three tools: `scheduleTask`, `listScheduledTasks` and `cancelScheduledTask`. Tasks are kept apart from the application's own `@Scheduled` jobs: each is a Quartz job registered with the Quarkus `Scheduler` under a namespaced `qlawkus-task-` UUID, so cancelling a task can never touch a static job.
-
-Where a task delivers depends on where it was made:
-
-* From a messaging channel, the task reuses the origin chat by default. An explicit `providerId` and `chatId` override it for any channel.
-* From REST or the console, `providerId` and `chatId` are required, because a REST conversation is not a chat. `rest` is not a messaging channel and is refused as a destination.
-
-The REST chat endpoints (`/api/chat` and `/api/chat/sync`) run each turn with the conversation as the delivery origin, so the tool knows where it was called from. The streamed variant captures that origin when the turn starts, so tool calls on the model's callback thread see it too.
-
-A firing replays the task into the conversation that scheduled it through `AgentRunner`, with the full agent and its tools available. The run uses the interactive workload, not batch, so a reminder is never abandoned by the background bulkhead. A non-blank reply is handed to `WorkflowResultReadyEvent`, which the messaging delivery listener sends to the destination. A blank reply delivers nothing.
-
-Schedules come in two forms, both expressed as Quartz crons in `qlawkus.agent.timezone`:
-
-* A recurring cron, such as `0 0 9 * * ?`, stays scheduled after each run.
-* A one-time task is an exact-date cron with a year and literal fields, such as `0 0 12 15 6 ? 2027`, or a delay in minutes that the tool converts into one. It is unscheduled before the model is called, so it is removed even when its run fails.
-
-Limits are deliberately small: at most 20 agent-created tasks, 500 characters of task text, and a delay of at most one year. A cron that never fires again is refused. Missed and invalid tasks, described below, count toward the 20 until they are cancelled.
-
-Schedules are persisted. Before the agent reports a task as scheduled, the task is written to a `ScheduledTaskStore`. It is removed from that store when the owner cancels it or, for a one-time task, when it retires. The default backend keeps one `<id>.json` file per task under `scheduled-tasks` in `qlawkus.agent.state.root`. With `qlawkus.cognition.backend=pgvector` the tasks are rows in the `scheduled_task` table, added by migration `V8`. With `hybrid` the files stay the source of truth and the table is a mirror of them.
-
-At boot, `DynamicTaskRestorer` registers every stored task again under the same id, cron, timezone and overlap policy. A recurring task simply resumes, and so does a one-time task whose time is still ahead. A one-time task whose time passed while the agent was down is not run: it is marked missed, `listScheduledTasks` reports it with a note, and it stays listed until the owner cancels it, which removes it. A schedule the scheduler cannot run is marked invalid the same way and is not retried on every start. A record that cannot be read is skipped with a warning that names only its file, so the other tasks still load. The restore never exceeds the cap: tasks beyond it stay stored and are counted as held.
-
-The restore runs only in the instance that holds the single-instance lock, so a second instance refused at boot never rewrites a record. Two boundaries remain. A one-time task is removed before its model call, so a run interrupted by a crash is not repeated after the restart. Delivery is best effort, so a reply that was not sent before the crash is not sent again. Each boot publishes `qlawkus.task.restored` by outcome (`restored`, `missed`, `invalid`, `held`), and the reference dashboard charts it under Scheduled tasks.
+The agent can schedule reminders and recurring tasks at the owner's request, through `TaskSchedulerTool` (`scheduleTask`, `listScheduledTasks`, `cancelScheduledTask`). Each task is a Quartz job under a `qlawkus-task-` id, kept in a `ScheduledTaskStore` so it is registered again after a restart, and each reply goes to a messaging chat resolved without any id from the owner. The timing forms, destination rules, persistence, logs and limits are described in xref:scheduler.adoc[Scheduler].
 
 == Skills (procedural memory)
 
