@@ -26,6 +26,20 @@ class PromptReplyLanguageDecisionTest {
     }
 
     @Test
+    void theRegisteredNvidiaModelsJsonReplyIsAcceptedWithoutAcceptingProseOrExtraFields() {
+        var provider = provider(true);
+        var resolver = new ReplyLanguageResolver(provider);
+        when(provider.model.classify(anyString())).thenReturn("{\"language\":\"pt\"}");
+        assertEquals("pt", resolver.resolve("voice", "bom dia como ta o projeto",
+                AgentReplyStyle.speech(null), "es", List.of(), null).language());
+        for (String invalid : List.of("{\"language\":\"pt\",\"extra\":true}",
+                "{\"language\":\"pt\"} trailing", "Answer in pt", "x".repeat(257))) {
+            when(provider.model.classify(anyString())).thenReturn(invalid);
+            assertNull(resolver.resolve("text", "olá", AgentReplyStyle.DEFAULT).language());
+        }
+    }
+
+    @Test
     void disabledDistributionsDoNotCallTheRegisteredModel() {
         var provider = provider(false);
         assertNull(provider.decide("olá", null, null, List.of(), null));

@@ -35,7 +35,7 @@ class VoiceDecisionLanguageTest {
 
     @Test
     void theDecisionSelectsPortugueseOnTheFirstUtteranceAndRunsOnlyOnce() throws Exception {
-        decisionReply("pt");
+        decisionReply("{\"language\":\"pt\"}");
         ScriptedTranscriber.say("bom dia como ta o projeto", "es");
         try (VoiceClient client = open()) {
             client.awaitType("ready");
@@ -87,9 +87,9 @@ class VoiceDecisionLanguageTest {
                 .withRequestBody(containing("LANGUAGE_DECISION"))
                 .willReturn(okJson("""
                         {"model":"gemma4:e2b","created_at":"2026-11-21T00:00:00Z",
-                         "message":{"role":"assistant","content":"%s"},"done":true,
+                         "message":{"role":"assistant","content":%s},"done":true,
                          "prompt_eval_count":10,"eval_count":1}
-                        """.formatted(code))));
+                        """.formatted(new ObjectMapper().valueToTree(code).toString()))));
     }
 
     private VoiceClient open() {
