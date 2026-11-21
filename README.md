@@ -256,6 +256,7 @@ qlawkus/                              # Parent POM (semantic versioning)
 │   ├── qlawkus-tools-google-storage/ # listBuckets, uploadObject, downloadObject
 │   ├── qlawkus-tools-brag/           # Career brag documents
 │   ├── qlawkus-tools-skill-hub/      # Remote skill-registry client (search/install/publish)
+│   ├── qlawkus-tools-mcp-client/     # Runtime-managed MCP servers (HTTP/stdio) as namespaced tools
 │   └── qlawkus-tools-self-observe/   # Read-only queries over the agent's own telemetry
 ├── messaging/                        # Provider-agnostic messaging (core + tts/transcription)
 │   ├── discord/                      # Discord Gateway adapter (Discord4J) + slash commands
@@ -320,6 +321,7 @@ public class MyTool {
 | **Google Sheets** | `qlawkus-tools-google-sheets` | readSheet, writeSheet, updateCell |
 | **Google Storage** | `qlawkus-tools-google-storage` | listBuckets, uploadObject, downloadObject |
 | **Skill Hub** | `qlawkus-tools-skill-hub` | Remote skill-registry client (search/install/publish) |
+| **MCP Client** | `qlawkus-tools-mcp-client` | Runtime-managed external MCP servers (HTTP/stdio, optional OAuth) exposed as `mcp_<id>_<tool>` (capability `mcp-client`, see the MCP guide) |
 | **Self Observe** | `qlawkus-tools-self-observe` | Read-only queryMetrics, findTraces, getTrace, queryLogs over the agent's own Prometheus / Tempo / Loki (capability `self-observe`) |
 
 ---

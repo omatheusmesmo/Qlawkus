@@ -1,0 +1,576 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-transport]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-transport[`+++qlawkus.mcp.servers."servers".transport+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".transport+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Upstream transport: HTTP (streamable HTTP) or STDIO.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__TRANSPORT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__TRANSPORT+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`http`, `stdio`
+|`+++http+++`
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-enabled]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-enabled[`+++qlawkus.mcp.servers."servers".enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether this connection participates in discovery.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-url]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-url[`+++qlawkus.mcp.servers."servers".url+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".url+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+HTTP endpoint without credentials, query string or fragment.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__URL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__URL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-command]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-command[`+++qlawkus.mcp.servers."servers".command+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".command+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+STDIO executable and separate arguments; no shell expansion is performed.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__COMMAND+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__COMMAND+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of string
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-header-secret-refs-header-secret-refs]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-header-secret-refs-header-secret-refs[`+++qlawkus.mcp.servers."servers".header-secret-refs."header-secret-refs"+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".header-secret-refs."header-secret-refs"+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+HTTP header name to server-scoped vault alias mapping.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__HEADER_SECRET_REFS__HEADER_SECRET_REFS_+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__HEADER_SECRET_REFS__HEADER_SECRET_REFS_+++`
+endif::add-copy-button-to-env-var[]
+--
+|Map<String,String>
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-environment-secret-refs-environment-secret-refs]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-environment-secret-refs-environment-secret-refs[`+++qlawkus.mcp.servers."servers".environment-secret-refs."environment-secret-refs"+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".environment-secret-refs."environment-secret-refs"+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+STDIO variable name to server-scoped vault alias mapping.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__ENVIRONMENT_SECRET_REFS__ENVIRONMENT_SECRET_REFS_+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__ENVIRONMENT_SECRET_REFS__ENVIRONMENT_SECRET_REFS_+++`
+endif::add-copy-button-to-env-var[]
+--
+|Map<String,String>
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-protocol-version]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-protocol-version[`+++qlawkus.mcp.servers."servers".protocol-version+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".protocol-version+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Optional protocol version; unset delegates version negotiation to the upstream client.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__PROTOCOL_VERSION+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__PROTOCOL_VERSION+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-grant]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-grant[`+++qlawkus.mcp.servers."servers".oauth.grant+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".oauth.grant+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Grant used for machine credentials or interactive owner authorization.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_GRANT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_GRANT+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`client-credentials`, `authorization-code`
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-token-endpoint]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-token-endpoint[`+++qlawkus.mcp.servers."servers".oauth.token-endpoint+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".oauth.token-endpoint+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Explicit token endpoint, including for OAuth-only services without OIDC discovery.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_TOKEN_ENDPOINT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_TOKEN_ENDPOINT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-authorization-endpoint]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-authorization-endpoint[`+++qlawkus.mcp.servers."servers".oauth.authorization-endpoint+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".oauth.authorization-endpoint+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Interactive authorization endpoint; required for authorization-code grants.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_AUTHORIZATION_ENDPOINT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_AUTHORIZATION_ENDPOINT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-revocation-endpoint]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-revocation-endpoint[`+++qlawkus.mcp.servers."servers".oauth.revocation-endpoint+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".oauth.revocation-endpoint+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Optional token revocation endpoint.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_REVOCATION_ENDPOINT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_REVOCATION_ENDPOINT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-client-id]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-client-id[`+++qlawkus.mcp.servers."servers".oauth.client-id+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".oauth.client-id+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Registered OAuth client identifier.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_CLIENT_ID+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_CLIENT_ID+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-client-secret-ref]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-client-secret-ref[`+++qlawkus.mcp.servers."servers".oauth.client-secret-ref+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".oauth.client-secret-ref+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Server-scoped vault alias for a confidential client's secret.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_CLIENT_SECRET_REF+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_CLIENT_SECRET_REF+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-client-auth-method]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-client-auth-method[`+++qlawkus.mcp.servers."servers".oauth.client-auth-method+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".oauth.client-auth-method+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Confidential client authentication at the token endpoint: POST or BASIC.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_CLIENT_AUTH_METHOD+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_CLIENT_AUTH_METHOD+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`post`, `basic`
+|`+++post+++`
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-scopes]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-scopes[`+++qlawkus.mcp.servers."servers".oauth.scopes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".oauth.scopes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Requested scopes.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_SCOPES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_SCOPES+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of string
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-redirect-uri]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-redirect-uri[`+++qlawkus.mcp.servers."servers".oauth.redirect-uri+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".oauth.redirect-uri+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Fixed application callback URI ending in /api/admin/mcp/oauth/callback.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_REDIRECT_URI+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_REDIRECT_URI+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-resource]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-servers-servers-oauth-resource[`+++qlawkus.mcp.servers."servers".oauth.resource+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.servers."servers".oauth.resource+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Optional OAuth resource indicator for the MCP resource.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_RESOURCE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_SERVERS__SERVERS__OAUTH_RESOURCE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-max-servers]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-max-servers[`+++qlawkus.mcp.max-servers+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.max-servers+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of configured connections.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_MAX_SERVERS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_MAX_SERVERS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++16+++`
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-max-tools-per-server]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-max-tools-per-server[`+++qlawkus.mcp.max-tools-per-server+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.max-tools-per-server+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum tools accepted from one connection. Larger catalogs are refused.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_MAX_TOOLS_PER_SERVER+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_MAX_TOOLS_PER_SERVER+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++32+++`
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-max-tools]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-max-tools[`+++qlawkus.mcp.max-tools+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.max-tools+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum contributed tools across all connections.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_MAX_TOOLS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_MAX_TOOLS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++128+++`
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-discovery-timeout]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-discovery-timeout[`+++qlawkus.mcp.discovery-timeout+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.discovery-timeout+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cooperative total connection initialization and discovery budget.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_DISCOVERY_TIMEOUT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_DISCOVERY_TIMEOUT+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-tools-mcp-client_qlawkus-mcp[icon:question-circle[title=More information about the Duration format]]
+|`+++5S+++`
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-call-timeout]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-call-timeout[`+++qlawkus.mcp.call-timeout+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.call-timeout+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Deadline for one remote tool execution.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_CALL_TIMEOUT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_CALL_TIMEOUT+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-tools-mcp-client_qlawkus-mcp[icon:question-circle[title=More information about the Duration format]]
+|`+++30S+++`
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-max-output-chars]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-max-output-chars[`+++qlawkus.mcp.max-output-chars+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.max-output-chars+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum characters returned by one remote tool.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_MAX_OUTPUT_CHARS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_MAX_OUTPUT_CHARS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++16000+++`
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-retry-backoff]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-retry-backoff[`+++qlawkus.mcp.retry-backoff+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.retry-backoff+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Delay before retrying unavailable bootstrap connections.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_RETRY_BACKOFF+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_RETRY_BACKOFF+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-tools-mcp-client_qlawkus-mcp[icon:question-circle[title=More information about the Duration format]]
+|`+++30S+++`
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-allow-private-endpoints]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-allow-private-endpoints[`+++qlawkus.mcp.allow-private-endpoints+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.allow-private-endpoints+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether HTTP and OAuth endpoints may be, or resolve to, loopback, private, link-local or other non-public addresses. Off by default so a connection cannot reach the host's own network or a cloud metadata service; turn it on for MCP servers that run beside the agent.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_ALLOW_PRIVATE_ENDPOINTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_ALLOW_PRIVATE_ENDPOINTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-tools-mcp-client_qlawkus-mcp-approval-mode]] [.property-path]##link:#qlawkus-tools-mcp-client_qlawkus-mcp-approval-mode[`+++qlawkus.mcp.approval-mode+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.mcp.approval-mode+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Approval for connection changes the agent proposes through its tools. `hitl` makes the agent preview the change and wait for the owner's go-ahead; `yolo` applies it at once. The console and admin API are the owner acting directly and never ask.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MCP_APPROVAL_MODE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MCP_APPROVAL_MODE+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`yolo`, `hitl`
+|`+++hitl+++`
+
+|===
+
+ifndef::no-duration-note[]
+[NOTE]
+[id=duration-note-anchor-qlawkus-tools-mcp-client_qlawkus-mcp]
+.About the Duration format
+====
+To write duration values, use the standard `java.time.Duration` format.
+See the link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html#parse(java.lang.CharSequence)[Duration#parse() Java API documentation] for more information.
+
+You can also use a simplified format, starting with a number:
+
+* If the value is only a number, it represents time in seconds.
+* If the value is a number followed by `ms`, it represents time in milliseconds.
+
+In other cases, the simplified format is translated to the `java.time.Duration` format for parsing:
+
+* If the value is a number followed by `h`, `m`, or `s`, it is prefixed with `PT`.
+* If the value is a number followed by `d`, it is prefixed with `P`.
+====
+endif::no-duration-note[]

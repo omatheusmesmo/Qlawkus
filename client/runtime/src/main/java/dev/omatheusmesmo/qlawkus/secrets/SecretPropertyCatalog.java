@@ -46,6 +46,16 @@ public final class SecretPropertyCatalog {
         return SECRET_PROPERTIES.contains(property)
                 || property.equals(SHELL_SECRET_ENV)
                 || property.startsWith(SHELL_SECRET_ENV + ".")
+                || isMcpCredential(property)
                 || (property.startsWith("qlawkus.messaging.tts.providers.") && property.endsWith(".api-key"));
+    }
+
+    private static boolean isMcpCredential(String property) {
+        if (!property.startsWith("qlawkus.mcp.servers.")) {
+            return false;
+        }
+        return property.contains(".headers.") || property.endsWith(".headers")
+                || property.contains(".environment.") || property.endsWith(".environment")
+                || property.endsWith(".oauth.client-secret") || property.endsWith(".oauth.tokens");
     }
 }

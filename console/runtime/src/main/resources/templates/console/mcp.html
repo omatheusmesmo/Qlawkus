@@ -1,0 +1,60 @@
+{#include console/base}
+{#title}Qlawkus Console - MCP connections{/title}
+{#head}<script src="/console/mcp.js" defer></script>{/head}
+<header class="content-head">
+    <h1>MCP connections</h1>
+    <p class="lede">Give the agent new tools. Connection changes take effect without restarting.</p>
+</header>
+<div id="mcp-feedback" role="status" aria-live="polite"></div>
+<section class="panel">
+    <div class="mcp-heading"><h2 class="panel-title">Connections</h2><button type="button" id="mcp-refresh">Refresh</button></div>
+    <div id="mcp-connections" aria-busy="true"><p class="muted">Loading connections…</p></div>
+</section>
+<section class="panel">
+    <h2 class="panel-title" id="mcp-editor-title">Add a connection</h2>
+    <form id="mcp-form" class="mcp-editor">
+        <label for="mcp-id">Connection ID</label>
+        <input id="mcp-id" required pattern="[a-z][a-z0-9-]&#123;0,19&#125;" maxlength="20" placeholder="local-docs" autocomplete="off">
+        <label for="mcp-transport">Transport</label>
+        <select id="mcp-transport"><option value="HTTP">Remote HTTP</option><option value="STDIO">Local process (stdio)</option></select>
+        <div id="mcp-http-fields"><label for="mcp-url">MCP endpoint</label><input id="mcp-url" type="url" placeholder="http://localhost:8080/mcp" autocomplete="off"><p class="muted">Use a plain HTTP or HTTPS endpoint. Keep credentials out of the URL.</p></div>
+        <div id="mcp-stdio-fields" hidden><label for="mcp-command">Command arguments (JSON array)</label><textarea id="mcp-command" rows="3" spellcheck="false" placeholder='["/usr/bin/my-mcp-server", "--stdio"]'></textarea><p class="muted">Use installed executables. Put credentials in the vault, rather than command arguments.</p></div>
+        <details><summary>Credentials and compatibility</summary>
+            <label for="mcp-auth-kind">OAuth authentication</label>
+            <select id="mcp-auth-kind"><option value="NONE">None / vault headers</option><option value="CLIENT_CREDENTIALS">Service credentials</option><option value="AUTHORIZATION_CODE">Browser sign-in (SSO)</option></select>
+            <div id="mcp-oauth-fields" hidden>
+                <label for="mcp-client-id">OAuth client ID</label><input id="mcp-client-id" autocomplete="off">
+                <label for="mcp-token-endpoint">Token endpoint</label><input id="mcp-token-endpoint" type="url" autocomplete="off">
+                <label for="mcp-client-secret-ref">Client secret vault reference (if required)</label><input id="mcp-client-secret-ref" autocomplete="off">
+                <label for="mcp-client-auth-method">Client authentication method</label><select id="mcp-client-auth-method"><option value="POST">Secret in token request body (POST)</option><option value="BASIC">HTTP Basic authentication</option></select>
+                <label for="mcp-scopes">Scopes (separated by spaces)</label><input id="mcp-scopes" autocomplete="off">
+                <label for="mcp-authorization-endpoint">Authorization endpoint (SSO)</label><input id="mcp-authorization-endpoint" type="url" autocomplete="off">
+                <label for="mcp-redirect-uri">Registered redirect URI (SSO)</label><input id="mcp-redirect-uri" type="url" placeholder="https://your-console/api/admin/mcp/oauth/callback" autocomplete="off">
+                <label for="mcp-revocation-endpoint">Revocation endpoint (optional)</label><input id="mcp-revocation-endpoint" type="url" autocomplete="off">
+                <label for="mcp-resource">Resource indicator (optional)</label><input id="mcp-resource" autocomplete="off">
+                <p class="muted">Use the endpoints and registered client supplied by your identity provider. Browser sign-in requests your consent; the agent never receives your password.</p>
+            </div>
+            <label for="mcp-header-refs">Header credential references (JSON object)</label>
+            <textarea id="mcp-header-refs" rows="3" spellcheck="false" placeholder='&#123;"Authorization":"qlawkus.mcp.servers.local-docs.headers.authorization"&#125;'></textarea>
+            <label for="mcp-env-refs">Process environment credential references (JSON object)</label>
+            <textarea id="mcp-env-refs" rows="3" spellcheck="false" placeholder='&#123;"API_TOKEN":"qlawkus.mcp.servers.local-docs.environment.API_TOKEN"&#125;'></textarea>
+            <label for="mcp-protocol">Protocol version (optional)</label><input id="mcp-protocol" autocomplete="off" placeholder="Use the server default">
+            <p class="muted">References must belong to this connection. Store the values in the vault below.</p>
+        </details>
+        <label class="mcp-check"><input id="mcp-enabled" type="checkbox" checked> Enabled</label>
+        <p class="muted">Saving an enabled connection tests it first. A failed update keeps its working configuration.</p>
+        <div class="mcp-actions"><button type="submit">Save connection</button><button type="button" id="mcp-new">New connection</button></div>
+    </form>
+</section>
+<section class="panel">
+    <h2 class="panel-title">Store a credential</h2>
+    <p class="muted">The value goes directly to the encrypted vault and is never displayed. New connections can use it immediately.</p>
+    <form id="mcp-secret-form" class="mcp-editor" autocomplete="off">
+        <label for="mcp-secret-id">Connection ID</label><input id="mcp-secret-id" required pattern="[a-z][a-z0-9-]&#123;0,19&#125;" maxlength="20">
+        <label for="mcp-secret-kind">Credential destination</label><select id="mcp-secret-kind"><option value="headers">HTTP header</option><option value="environment">Process environment</option><option value="oauth">OAuth client secret</option></select>
+        <label for="mcp-secret-name">Header or environment name</label><input id="mcp-secret-name" required maxlength="128" placeholder="Authorization" autocomplete="off">
+        <label for="mcp-secret-value">Secret value</label><input id="mcp-secret-value" type="password" required autocomplete="new-password">
+        <button type="submit">Store in vault</button>
+    </form>
+</section>
+{/include}

@@ -84,6 +84,16 @@ final class KeystoreSecrets {
         }
     }
 
+    static String read(Path file, char[] password, String alias) {
+        try {
+            KeyStore store = load(file, password);
+            Key key = store.getKey(alias, password);
+            return key == null ? null : new String(key.getEncoded(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to read secret from keystore", e);
+        }
+    }
+
     static void put(Path file, char[] password, String alias, String value) {
         try {
             KeyStore keyStore = loadOrCreate(file, password);

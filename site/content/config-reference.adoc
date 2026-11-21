@@ -94,6 +94,9 @@ include::includes/qlawkus-tools-skill-hub.adoc[]
 === Web Search
 include::includes/qlawkus-tools-web-search.adoc[]
 
+=== MCP Client
+include::includes/qlawkus-tools-mcp-client.adoc[]
+
 === Self Observe
 include::includes/qlawkus-tools-self-observe.adoc[]
 
