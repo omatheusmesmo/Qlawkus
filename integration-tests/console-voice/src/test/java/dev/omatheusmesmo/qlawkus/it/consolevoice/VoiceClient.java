@@ -20,7 +20,9 @@ import java.util.function.Predicate;
 
 /**
  * A browser stand-in for the voice socket: it records every JSON event in arrival order and waits for them
- * by type, so a test can assert the order events arrived in, which is the property under test.
+ * by type, so a test can assert the order events arrived in, which is the property under test. The handler
+ * runs non-blocking on the connection's event loop: on the default worker pool two messages sent back to back
+ * can be recorded out of order, which would make a correct server look wrong.
  */
 final class VoiceClient implements AutoCloseable {
 
@@ -45,6 +47,7 @@ final class VoiceClient implements AutoCloseable {
         }
         VoiceClient client = new VoiceClient();
         client.connection = configured
+                .executionModel(BasicWebSocketConnector.ExecutionModel.NON_BLOCKING)
                 .onTextMessage((c, message) -> client.record(message))
                 .connectAndAwait();
         return client;
