@@ -111,29 +111,56 @@ This is separate from the voice notes above. Voice notes transcribe one complete
 
 === Using the page
 
-1. Open *Voice* in the console navigation and press *Start microphone*. The browser asks for microphone permission once.
-2. Speak. The page detects speech and sends the utterance when you stop; after the quiet time (`hangover`, 0.8 seconds by default) the transcript appears and the agent answers.
-3. The reply is spoken sentence by sentence. Start speaking while the agent is talking to interrupt it: the reply stops and your new utterance takes its place.
-4. Press *Stop microphone* to end the session. The microphone is released and the server closes the session.
+1. Open *Voice* in the console navigation and press *Start*. The browser asks for microphone permission once.
+2. Speak. In hands-free mode the page detects speech and sends the utterance when you stop; after the quiet time (`hangover`, 0.8 seconds by default) the transcript appears and the agent answers. In push-to-talk mode, hold *Space* or the *Hold to talk* button while you speak.
+3. The reply is spoken sentence by sentence and typed into the conversation as it streams. Speak, press *Interrupt*, or press *Escape* to stop it.
+4. *Mute* keeps the session open without sending audio. *Stop* ends the session: the microphone is released and the server closes it.
+
+The centre of the page is a visual that needs no text to read:
+
+* *Idle* and *muted* breathe quietly.
+* *Listening* (warm orange) follows the microphone's frequency spectrum, so your voice shows as it arrives.
+* *Hearing you* is brighter, and a ripple leaves the core on each peak.
+* *Thinking* is a slow comet orbiting the core, a rhythm distinct from the others.
+* *Speaking* (deep teal) sends waves outward, driven by the audio actually playing, and goes quiet when playback stops.
+* *Interrupted* deflates and settles back to idle within about 400 milliseconds.
+
+When the operating system asks for reduced motion, the visual becomes a static disc and ring. The ring's thickness and colour still show the state and the level.
 
 Use headphones. Without them the agent's voice can reach the microphone and be taken for an interruption.
 
+If the microphone cannot be used (permission denied, no device, a page that is not served over HTTPS or localhost, or a browser without AudioWorklet), the page says why and keeps the session open for the text box below the conversation.
+
 Turns share the chat's conversation. The live session goes through the same agent as `/api/chat`, so what you say aloud is in the same history as the chat page, and the shared conversation applies when `qlawkus.agent.shared-context` is on.
+
+=== Languages
+
+The *Language* selector offers *Auto (detect)* and every language a speech provider is configured for (the `TTS_<LANG>_*` providers, see the text-to-speech section). The detected language is shown under the status line, and the language each reply is spoken in is shown next to it.
+
+* *Auto* is the default (`qlawkus.console.voice.language=auto`). The speech recognizer detects the language of each utterance and reports it with the transcript. Each reply is spoken in the language of its own text, judged from its words and writing system. A reply with too little evidence uses the session language, and then `TTS_DEFAULT_LANGUAGE`.
+* The session language is the one the most recent utterances agree on: the majority of the last five, with at least two votes. One short, misdetected utterance does not switch the voice.
+* An explicit code, such as `pt`, forces that language. It is sent to the recognizer as a hint and used for every reply. A code with no speech provider is refused.
+
+The reply detector is a small local heuristic over stopwords and writing systems. It makes no network call and loads no model, and it only ever chooses a language that has a configured provider.
+
+=== Typed messages
+
+The text box sends a message as a turn without speech recognition. Its length is capped by `max-text-chars`. It goes through the same agent turn, interruption and speech as a spoken utterance.
 
 === Buffered speech and transcription
 
 The speech adapters in the reference build are buffered, and the page says so:
 
-* *Speech-to-text* waits for the whole utterance, then sends it to the Whisper-compatible endpoint configured under `WHISPER_*`. A self-hosted Whisper-compatible server works by pointing `WHISPER_BASE_URL` at it.
+* *Speech-to-text* waits for the whole utterance, then sends it to the Whisper-compatible endpoint configured under `WHISPER_*`. The live session asks for `verbose_json`, so the detected language comes back with the text, and an explicit language is sent as the `language` field. Voice notes keep the plain request. A self-hosted Whisper-compatible server works by pointing `WHISPER_BASE_URL` at it.
 * *Text-to-speech* synthesizes each reply sentence in full through the messaging providers (`TTS_<LANG>_*`), then plays it. Each sentence waits for its own synthesis before it plays, so expect a pause before each one. No real-time latency is promised.
 
-A streaming adapter can replace either one. The speech adapter is the `VoiceSpeech` interface; a streaming implementation reports `buffered` as false and the page labels the mode accordingly.
+A streaming adapter can replace either one. The speech adapter is the `VoiceSpeech` interface, which also lists the languages it can speak; a streaming implementation reports `buffered` as false and the page labels the mode accordingly.
 
 === How a turn works
 
-* The browser captures 16-bit mono PCM at the audio context's sample rate and sends it as binary frames between a `start` and an `utterance-end` message.
-* The server wraps the utterance as WAV and transcribes it. Each finished utterance is one turn, numbered in order.
-* The agent answers the transcript through the same streamed turn the chat uses. The reply is cut into sentences, and each sentence is synthesized and sent in order.
+* The browser captures 16-bit mono PCM at the audio context's sample rate, through an AudioWorklet, and sends it as binary frames between a `start` and an `utterance-end` message.
+* The server wraps the utterance as WAV and transcribes it. Each finished utterance is one turn, numbered in order. A typed message is a turn too, without transcription.
+* The agent answers the transcript through the same streamed turn the chat uses. The reply is cut into sentences, and each sentence is synthesized in its language and sent in order.
 * Every event carries its turn number. The page ignores audio and text for a turn older than the newest interrupt it has seen.
 
 Protocol, for an integrator writing a different client:
@@ -143,17 +170,17 @@ Protocol, for an integrator writing a different client:
 | Direction | Messages
 
 | Browser to server
-| JSON `{"type":"start","sampleRate":48000}`, binary PCM16 frames, JSON `{"type":"utterance-end"}`, `{"type":"interrupt"}`, `{"type":"stop"}`
+| JSON `{"type":"start","sampleRate":48000}`, binary PCM16 frames, JSON `{"type":"utterance-end"}`, `{"type":"interrupt"}`, `{"type":"language","language":"auto"}` (or an ISO 639-1 code), `{"type":"text","text":"..."}`, `{"type":"stop"}`
 
 | Server to browser
-| JSON `ready`, `listening`, `transcript` (turn, text), `text` (turn, chunk), `tool` (turn, phase, name), `audio` (turn, segment, mimeType, base64 data), `turn-done`, `interrupted` (turn), `notice` and `error` (code), `closed` (reason)
+| JSON `ready` (with `language`, `languages`, `defaultLanguage`, `maxTextChars`), `listening`, `language` (language), `transcript` (turn, text, language, sessionLanguage, typed), `text` (turn, chunk), `tool` (turn, phase, name), `audio` (turn, segment, language, mimeType, base64 data), `turn-done`, `interrupted` (turn), `notice` and `error` (code), `closed` (reason)
 |===
 
 The socket is `/console/voice/ws`. The browser must send the console's credentials and an `Origin` header matching the page.
 
 === Interruption
 
-Speaking again, or sending `interrupt`, supersedes the active turn:
+Speaking again, pressing *Interrupt* or *Escape*, or sending `interrupt`, supersedes the active turn:
 
 * The agent's streamed turn is cancelled. Verified with the streaming path: when the cancel lands while a tool is running, no further model round starts and no further tool runs.
 * Sentences still waiting for speech are skipped when they reach the front of the queue, and audio the server has not yet sent is dropped.
@@ -175,32 +202,53 @@ The server enforces these limits, all under `qlawkus.console.voice.*` and visibl
 | `max-utterance-duration` | `PT30S` | Longer audio is discarded; the owner is told to speak again.
 | `max-utterance-bytes` | `4194304` | The byte cap on one utterance; the smaller of this and the duration cap applies.
 | `max-frame-bytes` | `65536` | A larger binary frame is refused.
+| `max-text-chars` | `2000` | A longer typed message is refused.
 | `max-queued-segments` | `8` | Sentences beyond this are not spoken and the owner gets a `speech-queue-full` notice.
 | `max-sessions-per-owner` | `1` | A second session is refused until the first closes.
-| `language` | `en` | The language replies are spoken in.
+| `language` | `auto` | `auto` detects the language; an ISO 639-1 code forces it for recognition and speech.
 | `hangover` | `PT0.8S` | Quiet time that ends an utterance in the browser.
-| `speech-threshold` | `0.02` | Level above which a frame counts as speech.
+| `speech-threshold` | `0.02` | Level above which a frame counts as speech. The browser calibrates below this value to the room and never goes above it.
 | `allowed-origins` | unset | Extra origins allowed to open a session.
 |===
 
 === Privacy and security
 
 * Audio is never stored and never logged. The server keeps the utterance only until it is transcribed.
-* Logs carry identifiers and counts (connection, turn, character counts, durations). Transcripts and reply text are not written to the log.
+* Logs carry identifiers, counts, durations and language codes. Transcripts, typed messages and reply text are not written to the log.
 * The socket requires the console's credentials. The upgrade is refused unless its `Origin` is the console's own origin or one listed in `allowed-origins`, so another site cannot open the owner's microphone with cached credentials.
 * A session belongs to the authenticated owner. The default allows one open session per owner; closing the page, losing the connection or stopping releases the slot.
+* Model and user text reach the page only as text content, never as HTML.
 
 === Running the browser check
 
-The Maven build does not run the browser. `integration-tests/console-voice/browser/voice-check.mjs` drives Chromium with fake media devices against a running instance, and it exits 0 with a skip message when Playwright is not installed:
+The Maven build does not run the browser. `integration-tests/console-voice/browser/voice-check.mjs` drives Chromium with fake media devices against a running instance. It writes its own fake microphone clip (a tone, then silence), and it checks a full utterance: the detected Portuguese language, the Portuguese reply, an interruption with the *Interrupt* button, a typed message, and *Stop*. When `SHOTS_DIR` is set it also saves a screenshot of each state at desktop and phone width, in light and dark. The script exits 0 with a skip message when Playwright is not installed.
+
+The instance needs speech-to-text, chat and text-to-speech endpoints. `integration-tests/console-voice/browser/fake-providers.mjs` serves all three, plus the embeddings the agent calls, on port 19999 (`FAKE_PORT` changes it). Start the fakes, then the packaged integration app with the test profile, pointed at them:
 
 [source,bash]
 ----
-BASE_URL=http://localhost:8080 QLAWKUS_USER=qlawkus QLAWKUS_PASSWORD=... \
+node integration-tests/console-voice/browser/fake-providers.mjs &
+
+mvn -o package -DskipTests -pl integration-tests/console-voice
+
+java -Dquarkus.profile=test -Dquarkus.http.port=18080 \
+  -Dquarkus.wiremock.devservices.enabled=false -Dquarkus.wiremock.devservices.port=19999 \
+  -Dquarkus.langchain4j.devservices.enabled=false \
+  -Dqlawkus.messaging.transcription.api-key=fake-key \
+  -Dqlawkus.messaging.transcription.base-url=http://localhost:19999 \
+  -Dqlawkus.messaging.tts.enabled=true \
+  -Dqlawkus.messaging.tts.providers.en.base-url=http://localhost:19999 \
+  -Dqlawkus.messaging.tts.providers.pt.base-url=http://localhost:19999 \
+  -Dqlawkus.messaging.tts.providers.es.base-url=http://localhost:19999 \
+  -Dqlawkus.console.voice.max-utterance-bytes=4194304 \
+  -Dqlawkus.console.voice.max-frame-bytes=65536 \
+  -jar integration-tests/console-voice/target/quarkus-app/quarkus-run.jar
+
+BASE_URL=http://localhost:18080 QLAWKUS_PASSWORD=qlawkus-test SHOTS_DIR=/tmp/voice-shots \
   mise exec npm:playwright@<version> -- node integration-tests/console-voice/browser/voice-check.mjs
 ----
 
-The script starts Chromium with `--use-fake-ui-for-media-stream` and `--use-fake-device-for-media-stream`, opens the Voice page, starts the microphone and checks that the socket reports `ready`.
+The test profile sets small frame and utterance budgets, so the command raises them to what a real microphone sends. A real Whisper or TTS endpoint can replace the fakes by pointing the same properties at it.
 
 == Testing Voice
 
@@ -217,7 +265,7 @@ The script starts Chromium with `--use-fake-ui-for-media-stream` and `--use-fake
 | Transcription does nothing | Set `WHISPER_API_KEY` (a blank key disables STT)
 | Voice request answered as text | Set `TTS_ENABLED=true` and configure the provider for that language
 | TTS provider not configured | Set `TTS_<LANG>_*` for the requested language, or point it at `TTS_DEFAULT_LANGUAGE`
-| Wrong language voice | The agent must pass the right language code to `respondWithVoice`
+| Wrong language voice | The agent must pass the right language code to `respondWithVoice`. In the live session, leave the Language selector on Auto or choose the language explicitly
 | Audio format errors | Set the provider's `response-format` to `mp3`
 |===
 

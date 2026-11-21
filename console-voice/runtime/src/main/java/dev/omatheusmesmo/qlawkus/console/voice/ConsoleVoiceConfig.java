@@ -58,10 +58,18 @@ public interface ConsoleVoiceConfig {
     int maxSessionsPerOwner();
 
     /**
-     * Language the reply is spoken in, passed to the text-to-speech router.
+     * Language of the live session. {@code auto} detects the language of each utterance and of each reply,
+     * falling back to the language the session has settled on and then to the text-to-speech default. An
+     * ISO 639-1 code, such as {@code pt}, forces that language for speech recognition and for speech.
      */
-    @WithDefault("en")
+    @WithDefault("auto")
     String language();
+
+    /**
+     * Longest typed message the owner may send from the text box. A longer message is refused.
+     */
+    @WithDefault("2000")
+    int maxTextChars();
 
     /**
      * Quiet time after the last speech frame before the utterance is considered finished.

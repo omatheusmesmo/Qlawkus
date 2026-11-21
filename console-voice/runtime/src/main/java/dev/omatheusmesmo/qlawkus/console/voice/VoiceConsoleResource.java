@@ -33,6 +33,7 @@ public class VoiceConsoleResource {
                 .data("socketPath", VoiceSocket.PATH)
                 .data("hangoverMs", config.hangover().toMillis())
                 .data("speechThreshold", config.speechThreshold())
-                .data("maxUtteranceMs", config.maxUtteranceDuration().toMillis());
+                .data("maxUtteranceMs", config.maxUtteranceDuration().toMillis())
+                .data("maxTextChars", config.maxTextChars());
     }
 }

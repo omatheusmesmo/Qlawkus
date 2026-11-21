@@ -39,8 +39,10 @@ public class VoiceSessions {
         this.limiter = limiter;
         this.clock = Executors.newSingleThreadScheduledExecutor(daemon());
         String conversation = agentConfig.sharedContext().enabled() ? ConversationId.SHARED : ConversationId.REST;
-        this.services = new VoiceSession.Services(config, conversation, agent, transcriber, speech, limiter,
-                json, clock);
+        VoiceLanguages languages = new VoiceLanguages(speech.languages(), speech.defaultLanguage());
+        String initialLanguage = VoiceLanguages.choice(config.language()).orElse(VoiceLanguages.AUTO);
+        this.services = new VoiceSession.Services(config, conversation, agent, transcriber, speech, languages,
+                initialLanguage, limiter, json, clock);
     }
 
     void open(WebSocketConnection connection, String owner) {

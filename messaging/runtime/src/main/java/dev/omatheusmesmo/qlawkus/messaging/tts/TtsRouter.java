@@ -10,6 +10,9 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class TtsRouter {
@@ -23,6 +26,22 @@ public class TtsRouter {
 
     public boolean enabled() {
         return config.enabled() && !config.providers().isEmpty();
+    }
+
+    /**
+     * Language codes this router can resolve to a provider, in order. A provider key that is not a plain
+     * language code (such as a fallback named {@code en_local}) is not offered, because a request for it
+     * would never reach that provider.
+     */
+    public Set<String> languages() {
+        return config.providers().keySet().stream()
+                .filter(key -> key.equals(key.toLowerCase(Locale.ROOT)) && normalize(key).equals(key)
+                        && key.matches("[a-z]{2,3}"))
+                .collect(Collectors.toCollection(TreeSet::new));
+    }
+
+    public String defaultLanguage() {
+        return normalize(config.defaultLanguage());
     }
 
     /**

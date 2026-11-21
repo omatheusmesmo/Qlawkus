@@ -95,7 +95,7 @@ class VoiceBudgetsTest {
     @Test
     void sentencesBeyondTheQueueBudgetAreNotSpoken() {
         VoiceTestSupport.stubAgentReply(wiremock, "Slow one. Two. Three. Four. Five.");
-        ScriptedTranscriber.SCRIPT.add("count to five");
+        ScriptedTranscriber.say("count to five");
         CountDownLatch gate = new CountDownLatch(1);
         ScriptedSpeech.slowGate = gate;
 
