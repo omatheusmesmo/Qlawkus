@@ -1,48 +1,24 @@
 package dev.omatheusmesmo.qlawkus.messaging.transcription;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
+import io.vertx.core.buffer.Buffer;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.util.Locale;
-import java.time.Duration;
-import java.util.UUID;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.jboss.resteasy.reactive.client.api.ClientMultipartForm;
 
 @ApplicationScoped
 public class WhisperTranscriptionService implements VoiceTranscriptionService {
 
     private static final String VERBOSE_JSON = "verbose_json";
 
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-
     private final VoiceTranscriptionConfig config;
-    private HttpClient httpClient;
+    private final WhisperApiClient client;
 
     @Inject
-    public WhisperTranscriptionService(VoiceTranscriptionConfig config) {
+    public WhisperTranscriptionService(VoiceTranscriptionConfig config, @RestClient WhisperApiClient client) {
         this.config = config;
-    }
-
-    @PostConstruct
-    void init() {
-        this.httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(15))
-            .build();
-    }
-
-    void setHttpClient(HttpClient httpClient) {
-        this.httpClient = httpClient;
+        this.client = client;
     }
 
     @Override
@@ -71,66 +47,22 @@ public class WhisperTranscriptionService implements VoiceTranscriptionService {
                 .orElseThrow(() -> new IllegalStateException(
                         "Whisper transcription requires qlawkus.messaging.transcription.api-key to be configured"));
 
-        String boundary = "----WhisperBoundary" + UUID.randomUUID().toString().replace("-", "");
-        byte[] body = buildMultipartBody(boundary, audioBytes, config.model(), mimeType, responseFormat, language);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(config.baseUrl() + "/v1/audio/transcriptions"))
-                .header("Authorization", "Bearer " + apiKey)
-                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(body))
-                .timeout(Duration.ofSeconds(120))
-                .build();
-
-        try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                throw new RuntimeException(
-                        "Whisper API error %d: %s".formatted(response.statusCode(), response.body()));
-            }
-            TranscriptionResponse parsed = MAPPER.readValue(response.body(), TranscriptionResponse.class);
-            String detected = VERBOSE_JSON.equals(responseFormat)
-                    ? WhisperLanguages.isoCode(parsed.language()).orElse(null)
-                    : null;
-            return new Transcription(parsed.text(), detected);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Transcription request interrupted", e);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to call Whisper API", e);
+        ClientMultipartForm form = ClientMultipartForm.create()
+                .binaryFileUpload("file", "audio." + extensionFor(mimeType), Buffer.buffer(audioBytes), mimeType)
+                .attribute("model", config.model(), null);
+        if (responseFormat != null) {
+            form.attribute("response_format", responseFormat, null);
         }
-    }
-
-    private byte[] buildMultipartBody(String boundary, byte[] audioBytes, String model, String mimeType,
-                                      String responseFormat, String language) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            out.write(("--" + boundary + "\r\n"
-                    + "Content-Disposition: form-data; name=\"file\"; filename=\"audio." + extensionFor(mimeType)
-                    + "\"\r\n"
-                    + "Content-Type: " + mimeType + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
-            out.write(audioBytes);
-            out.write(("\r\n--" + boundary + "\r\n"
-                    + "Content-Disposition: form-data; name=\"model\"\r\n\r\n"
-                    + model + "\r\n").getBytes(StandardCharsets.UTF_8));
-            if (responseFormat != null) {
-                writeField(out, boundary, "response_format", responseFormat);
-            }
-            if (language != null) {
-                writeField(out, boundary, "language", language);
-            }
-            out.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to build multipart body", e);
+        if (language != null) {
+            form.attribute("language", language, null);
         }
-        return out.toByteArray();
-    }
 
-    private static void writeField(ByteArrayOutputStream out, String boundary, String name, String value)
-            throws IOException {
-        out.write(("--" + boundary + "\r\n"
-                + "Content-Disposition: form-data; name=\"" + name + "\"\r\n\r\n"
-                + value + "\r\n").getBytes(StandardCharsets.UTF_8));
+        WhisperApiClient.TranscriptionResponse parsed =
+                client.transcribe(config.baseUrl(), "Bearer " + apiKey, form);
+        String detected = VERBOSE_JSON.equals(responseFormat)
+                ? WhisperLanguages.isoCode(parsed.language()).orElse(null)
+                : null;
+        return new Transcription(parsed.text(), detected);
     }
 
     private static String extensionFor(String mimeType) {
@@ -142,6 +74,4 @@ public class WhisperTranscriptionService implements VoiceTranscriptionService {
             default -> "ogg";
         };
     }
-
-    record TranscriptionResponse(@JsonProperty("text") String text, @JsonProperty("language") String language) {}
 }

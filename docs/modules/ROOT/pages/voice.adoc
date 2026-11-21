@@ -41,6 +41,10 @@ export WHISPER_MODEL=whisper-large-v3-turbo             # default: whisper-1
 * *Groq* (recommended): Fast, free tier available. Base URL: `https://api.groq.com/openai`
 * *OpenAI*: Standard Whisper API. Base URL: `https://api.openai.com`
 
+=== Timeouts and retries
+
+Calls to the transcription endpoint use a Quarkus REST Client named `whisper-api`: 15 seconds to connect and 120 seconds to read, adjustable with `quarkus.rest-client.whisper-api.connect-timeout` and `quarkus.rest-client.whisper-api.read-timeout` (milliseconds). A 429, a 5xx or a network failure is retried up to three times with backoff; any other status (401, 403, 404) fails at once. The API key is sent only in the `Authorization` header and never appears in logs or error messages.
+
 === How it works
 
 1. User sends a voice message on Discord/Telegram
@@ -89,6 +93,10 @@ Each provider also accepts `kind`, `response-format` (default `mp3`), and `fallb
 | `openai` | OpenAI-compatible `/v1/audio/speech` | `https://api.openai.com`
 | `elevenlabs` | ElevenLabs API | `https://api.elevenlabs.io`
 |===
+
+=== Timeouts and retries
+
+The `openai` kind uses the REST Client `tts-openai-api` and the `elevenlabs` kind uses `tts-elevenlabs-api`, each with 15 seconds to connect and 120 seconds to read (`quarkus.rest-client.<name>.connect-timeout` and `read-timeout`, milliseconds). A 429, a 5xx or a network failure is retried up to three times with backoff before the provider counts as failed, and only then is its `fallback` tried. Other statuses fail at once.
 
 === How it works
 
