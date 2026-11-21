@@ -134,6 +134,11 @@
       <artifactId>qlawkus-tools-web-search</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-tools-mcp-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
   <build>
     <plugins>

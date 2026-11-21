@@ -67,6 +67,10 @@ class MarkdownOnlyTest {
                 "pgvector must not be on the classpath in the database-free distribution");
         assertFalse(classPresent("io.agroal.api.AgroalDataSource"),
                 "no JDBC datasource must be on the classpath in the database-free distribution");
+        assertFalse(classPresent("dev.omatheusmesmo.qlawkus.tools.mcp.McpRegistry"),
+                "MCP management must be absent when its optional capability is omitted");
+        assertFalse(classPresent("dev.langchain4j.mcp.client.McpClient"),
+                "the core must not pull in an MCP transport or client");
     }
 
     @Test

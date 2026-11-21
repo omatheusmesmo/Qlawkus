@@ -69,5 +69,9 @@ class TerminalToolDiscoveryTest {
 
     @SuppressWarnings("serial")
     static class QlawToolLiteral extends AnnotationLiteral<QlawTool> implements QlawTool {
+        @Override
+        public boolean capturePayload() {
+            return true;
+        }
     }
 }

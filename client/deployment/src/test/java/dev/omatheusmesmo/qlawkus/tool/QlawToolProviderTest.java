@@ -28,6 +28,10 @@ class QlawToolProviderTest {
         Mockito.when(unsatisfied.isUnsatisfied()).thenReturn(true);
 
         emptyProvider.extensionTools = unsatisfied;
+        @SuppressWarnings("unchecked")
+        Instance<QlawToolContributor> noContributors = Mockito.mock(Instance.class);
+        Mockito.when(noContributors.isUnsatisfied()).thenReturn(true);
+        emptyProvider.contributors = noContributors;
 
         ToolProviderResult result = emptyProvider.provideTools(null);
 

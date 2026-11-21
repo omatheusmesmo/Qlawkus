@@ -33,6 +33,9 @@
             <a class="nav-item{#if active == 'skills'} is-active{/if}" href="/console/skills">Skills</a>
             <a class="nav-item{#if active == 'cognition'} is-active{/if}" href="/console/cognition">Cognition</a>
             <a class="nav-item{#if active == 'config'} is-active{/if}" href="/console/config">Config</a>
+            {#if inject:consoleFeatures.mcp}
+            <a class="nav-item{#if active == 'mcp'} is-active{/if}" href="/console/mcp">MCP connections</a>
+            {/if}
             <a class="nav-item{#if active == 'schedule'} is-active{/if}" href="/console/schedule">Schedule</a>
             {#if inject:consoleNavigation.voiceEnabled}
             <a class="nav-item{#if active == 'voice'} is-active{/if}" href="/console/voice">Voice</a>

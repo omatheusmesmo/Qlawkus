@@ -28,6 +28,32 @@
   --mono: "JetBrains Mono", "SFMono-Regular", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
 }
 
+/* Connection management follows the console's warm surfaces and compact control-plane rhythm. */
+.mcp-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.mcp-heading .panel-title { margin: 0; }
+.mcp-connection { padding: 18px 0; border-top: 1px solid var(--border); }
+.mcp-connection:first-child { border-top: 0; }
+.mcp-connection h3 { margin: 0; font-family: var(--mono); font-size: 16px; }
+.mcp-connection p { margin: 4px 0 12px; }
+.mcp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.mcp-actions .mcp-danger { color: var(--danger); background: var(--surface); border: 1px solid var(--danger-border); }
+.mcp-editor { display: grid; gap: 10px; }
+.mcp-editor label { font-size: 14px; font-weight: 600; }
+.mcp-editor input:not([type=checkbox]), .mcp-editor textarea, .mcp-editor select {
+  width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--border-strong);
+  border-radius: 6px; color: var(--text); background: var(--surface); font: inherit;
+}
+.mcp-editor textarea { font-family: var(--mono); font-size: 13px; resize: vertical; }
+.mcp-editor input:focus-visible, .mcp-editor textarea:focus-visible, .mcp-editor select:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.mcp-editor details { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 14px 0; }
+.mcp-editor details label { display: block; margin-top: 12px; margin-bottom: 5px; }
+.mcp-editor summary { cursor: pointer; font-weight: 600; }
+.mcp-editor .muted { font-size: 13px; margin: 4px 0 12px; }
+.mcp-check { display: flex; gap: 8px; align-items: center; }
+.mcp-editor > button { justify-self: start; }
+
 * { box-sizing: border-box; }
 
 body {

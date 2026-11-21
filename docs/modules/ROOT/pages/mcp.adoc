@@ -1,0 +1,185 @@
+= MCP Connections
+
+The optional `mcp-client` capability connects Qlawkus to MCP tool servers using the
+https://docs.quarkiverse.io/quarkus-langchain4j/dev/mcp.html[Quarkus LangChain4j MCP client].
+It reuses upstream Streamable HTTP and stdio transports. There is no required paid provider,
+external MCP CLI, or separate database. A distribution without this capability has no MCP
+client dependency; an empty connection registry performs no MCP discovery or process launches.
+
+== Build-time composition and runtime management
+
+Include `mcp-client` in the selected capabilities in `agent.yml` and rebuild the distribution.
+The reference `app` includes it. Installing or removing the extension itself is a build-time
+composition change; changing a connection when the extension is installed does not require a build.
+
+At boot, `qlawkus.mcp.servers.<id>.*` provides the initial connections. These properties can be
+packaged with the distribution or supplied through runtime configuration. Once a management
+operation writes `<qlawkus.agent.state.root>/mcp-connections.json`, that managed snapshot is
+authoritative across restarts. Store the state root on a persistent volume.
+
+For example, a local, unauthenticated HTTP server can be configured initially with:
+
+[source,properties]
+----
+qlawkus.mcp.allow-private-endpoints=true
+qlawkus.mcp.servers.local-docs.transport=HTTP
+qlawkus.mcp.servers.local-docs.url=http://localhost:8080/mcp
+----
+
+Loopback and private addresses are refused unless `qlawkus.mcp.allow-private-endpoints` is on
+(see <<endpoint-policy>>), so a server running beside the agent needs that line.
+
+Open `/console/mcp` to add, edit, test, disable or remove connections. The page is present only
+when the MCP capability is installed. It uses the authenticated admin API and the same registry
+as the agent's tools, rather than maintaining another set of connection settings.
+
+The agent can evolve its own tool set with `listMcpConnections`, `configureMcpConnection`,
+`testMcpConnection` and `removeMcpConnection`. Like skill installs, its changes follow
+`qlawkus.mcp.approval-mode`: with `hitl` (the default) the first `configureMcpConnection` call only
+previews what would be contacted or launched, and nothing is saved or started until the owner
+approves and the agent repeats the call with `confirm=true`; `yolo` applies at once. The console and
+admin API are the owner acting directly and never ask. In either mode the agent cannot move an
+existing connection that has credentials to another endpoint or command, so a prompt-injected agent
+cannot redirect a stored credential: the owner does that in the console. An enabled connection is discovered before an
+update replaces its working definition. A rejected update leaves the previous connection and
+snapshot intact. Newly discovered tools are available on subsequent tool-provider discovery;
+an already running model request retains the tool catalog with which it started.
+An OAuth connection awaiting the owner's first consent can be saved in `AUTH_REQUIRED` state;
+it contributes no remote tools until authorization completes.
+
+Admin API, using the app's existing authentication:
+
+[cols="1,3,3",options="header"]
+|===
+|Method |Path |Action
+|GET |`/api/admin/mcp/connections` |List definitions, including credential references only
+|PUT |`/api/admin/mcp/connections/<id>` |Validate, test and persist a definition whose id matches the path
+|POST |`/api/admin/mcp/connections/<id>/test` |Return connection availability and discovered tool count
+|DELETE |`/api/admin/mcp/connections/<id>` |Remove the connection and close its client
+|===
+
+== HTTP and stdio
+
+HTTP connections use an `http` or `https` MCP endpoint. Userinfo, query strings and fragments
+are refused so credentials cannot be embedded in a URL. Redirects are not followed. A connection
+that sends a credential header needs HTTPS, except on a loopback address.
+
+[[endpoint-policy]]
+=== Endpoint policy
+
+Unless `qlawkus.mcp.allow-private-endpoints=true`, every address an HTTP endpoint (and an OAuth
+token or revocation endpoint) resolves to must be public. Loopback, private, link-local (including
+cloud metadata addresses), carrier-grade NAT, unique-local IPv6 and multicast ranges are refused,
+as is a host that does not resolve. The check runs when a connection is saved or enabled and again
+before each connection attempt, so a bootstrap or stored connection that the policy forbids stays
+`UNAVAILABLE` and is never contacted. The HTTP client resolves the name again when it connects, so
+the MCP HTTP client also carries a Vert.x connection handler that inspects the address the socket
+actually reached and closes it before any request is written when it is not public. A DNS answer
+that changes between check and call therefore cannot deliver an MCP request to a private address
+(the TCP or TLS handshake itself still happens). The OAuth token and revocation calls go through
+Quarkus-managed clients with no such hook, so for them only the name check applies; use an
+allow-list at the network level where that matters. Turn the option on for MCP servers that run
+beside the agent.
+
+STDIO connections take an executable followed by separate arguments; the integration does
+not add shell expansion. Install the executable in the distribution or container before
+configuring it. Keep credentials out of command arguments, since arguments are connection
+metadata shown to the owner. Use environment credential references instead.
+
+The released upstream stdio transport inherits process variables and does not offer an
+environment-clear option. Qlawkus therefore masks every inherited value except `PATH`,
+`HOME`, `USER`, `LANG`, `LC_*`, `TZ` and `TMPDIR`, then adds explicitly referenced credentials.
+Masked variable names remain present with empty values. Loader and interpreter injection
+variables such as `LD_PRELOAD`, `BASH_ENV`, `JAVA_TOOL_OPTIONS` and `NODE_OPTIONS` cannot be
+supplied through credential references.
+
+Remote tool names become `mcp_<connection-id>_<remote-name>`. Names must remain valid and fit
+within 64 characters; a server advertising invalid, duplicate or oversized names is refused.
+Each description is prefixed with a notice that it comes from an external server and is untrusted,
+because a description is text the model reads. These tools share Qlawkus turn context, progress
+events, tool metrics and spans.
+
+== Keys, tokens and the vault
+
+Store credential values through the console's vault form or `PUT /api/admin/secrets`.
+Registry definitions contain references, never the credential values:
+
+[source,json]
+----
+{
+  "id": "local-docs",
+  "transport": "HTTP",
+  "enabled": true,
+  "url": "http://localhost:8080/mcp",
+  "headerSecretRefs": {
+    "Authorization": "qlawkus.mcp.servers.local-docs.headers.authorization"
+  }
+}
+----
+
+For an API-key header, map the server's header name to its corresponding alias. A bearer token
+is the complete header value, including `Bearer `. A stdio variable such as `API_TOKEN` uses
+`environmentSecretRefs` and alias `qlawkus.mcp.servers.<id>.environment.API_TOKEN`.
+Every alias must belong to that connection and target; a connection cannot reference an LLM
+key or another server's credential. Header alias names are lowercase.
+
+MCP credential resolution reads the current vault, so a newly stored credential can be used
+by a new connection without restarting the app. Other configuration consumers continue to
+use their normal startup snapshot. Authentication material is excluded from configuration
+previews and plain overrides by the secret-property catalog.
+
+== Limits and failure handling
+
+The defaults permit 16 connections, 32 tools per connection and 128 contributed tools overall.
+Discovery has a cooperative 5-second budget; calls have a 30-second deadline. Every budget is
+range-checked as configuration, so an out-of-range value stops the boot with a validation error
+naming the property. One connection
+has at most one concurrent tool call. Unavailable bootstrap connections are retried independently
+after a 30-second backoff and do not hide unrelated local tools. When a call fails and a health
+probe shows the server is gone (a stdio process that exited, a remote that stopped answering), the
+connection is closed and reconnected on a later discovery after the same backoff, so a restarted
+server recovers without an application restart.
+
+Remote output is framed as untrusted `<mcp-data>` and limited to 16000 characters including
+the frame and any explicit truncation marker. Embedded frame markers are defused. Errors return
+closed status codes rather than remote exception bodies. Discovery additionally limits response
+pages, tool descriptions and schemas. The transport budget checks a decoded response after the
+upstream transport has buffered it; it is not a hard network-buffer memory limit.
+
+Default upstream MCP log categories are disabled because those libraries can log process argv,
+stderr and remote responses. Qlawkus logs only local identifiers and statuses. Explicitly turning
+those upstream categories back on can expose that data. Contributed MCP executor spans never
+capture arguments or results, even when local tool payload tracing is enabled.
+
+See xref:config-reference.adoc[Configuration Reference] for all `qlawkus.mcp.*` budgets.
+
+== OAuth and SSO
+
+For a server protected by OAuth, set the connection's `oauth` metadata instead of an
+`Authorization` header reference. Configure the provider's explicit token endpoint, client id,
+scopes and optional resource indicator. OAuth endpoints require HTTPS outside loopback.
+Token and revocation endpoints follow the endpoint policy above. Provider endpoint discovery and dynamic client registration are not performed automatically.
+
+Two grants are supported:
+
+* `CLIENT_CREDENTIALS` is for machine-to-machine access. Store the client secret at
+  `qlawkus.mcp.servers.<id>.oauth.client-secret` and put that alias in `clientSecretRef`.
+* `AUTHORIZATION_CODE` is for delegated access through the owner's browser, including a
+  provider's SSO login. Configure `authorizationEndpoint` and a registered `redirectUri` whose
+  path is `/api/admin/mcp/oauth/callback`. A client secret is optional for public clients.
+
+For confidential clients, `clientAuthMethod` selects `POST` (the default) or `BASIC` according
+to the provider's registered token-endpoint authentication method.
+
+The console can start authorization and open the provider's login/consent page. The agent can
+prepare the connection and initiate that flow, but the owner completes the provider's login
+and consent. Qlawkus uses one-time, expiring state tied to the initiating owner and connection,
+plus an S256 PKCE challenge. A changed connection or replayed callback is rejected.
+
+Token exchange and renewal use Quarkus `OidcClient`. Access and refresh tokens are stored as
+an encrypted bundle at `qlawkus.mcp.servers.<id>.oauth.tokens`, never in the registry snapshot,
+tool output or a UI response. The transport refreshes expiring access tokens when possible;
+when authorization cannot be renewed the connection reports `AUTH_REQUIRED` rather than
+asking the model to handle tokens. Disconnecting clears local authorization and attempts
+provider revocation if a `revocationEndpoint` is configured. A provider revocation failure does
+not restore locally removed credentials.

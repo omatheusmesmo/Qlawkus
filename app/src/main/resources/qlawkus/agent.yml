@@ -21,3 +21,4 @@ build-time:
     - observability
     - self-observe
     - web-search
+    - mcp-client
