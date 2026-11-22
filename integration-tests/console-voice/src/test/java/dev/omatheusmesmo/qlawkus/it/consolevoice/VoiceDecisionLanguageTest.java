@@ -94,7 +94,7 @@ class VoiceDecisionLanguageTest {
         String english = "I'm great. How about you?";
         decisionReply("en");
         VoiceTestSupport.stubAgentReply(wiremock, portuguese);
-        VoiceTestSupport.stubLanguageCheck(wiremock, english, 1);
+        VoiceTestSupport.stubLanguageCheck(wiremock, "**I'm great.** _How about you?_", 1);
         ScriptedTranscriber.say("Hey, how are you today?", "en");
         try (VoiceClient client = open()) {
             client.awaitType("ready");

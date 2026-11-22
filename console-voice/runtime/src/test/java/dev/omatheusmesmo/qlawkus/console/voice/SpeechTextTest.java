@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 class SpeechTextTest {
     @Test
     void rendersFormattingAndLinkLabelsWithoutPresentationOrDestinations() {
-        assertEquals("Resumo Primeiro item e segundo. Consulte a documentação e use git status.",
+        assertEquals("Resumo. Primeiro item e segundo. Consulte a documentação e use git status.",
                 clean("# Resumo\n\n- **Primeiro** item e _segundo_.\n\nConsulte [a documentação](https://example.org) e use `git status`."));
     }
 
@@ -57,11 +57,12 @@ class SpeechTextTest {
     void stripsEmojiSequencesWithoutLosingPortugueseNumbersOrUnits() {
         assertEquals("Ação 123 a 25°C e €5. Certo!", clean("Ação 123 a 25°C e €5. 👨‍👩‍👧‍👦 🇧🇷 👍🏽 Certo!"));
         assertEquals("item", clean("1️⃣ item"));
+        assertEquals("Resumo. Tudo bem?", clean("# Resumo 1️⃣\n\n- Tudo bem? 🔧\n- 👍"));
         assertEquals("continua", clean("~~continua~~"));
     }
 
     @Test
-    void boundsSpeechInputWithoutChangingTheModelOrScreenText() {
+    void boundsTheVoiceProseInput() {
         SpeechText speech = new SpeechText();
         speech.accept("a".repeat(SpeechText.MAX_SOURCE_CHARS + 20));
         assertTrue(speech.truncated());

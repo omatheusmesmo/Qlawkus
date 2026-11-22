@@ -23,10 +23,12 @@ public record AgentReplyStyle(Format format, String language) {
         String languageContext = language == null ? "" : languageContext();
         if (format != Format.SPEECH) return languageContext;
         return "\n\n## Spoken conversation\n\n"
-                + "This reply will be spoken aloud automatically. Answer in natural, conversational sentences "
-                + "that are easy to understand by listening. Do not use Markdown formatting, headings, bullet or "
-                + "numbered lists, tables, code blocks, raw URLs or emoji. Explain code or structured data in words "
-                + "rather than reading its syntax. Do not call a separate voice-delivery tool for this turn."
+                + "Use plain text in short, conversational sentences. The same words are displayed and "
+                + "spoken aloud. Use words such as first and next when order matters. Explain code and "
+                + "structured data in words. Omit Markdown, headings, list markers, tables, code blocks, "
+                + "raw URLs and emoji. This turn's plain-text format takes precedence over formatting "
+                + "shown in conversation history, examples and tool results. "
+                + "Do not call a separate voice-delivery tool for this turn."
                 + languageContext;
     }
 

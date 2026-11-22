@@ -331,9 +331,9 @@ final class VoiceSession {
             if (!draft.equals(checked)) {
                 Log.infof("Voice turn %d reply translated language=%s", turn.id, turn.replyLanguage);
             }
-            emitText(turn, checked);
+            publishProse(turn, turn.speechText.accept(checked));
         }
-        queueRenderedSpeech(turn, turn.speechText.flush());
+        publishProse(turn, turn.speechText.flush());
         turn.splitter.flush().ifPresent(rest -> enqueueSpeech(turn, rest));
         if (turn.speechText.truncated()) {
             sendRaw(event("notice", turn.id).put("code", "speech-text-truncated"));
@@ -352,15 +352,10 @@ final class VoiceSession {
                 return;
             }
             sendRaw(event("notice", turn.id).put("code", "reply-language-unverified"));
-            emitText(turn, turn.draft.toString());
+            publishProse(turn, turn.speechText.accept(turn.draft.toString()));
             turn.draft = null;
         }
-        emitText(turn, chunk);
-    }
-
-    private void emitText(Turn turn, String chunk) {
-        sendRaw(event("text", turn.id).put("chunk", chunk));
-        queueRenderedSpeech(turn, turn.speechText.accept(chunk));
+        publishProse(turn, turn.speechText.accept(chunk));
     }
 
     private void onAgentFailure(Turn turn, Throwable failure) {
@@ -388,8 +383,10 @@ final class VoiceSession {
         submit(() -> speak(turn, sentence, turn.replyLanguage, segment));
     }
 
-    private void queueRenderedSpeech(Turn turn, String text) {
+    private void publishProse(Turn turn, String text) {
         if (text.isBlank()) return;
+        sendRaw(event("text", turn.id).put("chunk", turn.hasText ? " " + text : text));
+        turn.hasText = true;
         for (String sentence : turn.splitter.accept(text + " ")) {
             enqueueSpeech(turn, sentence);
         }
@@ -489,6 +486,7 @@ final class VoiceSession {
         private String transcribedLanguage;
         private String replyLanguage;
         private StringBuilder draft;
+        private boolean hasText;
         private volatile boolean superseded;
         private volatile Cancellable agentSubscription;
         private int nextSegment = 1;
