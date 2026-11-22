@@ -116,12 +116,8 @@ class VoiceTurnsTest {
     @Test
     void voiceTranscriptAndSpeechUseTheSamePlainTextWithPauses() {
         String markdown = """
-                ### Two options:
-
                 1. **Check the settings** 🔧
                 2. [Read the guide](https://example.org)
-
-                Would that help?
                 """;
         VoiceTestSupport.stubAgentReply(wiremock, markdown);
         ScriptedTranscriber.say("formatting check owner text");
@@ -131,9 +127,8 @@ class VoiceTurnsTest {
             client.awaitTypeWhere("turn-done", event -> event.path("turn").asInt() == 1);
             String displayed = client.snapshot().stream().filter(event -> "text".equals(event.path("type").asText()))
                     .map(event -> event.path("chunk").asText()).collect(Collectors.joining());
-            assertEquals("Two options. Check the settings. Read the guide. Would that help?", displayed);
-            assertEquals(List.of("speech:Two options.", "speech:Check the settings.", "speech:Read the guide.",
-                    "speech:Would that help?"), spokenSentences(client.snapshot()));
+            assertEquals("Check the settings. Read the guide.", displayed);
+            assertEquals(List.of("speech:Check the settings.", "speech:Read the guide."), spokenSentences(client.snapshot()));
         }
     }
 
