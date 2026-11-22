@@ -97,6 +97,18 @@ That decides the rollout strategy. The reference Deployment uses `replicas: 1` w
 The lock is per host, which matches a ReadWriteOnce volume. It does not stop two instances on different hosts that share only a database (a `pgvector` backend with no shared state volume); keep those to one instance by deployment.
 ====
 
+== PostgreSQL debug history
+
+The reference app keeps an execution history in the existing Postgres database. Distributions that include `cognition.pgvector` can enable it with `qlawkus.debug-history.enabled=true`. Read it using the same credentials as the other admin endpoints.
+
+* Start with `GET /api/admin/debug-history?taskId=<task-id>` to see when a task was scheduled, restored or missed and whether it started, produced a reply or reached a messaging provider.
+* Copy the `runId` of a firing into `GET /api/admin/debug-history?runId=<run-id>` to see its turn, model requests and responses, tool calls and final delivery. Delivery events show how many message parts the provider accepted and, when available, the HTTP status on failure.
+* Use `invocationId` to filter to a logical AI-service turn or `traceId` to correlate rows with Tempo when tracing is active. Individual provider calls have their own `callId`, with duration, token counts and outcome when available. This includes calls outside an AI-service turn, such as language decisions.
+
+The API returns newest events first. The default `limit` is 100, with a maximum of 250. The journal writes in batches off the request path. Allow time for the next flush, normally about a second. Records still waiting in memory are lost when the process stops. The response includes `droppedSinceBoot`, the number discarded when the queue was full or a batch could not be written.
+
+Metadata expires after 14 days by default. Set `qlawkus.debug-history.retention-days` to a value from 1 to 90. To opt in to short redacted excerpts of user messages and model replies, set `qlawkus.debug-history.capture-text=true` and request `includeText=true`. Excerpts expire after 24 hours. The journal excludes assembled prompts, task instructions, headers, audio and tool arguments and results. Treat optional excerpts as conversation data.
+
 == Telemetry
 
 Metrics and tracing arrive as a composable capability rather than a hand-edited dependency. Select it in `agent.yml`:

@@ -1,0 +1,73 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-cognition-pgvector_qlawkus-debug-history-enabled]] [.property-path]##link:#qlawkus-cognition-pgvector_qlawkus-debug-history-enabled[`+++qlawkus.debug-history.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.debug-history.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Record bounded execution metadata in the PostgreSQL history.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_DEBUG_HISTORY_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_DEBUG_HISTORY_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-cognition-pgvector_qlawkus-debug-history-capture-text]] [.property-path]##link:#qlawkus-cognition-pgvector_qlawkus-debug-history-capture-text[`+++qlawkus.debug-history.capture-text+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.debug-history.capture-text+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Keep short redacted owner messages and model reply excerpts locally.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_DEBUG_HISTORY_CAPTURE_TEXT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_DEBUG_HISTORY_CAPTURE_TEXT+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-cognition-pgvector_qlawkus-debug-history-retention-days]] [.property-path]##link:#qlawkus-cognition-pgvector_qlawkus-debug-history-retention-days[`+++qlawkus.debug-history.retention-days+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.debug-history.retention-days+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Days to retain execution metadata, clamped to 1–90 days.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_DEBUG_HISTORY_RETENTION_DAYS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_DEBUG_HISTORY_RETENTION_DAYS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++14+++`
+
+|===

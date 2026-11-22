@@ -1,14 +1,20 @@
 package dev.omatheusmesmo.qlawkus.messaging;
 
+import dev.omatheusmesmo.qlawkus.agent.WorkflowResultReadyEvent;
 import dev.omatheusmesmo.qlawkus.messaging.format.FormatterRegistry;
 import dev.omatheusmesmo.qlawkus.messaging.format.MessageFormatter;
+import dev.omatheusmesmo.qlawkus.task.TaskAudit;
+import dev.omatheusmesmo.qlawkus.task.TaskAuditEvent;
+import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import io.smallrye.mutiny.Uni;
+import jakarta.ws.rs.WebApplicationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -72,6 +78,55 @@ class NotificationServiceTest {
         verify(provider).send("chat-1", "chunk1");
         verify(provider).send("chat-1", "chunk2");
         verify(provider).send("chat-1", "chunk3");
+    }
+
+    @Test
+    void tracksPartialDeliveryAndContinuesAfterFailure() {
+        when(providerRegistry.getProvider("telegram")).thenReturn(Optional.of(provider));
+        when(chunkingService.chunk(any(), eq("telegram"))).thenReturn(List.of("one", "two", "three"));
+        when(provider.send("chat-1", "two")).thenThrow(new IllegalStateException("test failure"));
+
+        var report = service.sendTracked("telegram", "chat-1", "long text", null).await().indefinitely();
+
+        assertEquals(NotificationService.DeliveryStatus.PARTIAL, report.status());
+        assertEquals(2, report.acceptedParts());
+        assertEquals(3, report.totalParts());
+        assertEquals("IllegalStateException", report.errorType());
+        verify(provider).send("chat-1", "three");
+    }
+
+    @Test
+    void distinguishesMissingProviderFromTotalFailure() {
+        when(providerRegistry.getProvider("unknown")).thenReturn(Optional.empty());
+        when(providerRegistry.getProvider("telegram")).thenReturn(Optional.of(provider));
+        when(chunkingService.chunk(any(), eq("telegram"))).thenReturn(List.of("hello"));
+        when(provider.send("chat-1", "hello")).thenReturn(Uni.createFrom().failure(new IllegalStateException()));
+
+        var missing = service.sendTracked("unknown", "chat-1", "hello", null).await().indefinitely();
+        var failed = service.sendTracked("telegram", "chat-1", "hello", null).await().indefinitely();
+
+        assertEquals(NotificationService.DeliveryStatus.NO_PROVIDER, missing.status());
+        assertEquals(NotificationService.DeliveryStatus.FAILED, failed.status());
+        assertEquals(0, failed.acceptedParts());
+        assertEquals(1, failed.totalParts());
+    }
+
+    @Test
+    void deliveryListenerRecordsProviderRejectionUnderTheOriginalRun() {
+        when(providerRegistry.getProvider("telegram")).thenReturn(Optional.of(provider));
+        when(chunkingService.chunk(any(), eq("telegram"))).thenReturn(List.of("one", "two"));
+        when(provider.send("chat-1", "two")).thenReturn(Uni.createFrom().failure(new WebApplicationException(429)));
+        service.redactor = mock(SecretRedactor.class);
+        var audit = mock(TaskAudit.class);
+        var listener = new WorkflowResultDeliveryListener();
+        listener.notificationService = service;
+        listener.audit = audit;
+        UUID run = UUID.randomUUID();
+
+        listener.onWorkflowResultReady(new WorkflowResultReadyEvent("telegram", "chat-1", "hello", "task", run));
+
+        verify(audit).record(new TaskAuditEvent("task", run, "telegram", TaskAuditEvent.Stage.DELIVERY_PARTIAL,
+                null, "WebApplicationException", 429, 1, 2));
     }
 
     @Test

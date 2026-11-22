@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -274,7 +275,7 @@ class DynamicTaskSchedulerPersistenceTest {
     }
 
     private DynamicTaskScheduler schedulerOver(ScheduledTaskStore backing) {
-        return new DynamicTaskScheduler(scheduler, runner, delivery, events, config, backing);
+        return new DynamicTaskScheduler(scheduler, runner, delivery, events, config, backing, mock(TaskAudit.class));
     }
 
     private ScheduledTask recordOf(String id) {
