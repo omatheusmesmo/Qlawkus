@@ -5,6 +5,8 @@ import dev.omatheusmesmo.qlawkus.agent.AgentRunner;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;
 import dev.omatheusmesmo.qlawkus.agent.ToolProgress;
+import dev.omatheusmesmo.qlawkus.attachment.AttachmentChat;
+import dev.omatheusmesmo.qlawkus.attachment.ChatAttachment;
 import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
@@ -17,6 +19,7 @@ import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import dev.omatheusmesmo.qlawkus.task.OwnerChatDirectory;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.inject.Instance;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -127,6 +130,29 @@ class MessagingOrchestratorTest {
 
         verify(agentService, never()).chatSync(any(), any());
         verify(notificationService, never()).send(any(), any(), any(), any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void attachmentsGoToAnalysisOnlyAfterAuthorizationAndReturnToTheirOrigin() {
+        Instance<AttachmentChat> service = Mockito.mock(Instance.class);
+        AttachmentChat analysis = Mockito.mock(AttachmentChat.class);
+        orchestrator.attachmentChat = service;
+        when(service.isResolvable()).thenReturn(true);
+        when(service.get()).thenReturn(analysis);
+        var input = new ChatAttachment("application/pdf", 3L, () -> new byte[]{1, 2, 3});
+        var message = new MessagingMessage("telegram", "chat-1", "user-1", "Read this",
+                Optional.empty(), List.of(input));
+        when(authService.isAuthorized(message)).thenReturn(false, true);
+        when(analysis.answer("Read this", List.of(input))).thenReturn("Analysis reply");
+
+        orchestrator.process(message).await().indefinitely();
+        verifyNoInteractions(analysis, notificationService);
+
+        orchestrator.process(message).await().indefinitely();
+        verify(analysis).answer("Read this", List.of(input));
+        verify(notificationService).send("telegram", "chat-1", "Analysis reply", ConversationId.SHARED);
+        verifyNoInteractions(agentService);
     }
 
     @Test

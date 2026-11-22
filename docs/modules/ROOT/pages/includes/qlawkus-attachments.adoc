@@ -1,0 +1,31 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-attachments_qlawkus-attachments-image-model]] [.property-path]##link:#qlawkus-attachments_qlawkus-attachments-image-model[`+++qlawkus.attachments.image-model+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.attachments.image-model+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Existing model tier that accepts image input. Configure this only after verifying that the selected model supports images. With no selection PDF text is available and images are refused.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ATTACHMENTS_IMAGE_MODEL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ATTACHMENTS_IMAGE_MODEL+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`primary`, `secondary`, `fallback`
+|
+
+|===

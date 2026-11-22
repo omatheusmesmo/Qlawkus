@@ -17,6 +17,7 @@ build-time:
     - skill-hub
     - console
     - console.voice
+    - attachments
     - console.skill-hub
     - observability
     - self-observe

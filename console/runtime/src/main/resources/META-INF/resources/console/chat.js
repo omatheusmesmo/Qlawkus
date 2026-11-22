@@ -2,6 +2,7 @@
   'use strict';
 
   var form = document.getElementById('chat-form');
+  var attachmentInput = document.getElementById('chat-attachments');
   if (!form) {
     return;
   }
@@ -391,6 +392,7 @@
     streaming = on;
     send.disabled = on;
     input.disabled = on;
+    if (attachmentInput) attachmentInput.disabled = on;
     form.classList.toggle('is-streaming', on);
     if (!on) {
       input.focus({ preventScroll: true });
@@ -463,11 +465,13 @@
     }
   }
 
-  function ask(message) {
+  function ask(message, files) {
     clearError();
     stick = true;
     var mine = addMessage('user');
-    mine.bubble.textContent = message;
+    mine.bubble.textContent = files.length
+      ? [message, files.map(function (file) { return file.name; }).join(', ')].filter(Boolean).join('\n')
+      : message;
     var reply = new Reply();
     follow();
     setStreaming(true);
@@ -475,14 +479,30 @@
     var failed = false;
     var summary = null;
 
+    var headers = { 'Accept': 'text/event-stream' };
+    var body;
+    if (files.length) {
+      headers['X-Qlawkus-Attachments'] = '1';
+      body = new FormData();
+      body.append('message', message);
+      files.forEach(function (file) { body.append('attachments', file); });
+    } else {
+      headers['Content-Type'] = 'application/json';
+      body = JSON.stringify({ message: message, toolProgress: mode });
+    }
+
     fetch(endpoint, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
-      body: JSON.stringify({ message: message, toolProgress: mode })
+      headers: headers,
+      body: body
     }).then(function (response) {
       if (!response.ok) {
         failed = true;
+        if (files.length && (response.status === 400 || response.status === 503)
+            && (response.headers.get('Content-Type') || '').startsWith('text/plain')) {
+          return response.text().then(function (detail) { showError(detail || statusMessage(response.status)); });
+        }
         showError(statusMessage(response.status));
         return;
       }
@@ -525,12 +545,18 @@
   form.addEventListener('submit', function (event) {
     event.preventDefault();
     var message = input.value.trim();
-    if (streaming || !message) {
+    var files = attachmentInput ? Array.from(attachmentInput.files) : [];
+    if (streaming || (!message && !files.length)) {
+      return;
+    }
+    if (files.length > 3 || files.some(function (file) { return !file.size || file.size > 2 * 1024 * 1024; })) {
+      showError('Send up to three attachments between 1 byte and 2 MiB each.');
       return;
     }
     input.value = '';
+    if (attachmentInput) attachmentInput.value = '';
     fitInput();
-    ask(message);
+    ask(message, files);
   });
 
   input.addEventListener('keydown', function (event) {

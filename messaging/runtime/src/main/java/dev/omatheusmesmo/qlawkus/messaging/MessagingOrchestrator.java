@@ -5,6 +5,8 @@ import dev.omatheusmesmo.qlawkus.agent.AgentRunner;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;
 import dev.omatheusmesmo.qlawkus.agent.ToolProgress;
+import dev.omatheusmesmo.qlawkus.attachment.AttachmentChat;
+import dev.omatheusmesmo.qlawkus.attachment.AttachmentRejected;
 import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
@@ -45,6 +47,9 @@ public class MessagingOrchestrator {
 
     @Inject
     AgentService agentService;
+
+    @Inject
+    Instance<AttachmentChat> attachmentChat;
 
     @Inject
     Instance<AgentRunner> agentRunnerInstance;
@@ -107,6 +112,9 @@ public class MessagingOrchestrator {
         MessagingLog.info(channel, conversation, "Message accepted provider=%s chatId=%s userId=%s kind=%s length=%d",
                 channel, message.chatId(), message.userId(), kindOf(message), lengthOf(message));
 
+        if (!message.attachments().isEmpty()) {
+            return analyzeAttachments(message, conversation);
+        }
         if (ToolProgressSettings.isVerboseCommand(message.text())) {
             return notificationService.send(channel, message.chatId(), cycleToolProgress(message), conversation);
         }
@@ -131,7 +139,19 @@ public class MessagingOrchestrator {
                 .flatMap(result -> deliver(message, result, conversation));
     }
 
+    private Uni<Void> analyzeAttachments(MessagingMessage message, String conversation) {
+        if (!attachmentChat.isResolvable()) {
+            return notificationService.send(message.providerId(), message.chatId(),
+                    "Attachment analysis is unavailable in this distribution.", conversation);
+        }
+        return Uni.createFrom().item(() -> attachmentChat.get().answer(message.text(), message.attachments()))
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+                .onFailure(AttachmentRejected.class).recoverWithItem(Throwable::getMessage)
+                .flatMap(reply -> notificationService.send(message.providerId(), message.chatId(), reply, conversation));
+    }
+
     private static String kindOf(MessagingMessage message) {
+        if (!message.attachments().isEmpty()) return "attachments";
         return message.audio().isPresent() ? "voice" : "text";
     }
 

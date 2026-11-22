@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.messaging.telegram;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record TelegramUpdate(
@@ -14,7 +15,27 @@ public record TelegramUpdate(
             TelegramUser from,
             TelegramChat chat,
             String text,
-            TelegramVoice voice
+            TelegramVoice voice,
+            String caption,
+            TelegramDocument document,
+            List<TelegramPhoto> photo
+    ) {
+        public TelegramMessage(long messageId, TelegramUser from, TelegramChat chat, String text, TelegramVoice voice) {
+            this(messageId, from, chat, text, voice, null, null, null);
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record TelegramDocument(
+            @JsonProperty("file_id") String fileId,
+            @JsonProperty("mime_type") String mimeType,
+            @JsonProperty("file_size") Long size
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record TelegramPhoto(
+            @JsonProperty("file_id") String fileId,
+            @JsonProperty("file_size") Long size
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)

@@ -1,11 +1,15 @@
 package dev.omatheusmesmo.qlawkus.messaging.discord;
 
+import dev.omatheusmesmo.qlawkus.attachment.AttachmentRejected;
 import dev.omatheusmesmo.qlawkus.messaging.DeliveryFailure;
+import dev.omatheusmesmo.qlawkus.messaging.MediaDownloader;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingFormat;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
+import discord4j.core.object.entity.Attachment;
+import discord4j.core.object.entity.Message;
 import discord4j.core.spec.MessageCreateFields;
 import discord4j.core.spec.MessageCreateSpec;
 import discord4j.rest.http.client.ClientException;
@@ -21,6 +25,7 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class DiscordProviderAdapterTest {
@@ -65,6 +71,36 @@ class DiscordProviderAdapterTest {
         adapter.receive(msg).await().indefinitely();
 
         verify(orchestrator).process(msg);
+    }
+
+    @Test
+    void mapsAttachmentsWithoutDownloadingAndRejectsUnknownHosts() {
+        var downloader = Mockito.mock(MediaDownloader.class);
+        adapter.mediaDownloader = downloader;
+        var message = Mockito.mock(Message.class);
+        var platform = Mockito.mock(Attachment.class);
+        var unknown = Mockito.mock(Attachment.class);
+        when(message.getContent()).thenReturn("What is this?");
+        when(message.getChannelId()).thenReturn(Snowflake.of(42L));
+        when(message.getAttachments()).thenReturn(List.of(platform, unknown));
+        when(platform.getSize()).thenReturn(3);
+        when(platform.getContentType()).thenReturn(Optional.of("image/png"));
+        when(platform.getUrl()).thenReturn("https://cdn.discordapp.com/attachments/channel/item/pixel.png");
+        when(unknown.getSize()).thenReturn(3);
+        when(unknown.getContentType()).thenReturn(Optional.of("image/jpeg"));
+        when(unknown.getUrl()).thenReturn("https://cdn.discordapp.com.example.org/attachments/image.jpg");
+        var safeUri = URI.create("https://cdn.discordapp.com/attachments/channel/item/pixel.png");
+        when(downloader.downloadAttachment(safeUri)).thenReturn(new byte[]{1, 2, 3});
+
+        var ownerMessage = adapter.mapMessage(message);
+
+        assertEquals("What is this?", ownerMessage.text());
+        assertEquals(2, ownerMessage.attachments().size());
+        verifyNoInteractions(downloader);
+        assertThrows(AttachmentRejected.class, ownerMessage.attachments().getLast()::read);
+        verifyNoInteractions(downloader);
+        assertArrayEquals(new byte[]{1, 2, 3}, ownerMessage.attachments().getFirst().read());
+        verify(downloader).downloadAttachment(safeUri);
     }
 
     @Test

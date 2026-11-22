@@ -1,6 +1,8 @@
 package dev.omatheusmesmo.qlawkus.messaging.discord;
 
 import dev.omatheusmesmo.qlawkus.logging.FailureChain;
+import dev.omatheusmesmo.qlawkus.attachment.AttachmentRejected;
+import dev.omatheusmesmo.qlawkus.attachment.ChatAttachment;
 import dev.omatheusmesmo.qlawkus.messaging.DeliveryFailure;
 import dev.omatheusmesmo.qlawkus.messaging.MediaDownloader;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingFormat;
@@ -36,6 +38,7 @@ import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
 import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.util.Optional;
@@ -132,7 +135,7 @@ public class DiscordProviderAdapter implements MessagingProvider {
     private void handleMessage(MessageCreateEvent event) {
         Message msg = event.getMessage();
         MessagingMessage mapped = mapMessage(msg);
-        if (mapped.text().isBlank() && mapped.audio().isEmpty()) {
+        if (mapped.text().isBlank() && mapped.audio().isEmpty() && mapped.attachments().isEmpty()) {
             if (hasAudioAttachment(msg)) {
                 send(msg.getChannelId().asString(),
                         "⚠️ I could not process your audio (the download from Discord failed). Could you send it again?")
@@ -226,7 +229,30 @@ public class DiscordProviderAdapter implements MessagingProvider {
         String channelId = msg.getChannelId().asString();
         String text = msg.getContent();
         Optional<byte[]> audio = extractAudioAttachment(msg);
-        return new MessagingMessage("discord", channelId, userId, text, audio);
+        var attachments = msg.getAttachments().stream()
+                .filter(attachment -> !isAudio(attachment))
+                .limit(ChatAttachment.MAX_COUNT + 1)
+                .map(attachment -> new ChatAttachment(attachment.getContentType().orElse(null),
+                        (long) attachment.getSize(), () -> downloadChatAttachment(attachment.getUrl())))
+                .toList();
+        return new MessagingMessage("discord", channelId, userId, text, audio, attachments);
+    }
+
+    private byte[] downloadChatAttachment(String url) {
+        URI uri;
+        try {
+            uri = URI.create(url);
+        } catch (IllegalArgumentException failure) {
+            throw new AttachmentRejected("Invalid Discord attachment URL.");
+        }
+        if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getRawUserInfo() != null
+                || (uri.getPort() != -1 && uri.getPort() != 443)
+                || !("cdn.discordapp.com".equalsIgnoreCase(uri.getHost())
+                    || "media.discordapp.net".equalsIgnoreCase(uri.getHost()))
+                || !uri.getPath().startsWith("/attachments/")) {
+            throw new AttachmentRejected("Discord attachment URL is outside its media hosts.");
+        }
+        return mediaDownloader.downloadAttachment(uri);
     }
 
     private Optional<byte[]> extractAudioAttachment(Message msg) {
