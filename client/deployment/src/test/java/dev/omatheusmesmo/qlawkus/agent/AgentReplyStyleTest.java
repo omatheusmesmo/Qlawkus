@@ -18,7 +18,7 @@ class AgentReplyStyleTest {
         AgentTurn turn = AgentTurn.open("style-voice", "rest", true, AgentReplyStyle.speech("pt"));
         try (var ignored = turn.bind()) {
             assertTrue(AgentTurn.current().replyStyle().systemContext().contains("Spoken conversation"));
-            assertTrue(AgentTurn.current().replyStyle().systemContext().contains("Reply in language code pt"));
+            assertTrue(AgentTurn.current().replyStyle().systemContext().contains("Write the entire reply in Portuguese (pt)"));
         } finally { turn.close("ok"); }
         assertNull(AgentTurn.current());
         assertEquals("", AgentReplyStyle.DEFAULT.systemContext());

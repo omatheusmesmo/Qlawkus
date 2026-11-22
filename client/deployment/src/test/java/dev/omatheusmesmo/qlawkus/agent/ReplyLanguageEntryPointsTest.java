@@ -22,10 +22,10 @@ class ReplyLanguageEntryPointsTest {
         runner.soulEngine = mock(SoulEngine.class);
         when(runner.soulEngine.getSystemMessage("messaging")).thenAnswer(ignored ->
                 Optional.of(AgentTurn.current().replyStyle().systemContext()));
-        when(runner.agent.chat(eq("messaging"), contains("Reply in language code pt"), eq("como você está?")))
+        when(runner.agent.chat(eq("messaging"), contains("Write the entire reply in Portuguese (pt)"), eq("como você está?")))
                 .thenReturn("Bem.");
         assertEquals("Bem.", runner.chat("messaging", "como você está?"));
-        verify(runner.agent).chat(eq("messaging"), contains("Reply in language code pt"), eq("como você está?"));
+        verify(runner.agent).chat(eq("messaging"), contains("Write the entire reply in Portuguese (pt)"), eq("como você está?"));
     }
 
     @Test

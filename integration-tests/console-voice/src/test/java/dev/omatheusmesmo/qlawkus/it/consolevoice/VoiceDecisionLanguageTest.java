@@ -57,6 +57,35 @@ class VoiceDecisionLanguageTest {
     }
 
     @Test
+    void switchingToEnglishUsesOneLanguageForTheModelAndAudioDespitePortugueseHistory() throws Exception {
+        String englishRequest = "What was the last joke you heard?";
+        decisionReply("pt");
+        ScriptedTranscriber.say("Tudo bem com você?", "pt");
+        ScriptedTranscriber.say(englishRequest, "en");
+        try (VoiceClient client = open()) {
+            client.awaitType("ready");
+            client.speakUtterance(3200);
+            client.awaitTypeWhere("turn-done", event -> event.path("turn").asInt() == 1);
+            decisionReply("en");
+            VoiceTestSupport.stubAgentReply(wiremock, "I heard a joke about a computer.");
+            client.speakUtterance(3200);
+            client.awaitTypeWhere("turn-done", event -> event.path("turn").asInt() == 2);
+            var audio = client.snapshot().stream()
+                    .filter(event -> "audio".equals(event.path("type").asText()) && event.path("turn").asInt() == 2)
+                    .toList();
+            assertFalse(audio.isEmpty());
+            audio.forEach(event -> assertEquals("en", event.path("language").asText()));
+        }
+        var requests = wiremock.find(postRequestedFor(urlEqualTo(DECISION_PATH))
+                .withRequestBody(containing(englishRequest))
+                .withRequestBody(notMatching("(?s).*LANGUAGE_DECISION.*")));
+        assertEquals(1, requests.size());
+        JsonNode messages = new ObjectMapper().readTree(requests.getFirst().getBodyAsString()).path("messages");
+        assertTrue(messages.get(0).path("content").asText().contains("Write the entire reply in English (en)"));
+        assertTrue(messages.toString().contains("Certo."), "the prior Portuguese reply must still be in context");
+    }
+
+    @Test
     void aManualPortugueseSelectionDoesNotCallTheDecisionModel() {
         ScriptedTranscriber.say("how is the weather", "en");
         try (VoiceClient client = open()) {

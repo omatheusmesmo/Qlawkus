@@ -32,9 +32,9 @@ class ReplyLanguageResolverTest {
     void selectedLanguageGuidesBothTextAndSpeechPrompts() {
         var resolver = new ReplyLanguageResolver((message, hint, stable, choices, fallback) -> "PT-br");
         assertTrue(resolver.resolve("text", "bom dia", AgentReplyStyle.DEFAULT).systemContext()
-                .contains("Reply in language code pt"));
+                .contains("Write the entire reply in Portuguese (pt)"));
         assertTrue(resolver.resolve("voice", "bom dia", AgentReplyStyle.speech(null)).systemContext()
-                .contains("Reply in language code pt"));
+                .contains("Write the entire reply in Portuguese (pt)"));
     }
 
     @Test

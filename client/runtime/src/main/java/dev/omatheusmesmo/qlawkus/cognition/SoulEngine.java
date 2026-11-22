@@ -26,17 +26,15 @@ public class SoulEngine implements SystemMessageProvider {
   @Override
   public Optional<String> getSystemMessage(Object memoryId) {
     Soul soul = Arc.container().instance(SoulStore.class).get().load();
+    AgentTurn turn = AgentTurn.current();
+    String languagePolicy = turn == null || turn.replyStyle().language() == null ? languagePolicyContext() : "";
+    String replyStyle = turn == null ? "" : turn.replyStyle().systemContext();
     if (soul == null) {
-      return Optional.empty();
+      return Optional.of(languagePolicy + replyStyle);
     }
 
     return Optional.of(soul.toSystemMessage() + ownerContext() + skillsContext() + executionBias()
-        + currentDateTimeContext() + languagePolicyContext() + voiceCapabilityContext() + replyStyleContext());
-  }
-
-  private String replyStyleContext() {
-    AgentTurn turn = AgentTurn.current();
-    return turn == null ? "" : turn.replyStyle().systemContext();
+        + currentDateTimeContext() + voiceCapabilityContext() + languagePolicy + replyStyle);
   }
 
   private String languagePolicyContext() {
