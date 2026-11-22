@@ -2,10 +2,45 @@
 {#title}Qlawkus Console - Schedule{/title}
 <header class="content-head">
     <h1>Schedule</h1>
-    <p class="lede">Background jobs, their cron, and last/next run.</p>
+    <p class="lede">Your scheduled tasks and the agent's background jobs.</p>
 </header>
 
 <section class="panel">
+    <h2 class="panel-title">Agent-scheduled tasks</h2>
+    <p class="muted">Next runs use {taskZone}.</p>
+    <div id="agent-tasks-result" class="result"></div>
+    {#if agentTasks.isEmpty}
+        <p class="muted">No tasks are scheduled by the agent.</p>
+    {#else}
+        <table class="tbl tbl-stack">
+            <thead><tr><th>Task</th><th>Schedule</th><th>Destination</th><th>Next run</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+            {#for row in agentTasks}
+                <tr>
+                    <td data-label="Task">{row.description}</td>
+                    <td data-label="Schedule">
+                        <div>{#if row.oneShot}One-time{#else}Recurring{/if}</div>
+                        <code>{row.cron}</code>
+                    </td>
+                    <td data-label="Destination">{row.provider} <span class="mono">{row.chat}</span></td>
+                    <td class="mono" data-label="Next run">{row.nextFireTime ?: 'not scheduled'}</td>
+                    <td data-label="Status">
+                        <span class="pill {#if row.active}pill-ok{#else}pill-err{/if}">{row.statusLabel}</span>
+                    </td>
+                    <td data-label="Actions">
+                        <button class="btn btn-danger btn-sm" hx-delete="/api/admin/scheduled-tasks/{row.id}"
+                                hx-confirm="Cancel this scheduled task?" hx-target="#agent-tasks-result"
+                                data-refresh-on-success>Cancel</button>
+                    </td>
+                </tr>
+            {/for}
+            </tbody>
+        </table>
+    {/if}
+</section>
+
+<section class="panel">
+    <h2 class="panel-title">Background jobs</h2>
     <table class="tbl tbl-stack">
         <thead><tr><th>Job</th><th>Cron</th><th>Previous run</th><th>Next run</th><th>Run now</th></tr></thead>
         <tbody>

@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.console.management;
 
 import dev.omatheusmesmo.qlawkus.compose.RedeployHistoryService;
 import dev.omatheusmesmo.qlawkus.config.RuntimeToggleConfig;
+import dev.omatheusmesmo.qlawkus.task.DynamicTaskScheduler;
 import io.quarkus.qute.Location;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.TemplateInstance;
@@ -17,6 +18,7 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.config.ConfigValue;
 
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -37,6 +39,7 @@ import java.util.List;
 @Authenticated
 @Produces(MediaType.TEXT_HTML)
 public class ScheduleConsoleResource {
+    private static final DateTimeFormatter TASK_TIME = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss");
 
     private record JobDescriptor(String identity, String label, String cronProperty, String triggerPath) {
     }
@@ -59,15 +62,18 @@ public class ScheduleConsoleResource {
     private final RuntimeToggleConfig runtimeToggleConfig;
     private final Config mpConfig;
     private final RedeployHistoryService redeploys;
+    private final DynamicTaskScheduler tasks;
 
     public ScheduleConsoleResource(@Location("console/schedule.html") Template scheduleTemplate,
                                     Scheduler scheduler,
                                     RuntimeToggleConfig runtimeToggleConfig,
-                                    RedeployHistoryService redeploys) {
+                                    RedeployHistoryService redeploys,
+                                    DynamicTaskScheduler tasks) {
         this.scheduleTemplate = scheduleTemplate;
         this.scheduler = scheduler;
         this.runtimeToggleConfig = runtimeToggleConfig;
         this.redeploys = redeploys;
+        this.tasks = tasks;
         this.mpConfig = ConfigProvider.getConfig();
     }
 
@@ -77,7 +83,12 @@ public class ScheduleConsoleResource {
         RedeployRunView redeploy = redeploys.lastRun()
                 .map(run -> RedeployRunView.of(run, redeploys.history().lastSuccessAt()))
                 .orElse(null);
-        return scheduleTemplate.data("active", "schedule").data("jobs", jobs).data("redeploy", redeploy);
+        var taskRows = tasks.list().stream().map(view -> {
+            String next = view.nextFire() == null ? null : TASK_TIME.format(view.nextFire().atZone(tasks.zone()));
+            return ScheduledTaskView.of(view, next);
+        }).toList();
+        return scheduleTemplate.data("active", "schedule").data("jobs", jobs).data("redeploy", redeploy)
+                .data("agentTasks", taskRows).data("taskZone", tasks.zone().getId());
     }
 
     private ScheduledJobView toView(JobDescriptor job) {
