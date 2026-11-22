@@ -12,6 +12,9 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.websockets.next.BasicWebSocketConnector;
 import jakarta.inject.Inject;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -78,11 +81,43 @@ class VoiceDecisionLanguageTest {
         }
         var requests = wiremock.find(postRequestedFor(urlEqualTo(DECISION_PATH))
                 .withRequestBody(containing(englishRequest))
-                .withRequestBody(notMatching("(?s).*LANGUAGE_DECISION.*")));
+                .withRequestBody(notMatching("(?s).*(LANGUAGE_DECISION|VOICE_REPLY_LANGUAGE_CHECK).*")));
         assertEquals(1, requests.size());
         JsonNode messages = new ObjectMapper().readTree(requests.getFirst().getBodyAsString()).path("messages");
         assertTrue(messages.get(0).path("content").asText().contains("Write the entire reply in English (en)"));
         assertTrue(messages.toString().contains("Certo."), "the prior Portuguese reply must still be in context");
+    }
+
+    @Test
+    void aPortugueseDraftForAnEnglishTurnIsCorrectedBeforeTextAndSpeech() throws Exception {
+        String portuguese = "Estou ótimo. E você?";
+        String english = "I'm great. How about you?";
+        decisionReply("en");
+        VoiceTestSupport.stubAgentReply(wiremock, portuguese);
+        VoiceTestSupport.stubLanguageCheck(wiremock, english, 1);
+        ScriptedTranscriber.say("Hey, how are you today?", "en");
+        try (VoiceClient client = open()) {
+            client.awaitType("ready");
+            client.speakUtterance(3200);
+            client.awaitTypeWhere("turn-done", event -> event.path("turn").asInt() == 1);
+            var events = client.snapshot();
+            String displayed = events.stream().filter(event -> "text".equals(event.path("type").asText()))
+                    .map(event -> event.path("chunk").asText()).collect(Collectors.joining());
+            assertEquals(english, displayed);
+            var audio = events.stream().filter(event -> "audio".equals(event.path("type").asText())).toList();
+            assertEquals(2, audio.size());
+            audio.forEach(event -> assertEquals("en", event.path("language").asText()));
+            assertEquals("speech:I'm great.", new String(Base64.getDecoder()
+                    .decode(audio.getFirst().path("data").asText()), StandardCharsets.UTF_8));
+        }
+        var checks = wiremock.find(postRequestedFor(urlEqualTo(DECISION_PATH))
+                .withRequestBody(containing("VOICE_REPLY_LANGUAGE_CHECK")));
+        assertEquals(1, checks.size());
+        JsonNode request = new ObjectMapper().readTree(checks.getFirst().getBodyAsString());
+        assertEquals(2, request.path("messages").size());
+        assertFalse(request.hasNonNull("tools") && !request.path("tools").isEmpty());
+        assertTrue(checks.getFirst().getBodyAsString().contains("English (en)"));
+        assertTrue(checks.getFirst().getBodyAsString().contains(portuguese));
     }
 
     @Test

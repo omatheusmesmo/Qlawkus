@@ -109,6 +109,7 @@
         "agent-failed": "The agent could not finish that reply.",
         "speech-queue-full": "The speech queue is full, so some sentences are not spoken.",
         "speech-text-truncated": "This reply is too long to speak fully; the rest remains in the conversation.",
+        "reply-language-unverified": "The reply language could not be verified.",
         "empty-utterance": "Nothing was captured in that utterance.",
         "unknown-language": "That language has no speech provider, so it cannot be chosen.",
         "empty-text": "Type a message before sending it.",

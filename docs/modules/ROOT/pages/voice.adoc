@@ -163,6 +163,12 @@ breakers from interactive replies and background extraction. An invalid result o
 leaves the shared language policy in charge; a current speech-recognition code can still guide the
 first short Portuguese utterance. Unknown results never force an older language onto a new request.
 
+With language classification enabled and a language selected, the live voice session also checks the
+finished reply before showing it or speaking it. The model receives only the draft and target language.
+It keeps an already correct draft or translates its prose. This check never repeats the agent's tools.
+Tool progress still arrives as it happens, while text and audio wait for the check. If the check fails
+or the draft exceeds 16,384 characters, the console shows a notice and presents the original draft.
+
 The reply language is not limited to the configured speech providers. If there is no provider for the
 selected language, the TTS router uses its configured provider fallback while retaining the reply text
 in the selected language. An explicit selector choice is still offered only for configured providers.
