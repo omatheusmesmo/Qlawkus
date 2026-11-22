@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.metrics;
 
+import dev.omatheusmesmo.qlawkus.task.TaskAuditEvent;
+import dev.omatheusmesmo.qlawkus.task.TaskAuditEvent.Stage;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.FunctionTimer;
@@ -9,10 +11,12 @@ import io.micrometer.core.instrument.Tags;
 import io.quarkus.logging.Log;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 import java.util.function.ToDoubleFunction;
@@ -86,6 +90,15 @@ public class AgentMeters {
     public static final String REDEPLOY_LAST_SUCCESS_AGE = "qlawkus.redeploy.last.success.age";
 
     public static final String TASK_RESTORED = "qlawkus.task.restored";
+    public static final String TASK_FIRED = "qlawkus.task.fired";
+    public static final String TASK_DELIVERY = "qlawkus.task.delivery";
+
+    private static final Map<Stage, String> TASK_FIRING_OUTCOMES = Map.of(
+            Stage.QUEUED, "queued", Stage.NO_REPLY, "no_reply", Stage.EXECUTION_FAILED, "execution_failed");
+    private static final Map<Stage, String> TASK_DELIVERY_OUTCOMES = Map.of(
+            Stage.DELIVERY_SENT, "sent", Stage.DELIVERY_PARTIAL, "partial",
+            Stage.DELIVERY_FAILED, "failed", Stage.DELIVERY_NO_PROVIDER, "no_provider",
+            Stage.FAILURE_NOTICE_SENT, "notice_sent", Stage.FAILURE_NOTICE_FAILED, "notice_failed");
 
     /** The {@code outcome} tag of {@link #TASK_RESTORED} for a stored task registered again. */
     public static final String TASK_OUTCOME_RESTORED = "restored";
@@ -154,6 +167,10 @@ public class AgentMeters {
             registry = registryInstance != null && registryInstance.isResolvable()
                     ? registryInstance.get()
                     : null;
+            if (registry != null) {
+                TASK_FIRING_OUTCOMES.values().forEach(outcome -> registry.counter(TASK_FIRED, TAG_OUTCOME, outcome));
+                TASK_DELIVERY_OUTCOMES.values().forEach(outcome -> registry.counter(TASK_DELIVERY, TAG_OUTCOME, outcome));
+            }
         } catch (RuntimeException e) {
             Log.debugf(e, "No usable MeterRegistry; agent telemetry stays disabled");
             registry = null;
@@ -358,6 +375,14 @@ public class AgentMeters {
         if (registry != null) {
             registry.counter(TASK_RESTORED, Tags.of(TAG_OUTCOME, outcome)).increment(count);
         }
+    }
+
+    void taskTransition(@Observes TaskAuditEvent event) {
+        if (registry == null) return;
+        String firing = TASK_FIRING_OUTCOMES.get(event.stage());
+        if (firing != null) registry.counter(TASK_FIRED, TAG_OUTCOME, firing).increment();
+        String delivery = TASK_DELIVERY_OUTCOMES.get(event.stage());
+        if (delivery != null) registry.counter(TASK_DELIVERY, TAG_OUTCOME, delivery).increment();
     }
 
     /** Publishes the seconds since the last successful redeploy, {@code NaN} before the first one. */

@@ -17,7 +17,6 @@ import static org.mockito.Mockito.when;
 
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.AgentRunner;
-import dev.omatheusmesmo.qlawkus.agent.WorkflowResultReadyEvent;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
 import io.quarkus.scheduler.Scheduled;
@@ -47,7 +46,7 @@ class DynamicTaskSchedulerRegistrationTest {
         when(trigger.getNextFireTime()).thenReturn(Instant.now().plus(Duration.ofDays(1)));
         doReturn(definition).when(scheduler).newJob(anyString());
         when(definition.schedule()).thenReturn(trigger);
-        DynamicTaskScheduler tasks = new DynamicTaskScheduler(scheduler, runner(), delivery(), event(), config(),
+        DynamicTaskScheduler tasks = new DynamicTaskScheduler(scheduler, runner(), delivery(), event(), event(), config(),
                 store(), mock(TaskAudit.class));
 
         String id = tasks.create("telegram:42", new TaskDestination("telegram", "42"), "stand up", CRON).task().id();
@@ -67,7 +66,7 @@ class DynamicTaskSchedulerRegistrationTest {
         doReturn(definition).when(scheduler).newJob(anyString());
         when(definition.schedule()).thenThrow(new IllegalArgumentException("bad cron"));
         ScheduledTaskStore store = store();
-        DynamicTaskScheduler tasks = new DynamicTaskScheduler(scheduler, runner(), delivery(), event(), config(),
+        DynamicTaskScheduler tasks = new DynamicTaskScheduler(scheduler, runner(), delivery(), event(), event(), config(),
                 store, mock(TaskAudit.class));
 
         IllegalArgumentException rejected = assertThrows(IllegalArgumentException.class,
@@ -88,7 +87,7 @@ class DynamicTaskSchedulerRegistrationTest {
         when(definition.schedule()).thenReturn(trigger);
         ScheduledTaskStore store = store();
         doThrow(new UncheckedIOException(new IOException("disk full"))).when(store).save(any());
-        DynamicTaskScheduler tasks = new DynamicTaskScheduler(scheduler, runner(), delivery(), event(), config(),
+        DynamicTaskScheduler tasks = new DynamicTaskScheduler(scheduler, runner(), delivery(), event(), event(), config(),
                 store, mock(TaskAudit.class));
 
         IllegalStateException refused = assertThrows(IllegalStateException.class,
@@ -108,7 +107,7 @@ class DynamicTaskSchedulerRegistrationTest {
         doReturn(definition).when(scheduler).newJob(anyString());
         when(definition.schedule()).thenReturn(trigger);
         ScheduledTaskStore store = store();
-        DynamicTaskScheduler tasks = new DynamicTaskScheduler(scheduler, runner(), delivery(), event(), config(),
+        DynamicTaskScheduler tasks = new DynamicTaskScheduler(scheduler, runner(), delivery(), event(), event(), config(),
                 store, mock(TaskAudit.class));
         String id = tasks.create("telegram:42", new TaskDestination("telegram", "42"), "stand up", CRON).task().id();
         doThrow(new UncheckedIOException(new IOException("read only"))).when(store).delete(id);
@@ -132,7 +131,7 @@ class DynamicTaskSchedulerRegistrationTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static Event<WorkflowResultReadyEvent> event() {
+    private static <T> Event<T> event() {
         return mock(Event.class);
     }
 

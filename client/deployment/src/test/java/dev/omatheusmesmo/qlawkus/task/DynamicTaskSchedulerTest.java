@@ -72,6 +72,7 @@ class DynamicTaskSchedulerTest {
     void clearDeliveryAndProbe() {
         delivery.clear();
         ResultProbe.RESULTS.clear();
+        ResultProbe.FAILURES.clear();
     }
 
     @AfterEach
@@ -121,8 +122,15 @@ class DynamicTaskSchedulerTest {
         String id = tasks.create(MEMORY, TELEGRAM, "pay the bill", ONE_SHOT).task().id();
         when(runner.chat(eq(MEMORY), anyString())).thenThrow(new IllegalStateException("model unavailable"));
 
-        assertDoesNotThrow(() -> tasks.fire(id), "a failed run is logged, never thrown into the scheduler");
+        assertDoesNotThrow(() -> tasks.fire(id), "a failed run is reported through the asynchronous notice");
 
+        Awaitility.await().atMost(Duration.ofSeconds(5))
+                .until(() -> ResultProbe.FAILURES.stream().anyMatch(event -> id.equals(event.taskId())));
+        var failure = ResultProbe.FAILURES.stream().filter(event -> id.equals(event.taskId())).findFirst().orElseThrow();
+        assertEquals(id, failure.taskId());
+        assertEquals(TELEGRAM, failure.destination());
+        assertNotNull(failure.runId());
+        Mockito.verify(runner, Mockito.times(1)).chat(eq(MEMORY), anyString());
         assertNull(scheduler.getScheduledJob(id));
         assertTrue(tasks.list().stream().noneMatch(view -> view.task().id().equals(id)));
     }
@@ -350,9 +358,14 @@ class DynamicTaskSchedulerTest {
     static class ResultProbe {
 
         static final List<Delivered> RESULTS = new CopyOnWriteArrayList<>();
+        static final List<ScheduledTaskFailedEvent> FAILURES = new CopyOnWriteArrayList<>();
 
         void on(@ObservesAsync WorkflowResultReadyEvent event) {
             RESULTS.add(new Delivered(event.providerId(), event.chatId(), event.response()));
+        }
+
+        void onFailure(@ObservesAsync ScheduledTaskFailedEvent event) {
+            FAILURES.add(event);
         }
     }
 }

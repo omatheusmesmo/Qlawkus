@@ -67,6 +67,7 @@ public class DynamicTaskScheduler {
     private final AgentRunner agentRunner;
     private final AgentDeliveryContext delivery;
     private final Event<WorkflowResultReadyEvent> resultEvent;
+    private final Event<ScheduledTaskFailedEvent> failedEvent;
     private final ScheduledTaskStore store;
     private final TaskAudit audit;
     private final ZoneId zone;
@@ -74,12 +75,13 @@ public class DynamicTaskScheduler {
 
     @Inject
     public DynamicTaskScheduler(Scheduler scheduler, AgentRunner agentRunner, AgentDeliveryContext delivery,
-            Event<WorkflowResultReadyEvent> resultEvent, AgentConfig config, ScheduledTaskStore store,
-            TaskAudit audit) {
+            Event<WorkflowResultReadyEvent> resultEvent, Event<ScheduledTaskFailedEvent> failedEvent,
+            AgentConfig config, ScheduledTaskStore store, TaskAudit audit) {
         this.scheduler = scheduler;
         this.agentRunner = agentRunner;
         this.delivery = delivery;
         this.resultEvent = resultEvent;
+        this.failedEvent = failedEvent;
         this.store = store;
         this.audit = audit;
         this.zone = ZoneId.of(config.timezone());
@@ -365,6 +367,7 @@ public class DynamicTaskScheduler {
         } catch (RuntimeException e) {
             record(task, runId, Stage.EXECUTION_FAILED, null, e.getClass().getSimpleName());
             run.fail(e);
+            failedEvent.fireAsync(new ScheduledTaskFailedEvent(task.id(), runId, destination));
         } finally {
             delivery.clear();
             if (activated) {

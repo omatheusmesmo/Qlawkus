@@ -3,8 +3,10 @@ package dev.omatheusmesmo.qlawkus.messaging;
 import dev.omatheusmesmo.qlawkus.agent.WorkflowResultReadyEvent;
 import dev.omatheusmesmo.qlawkus.messaging.format.FormatterRegistry;
 import dev.omatheusmesmo.qlawkus.messaging.format.MessageFormatter;
+import dev.omatheusmesmo.qlawkus.task.ScheduledTaskFailedEvent;
 import dev.omatheusmesmo.qlawkus.task.TaskAudit;
 import dev.omatheusmesmo.qlawkus.task.TaskAuditEvent;
+import dev.omatheusmesmo.qlawkus.task.TaskDestination;
 import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.WebApplicationException;
@@ -114,7 +116,9 @@ class NotificationServiceTest {
     @Test
     void deliveryListenerRecordsProviderRejectionUnderTheOriginalRun() {
         when(providerRegistry.getProvider("telegram")).thenReturn(Optional.of(provider));
-        when(chunkingService.chunk(any(), eq("telegram"))).thenReturn(List.of("one", "two"));
+        String notice = "Scheduled task task ran but its full reply could not be delivered.";
+        when(chunkingService.chunk("hello", "telegram")).thenReturn(List.of("one", "two"));
+        when(chunkingService.chunk(notice, "telegram")).thenReturn(List.of(notice));
         when(provider.send("chat-1", "two")).thenReturn(Uni.createFrom().failure(new WebApplicationException(429)));
         service.redactor = mock(SecretRedactor.class);
         var audit = mock(TaskAudit.class);
@@ -127,6 +131,27 @@ class NotificationServiceTest {
 
         verify(audit).record(new TaskAuditEvent("task", run, "telegram", TaskAuditEvent.Stage.DELIVERY_PARTIAL,
                 null, "WebApplicationException", 429, 1, 2));
+        verify(provider).send("chat-1", notice);
+        verify(audit).record(new TaskAuditEvent("task", run, "telegram", TaskAuditEvent.Stage.FAILURE_NOTICE_SENT,
+                null, null, null, 1, 1));
+    }
+
+    @Test
+    void failedNoticeDoesNotRetryOrExposeTheExecutionError() {
+        String notice = "Scheduled task task failed while running.";
+        when(providerRegistry.getProvider("telegram")).thenReturn(Optional.of(provider));
+        when(chunkingService.chunk(notice, "telegram")).thenReturn(List.of(notice));
+        when(provider.send("chat-1", notice)).thenReturn(Uni.createFrom().failure(new IllegalStateException("test")));
+        var listener = new WorkflowResultDeliveryListener();
+        listener.notificationService = service;
+        listener.audit = mock(TaskAudit.class);
+        UUID run = UUID.randomUUID();
+
+        listener.onScheduledTaskFailed(new ScheduledTaskFailedEvent("task", run, new TaskDestination("telegram", "chat-1")));
+
+        verify(provider).send("chat-1", notice);
+        verify(listener.audit).record(new TaskAuditEvent("task", run, "telegram", TaskAuditEvent.Stage.FAILURE_NOTICE_FAILED,
+                null, "IllegalStateException", null, 0, 1));
     }
 
     @Test
