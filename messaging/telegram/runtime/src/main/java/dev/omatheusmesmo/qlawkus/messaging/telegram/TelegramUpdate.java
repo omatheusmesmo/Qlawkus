@@ -23,6 +23,10 @@ public record TelegramUpdate(
         public TelegramMessage(long messageId, TelegramUser from, TelegramChat chat, String text, TelegramVoice voice) {
             this(messageId, from, chat, text, voice, null, null, null);
         }
+
+        boolean hasAttachments() {
+            return document != null || photo != null && !photo.isEmpty();
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

@@ -30,4 +30,14 @@ public interface TelegramConfig {
      */
     @WithDefault("polling")
     String mode();
+
+    /** Public HTTPS URL registered with Telegram on startup in webhook mode. */
+    Optional<String> webhookUrl();
+
+    /**
+     * Telegram webhook shared secret. Use 1–256 letters, digits, underscores or hyphens.
+     * When set, every webhook update must carry the matching header. Document and photo webhooks
+     * require this secret, including when the webhook is registered outside Qlawkus.
+     */
+    Optional<String> webhookSecretToken();
 }

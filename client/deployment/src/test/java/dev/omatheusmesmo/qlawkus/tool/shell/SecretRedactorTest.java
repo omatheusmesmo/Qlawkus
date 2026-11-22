@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.tool.shell;
 
+import dev.omatheusmesmo.qlawkus.secrets.SecretPropertyCatalog;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -7,6 +8,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SecretRedactorTest {
 
@@ -86,6 +88,15 @@ class SecretRedactorTest {
                 "headers: Authorization: Bearer abcDEF123456789 x-api-key=zzzzzzzzzzzz done", List.of());
 
         assertEquals("headers: Authorization: [redacted] x-api-key=[redacted] done", out);
+    }
+
+    @Test
+    void redact_masksTelegramWebhookCredentials() {
+        assertTrue(SecretPropertyCatalog.isSecret("qlawkus.messaging.telegram.webhook-secret-token"));
+        String out = SecretRedactor.redact(
+                "X-Telegram-Bot-Api-Secret-Token: test-secret_42 {\"secret_token\":\"test-secret_42\"}", List.of());
+
+        assertEquals("X-Telegram-Bot-Api-Secret-Token: [redacted] {\"secret_token\":\"[redacted]\"}", out);
     }
 
     @Test
