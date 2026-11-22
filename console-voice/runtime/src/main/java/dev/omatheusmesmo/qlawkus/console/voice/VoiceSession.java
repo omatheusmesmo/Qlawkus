@@ -51,7 +51,8 @@ final class VoiceSession {
     record Services(ConsoleVoiceConfig config, String conversationId, AgentStream agent,
             VoiceTranscriptionService transcriber, VoiceSpeech speech, VoiceLanguages languages,
             String initialLanguage, VoiceSessionLimiter limiter, ObjectMapper json,
-            ScheduledExecutorService clock, ReplyLanguageResolver languageResolver) {
+            ScheduledExecutorService clock, ReplyLanguageResolver languageResolver,
+            VoiceReplyLanguageCheck replyLanguageCheck) {
     }
 
     private final String connectionId;
@@ -284,6 +285,9 @@ final class VoiceSession {
         AgentReplyStyle replyStyle = services.languageResolver().resolve(services.conversationId(), text,
                 requested, turn.transcribedLanguage, List.of(), null);
         turn.replyLanguage = replyStyle.language() == null ? services.languages().fallback() : replyStyle.language();
+        if (services.replyLanguageCheck().enabledFor(replyStyle.language())) {
+            turn.draft = new StringBuilder();
+        }
         if (!current(turn)) return;
         Cancellable subscription = services.agent().streamPrepared(services.conversationId(), text, replyStyle)
                 .subscribe().with(
@@ -301,8 +305,7 @@ final class VoiceSession {
             return;
         }
         if (event instanceof AgentEvent.Text text) {
-            sendRaw(event("text", turn.id).put("chunk", text.chunk()));
-            queueRenderedSpeech(turn, turn.speechText.accept(text.chunk()));
+            receiveText(turn, text.chunk());
         } else if (event instanceof AgentEvent.ToolStart start) {
             sendRaw(event("tool", turn.id).put("phase", "start").put("name", start.name()));
         } else if (event instanceof AgentEvent.ToolEnd end) {
@@ -314,6 +317,22 @@ final class VoiceSession {
         if (!current(turn)) {
             return;
         }
+        if (turn.draft != null && !turn.draft.isEmpty()) {
+            String draft = turn.draft.toString();
+            String checked = draft;
+            try {
+                checked = services.replyLanguageCheck().check(draft, turn.replyLanguage);
+            } catch (RuntimeException unavailable) {
+                Log.infof("Voice turn %d reply language check unavailable language=%s error=%s",
+                        turn.id, turn.replyLanguage, unavailable.getClass().getSimpleName());
+                if (current(turn)) sendRaw(event("notice", turn.id).put("code", "reply-language-unverified"));
+            }
+            if (!current(turn)) return;
+            if (!draft.equals(checked)) {
+                Log.infof("Voice turn %d reply translated language=%s", turn.id, turn.replyLanguage);
+            }
+            emitText(turn, checked);
+        }
         queueRenderedSpeech(turn, turn.speechText.flush());
         turn.splitter.flush().ifPresent(rest -> enqueueSpeech(turn, rest));
         if (turn.speechText.truncated()) {
@@ -324,6 +343,24 @@ final class VoiceSession {
                 sendRaw(event("turn-done", turn.id));
             }
         });
+    }
+
+    private void receiveText(Turn turn, String chunk) {
+        if (turn.draft != null) {
+            if (chunk.length() <= VoiceReplyLanguageCheck.MAX_DRAFT_CHARS - turn.draft.length()) {
+                turn.draft.append(chunk);
+                return;
+            }
+            sendRaw(event("notice", turn.id).put("code", "reply-language-unverified"));
+            emitText(turn, turn.draft.toString());
+            turn.draft = null;
+        }
+        emitText(turn, chunk);
+    }
+
+    private void emitText(Turn turn, String chunk) {
+        sendRaw(event("text", turn.id).put("chunk", chunk));
+        queueRenderedSpeech(turn, turn.speechText.accept(chunk));
     }
 
     private void onAgentFailure(Turn turn, Throwable failure) {
@@ -451,6 +488,7 @@ final class VoiceSession {
         private final SpeechText speechText = new SpeechText();
         private String transcribedLanguage;
         private String replyLanguage;
+        private StringBuilder draft;
         private volatile boolean superseded;
         private volatile Cancellable agentSubscription;
         private int nextSegment = 1;

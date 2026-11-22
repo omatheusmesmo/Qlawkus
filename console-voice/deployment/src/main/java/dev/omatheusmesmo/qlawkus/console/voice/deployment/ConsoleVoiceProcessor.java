@@ -4,6 +4,7 @@ import dev.omatheusmesmo.qlawkus.console.voice.TtsRouterSpeech;
 import dev.omatheusmesmo.qlawkus.console.voice.VoiceConsoleFeature;
 import dev.omatheusmesmo.qlawkus.console.voice.VoiceConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.voice.VoiceOriginCheck;
+import dev.omatheusmesmo.qlawkus.console.voice.VoiceReplyLanguageCheck;
 import dev.omatheusmesmo.qlawkus.console.voice.VoiceSessionLimiter;
 import dev.omatheusmesmo.qlawkus.console.voice.VoiceSessions;
 import dev.omatheusmesmo.qlawkus.console.voice.VoiceSocket;
@@ -30,7 +31,7 @@ class ConsoleVoiceProcessor {
         return AdditionalBeanBuildItem.builder()
                 .addBeanClasses(VoiceSocket.class, VoiceSessions.class, VoiceSessionLimiter.class,
                         VoiceOriginCheck.class, VoiceConsoleResource.class, VoiceConsoleFeature.class,
-                        TtsRouterSpeech.class)
+                        TtsRouterSpeech.class, VoiceReplyLanguageCheck.class)
                 .setUnremovable()
                 .build();
     }

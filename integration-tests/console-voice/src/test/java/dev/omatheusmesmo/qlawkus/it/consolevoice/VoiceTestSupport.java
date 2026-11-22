@@ -26,12 +26,13 @@ final class VoiceTestSupport {
 
     static void stubAgentReply(WireMock wiremock, String reply) {
         wiremock.register(post(urlEqualTo("/api/chat"))
-                .withRequestBody(WireMock.notMatching("(?s).*LANGUAGE_DECISION.*"))
+                .withRequestBody(WireMock.notMatching("(?s).*(LANGUAGE_DECISION|VOICE_REPLY_LANGUAGE_CHECK).*"))
                 .willReturn(aResponse().withHeader("Content-Type", "application/x-ndjson")
                         .withBody(textNdjson(reply))));
     }
 
     static void stubEmbeddings(WireMock wiremock) {
+        stubLanguageCheck(wiremock, null, 10);
         // Ordinary voice tests exercise the local fallback; decision-specific tests override this stub.
         wiremock.register(post(urlEqualTo("/api/chat")).withRequestBody(WireMock.containing("LANGUAGE_DECISION"))
                 .atPriority(10).willReturn(WireMock.okJson("""
@@ -44,6 +45,17 @@ final class VoiceTestSupport {
         wiremock.register(post(urlEqualTo("/v1/embeddings")).willReturn(WireMock.okJson(
                 "{\"data\":[{\"embedding\":" + vector(1024) + ",\"index\":0}],"
                         + "\"usage\":{\"prompt_tokens\":1,\"total_tokens\":1}}")));
+    }
+
+    static void stubLanguageCheck(WireMock wiremock, String translated, int priority) {
+        var json = new ObjectMapper();
+        String content = json.valueToTree(json.createObjectNode().put("text", translated).toString()).toString();
+        wiremock.register(post(urlEqualTo("/api/chat")).withRequestBody(WireMock.containing("VOICE_REPLY_LANGUAGE_CHECK"))
+                .atPriority(priority).willReturn(WireMock.okJson("""
+                        {"model":"gemma4:e2b","created_at":"2026-11-21T00:00:00Z",
+                         "message":{"role":"assistant","content":%s},"done":true,
+                         "prompt_eval_count":1,"eval_count":1}
+                        """.formatted(content))));
     }
 
     private static String textNdjson(String text) {
