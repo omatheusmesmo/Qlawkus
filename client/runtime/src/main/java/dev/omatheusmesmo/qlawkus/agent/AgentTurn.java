@@ -167,9 +167,9 @@ public final class AgentTurn {
         putMdc();
         try {
             Log.infof("Agent turn channel=%s conversation=%s workload=%s outcome=%s tier=%s duration=%dms "
-                            + "tools=%s facts=%d tokens=%s%s",
+                            + "tools=%s facts=%d tokens=%s replyLanguage=%s%s",
                     channel, conversation, workload, outcome, orUnknown(tier), durationMs, describeTools(),
-                    facts.get(), describeTokens(), describeFailure(failure));
+                    facts.get(), describeTokens(), orUnknown(replyStyle.language()), describeFailure(failure));
         } finally {
             clearMdc();
         }

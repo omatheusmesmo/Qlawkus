@@ -21,13 +21,13 @@ class SoulLanguagePolicyTest {
     }
 
     @Test
-    void speechAddsTheTurnLanguageAfterTheSharedLanguagePolicy() {
+    void speechUsesTheResolvedLanguageWithoutTheAutomaticPolicy() {
         AgentTurn turn = AgentTurn.open("language-policy-speech", "rest", true, AgentReplyStyle.speech("pt"));
         try (var ignored = turn.bind()) {
             String prompt = soul.getSystemMessage("language-policy-speech").orElseThrow();
-            assertTrue(prompt.contains("Answer in the language of the owner's current request"));
-            assertTrue(prompt.contains("Reply in language code pt"));
-            assertTrue(prompt.indexOf("## Spoken conversation") > prompt.indexOf("## Reply language"));
+            assertFalse(prompt.contains("Answer in the language of the owner's current request"));
+            assertTrue(prompt.contains("Write the entire reply in Portuguese (pt)"));
+            assertTrue(prompt.indexOf("## Required language for this reply") > prompt.indexOf("## Spoken conversation"));
         } finally { turn.close("ok"); }
     }
 }
