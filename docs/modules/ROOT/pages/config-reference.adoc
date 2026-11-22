@@ -25,6 +25,9 @@ include::includes/qlawkus-client_qlawkus.reply-language.adoc[]
 === Cognition backend
 include::includes/qlawkus-client_qlawkus.cognition.adoc[]
 
+=== PostgreSQL debug history
+include::includes/qlawkus-cognition-pgvector_qlawkus.debug-history.adoc[]
+
 === Skills
 include::includes/qlawkus-client_qlawkus.skills.adoc[]
 

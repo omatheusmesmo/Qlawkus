@@ -48,7 +48,7 @@ class DynamicTaskSchedulerRegistrationTest {
         doReturn(definition).when(scheduler).newJob(anyString());
         when(definition.schedule()).thenReturn(trigger);
         DynamicTaskScheduler tasks = new DynamicTaskScheduler(scheduler, runner(), delivery(), event(), config(),
-                store());
+                store(), mock(TaskAudit.class));
 
         String id = tasks.create("telegram:42", new TaskDestination("telegram", "42"), "stand up", CRON).task().id();
 
@@ -68,7 +68,7 @@ class DynamicTaskSchedulerRegistrationTest {
         when(definition.schedule()).thenThrow(new IllegalArgumentException("bad cron"));
         ScheduledTaskStore store = store();
         DynamicTaskScheduler tasks = new DynamicTaskScheduler(scheduler, runner(), delivery(), event(), config(),
-                store);
+                store, mock(TaskAudit.class));
 
         IllegalArgumentException rejected = assertThrows(IllegalArgumentException.class,
                 () -> tasks.create("telegram:42", new TaskDestination("telegram", "42"), "stand up", CRON));
@@ -89,7 +89,7 @@ class DynamicTaskSchedulerRegistrationTest {
         ScheduledTaskStore store = store();
         doThrow(new UncheckedIOException(new IOException("disk full"))).when(store).save(any());
         DynamicTaskScheduler tasks = new DynamicTaskScheduler(scheduler, runner(), delivery(), event(), config(),
-                store);
+                store, mock(TaskAudit.class));
 
         IllegalStateException refused = assertThrows(IllegalStateException.class,
                 () -> tasks.create("telegram:42", new TaskDestination("telegram", "42"), "stand up", CRON));
@@ -109,7 +109,7 @@ class DynamicTaskSchedulerRegistrationTest {
         when(definition.schedule()).thenReturn(trigger);
         ScheduledTaskStore store = store();
         DynamicTaskScheduler tasks = new DynamicTaskScheduler(scheduler, runner(), delivery(), event(), config(),
-                store);
+                store, mock(TaskAudit.class));
         String id = tasks.create("telegram:42", new TaskDestination("telegram", "42"), "stand up", CRON).task().id();
         doThrow(new UncheckedIOException(new IOException("read only"))).when(store).delete(id);
 

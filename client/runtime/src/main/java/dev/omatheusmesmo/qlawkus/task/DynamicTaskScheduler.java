@@ -7,6 +7,7 @@ import dev.omatheusmesmo.qlawkus.cognition.JobLog;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
+import dev.omatheusmesmo.qlawkus.task.TaskAuditEvent.Stage;
 import io.quarkus.arc.Arc;
 import io.quarkus.arc.ManagedContext;
 import io.quarkus.logging.Log;
@@ -67,17 +68,20 @@ public class DynamicTaskScheduler {
     private final AgentDeliveryContext delivery;
     private final Event<WorkflowResultReadyEvent> resultEvent;
     private final ScheduledTaskStore store;
+    private final TaskAudit audit;
     private final ZoneId zone;
     private final Map<String, ScheduledTask> tasks = new ConcurrentHashMap<>();
 
     @Inject
     public DynamicTaskScheduler(Scheduler scheduler, AgentRunner agentRunner, AgentDeliveryContext delivery,
-            Event<WorkflowResultReadyEvent> resultEvent, AgentConfig config, ScheduledTaskStore store) {
+            Event<WorkflowResultReadyEvent> resultEvent, AgentConfig config, ScheduledTaskStore store,
+            TaskAudit audit) {
         this.scheduler = scheduler;
         this.agentRunner = agentRunner;
         this.delivery = delivery;
         this.resultEvent = resultEvent;
         this.store = store;
+        this.audit = audit;
         this.zone = ZoneId.of(config.timezone());
     }
 
@@ -109,6 +113,7 @@ public class DynamicTaskScheduler {
         }
         Log.infof("Scheduled agent task %s provider=%s chatId=%s cron=%s nextFire=%s oneShot=%s", id,
                 destination.providerId(), destination.chatId(), scheduled.cron(), nextFire, scheduled.oneShot());
+        record(scheduled, null, Stage.SCHEDULED, nextFire, null);
         return new TaskView(scheduled, nextFire);
     }
 
@@ -128,8 +133,11 @@ public class DynamicTaskScheduler {
         } catch (RuntimeException e) {
             throw new IllegalStateException("could not remove the task record, so the task stays scheduled", e);
         }
-        tasks.remove(id);
+        ScheduledTask cancelled = tasks.remove(id);
         scheduler.unscheduleJob(id);
+        if (cancelled != null) {
+            record(cancelled, null, Stage.CANCELLED, null, null);
+        }
         Log.infof("Cancelled agent task %s", id);
         return true;
     }
@@ -167,9 +175,18 @@ public class DynamicTaskScheduler {
             tasks.put(restoredTask.id(), restoredTask);
             if (stored.status() == TaskStatus.ACTIVE) {
                 switch (restoredTask.status()) {
-                    case ACTIVE -> restored++;
-                    case MISSED -> missed++;
-                    case INVALID -> invalid++;
+                    case ACTIVE -> {
+                        restored++;
+                        record(restoredTask, null, Stage.RESTORED, nextFire(stored.id()), null);
+                    }
+                    case MISSED -> {
+                        missed++;
+                        record(restoredTask, null, Stage.MISSED, null, null);
+                    }
+                    case INVALID -> {
+                        invalid++;
+                        record(restoredTask, null, Stage.INVALID, null, null);
+                    }
                 }
             }
         }
@@ -323,6 +340,7 @@ public class DynamicTaskScheduler {
     }
 
     private void run(ScheduledTask task) {
+        UUID runId = UUID.randomUUID();
         TaskDestination destination = task.destination();
         ManagedContext requests = Arc.container().requestContext();
         boolean activated = !requests.isActive();
@@ -331,17 +349,21 @@ public class DynamicTaskScheduler {
         }
         delivery.set(task.memoryId(), destination.providerId(), destination.chatId());
         JobLog.Run run = JobLog.start(task.id()).count("destination", destination.providerId());
+        record(task, runId, Stage.STARTED, null, null);
         try {
-            String response = WorkloadContext.callAs(WorkloadContext.INTERACTIVE,
-                    () -> agentRunner.chat(task.memoryId(), prompt(task)));
+            String response = TaskAudit.callAs(runId, () -> WorkloadContext.callAs(WorkloadContext.INTERACTIVE,
+                    () -> agentRunner.chat(task.memoryId(), prompt(task))));
             if (response == null || response.isBlank()) {
+                record(task, runId, Stage.NO_REPLY, null, null);
                 run.count("outcome", "no-reply").finish();
                 return;
             }
+            record(task, runId, Stage.QUEUED, null, null);
             resultEvent.fireAsync(new WorkflowResultReadyEvent(destination.providerId(), destination.chatId(),
-                    response));
-            run.count("outcome", "delivered").finish();
+                    response, task.id(), runId));
+            run.count("outcome", "queued").finish();
         } catch (RuntimeException e) {
+            record(task, runId, Stage.EXECUTION_FAILED, null, e.getClass().getSimpleName());
             run.fail(e);
         } finally {
             delivery.clear();
@@ -349,6 +371,11 @@ public class DynamicTaskScheduler {
                 requests.terminate();
             }
         }
+    }
+
+    private void record(ScheduledTask task, UUID runId, Stage stage, Instant nextFire, String errorType) {
+        audit.record(new TaskAuditEvent(task.id(), runId, task.destination().providerId(), stage,
+                nextFire, errorType, null, null, null));
     }
 
     private String prompt(ScheduledTask task) {

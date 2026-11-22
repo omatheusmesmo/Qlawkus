@@ -189,7 +189,7 @@ A firing writes a start and an end line, both named by the task id, with the des
 
 ----
 Job qlawkus-task-... started
-Job qlawkus-task-... finished duration=3120ms destination=telegram outcome=delivered
+Job qlawkus-task-... finished duration=3120ms destination=telegram outcome=queued
 Job qlawkus-task-... finished duration=840ms destination=telegram outcome=no-reply
 Job qlawkus-task-... failed duration=512ms error=IllegalStateException
 ----
@@ -229,7 +229,7 @@ Task did not fire::
 Run `listScheduledTasks`. A `missed` task was due while the agent was down and was not run: cancel it and schedule it again. An `invalid` task has a schedule the scheduler cannot run. For an `active` task, look for its `Job ... started` line at the fire time. If there is none, check that the agent was running at that time and that the boot log shows `Restored agent tasks` with the task registered. Check the zone in the schedule reply, because a time that is correct in your zone may not be correct in `qlawkus.agent.timezone`.
 
 Delivered nowhere::
-A `finished ... outcome=no-reply` line means the run produced a blank reply, which delivers nothing. A `failed` line means the run threw. A `finished ... outcome=delivered` line with no message on the chat means the platform refused it: look for `WorkflowResultDeliveryListener: failed to deliver result` and the provider's own error. Also confirm the owner's sender is on the messaging allowlist, because only accepted messages record the owner's chat. A task that names a provider with no recorded chat is refused at schedule time, so it cannot be scheduled to go nowhere.
+A `finished ... outcome=no-reply` line means the run produced a blank reply, which delivers nothing. A `failed` line means the run threw. A `finished ... outcome=queued` line means the agent handed the reply to the messaging layer. Look for `Reply delivered` or `Reply delivery failed` to see what the provider accepted. If the PostgreSQL debug history is enabled, look up the task ID and then its run ID to follow the entire execution through delivery. See xref:operations.adoc#_postgresql_debug_history[PostgreSQL debug history]. Also confirm the owner's sender is on the messaging allowlist, because only accepted messages record the owner's chat. A task that names a provider with no recorded chat is refused at schedule time, so it cannot be scheduled to go nowhere.
 
 Wrong timezone::
 Every cron is read in `qlawkus.agent.timezone`, not in the server's zone or the owner's. Set that property to the owner's zone and restart. Restoring at that restart re-registers every task in the new zone, so check `listScheduledTasks` afterwards.

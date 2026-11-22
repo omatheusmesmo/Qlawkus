@@ -209,7 +209,7 @@ class DynamicTaskSchedulerTest {
     }
 
     @Test
-    void aFiredTaskLogsItsStartAndDeliveredOutcomeButNotItsText() {
+    void aFiredTaskLogsItsStartAndQueuedOutcomeButNotItsText() {
         String id = tasks.create(MEMORY, TELEGRAM, "bake the cake", RECURRING).task().id();
         when(runner.chat(eq(MEMORY), anyString())).thenReturn("cake is ready");
 
@@ -220,7 +220,7 @@ class DynamicTaskSchedulerTest {
                     .filter(m -> m.contains(id)).toList();
             assertTrue(lines.stream().anyMatch(m -> m.equals("Job " + id + " started")), lines.toString());
             assertTrue(lines.stream().anyMatch(m -> m.startsWith("Job " + id + " finished")
-                    && m.contains("destination=telegram") && m.contains("outcome=delivered")), lines.toString());
+                    && m.contains("destination=telegram") && m.contains("outcome=queued")), lines.toString());
             assertTrue(lines.stream().noneMatch(m -> m.contains("bake the cake")), lines.toString());
         }
     }
