@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.messaging.telegram;
 
+import dev.omatheusmesmo.qlawkus.attachment.AttachmentRejected;
+import dev.omatheusmesmo.qlawkus.attachment.ChatAttachment;
 import dev.omatheusmesmo.qlawkus.messaging.MediaDownloader;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingFormat;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
@@ -25,6 +27,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -204,7 +207,43 @@ public class TelegramProviderAdapter implements MessagingProvider {
         String userId = String.valueOf(msg.from().id());
         String chatId = String.valueOf(msg.chat().id());
         String text = msg.text() != null ? msg.text() : "";
-        return new MessagingMessage("telegram", chatId, userId, text, extractVoice(msg));
+        var attachments = mapAttachments(msg);
+        if (!attachments.isEmpty() && msg.caption() != null) text = msg.caption();
+        return new MessagingMessage("telegram", chatId, userId, text, extractVoice(msg), attachments);
+    }
+
+    private List<ChatAttachment> mapAttachments(TelegramUpdate.TelegramMessage message) {
+        if (message.document() != null) {
+            var document = message.document();
+            return List.of(new ChatAttachment(document.mimeType(), document.size(), () -> fetchAttachment(document.fileId())));
+        }
+        if (message.photo() == null || message.photo().isEmpty()) return List.of();
+        // Telegram lists the available renditions in size order. Keep the largest that could fit.
+        for (var photo : message.photo().reversed()) {
+            if (photo.size() == null || photo.size() <= ChatAttachment.MAX_BYTES) {
+                return List.of(new ChatAttachment("image/jpeg", photo.size(), () -> fetchAttachment(photo.fileId())));
+            }
+        }
+        var photo = message.photo().getFirst();
+        return List.of(new ChatAttachment("image/jpeg", photo.size(), () -> fetchAttachment(photo.fileId())));
+    }
+
+    private byte[] fetchAttachment(String fileId) {
+        String token = botToken().orElseThrow(() -> new AttachmentRejected("Telegram attachment download is unavailable."));
+        if (fileId == null || !fileId.matches("[a-zA-Z0-9_-]{1,512}")) {
+            throw new AttachmentRejected("Invalid Telegram attachment ID.");
+        }
+        TelegramBotClient.GetFileResponse file;
+        try {
+            file = botClient.getFile(token, fileId);
+        } catch (RuntimeException unavailable) {
+            throw new AttachmentRejected("Could not locate the Telegram attachment.");
+        }
+        String path = file == null || file.result() == null ? null : file.result().filePath();
+        if (path == null || !path.matches("[a-zA-Z0-9_-][a-zA-Z0-9_./-]*") || path.contains("..")) {
+            throw new AttachmentRejected("Telegram returned an invalid attachment path.");
+        }
+        return mediaDownloader.downloadAttachment(URI.create(config.apiBaseUrl() + "/file/bot" + token + "/" + path));
     }
 
     private Optional<byte[]> extractVoice(TelegramUpdate.TelegramMessage msg) {

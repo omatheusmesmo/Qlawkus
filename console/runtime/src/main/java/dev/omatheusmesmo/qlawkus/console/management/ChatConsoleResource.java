@@ -1,10 +1,12 @@
 package dev.omatheusmesmo.qlawkus.console.management;
 
+import dev.omatheusmesmo.qlawkus.attachment.AttachmentChat;
 import dev.omatheusmesmo.qlawkus.console.ConsoleConfig;
 import io.quarkus.qute.Location;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.TemplateInstance;
 import io.quarkus.security.Authenticated;
+import jakarta.enterprise.inject.Instance;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -28,16 +30,20 @@ public class ChatConsoleResource {
 
     private final Template chatTemplate;
     private final ConsoleConfig config;
+    private final Instance<AttachmentChat> attachments;
 
-    public ChatConsoleResource(@Location("console/chat.html") Template chatTemplate, ConsoleConfig config) {
+    public ChatConsoleResource(@Location("console/chat.html") Template chatTemplate, ConsoleConfig config,
+            Instance<AttachmentChat> attachments) {
         this.chatTemplate = chatTemplate;
         this.config = config;
+        this.attachments = attachments;
     }
 
     @GET
     public TemplateInstance page() {
         return chatTemplate.data("active", "chat")
                 .data("endpoint", CHAT_ENDPOINT)
+                .data("attachmentsEnabled", attachments.isResolvable())
                 .data("toolProgress", config.chat().toolProgress().wireName());
     }
 }

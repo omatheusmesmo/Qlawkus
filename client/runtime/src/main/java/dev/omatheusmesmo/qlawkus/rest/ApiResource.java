@@ -9,21 +9,34 @@ import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.agent.AgentStream;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;
 import dev.omatheusmesmo.qlawkus.agent.ToolProgress;
+import dev.omatheusmesmo.qlawkus.attachment.AttachmentChat;
+import dev.omatheusmesmo.qlawkus.attachment.AttachmentRejected;
+import dev.omatheusmesmo.qlawkus.attachment.ChatAttachment;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.dto.ChatRequest;
 import io.quarkus.security.Authenticated;
+import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Multi;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.sse.OutboundSseEvent;
 import jakarta.ws.rs.sse.Sse;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import org.jboss.resteasy.reactive.RestForm;
+import org.jboss.resteasy.reactive.multipart.FileUpload;
 
 /**
  * Chat endpoints. {@code POST /api/chat} streams server-sent events: the reply text as plain unnamed
@@ -48,6 +61,9 @@ public class ApiResource {
 
     @Inject
     AgentConfig agentConfig;
+
+    @Inject
+    Instance<AttachmentChat> attachmentChat;
 
     @Inject
     AgentDeliveryContext delivery;
@@ -79,6 +95,56 @@ public class ApiResource {
         String conversation = conversationId();
         return agentStream.stream(conversation, request.message(), restOrigin(conversation))
                 .onItem().transformToIterable(event -> frame(event, mode, sse));
+    }
+
+    @POST
+    @Path("/chat")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.SERVER_SENT_EVENTS)
+    @Blocking
+    public Multi<OutboundSseEvent> chatWithAttachments(
+            @HeaderParam("X-Qlawkus-Attachments") String attachmentRequest,
+            @RestForm("message") String message,
+            @RestForm("attachments") List<FileUpload> uploads,
+            @Context Sse sse) {
+        // Multipart is a browser-simple content type. Require an explicit, non-simple header
+        // so a cross-origin form cannot submit this request with cached Basic authorization.
+        if (!"1".equals(attachmentRequest)) {
+            throw attachmentError(Response.Status.BAD_REQUEST, "Set X-Qlawkus-Attachments to 1.");
+        }
+        if (!attachmentChat.isResolvable()) {
+            throw attachmentError(Response.Status.SERVICE_UNAVAILABLE, "Attachment analysis is unavailable in this distribution.");
+        }
+        if (message != null && message.length() > ChatAttachment.MAX_QUESTION_CHARS) {
+            throw attachmentError(Response.Status.BAD_REQUEST, "The attachment question can contain up to 16,000 characters.");
+        }
+        try {
+            if (uploads == null || uploads.isEmpty() || uploads.size() > ChatAttachment.MAX_COUNT) {
+                throw new AttachmentRejected("Send between one and three attachments per message.");
+            }
+            List<ChatAttachment> attachments = uploads.stream()
+                    .map(upload -> new ChatAttachment(upload.contentType(), upload.size(), () -> readUpload(upload)))
+                    .toList();
+            long start = System.nanoTime();
+            String reply = attachmentChat.get().answer(message, attachments);
+            long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            return Multi.createFrom().items(plain(sse, reply), named(sse, DONE,
+                    doneNode(new AgentEvent.Done(null, null, 0, duration))));
+        } catch (AttachmentRejected rejected) {
+            throw attachmentError(Response.Status.BAD_REQUEST, rejected.getMessage());
+        }
+    }
+
+    private static byte[] readUpload(FileUpload upload) {
+        try (var stream = Files.newInputStream(upload.uploadedFile())) {
+            return ChatAttachment.readBounded(stream);
+        } catch (IOException unavailable) {
+            throw new AttachmentRejected("Could not read the uploaded attachment.");
+        }
+    }
+
+    private static WebApplicationException attachmentError(Response.Status status, String message) {
+        return new WebApplicationException(Response.status(status).type(MediaType.TEXT_PLAIN).entity(message).build());
     }
 
     private Iterable<OutboundSseEvent> frame(AgentEvent event, ToolProgress mode, Sse sse) {

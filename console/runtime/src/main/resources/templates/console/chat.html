@@ -17,6 +17,10 @@
         <label class="sr-only" for="chat-input">Message</label>
         <textarea id="chat-input" name="message" rows="1" placeholder="Message the agent" autocomplete="off"></textarea>
         <button type="submit" id="chat-send">Send</button>
+        {#if attachmentsEnabled}
+        <label for="chat-attachments">Attach PDF, PNG or JPEG</label>
+        <input type="file" id="chat-attachments" name="attachments" accept=".pdf,.png,.jpg,.jpeg" multiple>
+        {/if}
     </form>
 </section>
 {/include}

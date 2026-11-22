@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.messaging.telegram;
 
+import dev.omatheusmesmo.qlawkus.attachment.AttachmentRejected;
 import dev.omatheusmesmo.qlawkus.messaging.MediaDownloader;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingFormat;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
@@ -9,6 +10,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -102,6 +105,46 @@ class TelegramProviderAdapterTest {
 
         assertTrue(msg.audio().isPresent());
         assertArrayEquals(new byte[]{9, 8, 7}, msg.audio().get());
+    }
+
+    @Test
+    void mapsDocumentCaptionAndDefersGetFileUntilIngestion() {
+        var downloader = Mockito.mock(MediaDownloader.class);
+        adapter.mediaDownloader = downloader;
+        when(config.apiBaseUrl()).thenReturn("https://api.telegram.org");
+        when(botClient.getFile("123:token", "file-id")).thenReturn(new TelegramBotClient.GetFileResponse(true,
+                new TelegramBotClient.FileResult("documents/file_1.pdf")));
+        when(downloader.downloadAttachment(URI.create("https://api.telegram.org/file/bot123:token/documents/file_1.pdf")))
+                .thenReturn(new byte[]{1, 2, 3});
+        var update = new TelegramUpdate(1L, new TelegramUpdate.TelegramMessage(10L,
+                new TelegramUpdate.TelegramUser(42L, "Alice", "alice"),
+                new TelegramUpdate.TelegramChat(42L, "private"), null, null, "Summarize the PDF",
+                new TelegramUpdate.TelegramDocument("file-id", "application/pdf", 3L), null));
+
+        MessagingMessage message = adapter.mapUpdate(update);
+
+        assertEquals("Summarize the PDF", message.text());
+        verifyNoInteractions(botClient, downloader);
+        assertEquals("application/pdf", message.attachments().getFirst().mediaType());
+        assertArrayEquals(new byte[]{1, 2, 3}, message.attachments().getFirst().read());
+    }
+
+    @Test
+    void rejectsPathsOutsideTheTelegramFileRoute() {
+        var downloader = Mockito.mock(MediaDownloader.class);
+        adapter.mediaDownloader = downloader;
+        when(botClient.getFile("123:token", "unsafe")).thenReturn(new TelegramBotClient.GetFileResponse(true,
+                new TelegramBotClient.FileResult("documents/../../unexpected")));
+        var update = new TelegramUpdate(1L, new TelegramUpdate.TelegramMessage(10L,
+                new TelegramUpdate.TelegramUser(42L, "Alice", "alice"),
+                new TelegramUpdate.TelegramChat(42L, "private"), null, null, null, null,
+                List.of(new TelegramUpdate.TelegramPhoto("unsafe", 9L))));
+
+        var attachment = adapter.mapUpdate(update).attachments().getFirst();
+
+        assertEquals("image/jpeg", attachment.mediaType());
+        assertThrows(AttachmentRejected.class, attachment::read);
+        verifyNoInteractions(downloader);
     }
 
     @Test

@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.messaging;
 
+import dev.omatheusmesmo.qlawkus.attachment.AttachmentRejected;
+import dev.omatheusmesmo.qlawkus.attachment.ChatAttachment;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.faulttolerance.Retry;
@@ -27,6 +29,7 @@ public class MediaDownloader {
     void init() {
         this.client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
+            .followRedirects(HttpClient.Redirect.NEVER)
             .build();
     }
 
@@ -54,6 +57,30 @@ public class MediaDownloader {
             Thread.currentThread().interrupt();
             throw new MediaDownloadException("media download interrupted", e);
         }
+    }
+
+    /**
+     * Channels supply only a trusted platform URL. Reject redirects and enforce the byte
+     * limit during receipt, including when the platform omits Content-Length.
+     */
+    @Timeout(value = 30, unit = ChronoUnit.SECONDS)
+    public byte[] downloadAttachment(URI uri) {
+        HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(25)).build();
+        try {
+            var response = client.send(request, metadata -> metadata.statusCode() == 200
+                    ? HttpResponse.BodyHandlers.limiting(HttpResponse.BodyHandlers.ofByteArray(),
+                            ChatAttachment.MAX_BYTES).apply(metadata)
+                    : HttpResponse.BodySubscribers.replacing(null));
+            if (response.statusCode() == 200) {
+                ChatAttachment.checkSize(response.body().length);
+                return response.body();
+            }
+        } catch (IOException e) {
+            throw new AttachmentRejected("Could not download the attachment within the size limit.");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        throw new AttachmentRejected("Could not download the attachment from the messaging provider.");
     }
 
     public static class MediaDownloadException extends RuntimeException {

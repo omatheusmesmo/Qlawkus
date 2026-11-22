@@ -133,6 +133,16 @@ A plain `docker compose restart` reuses the existing container and does not re-r
 
 The webhook path is `/api/webhook/telegram` (the Slack and WhatsApp adapters, when enabled, use `/api/webhook/slack` and `/api/webhook/whatsapp`).
 
+== Documents and images
+
+Attach a PDF, PNG or JPEG in the console chat, or send it to the bot in Discord or Telegram. Add a question in the chat message or caption. With a file alone, Qlawkus describes its contents. Each file can contain up to 2 MiB. The console and Discord accept up to three files per message. Telegram analyzes each document or photo message separately.
+
+The optional `attachments` capability adds PDF text extraction and image analysis. It reads up to 20 pages and 12,000 characters of text per PDF. Scanned and password-protected PDFs need to be converted before upload. To enable images, set `qlawkus.attachments.image-model` to an existing image-capable model tier, such as `fallback` for a compatible local Ollama model.
+
+Attachment analysis uses the files and the accompanying question for that request. It keeps the supplied files and extracted text out of persistent working memory. Choose the model tier with the file contents in mind, since the configured provider receives the extracted text or image for analysis.
+
+API clients can send `multipart/form-data` to the authenticated `POST /api/chat` with header `X-Qlawkus-Attachments: 1`, an optional `message` part and one `attachments` part per file. The response uses the existing server-sent events format.
+
 == Voice Support
 
 Voice messages are supported on both Discord and Telegram via file attachments (the bot does not join voice channels). When a user sends a voice message:
