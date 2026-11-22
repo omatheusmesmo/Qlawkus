@@ -275,7 +275,8 @@ class DynamicTaskSchedulerPersistenceTest {
     }
 
     private DynamicTaskScheduler schedulerOver(ScheduledTaskStore backing) {
-        return new DynamicTaskScheduler(scheduler, runner, delivery, events, config, backing, mock(TaskAudit.class));
+        return new DynamicTaskScheduler(scheduler, runner, delivery, events, mock(Event.class),
+                config, backing, mock(TaskAudit.class));
     }
 
     private ScheduledTask recordOf(String id) {

@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.metrics;
 
+import dev.omatheusmesmo.qlawkus.task.TaskAuditEvent;
+import dev.omatheusmesmo.qlawkus.task.TaskAuditEvent.Stage;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +21,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class AgentMetersTest {
 
     private static final String OUTCOME = "outcome";
+
+    @Test
+    void countsExecutionSeparatelyFromDeliveryAndNotices() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        AgentMeters meters = new AgentMeters(registry);
+
+        for (Stage stage : new Stage[] {Stage.STARTED, Stage.EXECUTION_FAILED, Stage.FAILURE_NOTICE_SENT}) {
+            meters.taskTransition(new TaskAuditEvent("task", null, "telegram", stage, null, null, null, null, null));
+        }
+
+        assertEquals(1.0, registry.get(AgentMeters.TASK_FIRED).tag(OUTCOME, "execution_failed").counter().count());
+        assertEquals(1.0, registry.get(AgentMeters.TASK_DELIVERY).tag(OUTCOME, "notice_sent").counter().count());
+        assertEquals(2, registry.getMeters().size());
+    }
 
     /**
      * The regression. An embed that throws must be counted as a failure, because a fact that never

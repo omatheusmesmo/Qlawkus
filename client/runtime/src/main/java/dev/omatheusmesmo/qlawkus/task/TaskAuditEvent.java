@@ -9,6 +9,7 @@ public record TaskAuditEvent(String taskId, UUID runId, String provider, Stage s
                              Integer acceptedParts, Integer totalParts) {
     public enum Stage {
         SCHEDULED, RESTORED, MISSED, INVALID, CANCELLED, STARTED, NO_REPLY, QUEUED, EXECUTION_FAILED,
-        DELIVERY_SENT, DELIVERY_PARTIAL, DELIVERY_FAILED, DELIVERY_NO_PROVIDER
+        DELIVERY_SENT, DELIVERY_PARTIAL, DELIVERY_FAILED, DELIVERY_NO_PROVIDER,
+        FAILURE_NOTICE_SENT, FAILURE_NOTICE_FAILED
     }
 }

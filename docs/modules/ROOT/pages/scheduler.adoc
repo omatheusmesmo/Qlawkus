@@ -174,8 +174,10 @@ At fire time:
 * A one-time task is removed from the scheduler and the store before the model is called. A run that then fails is not repeated.
 * The run uses the interactive workload, so it is not abandoned by the background bulkhead. Overlapping runs of the same task are skipped.
 * A reply that is blank delivers nothing.
-* A run that throws is logged and sends nothing. The owner is not told about the failure, so check the logs.
-* Delivery is best effort. A reply that was not sent before a crash is not sent again after the restart. The messaging listener logs an error when a platform refuses a reply.
+* A run that throws logs the failure and tries to send the owner a short notice at the task destination.
+* Delivery is best effort. When a provider rejects all or part of a scheduled reply, Qlawkus makes one best-effort attempt to send a notice to the same destination. When the provider is inactive, the delivery record shows that outcome. The run itself is never repeated automatically. A reply or failure notice queued in memory is lost on restart.
+
+The notice contains the task ID and a short explanation. It omits task instructions and provider error messages. The PostgreSQL journal records `FAILURE_NOTICE_SENT` or `FAILURE_NOTICE_FAILED` under the original run ID when a notice is attempted.
 
 == What the logs say
 
