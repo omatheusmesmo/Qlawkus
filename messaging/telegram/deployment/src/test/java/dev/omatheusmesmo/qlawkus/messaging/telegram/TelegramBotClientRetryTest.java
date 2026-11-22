@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Transient failures (429, 5xx, network) are retried with backoff; permanent failures (a bad token,
@@ -52,6 +53,23 @@ class TelegramBotClientRetryTest {
                 new TelegramBotClient.SendMessageRequest("123", "hello", null));
 
         wiremock.verifyThat(2, WireMock.postRequestedFor(WireMock.urlEqualTo("/bottest-token/sendMessage")));
+    }
+
+    @Test
+    void registersTheWebhookWithTheTelegramSecretTokenField() {
+        String path = "/bottest-token/setWebhook";
+        String url = "https://bot.example.test/api/webhook/telegram";
+        String secret = "test-hook_secret";
+        wiremock.register(WireMock.post(WireMock.urlEqualTo(path))
+                .willReturn(WireMock.okJson("{\"ok\":true,\"result\":true}")));
+
+        var response = client.setWebhook("test-token", new TelegramBotClient.SetWebhookRequest(url, secret))
+                .await().indefinitely();
+
+        assertTrue(response.ok() && response.result());
+        wiremock.verifyThat(WireMock.postRequestedFor(WireMock.urlEqualTo(path))
+                .withRequestBody(WireMock.matchingJsonPath("$.url", WireMock.equalTo(url)))
+                .withRequestBody(WireMock.matchingJsonPath("$.secret_token", WireMock.equalTo(secret))));
     }
 
     @Test

@@ -121,8 +121,20 @@ Webhook:
 export QLAWKUS_MESSAGING_TELEGRAM_BOT_TOKEN=your-bot-token
 export QLAWKUS_MESSAGING_TELEGRAM_MODE=webhook
 export QLAWKUS_MESSAGING_TELEGRAM_WEBHOOK_URL=https://yourdomain.com/api/webhook/telegram
+export QLAWKUS_MESSAGING_TELEGRAM_WEBHOOK_SECRET_TOKEN=your-random-webhook-secret
 export QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_TELEGRAM=123456789
 ----
+
+When the webhook URL is configured, Qlawkus registers it on startup. Store the shared secret
+under `qlawkus.messaging.telegram.webhook-secret-token` in the encrypted keystore, or use the
+environment variable above. Use a strong random value with up to 256 letters, digits, underscores
+or hyphens. With a secret configured, every webhook request must carry the matching
+`X-Telegram-Bot-Api-Secret-Token` header.
+
+For a webhook registered separately, omit the URL in Qlawkus and use the same `secret_token` on
+the https://core.telegram.org/bots/api#setwebhook[Telegram Bot API registration]. Document and photo webhooks require a shared secret.
+Existing text and voice webhooks can still run without it. Polling uses the bot token to fetch
+updates from Telegram and requires no additional webhook secret.
 
 The allowlist denies by default, as on Discord: an unset or empty list rejects everyone, and `*` allows
 anyone (use it only for a throwaway bot). To find your numeric ID, message @userinfobot on Telegram; it
@@ -135,7 +147,7 @@ The webhook path is `/api/webhook/telegram` (the Slack and WhatsApp adapters, wh
 
 == Documents and images
 
-Attach a PDF, PNG or JPEG in the console chat, or send it to the bot in Discord or Telegram. Add a question in the chat message or caption. With a file alone, Qlawkus describes its contents. Each file can contain up to 2 MiB. The console and Discord accept up to three files per message. Telegram analyzes each document or photo message separately.
+Attach a PDF, PNG or JPEG in the console chat, or send it to the bot in Discord or Telegram. Add a question in the chat message or caption. With a file alone, Qlawkus describes its contents. Each file can contain up to 2 MiB. The console and Discord accept up to three files per message. Telegram analyzes each document or photo message separately. Webhook delivery of those updates requires the shared secret described above.
 
 The optional `attachments` capability adds PDF text extraction and image analysis. It reads up to 20 pages and 12,000 characters of text per PDF. Scanned and password-protected PDFs need to be converted before upload. To enable images, set `qlawkus.attachments.image-model` to an existing image-capable model tier, such as `fallback` for a compatible local Ollama model.
 

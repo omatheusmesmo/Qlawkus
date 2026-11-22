@@ -22,6 +22,7 @@ public final class SecretPropertyCatalog {
             "qlawkus.google.vault.encryption-passphrase",
             "qlawkus.messaging.discord.bot-token",
             "qlawkus.messaging.telegram.bot-token",
+            "qlawkus.messaging.telegram.webhook-secret-token",
             "qlawkus.messaging.transcription.api-key",
             "quarkus.datasource.password",
             "quarkus.datasource.\"google-auth\".password",

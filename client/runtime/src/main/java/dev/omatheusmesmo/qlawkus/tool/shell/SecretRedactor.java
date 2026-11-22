@@ -37,8 +37,11 @@ public class SecretRedactor {
     private static final Pattern TELEGRAM_TOKEN = Pattern.compile("\\b\\d{8,12}:[A-Za-z0-9_-]{35}\\b");
 
     private static final Pattern CREDENTIAL_HEADER = Pattern.compile(
-            "(?i)\\b(authorization|proxy-authorization|x-api-key|api-key|apikey|x-auth-token)\\b(\\s*[:=]\\s*)"
+            "(?i)\\b(authorization|proxy-authorization|x-api-key|api-key|apikey|x-auth-token|x-telegram-bot-api-secret-token)\\b(\\s*[:=]\\s*)"
                     + "(?:(?:Bearer|Basic|Token)\\s+)?[^\\s,;&\"']+");
+
+    private static final Pattern TELEGRAM_WEBHOOK_JSON =
+            Pattern.compile("(\"secret_token\"\\s*:\\s*\")[A-Za-z0-9_-]+(\")");
 
     private static final Pattern BEARER = Pattern.compile("(?i)\\bBearer\\s+[A-Za-z0-9._~+/=-]{8,}");
 
@@ -67,6 +70,7 @@ public class SecretRedactor {
         }
         result = GITHUB_TOKEN.matcher(result).replaceAll(MASK);
         result = CREDENTIAL_HEADER.matcher(result).replaceAll("$1$2" + MASK);
+        result = TELEGRAM_WEBHOOK_JSON.matcher(result).replaceAll("$1" + MASK + "$2");
         result = BEARER.matcher(result).replaceAll("Bearer " + MASK);
         result = CREDENTIAL_QUERY.matcher(result).replaceAll("$1" + MASK);
         result = TELEGRAM_URL_TOKEN.matcher(result).replaceAll(MASK);

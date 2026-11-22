@@ -7,6 +7,7 @@ import dev.omatheusmesmo.qlawkus.http.HttpRetryClassifier;
 import dev.omatheusmesmo.qlawkus.http.TransientHttpException;
 import io.quarkus.rest.client.reactive.ClientExceptionMapper;
 import io.smallrye.faulttolerance.api.ExponentialBackoff;
+import io.smallrye.mutiny.Uni;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import jakarta.ws.rs.Consumes;
@@ -90,6 +91,16 @@ public interface TelegramBotClient {
                                   @QueryParam("offset") long offset,
                                   @QueryParam("timeout") int timeout);
 
+    @POST
+    @Path("/setWebhook")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Retry(maxRetries = 3, delay = 500, delayUnit = ChronoUnit.MILLIS,
+            jitter = 200, jitterDelayUnit = ChronoUnit.MILLIS,
+            retryOn = {TransientHttpException.class, jakarta.ws.rs.ProcessingException.class})
+    @ExponentialBackoff(maxDelay = 8000, maxDelayUnit = ChronoUnit.MILLIS)
+    Uni<SetWebhookResponse> setWebhook(@PathParam("token") String token, SetWebhookRequest request);
+
     @GET
     @Path("/deleteWebhook")
     @Produces(MediaType.APPLICATION_JSON)
@@ -104,6 +115,17 @@ public interface TelegramBotClient {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     void sendChatAction(@PathParam("token") String token, SendChatActionRequest request);
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record SetWebhookRequest(String url, @JsonProperty("secret_token") String secretToken) {
+        @Override
+        public String toString() {
+            return "SetWebhookRequest";
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record SetWebhookResponse(boolean ok, boolean result) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record SendMessageRequest(

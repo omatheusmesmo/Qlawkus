@@ -70,5 +70,46 @@ endif::add-copy-button-to-env-var[]
 |string
 |`+++polling+++`
 
-|===
+a| [[qlawkus-messaging-telegram_qlawkus-messaging-telegram-webhook-url]] [.property-path]##link:#qlawkus-messaging-telegram_qlawkus-messaging-telegram-webhook-url[`+++qlawkus.messaging.telegram.webhook-url+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.telegram.webhook-url+++[]
+endif::add-copy-button-to-config-props[]
 
+
+[.description]
+--
+Public HTTPS URL registered with Telegram on startup in webhook mode.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TELEGRAM_WEBHOOK_URL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TELEGRAM_WEBHOOK_URL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-messaging-telegram_qlawkus-messaging-telegram-webhook-secret-token]] [.property-path]##link:#qlawkus-messaging-telegram_qlawkus-messaging-telegram-webhook-secret-token[`+++qlawkus.messaging.telegram.webhook-secret-token+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.messaging.telegram.webhook-secret-token+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Telegram webhook shared secret. Use 1–256 letters, digits, underscores or hyphens. When set, every webhook update must carry the matching header. Document and photo webhooks require this secret, including when the webhook is registered outside Qlawkus.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_MESSAGING_TELEGRAM_WEBHOOK_SECRET_TOKEN+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_MESSAGING_TELEGRAM_WEBHOOK_SECRET_TOKEN+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+|===
