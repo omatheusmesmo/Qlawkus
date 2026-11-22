@@ -8,9 +8,13 @@ document.addEventListener("htmx:afterRequest", function (event) {
     return;
   }
   var ok = xhr.status === 204;
+  var source = detail.elt;
+  if (ok && source && source.hasAttribute("data-refresh-on-success")) {
+    window.location.reload();
+    return;
+  }
   var text;
   if (ok) {
-    var source = detail.elt;
     var announcer = source && (source.hasAttribute("data-ok") ? source : source.querySelector("[data-ok]"));
     text = (announcer && announcer.getAttribute("data-ok")) || "Done.";
   } else {

@@ -6,6 +6,8 @@ The agent can schedule work for later at the owner's request: a reminder in twen
 
 Agent-created tasks are kept apart from the application's own background jobs (memory review, curation, consolidation, skill lifecycle). Each task is a Quartz job registered under an id that starts with `qlawkus-task-`, so cancelling a task can never touch one of those jobs.
 
+The authenticated Schedule page at `/console/schedule` lists the same agent-scheduled tasks with their next run, status and destination. Cancelling from the page uses the same scheduler registry as `cancelScheduledTask`.
+
 == What the agent can do
 
 Three tools, all available to the model in every conversation:

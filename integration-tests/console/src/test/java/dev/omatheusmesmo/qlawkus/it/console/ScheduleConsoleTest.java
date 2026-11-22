@@ -5,7 +5,10 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
+import dev.omatheusmesmo.qlawkus.task.DynamicTaskScheduler;
+import dev.omatheusmesmo.qlawkus.task.TaskDestination;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -18,6 +21,38 @@ class ScheduleConsoleTest {
 
   private static final String USER = "qlawkus";
   private static final String PASS = "qlawkus-test";
+
+  @Inject DynamicTaskScheduler tasks;
+
+  @Test
+  void scheduledTasksAppearWithTheirDestinationAndCanOnlyBeCancelledByAnAuthenticatedOwner() {
+    var task = tasks.create("schedule-console", new TaskDestination("discord", "fixture-chat"),
+        "Send the <agenda> summary", "0 0 6 * * ? *");
+    String id = task.task().id();
+    String path = "/api/admin/scheduled-tasks/" + id;
+    try {
+      given().auth().preemptive().basic(USER, PASS).when().get("/console/schedule").then()
+          .statusCode(200)
+          .body(containsString("Agent-scheduled tasks"))
+          .body(containsString("Send the &lt;agenda&gt; summary"))
+          .body(containsString("0 0 6 * * ? *"))
+          .body(containsString("fixture-chat"))
+          .body(containsString(tasks.zone().getId()))
+          .body(containsString("hx-delete=\"" + path + "\""));
+
+      given().when().delete(path).then().statusCode(401);
+      given().auth().preemptive().basic(USER, PASS).when().delete("/api/admin/scheduled-tasks/memory-review")
+          .then().statusCode(404);
+      given().auth().preemptive().basic(USER, PASS).when().delete(path).then().statusCode(204);
+      given().auth().preemptive().basic(USER, PASS).when().get("/console/schedule").then()
+          .statusCode(200)
+          .body(not(containsString("fixture-chat")))
+          .body(containsString("No tasks are scheduled by the agent."))
+          .body(containsString("qlawkus.memory-review.cron"));
+    } finally {
+      tasks.cancel(id);
+    }
+  }
 
   @Test
   void page_requiresAuthentication() {
