@@ -16,6 +16,7 @@ import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.HtmlInline;
 import org.commonmark.node.Image;
 import org.commonmark.node.IndentedCodeBlock;
+import org.commonmark.node.ListItem;
 import org.commonmark.node.Node;
 import org.commonmark.node.Paragraph;
 import org.commonmark.node.SoftLineBreak;
@@ -24,9 +25,9 @@ import org.commonmark.parser.IncludeSourceSpans;
 import org.commonmark.parser.Parser;
 
 /**
- * Speech-only rendering of streamed Markdown. Complete blocks use the upstream CommonMark parser,
- * so delimiters and fenced code may cross model chunks. A still-open block waits for completion,
- * which can delay the first audio of a single long paragraph. The original screen text is untouched.
+ * Renders streamed model output as prose for the voice transcript and synthesis. Complete blocks
+ * use CommonMark so delimiters and fenced code may cross model chunks. A still-open block waits for
+ * completion.
  */
 final class SpeechText {
     static final int MAX_SOURCE_CHARS = 65_536;
@@ -76,16 +77,17 @@ final class SpeechText {
     private static String render(Node document) {
         PlainSpeech visitor = new PlainSpeech();
         document.accept(visitor);
+        return normalize(visitor.text.toString());
+    }
+
+    private static String normalize(String text) {
         StringBuilder clean = new StringBuilder();
-        String text = visitor.text.toString();
         boolean space = false;
         for (int offset = 0; offset < text.length();) {
             int point = text.codePointAt(offset);
             offset += Character.charCount(point);
             int after = offset < text.length() ? text.codePointAt(offset) : -1;
-            if (Character.isEmojiPresentation(point) || Character.isExtendedPictographic(point)
-                    || Character.isEmojiModifier(point) || point == 0x200d || point == 0xfe0f
-                    || point == 0xfe0e || point == 0x20e3 || Character.getType(point) == Character.SURROGATE) continue;
+            if (decorative(point)) continue;
             if ((point >= '0' && point <= '9' || point == '#' || point == '*')
                     && (after == 0x20e3 || after == 0xfe0f && offset + 1 < text.length()
                     && text.codePointAt(offset + 1) == 0x20e3)) continue;
@@ -100,7 +102,13 @@ final class SpeechText {
         return clean.toString();
     }
 
-    /** Visits text only: presentation, destinations and code blocks are not useful spoken output. */
+    private static boolean decorative(int point) {
+        return Character.isEmojiPresentation(point) || Character.isExtendedPictographic(point)
+                || Character.isEmojiModifier(point) || point == 0x200d || point == 0xfe0f
+                || point == 0xfe0e || point == 0x20e3 || Character.getType(point) == Character.SURROGATE;
+    }
+
+    /** Extracts readable words and gives structured fragments a natural pause. */
     private static final class PlainSpeech extends AbstractVisitor {
         private final StringBuilder text = new StringBuilder();
 
@@ -108,13 +116,33 @@ final class SpeechText {
         @Override public void visit(Code node) { text.append(node.getLiteral()); }
         @Override public void visit(SoftLineBreak node) { text.append(' '); }
         @Override public void visit(HardLineBreak node) { text.append(' '); }
-        @Override public void visit(Paragraph node) { visitChildren(node); text.append(' '); }
-        @Override public void visit(Heading node) { visitChildren(node); text.append(' '); }
+        @Override public void visit(Paragraph node) { block(node, node.getParent() instanceof ListItem); }
+        @Override public void visit(Heading node) { block(node, true); }
         @Override public void visit(FencedCodeBlock node) { }
         @Override public void visit(IndentedCodeBlock node) { }
         @Override public void visit(HtmlBlock node) { }
         @Override public void visit(HtmlInline node) { }
         @Override public void visit(Image node) { }
         @Override public void visit(CustomBlock node) { if (!(node instanceof TableBlock)) visitChildren(node); }
+
+        private void block(Node node, boolean pause) {
+            int start = text.length();
+            visitChildren(node);
+            if (pause) {
+                String phrase = normalize(text.substring(start));
+                text.setLength(start);
+                text.append(phrase);
+                if (!phrase.isEmpty()) {
+                    int end = text.length() - 1;
+                    char last = text.charAt(end);
+                    if (last == ':' || last == ';') {
+                        text.setCharAt(end, '.');
+                    } else if (last != '.' && last != '!' && last != '?') {
+                        text.append('.');
+                    }
+                }
+            }
+            text.append(' ');
+        }
     }
 }

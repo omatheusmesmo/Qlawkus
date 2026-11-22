@@ -197,13 +197,15 @@ to ordinary text chat. All channels also ask the agent to follow the language of
 request, unless the owner requests another language; quoted material and retrieved documents do not
 choose the reply language.
 
-As a fallback, the voice extension renders the reply's CommonMark syntax into speech text before
-sentence splitting. Emphasis and list markers disappear, links keep their labels, and fenced or indented
-code, tables, HTML blocks, images and emoji are omitted. The on-screen transcript keeps the original
-reply. Rendering waits for complete blocks, or the end of the turn, so a single long paragraph can delay
-the first audio even while text is already streaming. At most 65536 source characters per turn enter
-this speech renderer; the rest remain visible but are not spoken, and the socket reports
-`speech-text-truncated`. The existing sentence and speech queue limits still apply afterwards.
+The voice extension renders CommonMark into the same plain text for the screen transcript and speech.
+Emphasis and list markers disappear, links keep their labels, and fenced or indented code, tables,
+HTML blocks, images and emoji are omitted. Headings and list items receive sentence punctuation so
+they have a pause when spoken. The original reply is stored in the shared chat conversation.
+
+The renderer waits for complete blocks or the end of the turn. Both the transcript and audio can
+therefore wait for a single long paragraph to finish. The renderer accepts up to 65536 source
+characters per turn and reports `speech-text-truncated` when it reaches that limit. The existing
+sentence and speech queue limits still apply afterwards.
 
 === How a turn works
 
