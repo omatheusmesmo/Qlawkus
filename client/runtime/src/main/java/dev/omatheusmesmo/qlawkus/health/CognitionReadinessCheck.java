@@ -4,6 +4,7 @@ import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
+import dev.omatheusmesmo.qlawkus.store.OwnerChatStore;
 import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
 import dev.omatheusmesmo.qlawkus.store.SoulStore;
 import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
@@ -67,6 +68,9 @@ public class CognitionReadinessCheck implements HealthCheck {
     ScheduledTaskStore scheduledTaskStore;
 
     @Inject
+    OwnerChatStore ownerChatStore;
+
+    @Inject
     SkillsConfig skillsConfig;
 
     @Override
@@ -89,6 +93,7 @@ public class CognitionReadinessCheck implements HealthCheck {
         learning.put("facts", factStore::verifyWritable);
         learning.put("episodic", episodicStore::verifyWritable);
         learning.put("scheduledTasks", scheduledTaskStore::verifyWritable);
+        learning.put("ownerChats", ownerChatStore::verifyWritable);
         if (skills) {
             learning.put("skills", skillStore::verifyWritable);
         }

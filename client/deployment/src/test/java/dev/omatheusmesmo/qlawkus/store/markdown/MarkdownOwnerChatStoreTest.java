@@ -42,6 +42,19 @@ class MarkdownOwnerChatStoreTest {
     }
 
     @Test
+    void anOlderObservationDoesNotOverwriteTheFileAndAProbeLeavesNoChat() {
+        var store = new MarkdownOwnerChatStore(root.resolve("owner-chats"));
+        store.verifyWritable();
+        assertTrue(store.loadAll().isEmpty());
+
+        var newer = new OwnerChat("telegram", "43", SEEN.plusSeconds(60));
+        store.save(newer);
+        store.save(new OwnerChat("telegram", "42", SEEN));
+
+        assertEquals(List.of(newer), store.loadAll());
+    }
+
+    @Test
     void anUnreadableFileIsSkippedAndTheOtherProvidersStillLoad() throws Exception {
         Path dir = root.resolve("owner-chats");
         MarkdownOwnerChatStore store = new MarkdownOwnerChatStore(dir);
