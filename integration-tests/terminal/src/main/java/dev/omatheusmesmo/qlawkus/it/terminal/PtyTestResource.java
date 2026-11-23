@@ -4,6 +4,7 @@ import dev.omatheusmesmo.qlawkus.dto.SessionInfo;
 import dev.omatheusmesmo.qlawkus.dto.SessionOutput;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.shell.InteractiveShellTool;
+import dev.omatheusmesmo.qlawkus.tool.shell.PtySessionManager;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
@@ -13,6 +14,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +25,9 @@ public class PtyTestResource {
     @Inject
     @QlawTool
     InteractiveShellTool interactiveShellTool;
+
+    @Inject
+    PtySessionManager sessionManager;
 
     @POST
     @Path("/start")
@@ -48,6 +53,14 @@ public class PtyTestResource {
     public Response sendInput(@PathParam("sessionId") String sessionId, @QueryParam("input") String input) {
         String result = interactiveShellTool.sendInput(sessionId, input);
         return Response.ok(Map.of("result", result)).build();
+    }
+
+    @POST
+    @Path("/resize/{sessionId}")
+    public Response resize(@PathParam("sessionId") String sessionId, @QueryParam("columns") int columns,
+            @QueryParam("rows") int rows) throws IOException {
+        sessionManager.resizeSession(sessionId, columns, rows);
+        return Response.noContent().build();
     }
 
     @DELETE

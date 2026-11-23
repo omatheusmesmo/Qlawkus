@@ -1,19 +1,24 @@
 package dev.omatheusmesmo.qlawkus.it.terminal;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.common.http.TestHTTPResource;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.test.common.http.TestHTTPResource;
+import io.quarkus.test.junit.QuarkusTest;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 @QuarkusTest
 @DisabledOnOs(OS.WINDOWS)
@@ -22,64 +27,74 @@ class InteractiveShellToolTest {
     @TestHTTPResource
     URI baseUri;
 
-    HttpClient client() {
-        return HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
-    }
-
-    String auth() {
-        String password = System.getProperty("test.qlawkus.password", "qlawkus-test");
-        return "Basic " + Base64.getEncoder().encodeToString(("qlawkus:" + password).getBytes());
-    }
-
     @Test
     void startAndReadSession() throws Exception {
         HttpClient http = client();
+        String command = """
+                test -t 0 && test -t 1 && test -t 2 || exit 17
+                printf 'ready:%s\\n' "$(stty size </dev/tty)"
+                while IFS= read -r line; do
+                  printf 'received:%s:%s\\n' "$line" "$(stty size)"
+                done
+                """;
+        var start = request(http, "POST", "start?cmd=" + encode(command));
+        assertEquals(200, start.statusCode(), start.body());
+        String session = new ObjectMapper().readTree(start.body()).path("sessionId").asText();
+        assertTrue(session.matches("[0-9a-f-]{36}"), start.body());
 
-        HttpRequest startReq = HttpRequest.newBuilder()
-                .uri(URI.create(baseUri + "api/test/pty/start?cmd=echo%20pty-test"))
-                .header("Authorization", auth())
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build();
-        HttpResponse<String> startResp = http.send(startReq, HttpResponse.BodyHandlers.ofString());
-
-        assertEquals(200, startResp.statusCode(), "startSession should return 200: " + startResp.body());
-        String body = startResp.body();
-        assertTrue(body.contains("sessionId"), "startSession should return sessionId: " + body);
-
-        String sessionId = body.replaceAll(".*\"sessionId\":\"([^\"]+)\".*", "$1");
-
-        Thread.sleep(2000);
-
-        HttpRequest readReq = HttpRequest.newBuilder()
-                .uri(URI.create(baseUri + "api/test/pty/read/" + sessionId))
-                .header("Authorization", auth())
-                .GET()
-                .build();
-        HttpResponse<String> readResp = http.send(readReq, HttpResponse.BodyHandlers.ofString());
-        assertEquals(200, readResp.statusCode(), "readSession should return 200: " + readResp.body());
-        assertTrue(readResp.body().toLowerCase().contains("pty-test") || readResp.body().contains("lines"),
-                "readSession should return output: " + readResp.body());
-
-        HttpRequest closeReq = HttpRequest.newBuilder()
-                .uri(URI.create(baseUri + "api/test/pty/close/" + sessionId))
-                .header("Authorization", auth())
-                .DELETE()
-                .build();
-        HttpResponse<String> closeResp = http.send(closeReq, HttpResponse.BodyHandlers.ofString());
-        assertEquals(200, closeResp.statusCode(), "closeSession should return 200: " + closeResp.body());
+        try {
+            awaitOutput(http, session, "ready:40 120");
+            assertEquals(204, request(http, "POST", "resize/" + session + "?rows=27&columns=91").statusCode());
+            String input = "test input with 'quotes'";
+            var send = request(http, "POST", "send/" + session + "?input=" + encode(input));
+            assertEquals(200, send.statusCode(), send.body());
+            assertTrue(send.body().contains("Input sent"), send.body());
+            awaitOutput(http, session, "received:" + input + ":27 91");
+        } finally {
+            var close = request(http, "DELETE", "close/" + session);
+            assertEquals(200, close.statusCode(), close.body());
+            assertTrue(close.body().contains("closed"), close.body());
+        }
+        assertFalse(request(http, "GET", "list").body().contains(session));
     }
 
     @Test
     void listSessions_returnsEmptyOrList() throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUri + "api/test/pty/list"))
-                .header("Authorization", auth())
-                .GET()
-                .build();
+        var response = request(client(), "GET", "list");
+        assertEquals(200, response.statusCode(), response.body());
+    }
 
-        HttpResponse<String> response = client().send(request, HttpResponse.BodyHandlers.ofString());
-        assertEquals(200, response.statusCode(), "listSessions should return 200: " + response.body());
+    private void awaitOutput(HttpClient http, String session, String expected) throws Exception {
+        long deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
+        HttpResponse<String> response;
+        do {
+            response = request(http, "GET", "read/" + session);
+            assertEquals(200, response.statusCode(), response.body());
+            if (response.body().contains(expected)) {
+                return;
+            }
+            Thread.sleep(50);
+        } while (System.nanoTime() < deadline);
+        fail("Expected terminal output " + expected + ", received " + response.body());
+    }
+
+    private HttpResponse<String> request(HttpClient http, String method, String path) throws Exception {
+        var request = HttpRequest.newBuilder(baseUri.resolve("api/test/pty/" + path))
+                .timeout(Duration.ofSeconds(5)).header("Authorization", auth())
+                .method(method, HttpRequest.BodyPublishers.noBody()).build();
+        return http.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static HttpClient client() {
+        return HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+    }
+
+    private static String auth() {
+        String password = System.getProperty("test.qlawkus.password", "qlawkus-test");
+        return "Basic " + Base64.getEncoder().encodeToString(("qlawkus:" + password).getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

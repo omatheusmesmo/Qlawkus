@@ -1,14 +1,10 @@
 package dev.omatheusmesmo.qlawkus.tool.shell;
 
-import com.pty4j.PtyProcess;
-import com.pty4j.WinSize;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -16,7 +12,7 @@ public class PtySession {
 
     private final String sessionId;
     private final String command;
-    private final PtyProcess process;
+    private final PtyConnection terminal;
     private final RollingBuffer outputBuffer;
     private Thread readerThread;
     private final Instant startedAt;
@@ -25,11 +21,11 @@ public class PtySession {
     private volatile String status;
     private volatile boolean promptDetected;
 
-    PtySession(String sessionId, String command, PtyProcess process, RollingBuffer outputBuffer,
+    PtySession(String sessionId, String command, PtyConnection terminal, RollingBuffer outputBuffer,
                Thread readerThread, List<Pattern> promptPatterns) {
         this.sessionId = sessionId;
         this.command = command;
-        this.process = process;
+        this.terminal = terminal;
         this.outputBuffer = outputBuffer;
         this.readerThread = readerThread;
         this.promptPatterns = promptPatterns != null ? promptPatterns : List.of();
@@ -96,35 +92,47 @@ public class PtySession {
     }
 
     public void sendInput(String input) throws IOException {
-        OutputStream os = process.getOutputStream();
+        OutputStream os = terminal.process().getOutputStream();
         os.write(input.getBytes(StandardCharsets.UTF_8));
         os.flush();
         lastActivity = Instant.now();
     }
 
-    public void setWinSize(int cols, int rows) {
-        process.setWinSize(new WinSize(cols, rows));
+    public synchronized void setWinSize(int cols, int rows) throws IOException {
+        if (!isAlive()) {
+            throw new IOException("The terminal has exited.");
+        }
+        terminal.resize().apply(cols, rows);
         lastActivity = Instant.now();
     }
 
     public boolean isAlive() {
-        return process != null && process.isAlive();
+        return terminal != null && terminal.process().isAlive();
     }
 
-    public void close() {
-        status = "closed";
-        if (process != null) process.destroyForcibly();
-        if (readerThread != null) readerThread.interrupt();
+    public synchronized void close() {
+        stop("closed");
     }
 
-    void markTimedOut() {
-        status = "timed_out";
-        if (process != null) process.destroyForcibly();
+    synchronized void markTimedOut() {
+        stop("timed_out");
+    }
+
+    private void stop(String outcome) {
+        status = outcome;
+        if (terminal != null) {
+            terminal.stop().run();
+            try {
+                terminal.process().getOutputStream().close();
+            } catch (IOException ignored) {
+                // The other end may already have closed.
+            }
+        }
         if (readerThread != null) readerThread.interrupt();
     }
 
     void updateStatus() {
-        if ("running".equals(status) && process != null && !process.isAlive()) {
+        if ("running".equals(status) && terminal != null && !isAlive()) {
             status = "exited";
         }
     }

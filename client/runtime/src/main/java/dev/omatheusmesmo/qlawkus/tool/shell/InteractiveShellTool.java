@@ -18,8 +18,7 @@ public class InteractiveShellTool {
             + "Parameters: command (optional) — the command to run (defaults to system shell), "
             + "workdir (optional) — working directory (defaults to workspace root), "
             + "prompts (optional) — comma-separated regex patterns to detect shell prompts (e.g. \"[#$>] \",\">>> \"). "
-            + "readSession will include promptDetected=true when a prompt pattern matches. "
-            + "NOTE: PTY sessions are not available in native image mode — use runCommand instead.")
+            + "readSession will include promptDetected=true when a prompt pattern matches.")
     public String startSession(String command, String workdir, String prompts) {
         try {
             List<String> promptList = (prompts != null && !prompts.isBlank())

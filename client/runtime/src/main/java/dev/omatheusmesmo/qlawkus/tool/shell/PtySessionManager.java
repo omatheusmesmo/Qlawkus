@@ -2,11 +2,13 @@ package dev.omatheusmesmo.qlawkus.tool.shell;
 
 import com.pty4j.PtyProcess;
 import com.pty4j.PtyProcessBuilder;
+import com.pty4j.WinSize;
 import dev.omatheusmesmo.qlawkus.config.ShellConfig;
 import dev.omatheusmesmo.qlawkus.dto.SessionInfo;
 import dev.omatheusmesmo.qlawkus.dto.SessionOutput;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import io.quarkus.logging.Log;
+import io.quarkus.runtime.ImageMode;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -15,7 +17,6 @@ import jakarta.inject.Inject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -34,10 +35,6 @@ public class PtySessionManager {
     @Inject
     AgentMeters meters;
 
-
-    static final String NATIVE_IMAGE_UNAVAILABLE = "PTY sessions are not available in native image mode (JNA/pty4j requires JVM). Use ShellTool.runCommand instead.";
-
-    private final boolean nativeImageMode;
 
     @Inject
     public ShellConfig shellConfig;
@@ -133,87 +130,63 @@ public class PtySessionManager {
         return "/bin/sh";
     }
 
-    PtySessionManager() {
-        nativeImageMode = "true".equals(System.getProperty("io.quarkus.native.image", "false"))
-                || "native".equals(System.getProperty("quarkus.native.image.type"))
-                || isSubstrateVM();
-        if (nativeImageMode) {
-            Log.infof("PTY sessions disabled: running in native image mode (JNA/pty4j not supported)");
-        }
-    }
-
-    static boolean isSubstrateVM() {
-        try {
-            Class.forName("com.oracle.svm.core.VM");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-
-    public boolean isNativeImageMode() {
-        return nativeImageMode;
-    }
-
-    public String startSession(String command, String workdir, List<String> prompts) throws IOException {
-        if (nativeImageMode) {
-            throw new UnsupportedOperationException(NATIVE_IMAGE_UNAVAILABLE);
-        }
+    public synchronized String startSession(String command, String workdir, List<String> prompts) throws IOException {
         if (sessions.size() >= maxSessions) {
             throw new IllegalStateException("PTY session limit reached (" + maxSessions + "). Close a session first.");
         }
 
         String sessionId = UUID.randomUUID().toString();
         String effectiveCommand = resolveCommand(command);
-        String[] cmdArgs = ShellTool.IS_WINDOWS
-                ? new String[]{"cmd", "/c", effectiveCommand}
-                : new String[]{"sh", "-c", effectiveCommand};
-
         File dir = resolveDir(workdir);
 
         Map<String, String> env = new HashMap<>(childEnvironment.build());
         env.put("TERM", "xterm-256color");
 
-        PtyProcess process = new PtyProcessBuilder()
-                .setCommand(cmdArgs)
-                .setEnvironment(env)
-                .setDirectory(dir.getAbsolutePath())
-                .setInitialColumns(defaultCols)
-                .setInitialRows(defaultRows)
-                .start();
-
         RollingBuffer buffer = new RollingBuffer(bufferLines);
         List<Pattern> compiledPrompts = compilePromptPatterns(prompts);
-        PtySession session = new PtySession(sessionId, effectiveCommand, process, buffer, null, compiledPrompts);
+        PtyConnection terminal = ImageMode.current() == ImageMode.NATIVE_RUN
+                ? LinuxScriptPty.start(effectiveCommand, dir, env, defaultCols, defaultRows)
+                : startPty4j(effectiveCommand, dir, env);
+        PtySession session = new PtySession(sessionId, effectiveCommand, terminal, buffer, null, compiledPrompts);
 
         Thread readerThread = new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+            try (BufferedReader reader = terminal.output()) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     buffer.addLine(line);
                     session.checkPrompt(line);
                 }
             } catch (IOException e) {
-                if (!"closed".equals(sessions.get(sessionId) != null ? sessions.get(sessionId).getStatus() : "")) {
+                if (sessions.get(sessionId) == session) {
                     Log.debugf("PTY reader error for session %s: %s", sessionId, e.getMessage());
                 }
             }
         }, "pty-reader-" + sessionId);
         readerThread.setDaemon(true);
-        readerThread.start();
-
         session.setReaderThread(readerThread);
         sessions.put(sessionId, session);
+        readerThread.start();
 
         Log.infof("PTY session started: id=%s command='%s' dir=%s", sessionId, secretRedactor.redact(command), dir);
         return sessionId;
     }
 
+    private PtyConnection startPty4j(String command, File directory, Map<String, String> environment) throws IOException {
+        String[] arguments = ShellTool.IS_WINDOWS
+                ? new String[]{"cmd", "/c", command}
+                : new String[]{"sh", "-c", command};
+        PtyProcess process = new PtyProcessBuilder()
+                .setCommand(arguments)
+                .setEnvironment(environment)
+                .setDirectory(directory.getAbsolutePath())
+                .setInitialColumns(defaultCols)
+                .setInitialRows(defaultRows)
+                .start();
+        return new PtyConnection(process, process.inputReader(StandardCharsets.UTF_8),
+                (columns, rows) -> process.setWinSize(new WinSize(columns, rows)), process::destroyForcibly);
+    }
+
     public SessionOutput readSession(String sessionId, int offset) {
-        if (nativeImageMode) {
-            return new SessionOutput(List.of("ERROR: " + NATIVE_IMAGE_UNAVAILABLE), false, 0, false);
-        }
         PtySession session = requireSession(sessionId);
         session.updateStatus();
         session.touchActivity();
@@ -229,17 +202,18 @@ public class PtySessionManager {
     }
 
     public void sendInput(String sessionId, String input) throws IOException {
-        if (nativeImageMode) {
-            throw new UnsupportedOperationException(NATIVE_IMAGE_UNAVAILABLE);
-        }
         PtySession session = requireSession(sessionId);
         session.sendInput(input);
     }
 
-    public void closeSession(String sessionId) {
-        if (nativeImageMode) {
-            throw new UnsupportedOperationException(NATIVE_IMAGE_UNAVAILABLE);
+    public void resizeSession(String sessionId, int columns, int rows) throws IOException {
+        if (columns < 1 || rows < 1 || columns > 65_535 || rows > 65_535) {
+            throw new IllegalArgumentException("Terminal dimensions must be between 1 and 65535.");
         }
+        requireSession(sessionId).setWinSize(columns, rows);
+    }
+
+    public void closeSession(String sessionId) {
         PtySession session = sessions.remove(sessionId);
         if (session == null) {
             throw new IllegalArgumentException("No PTY session with id: " + sessionId);
@@ -288,6 +262,7 @@ public class PtySessionManager {
             PtySession session = sessions.remove(id);
             if (session != null) {
                 if ("exited".equals(session.getStatus())) {
+                    session.close();
                     Log.infof("PTY session cleanup (exited): id=%s", id);
                 } else {
                     session.markTimedOut();

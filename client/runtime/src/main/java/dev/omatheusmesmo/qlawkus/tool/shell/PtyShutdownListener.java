@@ -35,7 +35,7 @@ public class PtyShutdownListener implements ShutdownListener {
             return;
         }
         PtySessionManager manager = Arc.container().instance(PtySessionManager.class).get();
-        if (manager == null || manager.isNativeImageMode()) {
+        if (manager == null) {
             return;
         }
 
