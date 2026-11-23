@@ -51,6 +51,7 @@ public class AgentMeters {
 
     public static final String JOB_DURATION = "qlawkus.job.duration";
     public static final String JOB_ITEMS = "qlawkus.job.items";
+    public static final String HEARTBEAT_RUNS = "qlawkus.heartbeat.runs";
 
     public static final String MODEL_FALLBACK = "qlawkus.model.fallback";
 
@@ -243,6 +244,15 @@ public class AgentMeters {
         registry.timer(JOB_DURATION, Tags.of(TAG_JOB, job, TAG_OUTCOME, succeeded ? SUCCESS : FAILURE))
                 .record(took);
         summary(JOB_ITEMS, Tags.of(TAG_JOB, job)).record(items);
+    }
+
+    public void heartbeat(String outcome, Duration took, boolean succeeded) {
+        if (registry != null) {
+            registry.counter(HEARTBEAT_RUNS, TAG_OUTCOME, outcome).increment();
+            if (!took.isZero()) {
+                job("heartbeat", took, 1, succeeded);
+            }
+        }
     }
 
     /**

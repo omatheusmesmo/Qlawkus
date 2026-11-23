@@ -72,6 +72,11 @@
     </dependency>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-heartbeat-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-messaging-discord-deployment</artifactId>
       <version>${project.version}</version>
     </dependency>

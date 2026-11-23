@@ -78,6 +78,10 @@ include::includes/qlawkus-console_qlawkus.console.adoc[]
 
 include::includes/qlawkus-console-voice_qlawkus.console.adoc[]
 
+== Heartbeat (qlawkus-heartbeat)
+
+include::includes/qlawkus-heartbeat.adoc[]
+
 == Messaging
 
 === Core

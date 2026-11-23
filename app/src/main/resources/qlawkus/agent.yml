@@ -20,6 +20,7 @@ build-time:
     - artifacts
     - attachments
     - console.skill-hub
+    - heartbeat
     - observability
     - self-observe
     - web-search

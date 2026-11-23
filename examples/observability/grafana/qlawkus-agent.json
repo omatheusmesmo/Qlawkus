@@ -1291,6 +1291,48 @@
           "refId": "B"
         }
       ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Heartbeat outcomes",
+      "description": "The number of heartbeat runs by outcome. Notification delivery, suppressed duplicates, failures and exhausted budgets have separate outcomes.",
+      "id": 35,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 106
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (outcome) (qlawkus_heartbeat_runs_total)",
+          "legendFormat": "{{outcome}}",
+          "refId": "A"
+        }
+      ]
     }
   ]
 }

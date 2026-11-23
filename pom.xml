@@ -18,6 +18,7 @@
         <module>artifacts</module>
         <module>specialists</module>
     <module>console-skill-hub</module>
+        <module>heartbeat</module>
         <module>observability</module>
         <module>tools</module>
         <module>messaging</module>

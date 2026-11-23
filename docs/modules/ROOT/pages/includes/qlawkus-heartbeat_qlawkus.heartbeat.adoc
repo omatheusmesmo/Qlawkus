@@ -1,0 +1,199 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a|icon:lock[title=Fixed at build time] [[qlawkus-heartbeat_qlawkus-heartbeat-typed-decision-model]] [.property-path]##link:#qlawkus-heartbeat_qlawkus-heartbeat-typed-decision-model[`+++qlawkus.heartbeat.typed-decision-model+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.heartbeat.typed-decision-model+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Use the named LangChain4j heartbeat DecisionModel in place of the local chat classifier.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_HEARTBEAT_TYPED_DECISION_MODEL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_HEARTBEAT_TYPED_DECISION_MODEL+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-heartbeat_qlawkus-heartbeat-minimum-interval-minutes]] [.property-path]##link:#qlawkus-heartbeat_qlawkus-heartbeat-minimum-interval-minutes[`+++qlawkus.heartbeat.minimum-interval-minutes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.heartbeat.minimum-interval-minutes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Minimum configurable interval in minutes. The hard minimum is one minute.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_HEARTBEAT_MINIMUM_INTERVAL_MINUTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_HEARTBEAT_MINIMUM_INTERVAL_MINUTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++1+++`
+
+a| [[qlawkus-heartbeat_qlawkus-heartbeat-maximum-daily-runs]] [.property-path]##link:#qlawkus-heartbeat_qlawkus-heartbeat-maximum-daily-runs[`+++qlawkus.heartbeat.maximum-daily-runs+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.heartbeat.maximum-daily-runs+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum number of model requests admitted each UTC day.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_HEARTBEAT_MAXIMUM_DAILY_RUNS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_HEARTBEAT_MAXIMUM_DAILY_RUNS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++24+++`
+
+a| [[qlawkus-heartbeat_qlawkus-heartbeat-maximum-decision-tokens]] [.property-path]##link:#qlawkus-heartbeat_qlawkus-heartbeat-maximum-decision-tokens[`+++qlawkus.heartbeat.maximum-decision-tokens+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.heartbeat.maximum-decision-tokens+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Maximum reported input and output token total accepted for an individual decision.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_HEARTBEAT_MAXIMUM_DECISION_TOKENS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_HEARTBEAT_MAXIMUM_DECISION_TOKENS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++1600+++`
+
+a| [[qlawkus-heartbeat_qlawkus-heartbeat-deadline-seconds]] [.property-path]##link:#qlawkus-heartbeat_qlawkus-heartbeat-deadline-seconds[`+++qlawkus.heartbeat.deadline-seconds+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.heartbeat.deadline-seconds+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Overall deadline for a run, in seconds, including its observation and notification.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_HEARTBEAT_DEADLINE_SECONDS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_HEARTBEAT_DEADLINE_SECONDS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++15+++`
+
+a| [[qlawkus-heartbeat_qlawkus-heartbeat-enabled]] [.property-path]##link:#qlawkus-heartbeat_qlawkus-heartbeat-enabled[`+++qlawkus.heartbeat.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.heartbeat.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Enables heartbeat on a new installation. Persisted settings take precedence after bootstrap.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_HEARTBEAT_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_HEARTBEAT_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-heartbeat_qlawkus-heartbeat-interval-minutes]] [.property-path]##link:#qlawkus-heartbeat_qlawkus-heartbeat-interval-minutes[`+++qlawkus.heartbeat.interval-minutes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.heartbeat.interval-minutes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Initial interval in minutes for a new installation.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_HEARTBEAT_INTERVAL_MINUTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_HEARTBEAT_INTERVAL_MINUTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++5+++`
+
+a| [[qlawkus-heartbeat_qlawkus-heartbeat-prompt]] [.property-path]##link:#qlawkus-heartbeat_qlawkus-heartbeat-prompt[`+++qlawkus.heartbeat.prompt+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.heartbeat.prompt+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Initial owner instructions for a new installation.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_HEARTBEAT_PROMPT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_HEARTBEAT_PROMPT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-heartbeat_qlawkus-heartbeat-provider]] [.property-path]##link:#qlawkus-heartbeat_qlawkus-heartbeat-provider[`+++qlawkus.heartbeat.provider+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.heartbeat.provider+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Initial notification provider, which must already have an accepted owner conversation.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_HEARTBEAT_PROVIDER+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_HEARTBEAT_PROVIDER+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+|===
