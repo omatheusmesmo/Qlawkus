@@ -9,9 +9,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import dev.omatheusmesmo.qlawkus.artifact.ArtifactLibrary;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingResponse;
 import io.smallrye.mutiny.Uni;
+import jakarta.enterprise.inject.Instance;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +26,8 @@ class TelegramWebhookSecurityTest {
 
     private final TelegramConfig config = mock(TelegramConfig.class);
     private final TelegramProviderAdapter adapter = mock(TelegramProviderAdapter.class);
+    @SuppressWarnings("unchecked")
+    private final Instance<ArtifactLibrary> artifacts = mock(Instance.class);
     private final TelegramWebhookResource resource = new TelegramWebhookResource();
     private final MessagingMessage mapped = MessagingMessage.text("telegram", "42", "42", "hello");
 
@@ -31,6 +35,7 @@ class TelegramWebhookSecurityTest {
     void configureResource() {
         resource.config = config;
         resource.adapter = adapter;
+        resource.artifacts = artifacts;
         when(adapter.mapUpdate(any())).thenReturn(mapped);
         when(adapter.receive(mapped)).thenReturn(Uni.createFrom().item(new MessagingResponse("42", "")));
     }
@@ -64,6 +69,23 @@ class TelegramWebhookSecurityTest {
         assertEquals(200, status(null, text()));
         assertEquals(200, status(null, voice()));
         verify(adapter, timeout(2_000).times(2)).receive(mapped);
+    }
+
+    @Test
+    void artifactCapabilityRequiresAnAuthenticatedWebhookInWebhookMode() {
+        when(artifacts.isResolvable()).thenReturn(true);
+        when(config.mode()).thenReturn("polling");
+        assertEquals(404, status(null, text()));
+
+        when(config.mode()).thenReturn("webhook");
+        when(config.webhookSecretToken()).thenReturn(Optional.empty());
+        assertEquals(403, status(null, text()));
+
+        when(config.webhookSecretToken()).thenReturn(Optional.of(SECRET));
+        assertEquals(403, status("incorrect", text()));
+        verifyNoInteractions(adapter);
+        assertEquals(200, status(SECRET, text()));
+        verify(adapter, timeout(2_000)).receive(mapped);
     }
 
     @Test

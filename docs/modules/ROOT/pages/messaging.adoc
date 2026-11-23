@@ -44,7 +44,7 @@ You can also ask the agent to clear the context at any time. Say things like "cl
    * Read Messages / View Channels
    * Read Message History
    * Use Slash Commands
-   * Attach Files (for voice messages, sent as file attachments)
+   * Attach Files (for voice messages and generated files)
 4. Copy the generated URL, open in browser, and invite to your server
 
 === 3. Environment Variables
@@ -162,6 +162,8 @@ API clients can send `multipart/form-data` to the authenticated `POST /api/chat`
 With the optional `artifacts` capability, ask the agent to generate a downloadable Markdown, plain text, or CSV report. In the console, open *Artifacts* to preview the plain text or download the original file. The link requires your owner login, and the preview treats even Markdown as plain text.
 
 In Discord or Telegram, explicitly ask the agent to send the generated file. Uploads go to the conversation where the artifact was registered. A Discord bot in a guild also needs the *Attach Files* permission. If the provider refuses delivery, the artifact remains available in the console until it expires.
+
+With artifacts enabled, Telegram webhook mode requires `qlawkus.messaging.telegram.webhook-secret-token` for all updates. Polling mode uses the Bot API and the webhook endpoint is inactive.
 
 Registration copies a UTF-8 file from the workspace into `artifacts/` under `qlawkus.agent.state.root`. The store accepts up to 2 MiB per file, 25 files and 20 MiB total. Copies expire after 24 hours, and a background job deletes expired copies. Registration refuses workspace symlinks, hidden paths and recognized credentials.
 
