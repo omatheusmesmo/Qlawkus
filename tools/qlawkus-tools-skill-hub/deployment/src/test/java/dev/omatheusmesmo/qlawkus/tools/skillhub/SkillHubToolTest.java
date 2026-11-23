@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import dev.omatheusmesmo.qlawkus.approval.ApprovedExecution;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillOrigin;
 import dev.omatheusmesmo.qlawkus.tools.skillhub.SkillHubConfig.ApprovalMode;
@@ -23,18 +24,29 @@ import org.junit.jupiter.api.Test;
 class SkillHubToolTest {
 
   @Test
-  void hitl_previewsWithoutInstalling_untilConfirmed() {
+  void hitl_neverInstallsOutsideAnApprovedExecution_whateverTheModelPassesAsConfirm() {
     RecordingHub hub = new RecordingHub();
     SkillHubTool tool = new SkillHubTool(hub, new RecordingSkillStore(),
         new TestConfig(true, false, ApprovalMode.HITL, 10));
 
-    String preview = tool.installSkill("acme/foo", false);
-    assertFalse(hub.installed.contains("acme/foo"), "HITL must not install before confirmation");
-    assertTrue(preview.toLowerCase().contains("approve"));
-    assertTrue(preview.contains("confirm=true"));
+    String withoutConfirm = tool.installSkill("acme/foo", false);
+    String withSelfConfirm = tool.installSkill("acme/foo", true);
 
-    String done = tool.installSkill("acme/foo", true);
-    assertTrue(hub.installed.contains("acme/foo"), "HITL installs once confirmed");
+    assertTrue(hub.installed.isEmpty(), "a flag the model sets itself approves nothing");
+    assertTrue(withoutConfirm.toLowerCase().contains("approval"), withoutConfirm);
+    assertTrue(withSelfConfirm.toLowerCase().contains("approval"), withSelfConfirm);
+    assertFalse(withSelfConfirm.contains("confirm=true"), "the model must not be taught to self-confirm");
+  }
+
+  @Test
+  void hitl_installsInsideAnApprovedExecution_andIgnoresTheConfirmFlag() {
+    RecordingHub hub = new RecordingHub();
+    SkillHubTool tool = new SkillHubTool(hub, new RecordingSkillStore(),
+        new TestConfig(true, false, ApprovalMode.HITL, 10));
+
+    String done = ApprovedExecution.run(() -> tool.installSkill("acme/foo", false));
+
+    assertTrue(hub.installed.contains("acme/foo"), "the owner approved this exact call");
     assertEquals("Installed skill: foo", done);
   }
 
@@ -64,17 +76,17 @@ class SkillHubToolTest {
   }
 
   @Test
-  void aPlainNameWithOneHitPreviewsThatHitThenInstallsIt() {
+  void aPlainNameWithOneHitNamesThatHitAndInstallsItOnlyOnceApproved() {
     RecordingHub hub = new RecordingHub();
     hub.searchHits = List.of(new SkillRef("triage", "Triage", "acme/skills/triage"));
     SkillHubTool tool = new SkillHubTool(hub, new RecordingSkillStore(),
         new TestConfig(true, false, ApprovalMode.HITL, 10));
 
-    String preview = tool.installSkill("triage", false);
-    assertTrue(preview.contains("acme/skills/triage"), preview);
+    String refused = tool.installSkill("triage", true);
+    assertTrue(refused.contains("acme/skills/triage"), refused);
     assertTrue(hub.installed.isEmpty(), "a name still needs the owner's approval");
 
-    String done = tool.installSkill("triage", true);
+    String done = ApprovedExecution.run(() -> tool.installSkill("triage", false));
     assertEquals(List.of("acme/skills/triage"), hub.installed);
     assertEquals("Installed skill: triage", done);
   }
@@ -137,11 +149,11 @@ class SkillHubToolTest {
     SkillHubTool tool = new SkillHubTool(hub, new RecordingSkillStore(),
         new TestConfig(true, false, ApprovalMode.HITL, 10));
 
-    String preview = tool.installSkillsFromSource("acme/skills", "triage, tdd", false);
-    assertTrue(preview.contains("triage") && preview.contains("tdd"), preview);
-    assertTrue(hub.candidatesInstalled.isEmpty(), "the preview must not install");
+    String refused = tool.installSkillsFromSource("acme/skills", "triage, tdd", true);
+    assertTrue(refused.contains("triage") && refused.contains("tdd"), refused);
+    assertTrue(hub.candidatesInstalled.isEmpty(), "nothing is installed before the owner approves");
 
-    String done = tool.installSkillsFromSource("acme/skills", "triage, tdd", true);
+    String done = ApprovedExecution.run(() -> tool.installSkillsFromSource("acme/skills", "triage, tdd", false));
 
     assertEquals(List.of("triage", "tdd"), hub.candidatesInstalled);
     assertTrue(done.contains("triage") && done.contains("tdd"), done);
@@ -218,17 +230,18 @@ class SkillHubToolTest {
   }
 
   @Test
-  void pastedSkillMarkdownIsPreviewedThenSaved() {
+  void pastedSkillMarkdownIsSavedOnlyInsideAnApprovedExecution() {
     RecordingSkillStore store = new RecordingSkillStore();
     SkillHubTool tool = new SkillHubTool(new RecordingHub(), store,
         new TestConfig(true, false, ApprovalMode.HITL, 10));
     String text = "---\nname: pasted\ndescription: From chat\n---\n# Pasted\nSteps.";
 
-    String preview = tool.installSkillFromText(text, false);
-    assertFalse(store.saved.containsKey("pasted"), "HITL must not save before confirmation");
-    assertTrue(preview.contains("pasted") && preview.contains("confirm=true"), preview);
+    String refused = tool.installSkillFromText(text, true);
+    assertFalse(store.saved.containsKey("pasted"), "HITL must not save without the owner's approval");
+    assertTrue(refused.contains("pasted"), refused);
+    assertFalse(refused.contains("confirm=true"), refused);
 
-    String done = tool.installSkillFromText(text, true);
+    String done = ApprovedExecution.run(() -> tool.installSkillFromText(text, false));
     assertTrue(store.saved.containsKey("pasted"));
     assertEquals("Installed skill: pasted", done);
   }
@@ -256,18 +269,18 @@ class SkillHubToolTest {
   }
 
   @Test
-  void updateReinstallsFromTheRecordedSource() {
+  void updateReinstallsFromTheRecordedSourceOnlyOnceApproved() {
     RecordingSkillStore store = new RecordingSkillStore();
     store.save(new Skill("foo", "does foo", "# Foo"));
     store.recordOrigin("foo", new SkillOrigin("acme/foo", null, 1L));
     RecordingHub hub = new RecordingHub();
     SkillHubTool tool = new SkillHubTool(hub, store, new TestConfig(true, false, ApprovalMode.HITL, 10));
 
-    String preview = tool.updateSkill("foo", false);
-    assertTrue(hub.installed.isEmpty(), "HITL must not update before confirmation");
-    assertTrue(preview.contains("acme/foo"), preview);
+    String refused = tool.updateSkill("foo", true);
+    assertTrue(hub.installed.isEmpty(), "HITL must not update without the owner's approval");
+    assertTrue(refused.contains("acme/foo"), refused);
 
-    tool.updateSkill("foo", true);
+    ApprovedExecution.run(() -> tool.updateSkill("foo", false));
     assertEquals(List.of("acme/foo"), hub.installed);
   }
 
@@ -341,18 +354,18 @@ class SkillHubToolTest {
   }
 
   @Test
-  void publish_hitl_previewsThenWrites() {
+  void publish_hitl_writesOnlyInsideAnApprovedExecution() {
     RecordingHub hub = new RecordingHub();
     RecordingSkillStore store = new RecordingSkillStore();
     store.save(new Skill("foo", "does foo", "# Foo"));
     SkillHubTool tool = new SkillHubTool(hub, store, new TestConfig(true, true, ApprovalMode.HITL, 10));
 
-    String preview = tool.publishSkill("foo", false);
-    assertFalse(hub.published, "HITL must not publish before confirmation");
-    assertTrue(preview.contains("confirm=true"));
+    String refused = tool.publishSkill("foo", true);
+    assertFalse(hub.published, "HITL must not publish without the owner's approval");
+    assertFalse(refused.contains("confirm=true"), refused);
 
-    String done = tool.publishSkill("foo", true);
-    assertTrue(hub.published, "HITL publishes once confirmed");
+    String done = ApprovedExecution.run(() -> tool.publishSkill("foo", false));
+    assertTrue(hub.published, "HITL publishes once the owner approved");
     assertTrue(done.contains("Published skill 'foo'"));
   }
 
@@ -422,7 +435,7 @@ class SkillHubToolTest {
     }
   }
 
-  private record TestConfig(boolean enabled, boolean publishEnabled, ApprovalMode approvalMode,
+  record TestConfig(boolean enabled, boolean publishEnabled, ApprovalMode approvalMode,
       int maxInstallsPerCall, long maxSkillBytes) implements SkillHubConfig {
 
     TestConfig(boolean enabled, boolean publishEnabled, ApprovalMode approvalMode, int maxInstallsPerCall) {

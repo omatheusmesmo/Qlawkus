@@ -10,10 +10,12 @@ import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingProvider;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingResponse;
+import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
 import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressSink;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Attachment;
@@ -24,6 +26,7 @@ import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.MessageCreateFields;
 import discord4j.core.spec.MessageCreateSpec;
+import discord4j.core.spec.InteractionReplyEditSpec;
 import discord4j.core.spec.MessageEditSpec;
 import discord4j.discordjson.json.MessageCreateRequest;
 import discord4j.gateway.intent.Intent;
@@ -65,16 +68,18 @@ public class DiscordProviderAdapter implements MessagingProvider {
     private final MediaDownloader mediaDownloader;
     private final MessagingOrchestrator orchestrator;
     private final DiscordSlashCommandRegistrar slashCommandRegistrar;
+    private final MessagingAuthService authService;
     private volatile GatewayDiscordClient gatewayClient;
     private Disposable loginSubscription;
     private boolean stopping;
 
     DiscordProviderAdapter(DiscordConfig config, MediaDownloader mediaDownloader, MessagingOrchestrator orchestrator,
-            DiscordSlashCommandRegistrar slashCommandRegistrar) {
+            DiscordSlashCommandRegistrar slashCommandRegistrar, MessagingAuthService authService) {
         this.config = config;
         this.mediaDownloader = mediaDownloader;
         this.orchestrator = orchestrator;
         this.slashCommandRegistrar = slashCommandRegistrar;
+        this.authService = authService;
     }
 
     void onStart(@Observes StartupEvent event) {
@@ -155,6 +160,37 @@ public class DiscordProviderAdapter implements MessagingProvider {
         gateway.on(ChatInputInteractionEvent.class)
                 .subscribe(this::handleSlashCommand,
                         err -> Log.errorf(err, "Discord: slash command listener error"));
+
+        gateway.on(ButtonInteractionEvent.class, this::handleApprovalButton)
+                .subscribe(__ -> {}, err -> Log.errorf(err, "Discord: button listener error"));
+    }
+
+    /**
+     * Handles a pressed Approve or Deny button. The press becomes the typed command from the user who
+     * pressed it and goes through the orchestrator, which applies the allowlist again; a press by anyone
+     * else is answered privately and leaves the buttons in place for the owner.
+     */
+    Mono<Void> handleApprovalButton(ButtonInteractionEvent event) {
+        String userId = event.getInteraction().getUser().getId().asString();
+        String channelId = event.getInteraction().getChannelId().asString();
+        DiscordApprovalButtons.Press press =
+                DiscordApprovalButtons.classify(event.getCustomId(), channelId, userId, authService);
+        return switch (press.outcome()) {
+            case IGNORE -> Mono.empty();
+            case REJECT -> {
+                Log.warnf("Discord: approval button press rejected userId=%s reason=allowlist", userId);
+                yield event.reply("Not authorized.").withEphemeral(true);
+            }
+            case DECIDE -> event.deferEdit()
+                    .then(Mono.defer(() -> Mono.fromCompletionStage(
+                            orchestrator.process(press.command()).subscribeAsCompletionStage())))
+                    .then(Mono.defer(() -> event.editReply(InteractionReplyEditSpec.create().withComponents())))
+                    .onErrorResume(failure -> {
+                        Log.errorf(failure, "Discord: approval button press failed userId=%s", userId);
+                        return Mono.empty();
+                    })
+                    .then();
+        };
     }
 
     private boolean isUserMessage(MessageCreateEvent event) {
@@ -363,6 +399,20 @@ public class DiscordProviderAdapter implements MessagingProvider {
                 .retryWhen(SEND_RETRY)
                 .switchIfEmpty(Mono.error(new IllegalStateException("Discord createMessage returned no message")))
                 .toFuture()).replaceWithVoid();
+    }
+
+    @Override
+    public Uni<Boolean> sendApprovalPrompt(String channelId, String requestId, String text) {
+        GatewayDiscordClient gateway = gatewayClient;
+        if (gateway == null) {
+            return Uni.createFrom().item(false);
+        }
+        return Uni.createFrom().completionStage(() -> gateway.getChannelById(Snowflake.of(channelId))
+                .ofType(MessageChannel.class)
+                .flatMap(channel -> channel.createMessage(MessageCreateSpec.builder().content(text)
+                        .addComponent(DiscordApprovalButtons.row(requestId)).build()))
+                .switchIfEmpty(Mono.error(new IllegalStateException("Discord did not acknowledge the prompt")))
+                .toFuture()).replaceWith(true);
     }
 
     @Override

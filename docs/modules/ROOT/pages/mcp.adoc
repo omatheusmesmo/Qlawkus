@@ -35,9 +35,13 @@ as the agent's tools, rather than maintaining another set of connection settings
 
 The agent can evolve its own tool set with `listMcpConnections`, `configureMcpConnection`,
 `testMcpConnection` and `removeMcpConnection`. Like skill installs, its changes follow
-`qlawkus.mcp.approval-mode`: with `hitl` (the default) the first `configureMcpConnection` call only
-previews what would be contacted or launched, and nothing is saved or started until the owner
-approves and the agent repeats the call with `confirm=true`; `yolo` applies at once. The console and
+`qlawkus.mcp.approval-mode`: with `hitl` (the default) `configureMcpConnection` is held as an owner approval request
+(see xref:approvals.adoc[Owner Approvals]) and nothing is saved, contacted or launched until the
+owner approves it through a chat command, a Telegram or Discord button, the admin API or the
+console; the model's own `confirm=true` is ignored. `yolo` applies at once. The remote tools a
+connected server contributes are not gated by this mechanism: the gate covers the agent's own
+`@QlawTool` tools, and approving a connection is where the owner controls which servers can
+supply tools. The console and
 admin API are the owner acting directly and never ask. In either mode the agent cannot move an
 existing connection that has credentials to another endpoint or command, so a prompt-injected agent
 cannot redirect a stored credential: the owner does that in the console. An enabled connection is discovered before an

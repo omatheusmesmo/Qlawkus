@@ -39,7 +39,8 @@ public class PgWriteProbe {
     CHAT_MESSAGES("chat_message_entity", "INSERT", "DELETE"),
     SKILL("skill", "INSERT", "UPDATE", "DELETE"),
     SCHEDULED_TASK("scheduled_task", "INSERT", "UPDATE", "DELETE"),
-    OWNER_CHAT("owner_chat", "INSERT", "UPDATE");
+    OWNER_CHAT("owner_chat", "INSERT", "UPDATE"),
+    APPROVAL_REQUEST("approval_request", "INSERT", "UPDATE", "DELETE");
 
     final String name;
     final List<String> privileges;

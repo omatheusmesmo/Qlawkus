@@ -1,0 +1,36 @@
+{#include console/base}
+{#title}Qlawkus Console - Approvals{/title}
+<header class="content-head">
+    <h1>Approvals</h1>
+    <p class="lede">Gated tool calls waiting for your decision. {pendingCount} pending.</p>
+</header>
+
+<section class="panel">
+    <table class="tbl tbl-stack">
+        <thead><tr><th>Tool</th><th>Preview</th><th>Status</th><th>Expires</th><th>Actions</th></tr></thead>
+        <tbody>
+        {#for r in requests}
+            <tr>
+                <td class="mono" data-label="Tool">{r.toolName}</td>
+                <td class="mono" data-label="Preview">{r.preview}</td>
+                <td data-label="Status">{r.status}</td>
+                <td data-label="Expires">{r.expiresAt}</td>
+                <td data-label="Actions">
+                    {#if r.status == 'PENDING'}
+                    <div class="row-actions">
+                        <button class="btn btn-primary btn-sm" hx-post="/api/admin/approvals/{r.id}/approve" data-confirm-action="Approve and run" data-confirm-target="{r.toolName}" data-confirm="The stored call runs once now, with the arguments shown in the preview." hx-target="#approval-result" hx-swap="innerHTML" data-ok="Approved. The agent resumes in its chat.">Approve</button>
+                        <button class="btn btn-danger btn-sm" hx-post="/api/admin/approvals/{r.id}/deny" hx-target="#approval-result" hx-swap="innerHTML" data-ok="Denied. The action will not run.">Deny</button>
+                    </div>
+                    {#else}
+                    <span class="muted">{r.resultSummary.or('-')}</span>
+                    {/if}
+                </td>
+            </tr>
+        {#else}
+            <tr><td colspan="5" class="muted">No approval requests yet.</td></tr>
+        {/for}
+        </tbody>
+    </table>
+    <div id="approval-result" class="result"></div>
+</section>
+{/include}

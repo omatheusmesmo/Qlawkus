@@ -37,6 +37,9 @@ include::includes/qlawkus-specialists_qlawkus.specialists.adoc[]
 === Skills
 include::includes/qlawkus-client_qlawkus.skills.adoc[]
 
+=== Approval
+include::includes/qlawkus-client_qlawkus.approval.adoc[]
+
 === Memory review
 include::includes/qlawkus-client_qlawkus.memory-review.adoc[]
 

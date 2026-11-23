@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.health;
 
+import dev.omatheusmesmo.qlawkus.approval.ApprovalStore;
 import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
@@ -42,6 +43,7 @@ class CognitionReadinessPolicyTest {
         check.episodicStore = mock(EpisodicStore.class);
         check.scheduledTaskStore = mock(ScheduledTaskStore.class);
         check.ownerChatStore = mock(OwnerChatStore.class);
+        check.approvalStore = mock(ApprovalStore.class);
         check.skillsConfig = skillsConfig;
         when(skillsConfig.enabled()).thenReturn(true);
     }
@@ -75,6 +77,7 @@ class CognitionReadinessPolicyTest {
         verify(check.soulStore, never()).verifyWritable();
         verify(check.userProfileStore, never()).verifyWritable();
         verify(check.ownerChatStore, never()).verifyWritable();
+        verify(check.approvalStore, never()).verifyWritable();
     }
 
     private static Map<String, Object> data(HealthCheckResponse response) {

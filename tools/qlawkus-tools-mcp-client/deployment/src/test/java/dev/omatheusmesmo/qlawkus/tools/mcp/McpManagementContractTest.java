@@ -11,6 +11,8 @@ import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
 import dev.omatheusmesmo.qlawkus.tools.mcp.auth.McpOAuth;
 import dev.omatheusmesmo.qlawkus.tools.mcp.auth.McpOAuthGrant;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,7 +29,15 @@ import org.junit.jupiter.api.Test;
 
 /** Real CDI/provider and authenticated admin paths share one mutable registry. */
 @QuarkusTest
+@TestProfile(McpManagementContractTest.Yolo.class)
 class McpManagementContractTest {
+    public static class Yolo implements QuarkusTestProfile {
+        @Override
+        public Map<String, String> getConfigOverrides() {
+            return Map.of("qlawkus.mcp.approval-mode", "yolo");
+        }
+    }
+
     private static final String BASE = "/api/admin/mcp/connections";
     private static final String USER = "qlawkus";
     private static final String PASSWORD = "qlawkus-test";

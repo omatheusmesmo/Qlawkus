@@ -21,7 +21,8 @@ class ConfirmationDialogTest {
   private static final String USER = "qlawkus";
   private static final String PASS = "qlawkus-test";
   private static final List<String> PAGES = List.of("/console/memory", "/console/skills", "/console/config",
-      "/console/schedule", "/console/specialists", "/console/mcp", "/console/cognition", "/console/skills/install");
+      "/console/schedule", "/console/specialists", "/console/mcp", "/console/cognition",
+      "/console/skills/install", "/console/approvals");
   private static final Pattern DELETE_ELEMENT = Pattern.compile("<(?:button|a)\\b[^>]*\\bhx-delete=[^>]*>", Pattern.DOTALL);
   private static final Pattern MIGRATE_ELEMENT = Pattern.compile("<button\\b[^>]*hx-post=\"[^\"]*cognition/migrate[^>]*>");
 

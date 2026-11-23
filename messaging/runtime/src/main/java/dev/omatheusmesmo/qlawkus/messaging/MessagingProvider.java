@@ -29,6 +29,17 @@ public interface MessagingProvider {
     }
 
     /**
+     * Shows the owner an approval request with Approve and Deny buttons, when the platform has them.
+     * Completes with {@code true} once the prompt (text and buttons) was delivered, and with
+     * {@code false} when this platform cannot offer buttons, so the caller sends the plain text that tells
+     * the owner to reply with a command. A pressed button must reach the orchestrator as the typed
+     * command (see {@code ApprovalCallbacks}), never decide on its own.
+     */
+    default Uni<Boolean> sendApprovalPrompt(String chatId, String requestId, String text) {
+        return Uni.createFrom().item(false);
+    }
+
+    /**
      * The status-message operations for showing tool activity, or empty when the platform cannot
      * edit its own messages. The returned sink is called from the turn's worker thread.
      */

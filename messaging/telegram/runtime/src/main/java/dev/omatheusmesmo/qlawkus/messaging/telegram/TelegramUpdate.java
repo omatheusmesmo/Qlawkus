@@ -7,8 +7,21 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record TelegramUpdate(
         @JsonProperty("update_id") long updateId,
-        TelegramMessage message
+        TelegramMessage message,
+        @JsonProperty("callback_query") TelegramCallbackQuery callbackQuery
 ) {
+    public TelegramUpdate(long updateId, TelegramMessage message) {
+        this(updateId, message, null);
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record TelegramCallbackQuery(
+            String id,
+            TelegramUser from,
+            TelegramMessage message,
+            String data
+    ) {}
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record TelegramMessage(
             @JsonProperty("message_id") long messageId,

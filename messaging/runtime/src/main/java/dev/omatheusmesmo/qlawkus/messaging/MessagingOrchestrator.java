@@ -14,6 +14,7 @@ import dev.omatheusmesmo.qlawkus.logging.FailureSummary;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import dev.omatheusmesmo.qlawkus.task.OwnerChatDirectory;
 import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
+import dev.omatheusmesmo.qlawkus.messaging.approval.ApprovalCommands;
 import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
 import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressReporter;
 import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressRouter;
@@ -70,6 +71,9 @@ public class MessagingOrchestrator {
     MessagingAuthService authService;
 
     @Inject
+    ApprovalCommands approvalCommands;
+
+    @Inject
     NotificationService notificationService;
 
     @Inject
@@ -123,6 +127,13 @@ public class MessagingOrchestrator {
         }
         if (ToolProgressSettings.isVerboseCommand(message.text())) {
             return notificationService.send(channel, message.chatId(), cycleAuthorizedToolProgress(message), conversation);
+        }
+
+        if (ApprovalCommands.isCommand(message.text())) {
+            return Uni.createFrom()
+                    .item(() -> approvalCommands.handle(message, authService::isAuthorized))
+                    .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+                    .flatMap(reply -> notificationService.send(channel, message.chatId(), reply, conversation));
         }
 
         long startMs = System.currentTimeMillis();

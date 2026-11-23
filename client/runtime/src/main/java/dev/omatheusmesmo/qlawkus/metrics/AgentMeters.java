@@ -87,6 +87,35 @@ public class AgentMeters {
     /** The {@code outcome} tag of {@link #TURN_GATE} when the gate threw and the turn ran anyway. */
     public static final String GATE_ERROR = "error";
 
+    public static final String APPROVAL_REQUESTS = "qlawkus.approval.requests";
+    public static final String APPROVAL_DECISIONS = "qlawkus.approval.decisions";
+    public static final String APPROVAL_EXECUTIONS = "qlawkus.approval.executions";
+    public static final String APPROVAL_NEEDS_REVIEW = "qlawkus.approval.needs.review";
+
+    /** The {@code outcome} tag of {@link #APPROVAL_REQUESTS} when a gated call became a pending request. */
+    public static final String APPROVAL_CREATED = "created";
+
+    /** The {@code outcome} tag of {@link #APPROVAL_REQUESTS} when a gated call was refused before any request existed. */
+    public static final String APPROVAL_REFUSED = "refused";
+
+    /** The {@code outcome} tag of {@link #APPROVAL_DECISIONS} for an owner approval. */
+    public static final String DECISION_APPROVED = "approved";
+
+    /** The {@code outcome} tag of {@link #APPROVAL_DECISIONS} for an owner denial. */
+    public static final String DECISION_DENIED = "denied";
+
+    /** The {@code outcome} tag of {@link #APPROVAL_DECISIONS} for a request that expired undecided. */
+    public static final String DECISION_EXPIRED = "expired";
+
+    /** The {@code outcome} tag of {@link #APPROVAL_DECISIONS} for a decision that was refused, such as a replay. */
+    public static final String DECISION_REFUSED = "refused";
+
+    /** The {@code outcome} tag of {@link #APPROVAL_EXECUTIONS} when the approved call completed. */
+    public static final String EXECUTION_EXECUTED = "executed";
+
+    /** The {@code outcome} tag of {@link #APPROVAL_EXECUTIONS} when the approved call failed. */
+    public static final String EXECUTION_FAILED = "failed";
+
     public static final String REDEPLOY_RUNS = "qlawkus.redeploy.runs";
     public static final String REDEPLOY_PHASE_DURATION = "qlawkus.redeploy.phase.duration";
     public static final String REDEPLOY_LAST_SUCCESS_AGE = "qlawkus.redeploy.last.success.age";
@@ -354,6 +383,34 @@ public class AgentMeters {
         Tags tags = Tags.of(TAG_STORE, store, TAG_BACKEND, backend, TAG_OPERATION, operation);
         registry.counter(STORE_OPERATIONS, tags.and(TAG_OUTCOME, succeeded ? SUCCESS : FAILURE)).increment();
         registry.timer(STORE_DURATION, tags).record(took);
+    }
+
+    /** Counts one gated call, as a request that now waits for the owner or as a refusal before any request. */
+    public void approvalRequest(String outcome) {
+        if (registry != null) {
+            registry.counter(APPROVAL_REQUESTS, Tags.of(TAG_OUTCOME, outcome)).increment();
+        }
+    }
+
+    /** Counts one owner decision, or a refused one, so a rising refusal rate is visible on its own. */
+    public void approvalDecision(String outcome) {
+        if (registry != null) {
+            registry.counter(APPROVAL_DECISIONS, Tags.of(TAG_OUTCOME, outcome)).increment();
+        }
+    }
+
+    /** Counts one approved call that ran, by whether it completed. */
+    public void approvalExecution(String outcome) {
+        if (registry != null) {
+            registry.counter(APPROVAL_EXECUTIONS, Tags.of(TAG_OUTCOME, outcome)).increment();
+        }
+    }
+
+    /** Counts a request that a restart found in flight and sent to the owner for review. */
+    public void approvalNeedsReview() {
+        if (registry != null) {
+            registry.counter(APPROVAL_NEEDS_REVIEW).increment();
+        }
     }
 
     /**

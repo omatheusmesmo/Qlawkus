@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.omatheusmesmo.qlawkus.approval.ApprovedExecution;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -11,7 +12,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** The agent manages the same persistent registry exposed by the admin API. */
+/**
+ * The agent manages the same persistent registry exposed by the admin API. In {@code hitl} mode the
+ * platform's durable approval gate holds {@code configureMcpConnection} until the owner approves it
+ * ({@link McpApprovalRequirement}), and the tool saves only inside that approved execution; the
+ * {@code confirm} parameter is kept for schema compatibility and ignored.
+ */
 @QlawTool(capturePayload = false)
 @ApplicationScoped
 public class McpManagementTool {
@@ -32,9 +38,9 @@ public class McpManagementTool {
         return render(registry.list());
     }
 
-    @Tool("Add or replace a persistent MCP connection. In HITL approval mode you MUST first call with confirm=false "
-            + "to preview, present it to the owner, get explicit approval, then call again with confirm=true; nothing "
-            + "is saved or contacted before that. In YOLO mode it applies immediately. Enabled connections are validated "
+    @Tool("Add or replace a persistent MCP connection. In HITL approval mode the call is held "
+            + "until the owner approves it in chat; nothing is saved or contacted before that, so tell the owner it is "
+            + "waiting and do not retry. In YOLO mode it applies immediately. Enabled connections are validated "
             + "and tested before replacing the working configuration. New tools appear on subsequent discovery without "
             + "restarting. Use HTTP for a remote MCP endpoint or STDIO with a command argument list. Credentials must be "
             + "vault alias references in that connection's own namespace; never put tokens or passwords in URLs or command "
@@ -42,14 +48,14 @@ public class McpManagementTool {
             + "does that in the console.")
     public String configureMcpConnection(@P("Connection definition, including its stable id, transport, enabled flag and credential references")
             McpConnection connection,
-            @P("Set true only after the owner explicitly approved this exact change (HITL mode)") boolean confirm) {
+            @P("Ignored: approval is requested from the owner by the platform") boolean confirm) {
         try {
             McpConnectionValidator.validate(connection);
             if (movesCredentials(connection)) {
                 return "Error: an existing connection with credentials cannot be pointed at another endpoint or command "
                         + "by the agent. Ask the owner to change it in the console.";
             }
-            if (config.approvalMode() == McpConfig.ApprovalMode.HITL && !confirm) {
+            if (config.approvalMode() == McpConfig.ApprovalMode.HITL && !ApprovedExecution.active()) {
                 return preview(connection);
             }
             return render(registry.put(connection));
@@ -98,7 +104,8 @@ public class McpManagementTool {
                 + " and expose that server's tools to you"
                 + (credentials.isEmpty() ? "" : ", sending the vault credentials " + credentials)
                 + (connection.oauth() == null ? "" : ", authorizing through OAuth")
-                + ". Ask the owner to approve, then call configureMcpConnection again with confirm=true.";
+                + ". Nothing was saved or contacted: this change needs the owner's approval, which the platform asks for. "
+                + "Do not retry and do not pass confirm; tell the owner it is waiting.";
     }
 
     private String render(Object value) {

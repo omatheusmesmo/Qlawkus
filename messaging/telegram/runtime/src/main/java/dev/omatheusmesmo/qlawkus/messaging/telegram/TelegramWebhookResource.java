@@ -41,6 +41,9 @@ public class TelegramWebhookResource {
         if ((filesEnabled && secret.isEmpty()) || (secret.isPresent() && !matches(secret.get(), token))) {
             return Uni.createFrom().item(Response.status(Response.Status.FORBIDDEN).build());
         }
+        if (update != null && update.callbackQuery() != null) {
+            return callback(update, secret.isPresent());
+        }
         if (update == null || update.message() == null) {
             return Uni.createFrom().item(Response.ok().build());
         }
@@ -56,6 +59,21 @@ public class TelegramWebhookResource {
                         r -> {},
                         err -> Log.errorf(err, "Telegram processing error updateId=%d", update.updateId()));
 
+        return Uni.createFrom().item(Response.ok().build());
+    }
+
+    /**
+     * A button press can approve a gated action, so it is accepted only from a webhook that proves it is
+     * Telegram's: without the secret header anyone who knows the owner's numeric id could forge one.
+     */
+    private Uni<Response> callback(TelegramUpdate update, boolean authenticated) {
+        if (!authenticated) {
+            return Uni.createFrom().item(Response.status(Response.Status.FORBIDDEN).build());
+        }
+        adapter.handleCallback(update)
+                .subscribe().with(
+                        r -> {},
+                        err -> Log.errorf(err, "Telegram callback processing error updateId=%d", update.updateId()));
         return Uni.createFrom().item(Response.ok().build());
     }
 

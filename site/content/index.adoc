@@ -52,6 +52,7 @@ xref:quickstart.adoc[Quick Start] - Get a working agent running in minutes.
 * xref:architecture.adoc[Architecture] - How the modules fit together
 * xref:memory.adoc[Memory] - Declarative memory, injected every turn and searchable on demand
 * xref:skills.adoc[Skills] - Procedural memory the agent writes and curates itself
+* xref:approvals.adoc[Owner Approvals] - Hold selected tool calls for the owner's decision, then resume
 * xref:storage.adoc[Storage] - Markdown, pgvector or hybrid, and how to move between them
 * xref:composition.adoc[Composition] - Let agent.yml decide which capabilities are built in
 * xref:console.adoc[Console] - The optional server-rendered admin UI

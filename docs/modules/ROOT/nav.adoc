@@ -14,6 +14,7 @@
 * xref:storage.adoc[Storage]
 * xref:skills.adoc[Skills]
 * xref:scheduler.adoc[Scheduler]
+* xref:approvals.adoc[Owner Approvals]
 
 [.list-top-item]
 .Configuration
