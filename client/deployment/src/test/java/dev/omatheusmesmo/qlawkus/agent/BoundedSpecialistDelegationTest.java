@@ -44,9 +44,6 @@ import org.junit.jupiter.api.Test;
 class BoundedSpecialistDelegationTest {
 
     @Inject
-    SpecialistEvaluation.Team workflow;
-
-    @Inject
     AgentDeliveryContext delivery;
 
     @Test
@@ -57,7 +54,7 @@ class BoundedSpecialistDelegationTest {
 
         delivery.set("owner-conversation", "discord", "owner-chat");
         try (var calls = Executors.newVirtualThreadPerTaskExecutor()) {
-            var prototype = new SpecialistEvaluation(workflow, calls);
+            var prototype = new SpecialistEvaluation(calls);
             var report = prototype.evaluate(prototype.newRun(
                     new Source("Facts snapshot", checkingModel("Facts snapshot", "The build succeeded.", bothModels), approved),
                     new Source("Questions snapshot", checkingModel("Questions snapshot", "Who reviews the release?", bothModels), null),
@@ -89,7 +86,7 @@ class BoundedSpecialistDelegationTest {
     @Test
     void boundsInputsAndOutputsAndKeepsTheOtherSpecialistsResult() {
         try (var calls = Executors.newVirtualThreadPerTaskExecutor()) {
-            var prototype = new SpecialistEvaluation(workflow, calls);
+            var prototype = new SpecialistEvaluation(calls);
             var report = prototype.evaluate(prototype.newRun(
                     new Source("data", model(request -> answer("Over budget", 1000, 100)), null),
                     new Source("second", model(request -> answer("Usable evidence", 20, 3)), null),
@@ -121,7 +118,7 @@ class BoundedSpecialistDelegationTest {
                 () -> new Plan(Pattern.PARALLEL, List.of(facts, facts)));
         try (var calls = Executors.newVirtualThreadPerTaskExecutor();
                 var orchestration = Executors.newVirtualThreadPerTaskExecutor()) {
-            var prototype = new SpecialistEvaluation(workflow, calls);
+            var prototype = new SpecialistEvaluation(calls);
             var observed = new ArrayList<String>();
             var sequenced = prototype.evaluateRuntime(prototype.newRun(
                     new Source("facts", model(request -> {
@@ -154,7 +151,7 @@ class BoundedSpecialistDelegationTest {
     void rejectsAWorkerThatTriesToCallAnUnapprovedTool() {
         var call = ToolExecutionRequest.builder().id("call-not-allowed").name("sendArtifact").arguments("{}").build();
         try (var calls = Executors.newVirtualThreadPerTaskExecutor()) {
-            var prototype = new SpecialistEvaluation(workflow, calls);
+            var prototype = new SpecialistEvaluation(calls);
             var report = prototype.evaluate(prototype.newRun(
                     new Source("data", model(request -> ChatResponse.builder().aiMessage(AiMessage.from(call))
                             .tokenUsage(new TokenUsage(20, 3)).build()), null),
@@ -170,7 +167,7 @@ class BoundedSpecialistDelegationTest {
     void sharesTheDeadlineAndInterruptsATimedOutWorker() throws Exception {
         CountDownLatch interrupted = new CountDownLatch(1);
         try (var calls = Executors.newVirtualThreadPerTaskExecutor()) {
-            var prototype = new SpecialistEvaluation(workflow, calls);
+            var prototype = new SpecialistEvaluation(calls);
             var report = prototype.evaluate(prototype.newRun(
                     new Source("slow", blockingModel(new CountDownLatch(1), interrupted), null),
                     new Source("quick", model(request -> answer("Ready", 20, 3)), null),
@@ -187,7 +184,7 @@ class BoundedSpecialistDelegationTest {
         CountDownLatch interrupted = new CountDownLatch(2);
         try (var calls = Executors.newVirtualThreadPerTaskExecutor();
                 var parents = Executors.newVirtualThreadPerTaskExecutor()) {
-            var prototype = new SpecialistEvaluation(workflow, calls);
+            var prototype = new SpecialistEvaluation(calls);
             var source = new Source("waiting", blockingModel(entered, interrupted), null);
             var run = prototype.newRun(source, source, Duration.ofSeconds(10));
             var pending = parents.submit(() -> prototype.evaluate(run));
