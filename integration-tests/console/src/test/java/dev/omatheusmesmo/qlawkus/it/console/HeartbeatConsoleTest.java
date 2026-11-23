@@ -33,8 +33,17 @@ class HeartbeatConsoleTest {
         given().auth().preemptive().basic("qlawkus", "qlawkus-test").get(SETTINGS).then()
                 .statusCode(200).header("Cache-Control", containsString("no-store"))
                 .body("settings.prompt", equalTo("Review schedule health."));
+        given().auth().preemptive().basic("qlawkus", "qlawkus-test").contentType("application/json")
+                .body("""
+                        {"startedAt":"2026-01-01T00:00:00Z","outcome":"success",
+                         "phases":{"verify":123},"message":"Fixture verified the redeploy."}
+                        """)
+                .post("/api/admin/composition/redeploys").then().statusCode(201);
         given().auth().preemptive().basic("qlawkus", "qlawkus-test").get("/console/schedule").then()
                 .statusCode(200).body(containsString("id=\"heartbeat\""))
+                .body(containsString("Memory review (dedup facts)"))
+                .body(containsString("Fixture verified the redeploy."))
+                .body(containsString("123 ms"))
                 .body(not(containsString("Review schedule health.")));
     }
 
