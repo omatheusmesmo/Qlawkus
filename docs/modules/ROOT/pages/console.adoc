@@ -12,6 +12,12 @@ The console is the composition capability `console`. It ships in the reference `
 
 Every console page is `@Authenticated` and carries no login of its own: it reuses whatever mechanism the app already enforces on `/api/admin/*`. In the bundled distribution that is HTTP Basic over an Argon2id credential (`qlawkus` / `dev` in dev mode; see xref:secrets.adoc[Secrets]). Add `quarkus-oidc` to the app and the console is behind SSO with no console-side change.
 
+== Navigation
+
+The sidebar groups the pages: *Agent* (Overview, Chat, Voice), *Knowledge* (Specialists, Artifacts, Memory, Skills, Cognition) and *System* (Config, MCP connections, Schedule). An entry that belongs to an optional capability appears only when that capability is composed in, so a slimmed distribution shows a shorter menu, never a dead link.
+
+On a narrow screen (900 px or less) the sidebar becomes a slim top bar with a menu button. The menu opens as a drawer: focus moves into it, Tab stays inside it, and Escape or a tap outside closes it and returns focus to the button. The first Tab stop on every page is a link that skips straight to the content.
+
 == First-run setup wizard
 
 On first boot the agent cannot yet talk to an LLM, so the Overview shows a setup banner linking to the wizard at `/console/setup`. The wizard writes nothing itself: it orchestrates the same primitives documented elsewhere - the keystore writer (secrets, applied on restart) and the composition admin service (a staged manifest, applied on the next rebuild).

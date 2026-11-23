@@ -8,8 +8,10 @@
     <script src="/console/htmx.min.js" defer></script>
     <script src="/console/console.js" defer></script>
 {#insert head}{/insert}
+    <noscript><style>.nav { visibility: visible !important; transform: none !important; position: static !important; }</style></noscript>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <div class="layout">
     <aside class="sidebar">
         <div class="brand">
@@ -26,30 +28,44 @@
                 <span class="brand-sub">console</span>
             </span>
         </div>
-        <nav class="nav">
-            <a class="nav-item{#if active == 'overview'} is-active{/if}" href="/console">Overview</a>
-            <a class="nav-item{#if active == 'chat'} is-active{/if}" href="/console/chat">Chat</a>
+        <button class="nav-toggle" id="nav-toggle" type="button" aria-controls="site-nav" aria-expanded="false">
+            <span class="nav-toggle-bars" aria-hidden="true"></span>
+            <span class="sr-only">Menu</span>
+        </button>
+        <nav class="nav" id="site-nav" aria-label="Console">
+            <div class="nav-group" data-nav-group="agent">
+                <p class="nav-group-title">Agent</p>
+            <a class="nav-item{#if active == 'overview'} is-active{/if}" href="/console"{#if active == 'overview'} aria-current="page"{/if}>Overview</a>
+            <a class="nav-item{#if active == 'chat'} is-active{/if}" href="/console/chat"{#if active == 'chat'} aria-current="page"{/if}>Chat</a>
+            {#if inject:consoleNavigation.voiceEnabled}
+            <a class="nav-item{#if active == 'voice'} is-active{/if}" href="/console/voice"{#if active == 'voice'} aria-current="page"{/if}>Voice</a>
+            {/if}
+            </div>
+            <div class="nav-group" data-nav-group="knowledge">
+                <p class="nav-group-title">Knowledge</p>
             {#if inject:consoleFeatures.specialists}
-            <a class="nav-item{#if active == 'specialists'} is-active{/if}" href="/console/specialists">Specialists</a>
+            <a class="nav-item{#if active == 'specialists'} is-active{/if}" href="/console/specialists"{#if active == 'specialists'} aria-current="page"{/if}>Specialists</a>
             {/if}
             {#if inject:consoleFeatures.artifacts}
-            <a class="nav-item{#if active == 'artifacts'} is-active{/if}" href="/console/artifacts">Artifacts</a>
+            <a class="nav-item{#if active == 'artifacts'} is-active{/if}" href="/console/artifacts"{#if active == 'artifacts'} aria-current="page"{/if}>Artifacts</a>
             {/if}
-            <a class="nav-item{#if active == 'memory'} is-active{/if}" href="/console/memory">Memory</a>
-            <a class="nav-item{#if active == 'skills'} is-active{/if}" href="/console/skills">Skills</a>
-            <a class="nav-item{#if active == 'cognition'} is-active{/if}" href="/console/cognition">Cognition</a>
-            <a class="nav-item{#if active == 'config'} is-active{/if}" href="/console/config">Config</a>
+            <a class="nav-item{#if active == 'memory'} is-active{/if}" href="/console/memory"{#if active == 'memory'} aria-current="page"{/if}>Memory</a>
+            <a class="nav-item{#if active == 'skills'} is-active{/if}" href="/console/skills"{#if active == 'skills'} aria-current="page"{/if}>Skills</a>
+            <a class="nav-item{#if active == 'cognition'} is-active{/if}" href="/console/cognition"{#if active == 'cognition'} aria-current="page"{/if}>Cognition</a>
+            </div>
+            <div class="nav-group" data-nav-group="system">
+                <p class="nav-group-title">System</p>
+            <a class="nav-item{#if active == 'config'} is-active{/if}" href="/console/config"{#if active == 'config'} aria-current="page"{/if}>Config</a>
             {#if inject:consoleFeatures.mcp}
-            <a class="nav-item{#if active == 'mcp'} is-active{/if}" href="/console/mcp">MCP connections</a>
+            <a class="nav-item{#if active == 'mcp'} is-active{/if}" href="/console/mcp"{#if active == 'mcp'} aria-current="page"{/if}>MCP connections</a>
             {/if}
-            <a class="nav-item{#if active == 'schedule'} is-active{/if}" href="/console/schedule">Schedule</a>
-            {#if inject:consoleNavigation.voiceEnabled}
-            <a class="nav-item{#if active == 'voice'} is-active{/if}" href="/console/voice">Voice</a>
-            {/if}
+            <a class="nav-item{#if active == 'schedule'} is-active{/if}" href="/console/schedule"{#if active == 'schedule'} aria-current="page"{/if}>Schedule</a>
+            </div>
         </nav>
+        <div class="nav-backdrop" id="nav-backdrop" hidden></div>
         <div class="sidebar-foot">Control plane</div>
     </aside>
-    <main class="content">
+    <main class="content" id="main" tabindex="-1">
 {#insert /}
     </main>
 </div>
