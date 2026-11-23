@@ -70,6 +70,12 @@ The page sends the mode with each message, so the endpoint itself leaves out wha
 
 A note the Config and Schedule pages surface: when a property's effective value already comes from a source that outranks the runtime-toggle override file (an environment variable, `.env`, or a `-D` flag), the page warns that saving there will not take effect until that higher-priority source is removed - so a silent no-op is caught in the UI rather than by trial and error.
 
+== Appearance
+
+The console follows your system color scheme and shares its palette, type and contrast rules with this documentation site, so the two read as one product. The text is set in Manrope, shipped inside the console itself: the console never asks a font CDN for anything, which keeps it usable on a private or air-gapped network.
+
+Every text color is checked against its background for at least 4.5:1 contrast in both the light and the dark theme.
+
 == Observability links
 
 The console does not embed telemetry, it links to it. Set `qlawkus.console.grafana-url` (environment variable `QLAWKUS_CONSOLE_GRAFANA_URL`) to the address Grafana has *from the operator's browser* - not the in-network `lgtm:3000` the agent uses - and the Overview gains an Observability card with four links, each opening in a new tab:

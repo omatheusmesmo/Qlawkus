@@ -1,31 +1,109 @@
-/* Qlawkus console theme. Reuses the design tokens of the docs site (site/web/app.css) so the
-   console reads as the same product, without pulling in the site's documentation-only rules. */
+/* Qlawkus console theme. The token block below is shared with the docs site (site/web/app.css). */
+
+/* qlawkus-tokens:start (identical in the console and the docs site, DesignTokensTest fails on drift) */
 :root {
   --bg: #faf8f6;
   --surface: #ffffff;
   --sidebar: #17151b;
   --sidebar-soft: #221f28;
   --text: #232027;
-  --muted: #6c6770;
-  --faint: #9a949e;
+  --muted: #5f5a64;
+  --faint: #726d77;
   --border: #ece8e3;
-  --accent: #f5821f;
-  --accent-ink: #b07219;
-  --accent-soft: rgba(245, 130, 31, 0.12);
-  --accent-strong: #d4650a;
-  --accent-strong-hover: #b35208;
   --border-strong: #d9d3cc;
+  --accent: #f5821f;
+  --accent-ink: #8f5a0f;
+  --accent-soft: rgba(245, 130, 31, 0.12);
+  --accent-strong: #b85609;
+  --accent-strong-hover: #9d4a07;
   --danger: #c0392b;
   --danger-soft: #fdeeec;
   --danger-border: #e3b7b2;
+  --up: #2f7d40;
   --up-soft: #e8f4ea;
-  --up: #3f9a52;
   --speak: #13707f;
   --speak-soft: rgba(19, 112, 127, 0.12);
+  --warn: #c2620a;
+  --warn-ink: #9a4e08;
+  --note: #3b6fb0;
+  --code-bg: #1b1920;
+  --code-text: #e9e6ec;
   --radius: 10px;
   --sidebar-w: 270px;
+  --content-w: 70rem;
   --font: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: "JetBrains Mono", "SFMono-Regular", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15131a;
+    --surface: #1d1a23;
+    --sidebar: #0f0d13;
+    --sidebar-soft: #1f1c27;
+    --text: #ece9f0;
+    --muted: #a9a3b1;
+    --faint: #8f8899;
+    --border: #2f2b38;
+    --border-strong: #3d3847;
+    --accent-ink: #f2a45c;
+    --accent-soft: rgba(245, 130, 31, 0.18);
+    --danger: #ef6f60;
+    --danger-soft: #3a1f1d;
+    --danger-border: #6b3430;
+    --up: #63c27a;
+    --up-soft: #173222;
+    --speak: #5fc9d6;
+    --speak-soft: rgba(95, 201, 214, 0.14);
+    --warn: #e8964a;
+    --warn-ink: #e8964a;
+    --note: #7fa8dc;
+    --code-bg: #0f0d13;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #15131a;
+  --surface: #1d1a23;
+  --sidebar: #0f0d13;
+  --sidebar-soft: #1f1c27;
+  --text: #ece9f0;
+  --muted: #a9a3b1;
+  --faint: #8f8899;
+  --border: #2f2b38;
+  --border-strong: #3d3847;
+  --accent-ink: #f2a45c;
+  --accent-soft: rgba(245, 130, 31, 0.18);
+  --danger: #ef6f60;
+  --danger-soft: #3a1f1d;
+  --danger-border: #6b3430;
+  --up: #63c27a;
+  --up-soft: #173222;
+  --speak: #5fc9d6;
+  --speak-soft: rgba(95, 201, 214, 0.14);
+  --warn: #e8964a;
+  --warn-ink: #e8964a;
+  --note: #7fa8dc;
+  --code-bg: #0f0d13;
+}
+/* qlawkus-tokens:end */
+
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("fonts/manrope-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("fonts/manrope-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 .specialist-editor {
     display: grid;
@@ -457,30 +535,6 @@ body {
   .msg { max-width: 94%; }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #15131a;
-    --surface: #1d1a23;
-    --sidebar: #0f0d13;
-    --sidebar-soft: #1f1c27;
-    --text: #ece9f0;
-    --muted: #a9a3b1;
-    --faint: #7a7384;
-    --border: #2f2b38;
-    --border-strong: #3d3847;
-    --accent-ink: #f2a45c;
-    --accent-soft: rgba(245, 130, 31, 0.18);
-    --accent-strong: #e9731a;
-    --accent-strong-hover: #f5821f;
-    --danger: #ef6f60;
-    --danger-soft: #3a1f1d;
-    --danger-border: #6b3430;
-    --up-soft: #173222;
-    --up: #63c27a;
-    --speak: #5fc9d6;
-    --speak-soft: rgba(95, 201, 214, 0.14);
-  }
-}
 
 /* ---------- Voice page ---------- */
 .voice { margin-top: 28px; }
