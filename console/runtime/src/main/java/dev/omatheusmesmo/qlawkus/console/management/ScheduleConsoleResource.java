@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.console.management;
 
 import dev.omatheusmesmo.qlawkus.compose.RedeployHistoryService;
 import dev.omatheusmesmo.qlawkus.config.RuntimeToggleConfig;
+import dev.omatheusmesmo.qlawkus.config.metadata.ConfigMetadataIndex;
 import dev.omatheusmesmo.qlawkus.task.DynamicTaskScheduler;
 import io.quarkus.qute.Location;
 import io.quarkus.qute.Template;
@@ -63,17 +64,20 @@ public class ScheduleConsoleResource {
     private final Config mpConfig;
     private final RedeployHistoryService redeploys;
     private final DynamicTaskScheduler tasks;
+    private final ConfigMetadataIndex metadata;
 
     public ScheduleConsoleResource(@Location("console/schedule.html") Template scheduleTemplate,
                                     Scheduler scheduler,
                                     RuntimeToggleConfig runtimeToggleConfig,
                                     RedeployHistoryService redeploys,
-                                    DynamicTaskScheduler tasks) {
+                                    DynamicTaskScheduler tasks,
+                                    ConfigMetadataIndex metadata) {
         this.scheduleTemplate = scheduleTemplate;
         this.scheduler = scheduler;
         this.runtimeToggleConfig = runtimeToggleConfig;
         this.redeploys = redeploys;
         this.tasks = tasks;
+        this.metadata = metadata;
         this.mpConfig = ConfigProvider.getConfig();
     }
 
@@ -88,7 +92,8 @@ public class ScheduleConsoleResource {
             return ScheduledTaskView.of(view, next);
         }).toList();
         return scheduleTemplate.data("active", "schedule").data("jobs", jobs).data("redeploy", redeploy)
-                .data("agentTasks", taskRows).data("taskZone", tasks.zone().getId());
+                .data("agentTasks", taskRows).data("taskZone", tasks.zone().getId())
+                .data("heartbeatAvailable", metadata.roots().stream().anyMatch(root -> root.prefix().equals("qlawkus.heartbeat")));
     }
 
     private ScheduledJobView toView(JobDescriptor job) {

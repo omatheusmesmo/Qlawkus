@@ -69,6 +69,39 @@
 
 <div id="sched-result" class="result"></div>
 
+{#if heartbeatAvailable}
+<section class="panel" id="heartbeat" aria-labelledby="heartbeat-title">
+    <h2 class="panel-title" id="heartbeat-title">Heartbeat</h2>
+    <p class="muted">Check schedule health and curated memory on an interval. Enable notifications by choosing an accepted owner chat.</p>
+    <table class="tbl">
+        <tbody>
+        <tr><th scope="row">State</th><td data-heartbeat="state">Loading…</td></tr>
+        <tr><th scope="row">Next run</th><td data-heartbeat="next">—</td></tr>
+        <tr><th scope="row">Last run</th><td data-heartbeat="last">—</td></tr>
+        <tr><th scope="row">Notifications</th><td data-heartbeat="destination">—</td></tr>
+        <tr><th scope="row">Observations</th><td data-heartbeat="observations">—</td></tr>
+        <tr><th scope="row">Budget</th><td data-heartbeat="budget">—</td></tr>
+        </tbody>
+    </table>
+    <form>
+        <fieldset disabled>
+            <div class="cfg-row">
+                <label><input type="checkbox" name="enabled"> Enable heartbeat</label>
+                <label>Interval in minutes <input type="number" name="interval" min="1" max="1440" required></label>
+            </div>
+            <p><label>Owner instructions<br><textarea name="prompt" rows="3" maxlength="1000" cols="48"></textarea></label></p>
+            <div class="cfg-row">
+                <label>Notification provider <select name="provider"></select></label>
+                <button class="btn btn-primary btn-sm" type="submit">Save heartbeat</button>
+            </div>
+        </fieldset>
+    </form>
+    <button class="btn btn-secondary btn-sm" type="button" data-heartbeat-refresh>Refresh status</button>
+    <div class="result" role="status" data-heartbeat-result></div>
+    <script src="/console/heartbeat.js" defer></script>
+</section>
+{/if}
+
 <section class="panel">
     <h2 class="panel-title">Last redeploy</h2>
     {#if redeploy}

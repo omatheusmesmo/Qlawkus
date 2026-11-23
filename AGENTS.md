@@ -46,6 +46,8 @@ Multi-module Maven monorepo with a Quarkus extension pattern (`client/deployment
 
 `app/` depends on `client`, `cognition-pgvector`, all `tools/*`, and `messaging` (core + discord + telegram). Slack and WhatsApp adapters are built but not in `app/` pom.
 
+- **`heartbeat/`** - Optional extension (runtime and deployment, capability `heartbeat`) that runs an owner-configured, bounded health check. It persists settings and a notification ledger under the agent state root. Its decision model receives aggregate schedule and curated-memory observations and chooses from a fixed set of read-only checks and known-owner notifications. An optional notification SPI in `client` is implemented by `messaging`. The Schedule console configures it through `/api/admin/heartbeat`. See `site/content/scheduler.adoc`.
+
 ## Cognition & Memory
 
 The memory subsystem (`client/runtime/.../cognition` + `.../store`) is the core of the agent. Its guiding principle: **relevant memory is injected into the prompt automatically each turn, so recall never depends on the model remembering to search** - and the stores stay fully searchable on demand (RAG feeds the automatic injection; the `session_search` tool lets the model deliberately query transcripts). Automatic injection is the reliable default; tool-based search is available on top. Understanding it means reading several files together:
