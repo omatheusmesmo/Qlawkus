@@ -27,19 +27,9 @@
             <artifactId>quarkus-arc</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.pdfbox</groupId>
-            <artifactId>pdfbox</artifactId>
-            <version>3.0.8</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.jboss.logging</groupId>
-            <artifactId>commons-logging-jboss-logging</artifactId>
+            <groupId>io.quarkiverse.pdfbox</groupId>
+            <artifactId>quarkus-pdfbox</artifactId>
+            <version>${quarkus-pdfbox.version}</version>
         </dependency>
     </dependencies>
 

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 @ConnectWireMock
 class ChatAttachmentTest {
     private static final String MODEL_ENDPOINT = "/v1/chat/completions";
-    private static final String PNG =
+    static final String PNG =
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jErkAAAAASUVORK5CYII=";
 
     WireMock wiremock;
@@ -105,7 +105,7 @@ class ChatAttachmentTest {
         wiremock.verifyThat(0, postRequestedFor(urlEqualTo(MODEL_ENDPOINT)));
     }
 
-    private static byte[] textPdf() throws IOException {
+    static byte[] textPdf() throws IOException {
         try (var document = new PDDocument(); var bytes = new ByteArrayOutputStream()) {
             var page = new PDPage();
             document.addPage(page);

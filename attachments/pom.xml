@@ -13,6 +13,11 @@
     <name>Qlawkus Attachments - Parent</name>
     <packaging>pom</packaging>
 
+    <properties>
+        <!-- The 1.x extension targets Quarkus 3 and packages the native AWT support for PDFBox. -->
+        <quarkus-pdfbox.version>1.2.3</quarkus-pdfbox.version>
+    </properties>
+
     <modules>
         <module>runtime</module>
         <module>deployment</module>

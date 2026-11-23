@@ -27,6 +27,11 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-arc-deployment</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.quarkiverse.pdfbox</groupId>
+            <artifactId>quarkus-pdfbox-deployment</artifactId>
+            <version>${quarkus-pdfbox.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

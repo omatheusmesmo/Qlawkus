@@ -15,7 +15,7 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-Existing model tier that accepts image input. Configure this only after verifying that the selected model supports images. With no selection PDF text is available and images are refused.
+Existing model tier that accepts image input. Configure this only after verifying that the selected model supports images. With no selection images are refused.
 
 
 ifdef::add-copy-button-to-env-var[]
@@ -23,6 +23,27 @@ Environment variable: env_var_with_copy_button:+++QLAWKUS_ATTACHMENTS_IMAGE_MODE
 endif::add-copy-button-to-env-var[]
 ifndef::add-copy-button-to-env-var[]
 Environment variable: `+++QLAWKUS_ATTACHMENTS_IMAGE_MODEL+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`primary`, `secondary`, `fallback`
+|
+
+a| [[qlawkus-attachments_qlawkus-attachments-pdf-model]] [.property-path]##link:#qlawkus-attachments_qlawkus-attachments-pdf-model[`+++qlawkus.attachments.pdf-model+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.attachments.pdf-model+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Existing model tier that accepts the uploaded PDF as a file. Configure this only after verifying PDF support on the selected endpoint. With no selection, Qlawkus extracts bounded text locally before sending it to a model.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ATTACHMENTS_PDF_MODEL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ATTACHMENTS_PDF_MODEL+++`
 endif::add-copy-button-to-env-var[]
 --
 a|`primary`, `secondary`, `fallback`

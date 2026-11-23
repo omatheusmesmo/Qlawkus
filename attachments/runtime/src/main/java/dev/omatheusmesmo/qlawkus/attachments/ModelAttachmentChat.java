@@ -2,9 +2,11 @@ package dev.omatheusmesmo.qlawkus.attachments;
 
 import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.pdf.PdfFile;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.omatheusmesmo.qlawkus.attachment.AttachmentChat;
 import dev.omatheusmesmo.qlawkus.attachment.AttachmentRejected;
@@ -17,6 +19,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 @ApplicationScoped
 public class ModelAttachmentChat implements AttachmentChat {
@@ -57,30 +60,38 @@ public class ModelAttachmentChat implements AttachmentChat {
         }
         List<Content> content = new ArrayList<>();
         content.add(TextContent.from(question == null || question.isBlank() ? "Describe these attachments." : question));
-        boolean hasImages = false;
+        Optional<AttachmentsConfig.ModelTier> fileModel = Optional.empty();
         for (int i = 0; i < attachments.size(); i++) {
             ChatAttachment attachment = attachments.get(i);
             byte[] bytes = attachment.read();
             String mediaType = mediaType(bytes, attachment.mediaType());
             String label = "Attachment " + (i + 1) + " (" + mediaType + ")";
-            if (PDF.equals(mediaType)) {
-                content.add(TextContent.from(label + " extracted text:\n" + PdfText.extract(bytes)));
-            } else {
-                if (config.imageModel().isEmpty()) {
+            boolean pdf = PDF.equals(mediaType);
+            Optional<AttachmentsConfig.ModelTier> tier = pdf ? config.pdfModel() : config.imageModel();
+            if (tier.isEmpty()) {
+                if (!pdf) {
                     throw new AttachmentRejected("Image analysis is unavailable. Configure an image-capable model for attachments.");
                 }
-                hasImages = true;
-                content.add(TextContent.from(label));
-                content.add(ImageContent.from(Base64.getEncoder().encodeToString(bytes), mediaType));
+                content.add(TextContent.from(label + " extracted text:\n" + PdfText.extract(bytes)));
+                continue;
             }
+            if (fileModel.isPresent() && !fileModel.equals(tier)) {
+                throw new AttachmentRejected("Images and PDFs use different model tiers. Send them in separate messages.");
+            }
+            fileModel = tier;
+            String encoded = Base64.getEncoder().encodeToString(bytes);
+            content.add(TextContent.from(label));
+            content.add(pdf
+                    ? PdfFileContent.from(PdfFile.builder().base64Data(encoded).mimeType(PDF).build())
+                    : ImageContent.from(encoded, mediaType));
         }
-        ChatModel model = hasImages ? imageModel() : textModel;
+        ChatModel model = fileModel.map(this::modelAt).orElse(textModel);
         String reply;
         try {
             reply = model.chat(SystemMessage.from(INSTRUCTIONS), UserMessage.from(content)).aiMessage().text();
         } catch (RuntimeException failure) {
-            throw new AttachmentRejected(hasImages
-                    ? "The image model could not process the attachments. Check the model's image support and availability."
+            throw new AttachmentRejected(fileModel.isPresent()
+                    ? "The selected model could not process the attachments. Check its file-format support and availability."
                     : "The model could not process the attachments. Try again when the model is available.");
         }
         if (reply == null || reply.isBlank()) {
@@ -89,8 +100,8 @@ public class ModelAttachmentChat implements AttachmentChat {
         return reply;
     }
 
-    private ChatModel imageModel() {
-        return switch (config.imageModel().orElseThrow()) {
+    private ChatModel modelAt(AttachmentsConfig.ModelTier tier) {
+        return switch (tier) {
             case PRIMARY -> primary;
             case SECONDARY -> secondary;
             case FALLBACK -> fallback;
