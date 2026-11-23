@@ -1,0 +1,16 @@
+{#if !available}
+<p class="muted">Health checks are not enabled in this distribution.</p>
+{#else if checks.isEmpty}
+<p class="muted">No readiness checks are reported.</p>
+{#else}
+<ul class="health-list">
+    {#for check in checks}
+    <li class="health-row" data-check="{check.name}" data-status="{check.status}">
+        <span class="dot dot-{check.dot}" aria-hidden="true"></span>
+        <span class="health-name">{check.label}</span>
+        <span class="health-status">{check.statusLabel}</span>
+        {#if check.reason}<p class="health-reason">{check.reason}</p>{/if}
+    </li>
+    {/for}
+</ul>
+{/if}

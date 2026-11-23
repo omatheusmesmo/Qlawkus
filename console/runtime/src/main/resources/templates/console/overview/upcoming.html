@@ -1,0 +1,14 @@
+{#if runs.isEmpty}
+<p class="muted">Nothing is scheduled to run.</p>
+{#else}
+<ul class="upcoming-list">
+    {#for run in runs}
+    <li class="upcoming-row" data-kind="{run.kind}" data-at="{run.at}">
+        <span class="upcoming-when">{run.when}</span>
+        <span class="upcoming-label">{run.label}</span>
+        <span class="upcoming-kind">{run.kindLabel}</span>
+    </li>
+    {/for}
+</ul>
+<p class="muted upcoming-zone">Times in {zone}. <a href="/console/schedule">Open schedule</a></p>
+{/if}

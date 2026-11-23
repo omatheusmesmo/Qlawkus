@@ -42,10 +42,10 @@ import java.util.List;
 public class ScheduleConsoleResource {
     private static final DateTimeFormatter TASK_TIME = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss");
 
-    private record JobDescriptor(String identity, String label, String cronProperty, String triggerPath) {
+    record JobDescriptor(String identity, String label, String cronProperty, String triggerPath) {
     }
 
-    private static final List<JobDescriptor> JOBS = List.of(
+    static final List<JobDescriptor> JOBS = List.of(
             new JobDescriptor("memory-review", "Memory review (dedup facts)",
                     "qlawkus.memory-review.cron", "/api/admin/memory/review"),
             new JobDescriptor("memory-curation", "Memory curation (fold into profile)",

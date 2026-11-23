@@ -10,6 +10,8 @@ import dev.omatheusmesmo.qlawkus.console.management.CognitionConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.ConfigConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.MemoryConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.McpConsoleResource;
+import dev.omatheusmesmo.qlawkus.console.management.OverviewConsoleResource;
+import dev.omatheusmesmo.qlawkus.console.management.ReadinessSource;
 import dev.omatheusmesmo.qlawkus.console.management.ScheduleConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.SkillsConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.SpecialistsConsoleResource;
@@ -17,6 +19,8 @@ import dev.omatheusmesmo.qlawkus.console.onboarding.OnboardingResource;
 import dev.omatheusmesmo.qlawkus.console.onboarding.SetupState;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
+import io.quarkus.deployment.Capabilities;
+import io.quarkus.deployment.Capability;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
@@ -45,7 +49,19 @@ class ConsoleProcessor {
                         OnboardingResource.class, MemoryConsoleResource.class, SkillsConsoleResource.class,
                         CognitionConsoleResource.class, ConfigConsoleResource.class, ScheduleConsoleResource.class,
                         ChatConsoleResource.class, ConsoleNavigation.class, ConsoleFeatures.class, McpConsoleResource.class,
-                        ArtifactsConsoleResource.class, SpecialistsConsoleResource.class)
+                        ArtifactsConsoleResource.class, SpecialistsConsoleResource.class,
+                        OverviewConsoleResource.class)
+                .setUnremovable()
+                .build();
+    }
+
+    @BuildStep
+    AdditionalBeanBuildItem readinessSource(Capabilities capabilities) {
+        if (!capabilities.isPresent(Capability.SMALLRYE_HEALTH)) {
+            return null;
+        }
+        return AdditionalBeanBuildItem.builder()
+                .addBeanClass(ReadinessSource.class)
                 .setUnremovable()
                 .build();
     }

@@ -40,7 +40,7 @@ So a typical bring-up is: run the wizard's Phase A, rebuild and redeploy with th
 |===
 |Page |What it does
 
-|*Overview* (`/console`) |A live status panel - app version, the baked composition posture and capability set, and a server clock that ticks on every HTMX poll to show the refresh is live. Hosts the first-run setup banner, and, once `qlawkus.console.grafana-url` is set, an Observability card (see below).
+|*Overview* (`/console`) |A live status panel - app version, the baked composition posture and capability set, and a server clock that ticks on every HTMX poll to show the refresh is live - above a row of health cards (see below). Hosts the first-run setup banner, and, once `qlawkus.console.grafana-url` is set, an Observability card (see below).
 |*Chat* (`/console/chat`) |Talk to the agent. The page is a server-rendered shell with one small script (`/console/chat.js`, no build step, no library): the browser calls the existing `POST /api/chat` server-sent-events endpoint and streams the reply into the page, so the console adds no chat logic of its own. See <<_chat,Chat>> below.
 |*Memory* (`/console/memory`) |The most recent facts, the fact sources in use, and the episodic journals. Review, curate and purge are HTMX calls to `/api/admin/memory/*`. See xref:memory.adoc[Memory].
 |*Skills* (`/console/skills`) |The current skill index. Pin, delete, curate and the lifecycle sweep call `/api/admin/skills/*`. See xref:skills.adoc[Skills].
@@ -81,6 +81,21 @@ A note the Config and Schedule pages surface: when a property's effective value 
 The console follows your system color scheme and shares its palette, type and contrast rules with this documentation site, so the two read as one product. The text is set in Manrope, shipped inside the console itself: the console never asks a font CDN for anything, which keeps it usable on a private or air-gapped network.
 
 Every text color is checked against its background for at least 4.5:1 contrast in both the light and the dark theme.
+
+=== Health cards
+
+The Overview answers "is the agent all right?" without opening another page. Five cards sit under the status panel, and each one polls its own endpoint, so a slow source never holds the others back. Polling pauses while the browser tab is hidden and resumes when it is shown again.
+
+[cols="1,3"]
+|===
+|*Health* |One row per readiness check the agent reports (the same checks behind `/q/health/ready`): `UP`, `DEGRADED` (up, but a store it can live without is not writable) or `DOWN`, with the reason in plain words. Only an error message, the degraded store names and a pending-migration count are ever shown; any other data a check publishes stays off the page, and the reason is cut to one line with secrets masked. A check that throws is its own `DOWN` row. A distribution without the health capability has no Health card at all. Refreshes every 10 seconds.
+|*Model* |The chain of model tiers (primary, secondary, local fallback) with the breaker state of each, so an open breaker reads as "this tier is failing, so the next tier answers". A permanent failure (HTTP 401, 403, 404 or 410 from the provider) is named by its status even though no breaker opened, since nothing is retried or handed on. It also names the tier that answered the owner last, which is empty until the first turn after boot. Refreshes every 10 seconds.
+|*Upcoming* |The next three runs across the five background jobs and the tasks the agent scheduled, soonest first, read from the live scheduler. Linked to the Schedule page. Refreshes every 30 seconds.
+|*Last redeploy* |Outcome, the phase that failed, total time, and the last success of the most recent run the redeploy loop reported, linking to the phase timings on the Schedule page. Refreshes every minute.
+|*Memory* |How many journals the agent holds, the newest day, the number of skills in the index and the sources its facts came from, linking to the Memory and Skills pages. Refreshes every minute.
+|===
+
+A card whose source cannot be read answers with its own error box (what could not be read, and a one-line reason with secrets masked) instead of keeping the last good numbers, and the other cards keep working.
 
 == Observability links
 
