@@ -23,7 +23,7 @@ ARG QLAWKUS_IMAGE_VARIANT=base
 
 # --- Build stage: reactor build (app + its upstream modules) -----------------
 # Runs as root in this throwaway stage; the runtime image below still runs as 185.
-FROM registry.access.redhat.com/ubi9/openjdk-25:1.24 AS build
+FROM registry.access.redhat.com/ubi10/openjdk-25:1.24 AS build
 USER root
 WORKDIR /code
 COPY . .
@@ -35,7 +35,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -e -DskipTests -DskipITs install
 
 # --- Runtime base: same UBI runtime as Dockerfile.jvm ------------------------
-FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24 AS runtime-base
+FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24 AS runtime-base
 
 # --- Devtools: runtime base plus git and gh -----------------------------------
 # git-core (the git binary, without the perl/email extras of the 'git' package)

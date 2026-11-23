@@ -134,6 +134,21 @@ point at this image. To check an image you built, run
 
 TIP: `./run.sh prod logs` follows the app logs and `./run.sh prod down` stops the stack.
 
+=== What `up` checks, and upgrading PostgreSQL
+
+Before it builds, `./run.sh <mode> up` checks that host ports 8742, 5432 and 3000 are free (or held by the service of the same stack it would reuse). The JVM and native app services share 8742: if the other mode is running the script prints the `docker stop` command, or `--replace` stops only that container. A container of another Compose project, or a process outside Docker, is only reported. After the start it waits for `/q/health/ready` (`QLAWKUS_READY_TIMEOUT`, 300 seconds by default), prints each service with its state and URL, and exits non-zero with the last log lines when the agent never becomes ready. If a failed start left a container with a stale DNS resolver, `./run.sh <mode> up --recreate` recreates only the app container.
+
+The stacks run PostgreSQL 19 on the volume `qlawkus_postgres`; the PostgreSQL 17 volume was `qlawkus_pgdata`. A major version cannot read another's data files, so starting over an old install would create an empty database. `up` therefore refuses while `qlawkus_pgdata` holds data and `qlawkus_postgres` does not exist:
+
+[source,bash]
+----
+./run.sh prod down           # the old volume must not be in use
+./run.sh migrate-postgres    # dump, restore, compare row counts in every table
+./run.sh prod up
+----
+
+The old volume is only read and is kept as the rollback (start the previous Compose files on it to go back). The dumps stay in `~/.local/state/qlawkus/pg-migration-<timestamp>`. To start with an empty database on purpose, run `docker volume create qlawkus_postgres` first.
+
 == Authentication
 
 All HTTP endpoints require authentication. The bundled `app` verifies HTTP Basic against an *Argon2id* password hash, database-free (see xref:secrets.adoc[Secrets]). In dev mode (`quarkus:dev`) the credentials are **`qlawkus` / `dev`**, from a hash baked into the `%dev` profile. Any non-dev run is fail-closed: the app refuses to boot until you provide an Argon2id hash of your own password, under the keystore alias `qlawkus.admin.password-hash` or the environment variable `QLAWKUS_ADMIN_PASSWORD_HASH`. The username defaults to `qlawkus` (`qlawkus.admin.username`).

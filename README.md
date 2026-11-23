@@ -70,6 +70,14 @@ For the native image (faster startup, lower memory; the native compile is heavy)
 ./run.sh native
 ```
 
+`./run.sh <mode> up` checks the host before it builds anything, so a long build never ends on a port clash:
+
+- Host ports `8742`, `5432` and `3000` must be free. If the other mode of this stack holds `8742` (JVM and native share it), the script prints the `docker stop` command, or `./run.sh native up --replace` stops only that container. A container of another compose project or a non-Docker process is never touched, only reported.
+- It refuses to start when the old PostgreSQL 17 volume has data and the PostgreSQL 19 one does not exist yet (see [Upgrading from PostgreSQL 17](#upgrading-from-postgresql-17)).
+- After the start it waits for `/q/health/ready` (`QLAWKUS_READY_TIMEOUT`, default 300 s), prints each service with its state and URL, and exits non-zero with the last log lines if the agent never gets ready. A container left with a stale DNS resolver by a failed start is detected too: `./run.sh <mode> up --recreate` recreates only the app container. `./run.sh <mode> status` prints the same table at any time.
+
+`scripts/test-run-sh.sh` exercises these checks against a fake `docker`, without starting anything.
+
 The code-review tools need `git` and `gh`, which the base image leaves out. `QLAWKUS_IMAGE_VARIANT=devtools ./run.sh prod` (or `local`) builds the JVM image with both (175 MB more on disk than the base, 44 MB more content); see the quickstart, "Devtools image".
 
 ---
@@ -274,7 +282,7 @@ qlawkus/                              # Parent POM (semantic versioning)
 │                                     # google, terminal, brag, code-review, messaging, console)
 ├── site/                             # Roq docs site source (site/content/*.adoc)
 ├── docs/                             # Generated Antora mirror of site/ — never edit directly
-├── run.sh                            # Build + run the stack: ./run.sh <local|prod|native>
+├── run.sh                            # Build + run the stack: ./run.sh <local|prod|native> (also: migrate-postgres)
 ├── docker-compose.yml                # Prod: bring-your-own LLM + PostgreSQL + TTS
 ├── docker-compose.local.yml          # Local: Ollama + PostgreSQL
 └── .env.example                      # Environment template
@@ -331,7 +339,7 @@ public class MyTool {
 ### Production (`docker-compose.yml`)
 
 - **Qlawkus** — JVM container (or native with `--profile native`)
-- **PostgreSQL 17 + pgvector** — persistent storage
+- **PostgreSQL 19 + pgvector** — persistent storage
 - **Ollama** (+ `ollama-init`) — local LLM fallback
 - **tts** (+ `tts-init`) — openedai-speech (Piper) for local text-to-speech, opt-in via `TTS_ENABLED`
 - **lgtm** — `grafana/otel-lgtm` (OTel Collector, Prometheus, Tempo, Loki, Grafana on `3000`); scrapes metrics from the agent's private port `9000`
@@ -341,7 +349,7 @@ Requires `LLM_API_KEY` (provider chosen with `LLM_KIND`, shipped as `nvidia`) an
 ### Local (`docker-compose.local.yml`)
 
 - **Qlawkus** — JVM container
-- **PostgreSQL 17 + pgvector** — persistent storage
+- **PostgreSQL 19 + pgvector** — persistent storage
 - **Ollama** — local LLM inference
 - **ollama-init** — one-shot container that pulls models on first start
 - **lgtm** — same observability stack as prod
@@ -357,11 +365,23 @@ Ollama models are large (~7 GB). To avoid re-downloading:
 ./run.sh local down
 
 # Reset database only — keeps Ollama models
-./run.sh local down && docker volume rm qlawkus_pgdata
+./run.sh local down && docker volume rm qlawkus_postgres
 
 # Reset everything — WARNING: models must be re-pulled (~25 min)
 docker compose -f docker-compose.local.yml down -v
 ```
+
+### Upgrading from PostgreSQL 17
+
+The stacks run PostgreSQL 19 (`pgvector/pgvector:0.8.7-pg19`). A major version cannot read another's data files, and the 18+ images keep the cluster in `/var/lib/postgresql/<major>/docker`, so the data volume is now `qlawkus_postgres`, mounted at `/var/lib/postgresql`; the PostgreSQL 17 volume was `qlawkus_pgdata`. Starting the new stack over an old install would create an empty database and the agent would lose its memory, so `run.sh up` refuses and points here.
+
+```bash
+./run.sh prod down              # the old volume must not be in use (any mode)
+./run.sh migrate-postgres       # dump every database, restore into qlawkus_postgres, compare row counts
+./run.sh prod up
+```
+
+The old volume is only read and is never removed: it is the rollback. If anything goes wrong, check out the previous compose files and start on `qlawkus_pgdata` again. The script keeps a custom-format dump of each database in `~/.local/state/qlawkus/pg-migration-<timestamp>` (`DUMP_DIR` to change it). Once you are satisfied, `docker volume rm qlawkus_pgdata` reclaims the space. For a deliberately empty database, run `docker volume create qlawkus_postgres` first.
 
 > **Dev mode** (`quarkus dev`) does NOT use Docker Compose — Dev Services auto-provisions containers as needed.
 

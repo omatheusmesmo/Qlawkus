@@ -10,11 +10,23 @@ updates:
   - dependencies
 
 # Image tags in the Compose stacks. Bumping grafana/otel-lgtm also means re-copying the image's
-# prometheus.yaml into docker/lgtm/prometheus.yaml (see the header there).
+# prometheus.yaml into docker/lgtm/prometheus.yaml (see the header there). Bumping pgvector/pgvector
+# to another PostgreSQL major needs scripts/migrate-postgres.sh first: a major cannot read another's
+# data files. Tags are pinned to an exact version on purpose so these updates are reviewable.
 - package-ecosystem: docker-compose
   directories:
   - /
   - /docker/lgtm
+  - /docker/searxng
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 5
+  labels:
+  - dependencies
+
+# Base images of the in-container builds (UBI OpenJDK, UBI minimal, the Mandrel builder).
+- package-ecosystem: docker
+  directory: /app/src/main/docker
   schedule:
     interval: weekly
   open-pull-requests-limit: 5

@@ -72,7 +72,7 @@ jobs:
     continue-on-error: true
     services:
       postgres:
-        image: pgvector/pgvector:pg17
+        image: pgvector/pgvector:0.8.7-pg19
         env:
           POSTGRES_DB: qlawkus
           POSTGRES_USER: qlawkus

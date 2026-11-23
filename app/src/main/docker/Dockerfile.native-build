@@ -15,7 +15,7 @@
 # The Mandrel builder ships no Maven but has curl+unzip, so the mvnw wrapper works.
 # Full reactor (matches CI): a partial -pl app -am build skips the *-deployment
 # modules the extension-descriptor check needs from a fresh local repo.
-FROM quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-25 AS build
+FROM quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-25.0.5.1 AS build
 USER root
 WORKDIR /code
 COPY . .
@@ -33,7 +33,7 @@ RUN set -eu; \
     done
 
 # --- Runtime stage: Quarkus native runtime with headless PDF and PTY support ---
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.2
 RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 freetype fontconfig util-linux && microdnf clean all
 WORKDIR /work/
 RUN chown 1001 /work \

@@ -78,7 +78,7 @@ services:
         aliases:
           - agent
     # Reads the same readiness endpoint the k8s reference deployment probes, so both deploy paths
-    # agree on what "the agent is serving" means. curl comes from the ubi9-minimal base.
+    # agree on what "the agent is serving" means. curl comes from the ubi10-minimal base.
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/q/health/ready"]
       interval: 15s
@@ -166,13 +166,16 @@ services:
       service: lgtm
 
   postgres:
-    image: pgvector/pgvector:pg17
+    image: pgvector/pgvector:0.8.7-pg19
     environment:
       POSTGRES_DB: "${POSTGRES_DB:-qlawkus}"
       POSTGRES_USER: "${POSTGRES_USER:-qlawkus}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-qlawkus}"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # PostgreSQL 18+ keeps the cluster in /var/lib/postgresql/<major>/docker, so the mount is the
+      # parent: a later major can then be upgraded in place with pg_upgrade. A volume written by
+      # 17 or older is moved with scripts/migrate-postgres.sh.
+      - pgdata:/var/lib/postgresql
       - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     ports:
       - "5432:5432"
@@ -183,7 +186,7 @@ services:
       retries: 12
 
   ollama:
-    image: ollama/ollama
+    image: ollama/ollama:0.40.17
     volumes:
       - ollama-data:/root/.ollama
     expose:
@@ -196,7 +199,7 @@ services:
       start_period: 30s
 
   ollama-init:
-    image: ollama/ollama
+    image: ollama/ollama:0.40.17
     depends_on:
       ollama:
         condition: service_healthy
@@ -205,7 +208,7 @@ services:
       OLLAMA_HOST: "http://ollama:11434"
 
   tts-init:
-    image: curlimages/curl:latest
+    image: curlimages/curl:8.23.0
     user: "0:0"
     volumes:
       - tts-voices:/voices
@@ -228,7 +231,7 @@ services:
         echo "TTS voices ready."
 
   tts:
-    image: ghcr.io/matatonic/openedai-speech-min
+    image: ghcr.io/matatonic/openedai-speech-min:0.18.2
     depends_on:
       tts-init:
         condition: service_completed_successfully
@@ -256,7 +259,7 @@ volumes:
   lgtm-data:
     name: qlawkus_lgtm-data
   pgdata:
-    name: qlawkus_pgdata
+    name: qlawkus_postgres
   ollama-data:
     name: qlawkus_ollama-data
   workspace:
