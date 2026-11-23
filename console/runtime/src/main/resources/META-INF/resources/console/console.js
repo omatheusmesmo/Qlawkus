@@ -33,3 +33,79 @@ document.addEventListener("htmx:afterRequest", function (event) {
   message.textContent = text;
   target.replaceChildren(message);
 });
+
+/* The navigation is a drawer below 900px. Focus moves into it on open, Tab stays inside while it is open,
+   Escape and a click on the backdrop close it, and focus returns to the button that opened it. */
+(function () {
+  var toggle = document.getElementById("nav-toggle");
+  var nav = document.getElementById("site-nav");
+  var backdrop = document.getElementById("nav-backdrop");
+  var sidebar = nav && nav.closest(".sidebar");
+  if (!toggle || !nav || !backdrop || !sidebar) {
+    return;
+  }
+  var narrow = window.matchMedia("(max-width: 900px)");
+
+  function isOpen() {
+    return sidebar.hasAttribute("data-open");
+  }
+
+  function setOpen(open) {
+    if (open === isOpen()) {
+      return;
+    }
+    sidebar.toggleAttribute("data-open", open);
+    backdrop.hidden = !open;
+    toggle.setAttribute("aria-expanded", String(open));
+    if (open) {
+      var first = nav.querySelector("a");
+      if (first) {
+        first.focus();
+      }
+    } else {
+      toggle.focus();
+    }
+  }
+
+  toggle.addEventListener("click", function () {
+    setOpen(!isOpen());
+  });
+  backdrop.addEventListener("click", function () {
+    setOpen(false);
+  });
+  document.addEventListener("keydown", function (event) {
+    if (!isOpen()) {
+      return;
+    }
+    if (event.key === "Escape") {
+      setOpen(false);
+      return;
+    }
+    if (event.key !== "Tab") {
+      return;
+    }
+    var links = nav.querySelectorAll("a");
+    var first = links[0];
+    var last = links[links.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      toggle.focus();
+    } else if (event.shiftKey && document.activeElement === toggle) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      toggle.focus();
+    } else if (!event.shiftKey && document.activeElement === toggle) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+  narrow.addEventListener("change", function (event) {
+    if (!event.matches && isOpen()) {
+      sidebar.removeAttribute("data-open");
+      backdrop.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+    }
+  });
+})();
