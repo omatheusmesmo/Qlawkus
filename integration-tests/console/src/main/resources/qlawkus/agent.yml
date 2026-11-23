@@ -3,5 +3,6 @@ build-time:
   default: disabled
   except:
     - console
+    - specialists
     - messaging.discord
     - google-workspace

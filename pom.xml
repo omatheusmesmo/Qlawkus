@@ -16,6 +16,7 @@
         <module>console-voice</module>
         <module>attachments</module>
         <module>artifacts</module>
+        <module>specialists</module>
     <module>console-skill-hub</module>
         <module>observability</module>
         <module>tools</module>

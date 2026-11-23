@@ -27,6 +27,11 @@
   <dependencies>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-specialists-deployment</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-attachments-deployment</artifactId>
       <version>${project.version}</version>
     </dependency>

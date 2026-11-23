@@ -1,0 +1,73 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-specialists_qlawkus-specialists-allowed-models]] [.property-path]##link:#qlawkus-specialists_qlawkus-specialists-allowed-models[`+++qlawkus.specialists.allowed-models+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.specialists.allowed-models+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Model tiers permitted for specialist runs and registration. The default uses the local fallback.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SPECIALISTS_ALLOWED_MODELS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SPECIALISTS_ALLOWED_MODELS+++`
+endif::add-copy-button-to-env-var[]
+--
+a|list of `fallback`, `primary`, `secondary`
+|`+++fallback+++`
+
+a| [[qlawkus-specialists_qlawkus-specialists-timeout-seconds]] [.property-path]##link:#qlawkus-specialists_qlawkus-specialists-timeout-seconds[`+++qlawkus.specialists.timeout-seconds+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.specialists.timeout-seconds+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Deadline in seconds shared by all workers of a run.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SPECIALISTS_TIMEOUT_SECONDS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SPECIALISTS_TIMEOUT_SECONDS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++45+++`
+
+a| [[qlawkus-specialists_qlawkus-specialists-max-output-tokens]] [.property-path]##link:#qlawkus-specialists_qlawkus-specialists-max-output-tokens[`+++qlawkus.specialists.max-output-tokens+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.specialists.max-output-tokens+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Requested output token ceiling for each specialist call.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SPECIALISTS_MAX_OUTPUT_TOKENS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SPECIALISTS_MAX_OUTPUT_TOKENS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++256+++`
+
+|===

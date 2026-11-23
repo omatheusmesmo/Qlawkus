@@ -31,6 +31,9 @@ include::includes/qlawkus-cognition-pgvector_qlawkus.debug-history.adoc[]
 === Attachments
 include::includes/qlawkus-attachments_qlawkus.attachments.adoc[]
 
+=== Specialists
+include::includes/qlawkus-specialists_qlawkus.specialists.adoc[]
+
 === Skills
 include::includes/qlawkus-client_qlawkus.skills.adoc[]
 

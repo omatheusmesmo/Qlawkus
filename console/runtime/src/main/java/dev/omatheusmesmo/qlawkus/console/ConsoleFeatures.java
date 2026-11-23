@@ -24,4 +24,8 @@ public class ConsoleFeatures {
     public boolean isMcp() {
         return metadata.roots().stream().anyMatch(root -> root.prefix().equals("qlawkus.mcp"));
     }
+
+    public boolean isSpecialists() {
+        return metadata.roots().stream().anyMatch(root -> root.prefix().equals("qlawkus.specialists"));
+    }
 }
