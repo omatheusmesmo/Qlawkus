@@ -107,6 +107,12 @@ public class MessagingOrchestrator {
             return Uni.createFrom().voidItem();
         }
 
+        return Uni.createFrom().deferred(() -> processAuthorized(message))
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
+    }
+
+    private Uni<Void> processAuthorized(MessagingMessage message) {
+        String channel = message.providerId();
         ownerChats.remember(channel, message.chatId());
         String conversation = memoryId(message);
         MessagingLog.info(channel, conversation, "Message accepted provider=%s chatId=%s userId=%s kind=%s length=%d",
@@ -116,13 +122,12 @@ public class MessagingOrchestrator {
             return analyzeAttachments(message, conversation);
         }
         if (ToolProgressSettings.isVerboseCommand(message.text())) {
-            return notificationService.send(channel, message.chatId(), cycleToolProgress(message), conversation);
+            return notificationService.send(channel, message.chatId(), cycleAuthorizedToolProgress(message), conversation);
         }
 
         long startMs = System.currentTimeMillis();
         return Uni.createFrom()
                 .item(() -> resolveText(message, conversation))
-                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
                 .map(text -> {
                     setDeliveryContext(conversation, channel, message.chatId());
                     return runAgentWithContext(conversation, text, message);
@@ -251,7 +256,8 @@ public class MessagingOrchestrator {
 
     /**
      * Cycles the tool-progress mode of the message's chat. Checks the allowlist itself, because the
-     * Discord slash command reaches it without going through {@link #process}.
+     * Discord slash command reaches it without going through {@link #process}. The caller must
+     * run on a worker because recording the authorized chat may write to disk or PostgreSQL.
      */
     public String cycleToolProgress(MessagingMessage message) {
         if (!authService.isAuthorized(message)) {
@@ -259,6 +265,11 @@ public class MessagingOrchestrator {
                     message.providerId(), message.userId());
             return "Not authorized.";
         }
+        ownerChats.remember(message.providerId(), message.chatId());
+        return cycleAuthorizedToolProgress(message);
+    }
+
+    private String cycleAuthorizedToolProgress(MessagingMessage message) {
         ToolProgress mode = toolProgress.cycle(ToolProgressSettings.key(message.providerId(), message.chatId()));
         return "Tool progress for this chat: " + mode.wireName();
     }

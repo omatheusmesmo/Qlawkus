@@ -134,5 +134,10 @@ class StoredOwnerChatDirectoryTest {
         public List<OwnerChat> loadAll() {
             return List.of();
         }
+
+        @Override
+        public void verifyWritable() {
+            throw new IllegalStateException("read-only file system");
+        }
     }
 }

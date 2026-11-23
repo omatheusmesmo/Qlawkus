@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.task;
 import dev.omatheusmesmo.qlawkus.store.OwnerChatStore;
 import io.quarkus.arc.DefaultBean;
 import io.quarkus.logging.Log;
+import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.Clock;
@@ -23,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @ApplicationScoped
 @DefaultBean
+@Startup
 public class StoredOwnerChatDirectory implements OwnerChatDirectory {
 
     private final OwnerChatStore store;
@@ -46,11 +48,15 @@ public class StoredOwnerChatDirectory implements OwnerChatDirectory {
             return;
         }
         OwnerChat chat = new OwnerChat(normalize(providerId), chatId.strip(), clock.instant());
+        OwnerChat previous = chats.get(chat.providerId());
+        if (previous != null && previous.lastSeen().isAfter(chat.lastSeen())) {
+            return;
+        }
         chats.put(chat.providerId(), chat);
         try {
             store.save(chat);
         } catch (RuntimeException e) {
-            Log.warnf("Could not record the owner's last chat on %s, it is kept for this run only: error=%s",
+            Log.warnf("Could not fully persist the owner's last chat on %s: error=%s",
                     chat.providerId(), e.getClass().getSimpleName());
         }
     }

@@ -133,7 +133,9 @@ Every task is written to the scheduled-task store before the agent reports it as
 |The files stay the source of truth, and the table mirrors them. Loading reads the files.
 |===
 
-The owner's last chat per provider is kept separately, by `OwnerChatStore`. Its only backend is the markdown store: one `<provider>.json` file per provider under `owner-chats` in the state root, so it is written as files even when the tasks use pgvector or hybrid. A pgvector or hybrid counterpart is not built yet.
+The owner's last chat per provider is kept separately, by `OwnerChatStore`. Markdown keeps one `<provider>.json` file per provider under `owner-chats` in the state root. Pgvector saves new observations in the `owner_chat` table and imports eligible files left by older installations. Hybrid writes both copies and reconciles them on startup using the latest accepted observation for each provider.
+
+An authorized Discord `/qlawkus verbose` command also records its chat. An owner-chat write failure appears under `ownerChats` in cognition readiness's `degraded` data while the agent keeps serving turns.
 
 === Restore at boot
 

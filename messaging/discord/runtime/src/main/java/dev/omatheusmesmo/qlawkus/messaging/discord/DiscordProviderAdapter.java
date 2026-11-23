@@ -38,6 +38,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 
 import java.net.URI;
@@ -216,7 +217,12 @@ public class DiscordProviderAdapter implements MessagingProvider {
         String userId = event.getInteraction().getUser().getId().asString();
         String channelId = event.getInteraction().getChannelId().asString();
         MessagingMessage mapped = new MessagingMessage("discord", channelId, userId, "/verbose", Optional.empty());
-        event.reply(orchestrator.cycleToolProgress(mapped)).subscribe();
+        event.deferReply()
+                .then(Mono.fromCallable(() -> orchestrator.cycleToolProgress(mapped))
+                        .subscribeOn(Schedulers.boundedElastic()))
+                .flatMap(event::editReply)
+                .subscribe(__ -> {}, error -> Log.warnf("Discord verbose command failed: error=%s",
+                        error.getClass().getSimpleName()));
     }
 
     private String helpText() {

@@ -11,6 +11,7 @@ import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
+import dev.omatheusmesmo.qlawkus.store.OwnerChatStore;
 import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
 import dev.omatheusmesmo.qlawkus.store.SoulStore;
 import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
@@ -46,6 +47,18 @@ class CognitionReadinessCheckScheduledTasksTest {
         assertEquals(HealthCheckResponse.Status.UP, response.getStatus());
         assertFalse(response.getData().orElse(Map.of()).containsKey("degraded"));
         verify(check.scheduledTaskStore).verifyWritable();
+        verify(check.ownerChatStore).verifyWritable();
+    }
+
+    @Test
+    void anOwnerChatStoreThatCannotWriteIsDegradedAndTheInstanceStaysUp() {
+        CognitionReadinessCheck check = healthyCheck();
+        doThrow(new IllegalStateException("read-only file system")).when(check.ownerChatStore).verifyWritable();
+
+        HealthCheckResponse response = check.call();
+
+        assertEquals(HealthCheckResponse.Status.UP, response.getStatus());
+        assertEquals("ownerChats", response.getData().orElseThrow().get("degraded"));
     }
 
     private static CognitionReadinessCheck healthyCheck() {
@@ -57,6 +70,7 @@ class CognitionReadinessCheckScheduledTasksTest {
         check.factStore = mock(FactStore.class);
         check.episodicStore = mock(EpisodicStore.class);
         check.scheduledTaskStore = mock(ScheduledTaskStore.class);
+        check.ownerChatStore = mock(OwnerChatStore.class);
         check.skillsConfig = mock(SkillsConfig.class);
         when(check.skillsConfig.enabled()).thenReturn(false);
         return check;

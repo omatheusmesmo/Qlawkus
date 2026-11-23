@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.OwnerChatStore;
+import dev.omatheusmesmo.qlawkus.task.DynamicTaskScheduler;
 import dev.omatheusmesmo.qlawkus.task.OwnerChat;
 import io.quarkus.arc.DefaultBean;
 import io.quarkus.logging.Log;
@@ -56,8 +57,11 @@ public class MarkdownOwnerChatStore implements OwnerChatStore {
     }
 
     @Override
-    public void save(OwnerChat chat) {
+    public synchronized void save(OwnerChat chat) {
         Path file = fileFor(chat.providerId());
+        if (Files.isRegularFile(file) && read(file).filter(saved -> saved.lastSeen().isAfter(chat.lastSeen())).isPresent()) {
+            return;
+        }
         try {
             Files.createDirectories(directory);
             Path temp = file.resolveSibling(file.getFileName() + TEMP_SUFFIX);
@@ -93,6 +97,11 @@ public class MarkdownOwnerChatStore implements OwnerChatStore {
                 .toList();
     }
 
+    @Override
+    public void verifyWritable() {
+        WriteProbe.verify(directory);
+    }
+
     private Path fileFor(String providerId) {
         if (providerId == null || !SAFE_PROVIDER.matcher(providerId).matches()) {
             throw new IllegalArgumentException("not a messaging provider name");
@@ -105,7 +114,9 @@ public class MarkdownOwnerChatStore implements OwnerChatStore {
         String provider = name.substring(0, name.length() - SUFFIX.length());
         try {
             OwnerChat chat = JSON.readValue(file.toFile(), OwnerChat.class);
-            if (!provider.equals(chat.providerId()) || chat.chatId() == null || chat.chatId().isBlank()
+            if (!SAFE_PROVIDER.matcher(provider).matches() || !provider.equals(chat.providerId())
+                    || chat.chatId() == null || chat.chatId().isBlank()
+                    || chat.chatId().length() > DynamicTaskScheduler.MAX_DESTINATION_LENGTH
                     || chat.lastSeen() == null) {
                 throw new IOException("the record does not belong to its file name");
             }

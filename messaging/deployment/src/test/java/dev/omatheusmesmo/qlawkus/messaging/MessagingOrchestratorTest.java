@@ -107,7 +107,10 @@ class MessagingOrchestratorTest {
         when(authService.isAuthorized(any())).thenReturn(true);
         when(agentService.chatSync(anyString(), anyString())).thenReturn("ok");
 
-        orchestrator.process(MessagingMessage.text("telegram", "chat-1", "user-1", "hello")).await().indefinitely();
+        var processing = orchestrator.process(MessagingMessage.text("telegram", "chat-1", "user-1", "hello"));
+
+        verifyNoInteractions(ownerChats);
+        processing.await().indefinitely();
 
         verify(ownerChats).remember("telegram", "chat-1");
     }
@@ -185,6 +188,7 @@ class MessagingOrchestratorTest {
         String reply = orchestrator.cycleToolProgress(message);
 
         verify(orchestrator.toolProgress, never()).cycle(anyString());
+        verifyNoInteractions(ownerChats);
         assertFalse(reply.contains("Tool progress for this chat"), reply);
     }
 
@@ -195,5 +199,19 @@ class MessagingOrchestratorTest {
         MessagingMessage message = new MessagingMessage("discord", "channel-1", "owner", "/verbose", Optional.empty());
 
         assertEquals("Tool progress for this chat: verbose", orchestrator.cycleToolProgress(message));
+        verify(ownerChats).remember("discord", "channel-1");
+    }
+
+    @Test
+    void anAuthorizedTextVerboseCommandRemembersItsChatOnce() {
+        when(authService.isAuthorized(any())).thenReturn(true);
+        when(orchestrator.toolProgress.cycle("discord:channel-1")).thenReturn(ToolProgress.VERBOSE);
+        var message = MessagingMessage.text("discord", "channel-1", "owner", "/verbose");
+
+        orchestrator.process(message).await().indefinitely();
+
+        verify(ownerChats).remember("discord", "channel-1");
+        verify(notificationService).send("discord", "channel-1", "Tool progress for this chat: verbose",
+                ConversationId.SHARED);
     }
 }
