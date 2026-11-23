@@ -13,7 +13,7 @@
     const save = document.getElementById("specialist-save");
     const reset = document.getElementById("specialist-new");
     const remove = document.getElementById("specialist-remove");
-    const modelNames = {FALLBACK: "Local fallback", PRIMARY: "Primary", SECONDARY: "Secondary"};
+    const modelNames = {DEFAULT: "Default chain", FALLBACK: "Local fallback", PRIMARY: "Primary", SECONDARY: "Secondary"};
     let availableModels = [];
     let current = null;
     let busy = false;

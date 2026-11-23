@@ -48,7 +48,7 @@ class SpecialistsConsoleTest {
                 .body(containsString("href=\"/console/specialists\""));
         owner().get("/console/specialists.js").then().statusCode(200)
                 .body(containsString("textContent"));
-        owner().get(API).then().statusCode(200).body("models[0]", equalTo("FALLBACK"));
+        owner().get(API).then().statusCode(200).body("models[0]", equalTo("DEFAULT"));
         owner().body(profile("../outside", "Review the supplied changes.", true)).post(API).then().statusCode(400);
 
         try {
@@ -80,7 +80,15 @@ class SpecialistsConsoleTest {
                  "tool_calls":[{"id":"catalog-create","type":"function","function":{"name":"createSpecialist",
                   "arguments":"{\\"id\\":\\"%s\\",\\"instructions\\":\\"Summarize release notes.\\"}"}}]}}]}
                 """.formatted(id))));
-        stubWorker("Summarize release notes.", "The fixture has three changes.");
+        wiremock.register(post(urlEqualTo(PRIMARY)).atPriority(1)
+                .withRequestBody(containing("Work as a read-only specialist"))
+                .withRequestBody(containing("Summarize release notes."))
+                .willReturn(okJson("""
+                        {"id":"worker","object":"chat.completion","created":1,"model":"fixture",
+                         "choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant",
+                         "content":"The fixture has three changes."}}],
+                         "usage":{"prompt_tokens":20,"completion_tokens":5,"total_tokens":25}}
+                        """)));
         wiremock.register(post(urlEqualTo(PRIMARY)).atPriority(2)
                 .withRequestBody(containing("Created specialist " + id)).willReturn(okJson("""
                         {"id":"run","object":"chat.completion","created":1,"model":"fixture",
@@ -99,10 +107,12 @@ class SpecialistsConsoleTest {
                     .post("/api/chat/sync").then().statusCode(200).body(containsString("Specialist ready."));
             wiremock.verifyThat(postRequestedFor(urlEqualTo(PRIMARY))
                     .withRequestBody(containing("Created specialist " + id)));
-            wiremock.verifyThat(1, postRequestedFor(urlEqualTo(OLLAMA))
+            wiremock.verifyThat(1, postRequestedFor(urlEqualTo(PRIMARY))
+                    .withRequestBody(containing("Work as a read-only specialist"))
                     .withRequestBody(containing("Fixture release data")));
+            wiremock.verifyThat(0, postRequestedFor(urlEqualTo(OLLAMA)));
             owner().get(API).then().statusCode(200)
-                    .body("specialists.find { it.id == '" + id + "' }.model", equalTo("FALLBACK"));
+                    .body("specialists.find { it.id == '" + id + "' }.model", equalTo("DEFAULT"));
         } finally {
             owner().delete(API + "/" + id);
         }

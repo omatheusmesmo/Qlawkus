@@ -199,7 +199,7 @@ The optional `specialists` capability ships a durable catalog with the reference
 
 Specialists receive an explicit text snapshot and return evidence to the caller. Runs accept one or two entries and choose the sequence or parallel pattern at invocation time. The second worker in a sequence receives the first successful result alongside the original snapshot. Parallel workers independently receive the original snapshot. The runner uses the Quarkus virtual-thread executor and LangChain4j chat models. It allows one active run, a 45-second shared deadline, a 4 KiB snapshot and at most 256 requested output tokens per worker.
 
-The owner selects permitted model tiers through `qlawkus.specialists.allowed-models`. The default permits the configured local fallback. To reduce the execution budget, configure `qlawkus.specialists.timeout-seconds` and `qlawkus.specialists.max-output-tokens`.
+The owner selects permitted model tiers through `qlawkus.specialists.allowed-models`. The default permits `default`, which follows the agent's normal model chain (the primary model, then the secondary, then the local Ollama fallback), and `fallback`, which pins the local model. `primary` and `secondary` pin one provider model and stay off until the owner permits them. A specialist created without a tier uses `default`. To reduce the execution budget, configure `qlawkus.specialists.timeout-seconds` and `qlawkus.specialists.max-output-tokens`.
 
 === Evaluation
 

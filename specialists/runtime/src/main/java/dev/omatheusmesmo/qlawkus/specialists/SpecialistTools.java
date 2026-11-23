@@ -38,10 +38,10 @@ public class SpecialistTools {
     public String createSpecialist(
             @P("A short stable id, such as release-review.") String id,
             @P("Specific instructions for analyzing the material supplied to this specialist.") String instructions,
-            @P(value = "Choose a permitted tier from listSpecialists. Omit for the default local fallback.", required = false)
+            @P(value = "Choose a permitted tier from listSpecialists. Omit for the default, which follows the agent's normal model chain.", required = false)
             String model) {
         return authorized(() -> {
-            var tier = model == null || model.isBlank() ? SpecialistsConfig.Tier.FALLBACK
+            var tier = model == null || model.isBlank() ? SpecialistsConfig.Tier.DEFAULT
                     : parse(SpecialistsConfig.Tier.class, model);
             var registered = catalog.create(new SpecialistDefinition(id, instructions, tier, true));
             return "Created specialist " + registered.id() + " using " + registered.model() + ".";
