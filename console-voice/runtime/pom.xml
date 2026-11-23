@@ -14,7 +14,7 @@
 
     <properties>
         <argLine></argLine>
-        <commonmark.version>0.32.0</commonmark.version>
+        <commonmark.version>0.33.0</commonmark.version>
     </properties>
 
     <dependencies>
