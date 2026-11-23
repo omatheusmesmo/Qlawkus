@@ -5,23 +5,31 @@ import dev.omatheusmesmo.qlawkus.messaging.MessagingFormat;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
 import discord4j.common.util.Snowflake;
+import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.spec.MessageCreateFields;
 import discord4j.core.spec.MessageCreateSpec;
+import discord4j.discordjson.json.MessageCreateRequest;
+import discord4j.discordjson.json.MessageData;
+import discord4j.rest.RestClient;
+import discord4j.rest.entity.RestChannel;
 import discord4j.rest.http.client.ClientException;
 import discord4j.rest.http.client.ClientRequest;
 import discord4j.rest.json.response.ErrorResponse;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.smallrye.mutiny.Uni;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClientResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -72,6 +80,42 @@ class DiscordProviderAdapterTest {
         adapter.gatewayClient = null;
 
         assertThrows(IllegalStateException.class, () -> adapter.send("chan-1", "hello").await().indefinitely());
+    }
+
+    @Test
+    void send_reusesAnEnforcedNonceWhenAConnectionDrops() {
+        RestChannel channel = mockRestChannel();
+        when(channel.createMessage(any(MessageCreateRequest.class)))
+                .thenReturn(Mono.error(new IOException("connection closed")),
+                        Mono.just(Mockito.mock(MessageData.class)));
+
+        adapter.send("123", "hello").await().atMost(Duration.ofSeconds(3));
+
+        var request = ArgumentCaptor.forClass(MessageCreateRequest.class);
+        verify(channel, Mockito.times(2)).createMessage(request.capture());
+        var attempts = request.getAllValues();
+        assertEquals(attempts.getFirst().nonce().get(), attempts.getLast().nonce().get());
+        assertTrue(attempts.getFirst().enforceNonce().get());
+        assertTrue(attempts.getLast().enforceNonce().get());
+        assertEquals("hello", attempts.getLast().content().get());
+    }
+
+    @Test
+    void send_treatsAnEmptyAcknowledgementAsAFailure() {
+        RestChannel channel = mockRestChannel();
+        when(channel.createMessage(any(MessageCreateRequest.class))).thenReturn(Mono.empty());
+
+        assertThrows(IllegalStateException.class, () -> adapter.send("123", "hello").await().indefinitely());
+        verify(channel).createMessage(any(MessageCreateRequest.class));
+    }
+
+    private RestChannel mockRestChannel() {
+        adapter.gatewayClient = Mockito.mock(GatewayDiscordClient.class);
+        RestClient rest = Mockito.mock(RestClient.class);
+        RestChannel channel = Mockito.mock(RestChannel.class);
+        when(adapter.gatewayClient.getRestClient()).thenReturn(rest);
+        when(rest.getChannelById(Snowflake.of("123"))).thenReturn(channel);
+        return channel;
     }
 
     @Test
