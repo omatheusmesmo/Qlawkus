@@ -17,7 +17,7 @@
 #
 ###
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7
-RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 freetype fontconfig && microdnf clean all
+RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 freetype fontconfig util-linux && microdnf clean all
 WORKDIR /work/
 RUN --mount=type=bind,source=target,target=/target \
     set -eu; \

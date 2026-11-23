@@ -67,9 +67,12 @@ Pick the variant by what the agent has to do:
 * JVM (no suffix): the default.
 * Devtools (`-devtools`): the JVM image plus `git` and `gh`, for the code-review tools.
   See the devtools section below.
-* Native (`-native`): a GraalVM binary on the micro base, for a smaller footprint and
-  faster startup. It has no package manager, so there is no devtools variant, and the
-  code-review tools that shell out to `git` and `gh` cannot run in it.
+* Native (`-native`): a GraalVM binary on UBI Minimal for a smaller footprint and
+  faster startup. It includes util-linux for interactive PTY sessions.
+  Code review requires a distribution that also supplies `git` and `gh`.
+
+When running the native executable directly on Linux, install util-linux
+(`/usr/bin/script`) and coreutils (`/usr/bin/stty` and `/usr/bin/tty`) for PTY sessions.
 
 The Compose files still build from source. The prebuilt images are for running the
 container directly, as the reference Kubernetes deployment does

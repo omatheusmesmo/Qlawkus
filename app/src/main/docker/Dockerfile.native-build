@@ -32,9 +32,9 @@ RUN set -eu; \
         if [ -f "$file" ]; then cp "$file" /native-app/; fi; \
     done
 
-# --- Runtime stage: Quarkus native runtime with headless PDF support ----------
+# --- Runtime stage: Quarkus native runtime with headless PDF and PTY support ---
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7
-RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 freetype fontconfig && microdnf clean all
+RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 freetype fontconfig util-linux && microdnf clean all
 WORKDIR /work/
 RUN chown 1001 /work \
     && chmod "g+rwX" /work \
