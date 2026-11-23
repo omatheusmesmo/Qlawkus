@@ -15,7 +15,7 @@
 
     <properties>
         <!-- The 1.x extension targets Quarkus 3 and packages the native AWT support for PDFBox. -->
-        <quarkus-pdfbox.version>1.2.3</quarkus-pdfbox.version>
+        <quarkus-pdfbox.version>4.0.0</quarkus-pdfbox.version>
     </properties>
 
     <modules>
