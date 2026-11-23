@@ -25,6 +25,7 @@ import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.MessageCreateFields;
 import discord4j.core.spec.MessageCreateSpec;
 import discord4j.core.spec.MessageEditSpec;
+import discord4j.discordjson.json.MessageCreateRequest;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
 import discord4j.rest.http.client.ClientException;
@@ -37,14 +38,22 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import java.net.URI;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @ApplicationScoped
 public class DiscordProviderAdapter implements MessagingProvider {
+
+    private static final Retry SEND_RETRY = Retry.fixedDelay(1, Duration.ofMillis(250))
+            .filter(failure -> FailureChain.first(failure, IOException.class).isPresent())
+            .onRetryExhaustedThrow((spec, signal) -> signal.failure());
 
     @Inject
     DiscordConfig config;
@@ -301,16 +310,19 @@ public class DiscordProviderAdapter implements MessagingProvider {
 
     @Override
     public Uni<Void> send(String channelId, String text) {
-        if (gatewayClient == null) {
+        GatewayDiscordClient gateway = gatewayClient;
+        if (gateway == null) {
             return Uni.createFrom().failure(new IllegalStateException("Discord Gateway not connected"));
         }
 
-        return Uni.createFrom().completionStage(
-                gatewayClient.getChannelById(Snowflake.of(channelId))
-                        .ofType(MessageChannel.class)
-                        .flatMap(channel -> channel.createMessage(text))
-                        .toFuture())
-                .replaceWithVoid();
+        var channel = gateway.getRestClient().getChannelById(Snowflake.of(channelId));
+        // Discord applies the same nonce to both attempts, even if the first reply was lost after acceptance.
+        var request = MessageCreateRequest.builder().content(text)
+                .nonce(UUID.randomUUID().toString().substring(0, 25)).enforceNonce(true).build();
+        return Uni.createFrom().completionStage(() -> Mono.defer(() -> channel.createMessage(request))
+                .retryWhen(SEND_RETRY)
+                .switchIfEmpty(Mono.error(new IllegalStateException("Discord createMessage returned no message")))
+                .toFuture()).replaceWithVoid();
     }
 
     @Override
