@@ -2,11 +2,13 @@ package dev.omatheusmesmo.qlawkus.console.management;
 
 import dev.omatheusmesmo.qlawkus.dto.RedeployReport;
 import dev.omatheusmesmo.qlawkus.dto.RedeployRun;
+import io.quarkus.qute.TemplateData;
 
 import java.util.List;
 import java.util.Locale;
 
 /** The last reported redeploy run, as the schedule page renders it. */
+@TemplateData
 public record RedeployRunView(
         String outcome,
         boolean failed,
@@ -19,6 +21,7 @@ public record RedeployRunView(
 ) {
 
     /** One phase that ran, with its duration already formatted for reading. */
+    @TemplateData
     public record PhaseTiming(String phase, String duration, boolean failed) {
     }
 
