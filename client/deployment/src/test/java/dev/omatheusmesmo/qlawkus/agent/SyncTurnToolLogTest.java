@@ -29,6 +29,9 @@ class SyncTurnToolLogTest {
     @Inject
     AgentService agent;
 
+    @Inject
+    AgentRunner messagingAgent;
+
     @Test
     void aSyncTurnListsTheServiceDeclaredToolItRan() {
         String token = "sync-turn-" + UUID.randomUUID();
@@ -44,6 +47,18 @@ class SyncTurnToolLogTest {
             assertEquals(1, turns.size(), "one line for the turn: " + turns);
             assertTrue(turns.get(0).contains("tools=1 [viewSkill]"), turns.get(0));
         }
+    }
+
+    @Test
+    void theMessagingAgentCanLoadASkillAdvertisedInItsPrompt() {
+        String token = "messaging-view-skill-" + UUID.randomUUID();
+        stubOneToolTurn(token);
+
+        assertEquals("done", messagingAgent.chat("messaging-" + UUID.randomUUID(), "load the skill " + token));
+
+        wiremock.verifyThat(1, WireMock.postRequestedFor(WireMock.urlEqualTo("/api/chat"))
+                .withRequestBody(WireMock.containing(token))
+                .withRequestBody(WireMock.matchingJsonPath("$.messages[?(@.role == 'tool')]")));
     }
 
     private void stubOneToolTurn(String token) {

@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.messaging.telegram;
 
+import dev.omatheusmesmo.qlawkus.logging.FailureChain;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
 import io.smallrye.mutiny.Uni;
@@ -86,14 +87,15 @@ public class TelegramPoller {
         try {
             botClient.deleteWebhook(token);
         } catch (Exception e) {
-            Log.warnf("Telegram: deleteWebhook before polling failed: %s", e.getMessage());
+            Log.warnf("Telegram: deleteWebhook before polling failed (%s)", FailureChain.root(e).getClass().getSimpleName());
         }
         long offset = 0;
         while (running) {
             try {
                 offset = pollOnce(token, offset);
             } catch (Exception e) {
-                Log.warnf("Telegram: getUpdates failed, retrying: %s", e.getMessage());
+                if (!running) break;
+                Log.warnf("Telegram: getUpdates failed, retrying (%s)", FailureChain.root(e).getClass().getSimpleName());
                 sleep();
             }
         }

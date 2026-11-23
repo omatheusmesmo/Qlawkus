@@ -15,6 +15,7 @@ import dev.omatheusmesmo.qlawkus.cognition.SearchMemoriesTool;
 import dev.omatheusmesmo.qlawkus.cognition.SearchTranscriptsTool;
 import dev.omatheusmesmo.qlawkus.cognition.UpdateSelfStateTool;
 import dev.omatheusmesmo.qlawkus.cognition.UpdateUserProfileTool;
+import dev.omatheusmesmo.qlawkus.cognition.ViewSkillTool;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
 import io.quarkus.arc.Arc;
 
@@ -51,7 +52,8 @@ public interface QlawkusAgent {
             Arc.container().instance(SearchTranscriptsTool.class).get(),
             Arc.container().instance(RememberFactTool.class).get(),
             Arc.container().instance(RespondWithVoiceTool.class).get(),
-            Arc.container().instance(ClearContextTool.class).get()
+            Arc.container().instance(ClearContextTool.class).get(),
+            Arc.container().instance(ViewSkillTool.class).get()
         };
     }
 }
