@@ -27,6 +27,16 @@
   --font: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: "JetBrains Mono", "SFMono-Regular", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
 }
+.specialist-editor {
+    display: grid;
+    gap: .55rem;
+    max-width: 40rem;
+}
+
+.specialist-editor label { font-weight: 600; }
+.specialist-editor textarea { resize: vertical; }
+.specialist-enabled, .specialist-actions { display: flex; align-items: center; gap: .65rem; margin-top: .5rem; }
+.specialist-instructions { max-width: 42ch; overflow-wrap: anywhere; white-space: pre-wrap; }
 
 /* Connection management follows the console's warm surfaces and compact control-plane rhythm. */
 .mcp-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }

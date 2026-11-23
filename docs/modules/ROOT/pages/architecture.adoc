@@ -195,6 +195,14 @@ changes how the model chooses an action, not how it receives relevant memories.
 
 == Bounded specialist delegation
 
+The optional `specialists` capability ships a durable catalog with the reference distribution. Use *Specialists* in the authenticated console to create, edit, disable or remove an entry. The main agent can call `createSpecialist`, `listSpecialists` and `runSpecialists` from an owner conversation. Catalog changes apply immediately and persist in `specialists.json` under `qlawkus.agent.state.root`.
+
+Specialists receive an explicit text snapshot and return evidence to the caller. Runs accept one or two entries and choose the sequence or parallel pattern at invocation time. The second worker in a sequence receives the first successful result alongside the original snapshot. Parallel workers independently receive the original snapshot. The runner uses the Quarkus virtual-thread executor and LangChain4j chat models. It allows one active run, a 45-second shared deadline, a 4 KiB snapshot and at most 256 requested output tokens per worker.
+
+The owner selects permitted model tiers through `qlawkus.specialists.allowed-models`. The default permits the configured local fallback. To reduce the execution budget, configure `qlawkus.specialists.timeout-seconds` and `qlawkus.specialists.max-output-tokens`.
+
+=== Evaluation
+
 The design keeps Qlawkus single-owner and single-instance. The owner-facing agent chooses a fixed, read-only workflow and passes explicit snapshots to each specialist. The specialists receive only their assigned snapshot and fixed instructions. They return evidence, an outcome, and any approved artifact handles to the parent, which remains responsible for the reply, persona and owner profile.
 
 Use the upstream LangChain4j workflow builders to compose specialists. Keep each model call in the batch workload, with dedicated concurrency slots and a shared deadline. A parent model call releases its model permit before a tool starts delegation. Workers use an isolated, temporary prompt and a fixed read-only operation. They receive no durable conversation store, tool registry, delivery destination or delegation callback.

@@ -12,6 +12,7 @@ import dev.omatheusmesmo.qlawkus.console.management.MemoryConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.McpConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.ScheduleConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.SkillsConsoleResource;
+import dev.omatheusmesmo.qlawkus.console.management.SpecialistsConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.onboarding.OnboardingResource;
 import dev.omatheusmesmo.qlawkus.console.onboarding.SetupState;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
@@ -44,7 +45,7 @@ class ConsoleProcessor {
                         OnboardingResource.class, MemoryConsoleResource.class, SkillsConsoleResource.class,
                         CognitionConsoleResource.class, ConfigConsoleResource.class, ScheduleConsoleResource.class,
                         ChatConsoleResource.class, ConsoleNavigation.class, ConsoleFeatures.class, McpConsoleResource.class,
-                        ArtifactsConsoleResource.class)
+                        ArtifactsConsoleResource.class, SpecialistsConsoleResource.class)
                 .setUnremovable()
                 .build();
     }

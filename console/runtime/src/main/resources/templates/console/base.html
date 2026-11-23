@@ -29,6 +29,9 @@
         <nav class="nav">
             <a class="nav-item{#if active == 'overview'} is-active{/if}" href="/console">Overview</a>
             <a class="nav-item{#if active == 'chat'} is-active{/if}" href="/console/chat">Chat</a>
+            {#if inject:consoleFeatures.specialists}
+            <a class="nav-item{#if active == 'specialists'} is-active{/if}" href="/console/specialists">Specialists</a>
+            {/if}
             {#if inject:consoleFeatures.artifacts}
             <a class="nav-item{#if active == 'artifacts'} is-active{/if}" href="/console/artifacts">Artifacts</a>
             {/if}

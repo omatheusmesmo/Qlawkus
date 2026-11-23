@@ -24,3 +24,4 @@ build-time:
     - self-observe
     - web-search
     - mcp-client
+    - specialists

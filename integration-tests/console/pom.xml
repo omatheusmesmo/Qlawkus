@@ -21,6 +21,11 @@
   <dependencies>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-specialists</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-artifacts</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
@@ -74,6 +79,20 @@
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+          </systemPropertyVariables>
+        </configuration>
+        <executions>
+          <execution>
+            <goals><goal>integration-test</goal><goal>verify</goal></goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
