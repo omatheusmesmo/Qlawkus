@@ -247,6 +247,9 @@ public class HeartbeatService {
     }
 
     private Outcome notifyOwner(HeartbeatState claim, Instant deadline, String kind, String fingerprint, String message) {
+        if (claim.settings().provider() == null) {
+            return Outcome.OBSERVED;
+        }
         TaskDestination destination;
         OwnerNoticeDelivery delivery;
         synchronized (this) {
@@ -311,6 +314,7 @@ public class HeartbeatService {
 
     private HeartbeatState initialState() {
         Instant now = clock.instant();
+        int interval = Math.max(config.intervalMinutes(), config.minimumIntervalMinutes());
         try {
             HeartbeatState loaded = store.load();
             if (loaded != null) {
@@ -324,8 +328,8 @@ public class HeartbeatService {
                 }
                 return recovered;
             }
-            var settings = new HeartbeatSettings(config.enabled(), Math.max(config.intervalMinutes(), config.minimumIntervalMinutes()),
-                    config.prompt().orElse(null), config.provider().orElse(null));
+            var settings = new HeartbeatSettings(config.enabled(), interval,
+                    config.prompt().orElse(HeartbeatConfig.DEFAULT_PROMPT), config.provider().orElse(null));
             validateSettings(settings);
             String bound = settings.provider() == null ? null : knownTarget(settings.provider()).map(TaskDestination::chatId)
                     .orElse(null);
@@ -334,7 +338,7 @@ public class HeartbeatService {
         } catch (IOException | RuntimeException failure) {
             storageAvailable = false;
             Log.warn("Could not load heartbeat state. The heartbeat stays paused until new settings are saved.");
-            return new HeartbeatState(new HeartbeatSettings(false, Math.max(5, config.minimumIntervalMinutes()), "", null),
+            return new HeartbeatState(new HeartbeatSettings(false, interval, "", null),
                     null, 0, null, today(now), 0, 0, null, Map.of());
         }
     }

@@ -13,6 +13,10 @@ import java.util.Optional;
 @ConfigMapping(prefix = "qlawkus.heartbeat")
 public interface HeartbeatConfig {
 
+    String DEFAULT_PROMPT = "Check for missed or invalid scheduled tasks and whether curated memory is available. "
+            + "Notify the owner only if scheduled tasks need attention and a destination is configured. "
+            + "Otherwise record the observations without sending a message.";
+
     /** Minimum configurable interval in minutes. The hard minimum is one minute. */
     @WithDefault("1")
     @Min(1)
@@ -20,7 +24,7 @@ public interface HeartbeatConfig {
     int minimumIntervalMinutes();
 
     /** Maximum number of model requests admitted each UTC day. */
-    @WithDefault("24")
+    @WithDefault("48")
     @Min(1)
     @Max(1440)
     int maximumDailyRuns();
@@ -38,16 +42,17 @@ public interface HeartbeatConfig {
     int deadlineSeconds();
 
     /** Enables heartbeat on a new installation. Persisted settings take precedence after bootstrap. */
-    @WithDefault("false")
+    @WithDefault("true")
     boolean enabled();
 
     /** Initial interval in minutes for a new installation. */
-    @WithDefault("5")
+    @WithDefault("30")
     @Min(1)
     @Max(HeartbeatSettings.MAX_INTERVAL_MINUTES)
     int intervalMinutes();
 
     /** Initial owner instructions for a new installation. */
+    @WithDefault(DEFAULT_PROMPT)
     Optional<String> prompt();
 
     /** Initial notification provider, which must already have an accepted owner conversation. */

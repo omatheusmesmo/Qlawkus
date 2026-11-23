@@ -34,20 +34,22 @@ class HeartbeatServiceTest {
     Path directory;
 
     @Test
-    void disabledByDefaultAndThenObservesOrStaysQuiet() {
+    void observesEveryThirtyMinutesByDefaultAndKeepsNoticesLocalWithoutADestination() {
         var fixture = new Fixture();
         var heartbeat = fixture.service();
-        fixture.clock.advance(Duration.ofHours(1));
+        assertTrue(heartbeat.status().settings().enabled());
+        assertEquals(HeartbeatConfig.DEFAULT_PROMPT, heartbeat.status().settings().prompt());
+        fixture.clock.advance(Duration.ofMinutes(29));
         heartbeat.tick();
         assertEquals(0, fixture.modelCalls.get());
-        assertNull(heartbeat.status().nextRun());
 
-        heartbeat.configure(new HeartbeatSettings(true, 1, "Check schedule and memory health.", null));
-        fixture.recommend(Action.CHECK_SCHEDULES);
+        fixture.recommend(Action.NOTIFY_SCHEDULES);
         fixture.minute(heartbeat);
         assertEquals(Outcome.OBSERVED, heartbeat.status().lastRun().outcome());
         assertEquals(2, heartbeat.status().lastRun().taskIssues());
+        assertEquals(0, fixture.delivery.sends.get());
 
+        heartbeat.configure(new HeartbeatSettings(true, 1, "Check schedule and memory health.", null));
         fixture.recommend(Action.NO_OP);
         fixture.minute(heartbeat);
         assertEquals(Outcome.NO_OP, heartbeat.status().lastRun().outcome());
@@ -218,8 +220,8 @@ class HeartbeatServiceTest {
         public int minimumIntervalMinutes() { return 1; }
         public int maximumDecisionTokens() { return 1600; }
         public int deadlineSeconds() { return 15; }
-        public boolean enabled() { return false; }
-        public int intervalMinutes() { return 5; }
+        public boolean enabled() { return true; }
+        public int intervalMinutes() { return 30; }
         public Optional<String> prompt() { return Optional.empty(); }
         public Optional<String> provider() { return Optional.empty(); }
     }
