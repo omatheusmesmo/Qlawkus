@@ -68,7 +68,7 @@ Environment variable: `+++QLAWKUS_HEARTBEAT_MAXIMUM_DAILY_RUNS+++`
 endif::add-copy-button-to-env-var[]
 --
 |int
-|`+++24+++`
+|`+++48+++`
 
 a| [[qlawkus-heartbeat_qlawkus-heartbeat-maximum-decision-tokens]] [.property-path]##link:#qlawkus-heartbeat_qlawkus-heartbeat-maximum-decision-tokens[`+++qlawkus.heartbeat.maximum-decision-tokens+++`]##
 ifdef::add-copy-button-to-config-props[]
@@ -131,7 +131,7 @@ Environment variable: `+++QLAWKUS_HEARTBEAT_ENABLED+++`
 endif::add-copy-button-to-env-var[]
 --
 |boolean
-|`+++false+++`
+|`+++true+++`
 
 a| [[qlawkus-heartbeat_qlawkus-heartbeat-interval-minutes]] [.property-path]##link:#qlawkus-heartbeat_qlawkus-heartbeat-interval-minutes[`+++qlawkus.heartbeat.interval-minutes+++`]##
 ifdef::add-copy-button-to-config-props[]
@@ -152,7 +152,7 @@ Environment variable: `+++QLAWKUS_HEARTBEAT_INTERVAL_MINUTES+++`
 endif::add-copy-button-to-env-var[]
 --
 |int
-|`+++5+++`
+|`+++30+++`
 
 a| [[qlawkus-heartbeat_qlawkus-heartbeat-prompt]] [.property-path]##link:#qlawkus-heartbeat_qlawkus-heartbeat-prompt[`+++qlawkus.heartbeat.prompt+++`]##
 ifdef::add-copy-button-to-config-props[]
@@ -173,7 +173,7 @@ Environment variable: `+++QLAWKUS_HEARTBEAT_PROMPT+++`
 endif::add-copy-button-to-env-var[]
 --
 |string
-|
+|`+++Check for missed or invalid scheduled tasks and whether curated memory is available. Notify the owner only if scheduled tasks need attention and a destination is configured. Otherwise record the observations without sending a message.+++`
 
 a| [[qlawkus-heartbeat_qlawkus-heartbeat-provider]] [.property-path]##link:#qlawkus-heartbeat_qlawkus-heartbeat-provider[`+++qlawkus.heartbeat.provider+++`]##
 ifdef::add-copy-button-to-config-props[]
