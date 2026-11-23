@@ -16,7 +16,7 @@
 # docker run -i --rm -p 8080:8080 quarkus/qlawkus-app
 #
 ###
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.2
 RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 freetype fontconfig util-linux && microdnf clean all
 WORKDIR /work/
 RUN --mount=type=bind,source=target,target=/target \
