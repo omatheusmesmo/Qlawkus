@@ -111,6 +111,8 @@ public class TelegramPoller {
                 nextOffset = Math.max(nextOffset, update.updateId() + 1);
                 if (update.message() != null) {
                     dispatch(update);
+                } else if (update.callbackQuery() != null) {
+                    dispatchCallback(update);
                 }
             }
         }
@@ -124,6 +126,13 @@ public class TelegramPoller {
                 .subscribe().with(
                         r -> {},
                         err -> Log.errorf(err, "Telegram poll processing error updateId=%d", update.updateId()));
+    }
+
+    private void dispatchCallback(TelegramUpdate update) {
+        adapter.handleCallback(update)
+                .subscribe().with(
+                        r -> {},
+                        err -> Log.errorf(err, "Telegram poll callback error updateId=%d", update.updateId()));
     }
 
     private void sleep() {

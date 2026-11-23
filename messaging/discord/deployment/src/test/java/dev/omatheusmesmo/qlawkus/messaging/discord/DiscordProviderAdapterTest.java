@@ -6,8 +6,10 @@ import dev.omatheusmesmo.qlawkus.messaging.MediaDownloader;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingFormat;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
+import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Attachment;
@@ -53,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.timeout;
@@ -72,7 +75,7 @@ class DiscordProviderAdapterTest {
         downloader = Mockito.mock(MediaDownloader.class);
         orchestrator = Mockito.mock(MessagingOrchestrator.class);
         registrar = Mockito.mock(DiscordSlashCommandRegistrar.class);
-        adapter = new DiscordProviderAdapter(config, downloader, orchestrator, registrar);
+        adapter = new DiscordProviderAdapter(config, downloader, orchestrator, registrar, Mockito.mock(MessagingAuthService.class));
 
         when(orchestrator.process(any())).thenReturn(Uni.createFrom().voidItem());
     }
@@ -99,6 +102,7 @@ class DiscordProviderAdapterTest {
             verify(registrar, timeout(5000)).register(gateway, "", Optional.empty());
             verify(gateway).on(MessageCreateEvent.class);
             verify(gateway).on(ChatInputInteractionEvent.class);
+            verify(gateway).on(eq(ButtonInteractionEvent.class), any());
             assertSame(gateway, adapter.gateway());
             assertEquals(2, attempts.get());
         } finally {
@@ -148,6 +152,7 @@ class DiscordProviderAdapterTest {
         var gateway = Mockito.mock(GatewayDiscordClient.class);
         when(gateway.on(MessageCreateEvent.class)).thenReturn(Flux.empty());
         when(gateway.on(ChatInputInteractionEvent.class)).thenReturn(Flux.empty());
+        when(gateway.on(eq(ButtonInteractionEvent.class), any())).thenReturn(Flux.empty());
         return gateway;
     }
 

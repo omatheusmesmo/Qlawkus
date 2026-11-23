@@ -135,4 +135,28 @@ class AgentMetersTest {
 
         assertEquals(false, meters.enabled(), "no registry means telemetry stays off");
     }
+
+    /**
+     * The approval meters count each outcome under its own series, so a rising {@code refused} count is
+     * visible apart from the owner's approvals and denials.
+     */
+    @Test
+    void approvalOutcomesAreCountedSeparately() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        AgentMeters meters = new AgentMeters(registry);
+
+        meters.approvalRequest(AgentMeters.APPROVAL_CREATED);
+        meters.approvalDecision(AgentMeters.DECISION_APPROVED);
+        meters.approvalDecision(AgentMeters.DECISION_DENIED);
+        meters.approvalExecution(AgentMeters.EXECUTION_EXECUTED);
+        meters.approvalNeedsReview();
+
+        assertEquals(1.0, registry.get(AgentMeters.APPROVAL_REQUESTS).tag(OUTCOME, "created")
+                .counter().count());
+        assertEquals(1.0, registry.get(AgentMeters.APPROVAL_DECISIONS).tag(OUTCOME, "denied")
+                .counter().count());
+        assertEquals(1.0, registry.get(AgentMeters.APPROVAL_EXECUTIONS).tag(OUTCOME, "executed")
+                .counter().count());
+        assertEquals(1.0, registry.get(AgentMeters.APPROVAL_NEEDS_REVIEW).counter().count());
+    }
 }

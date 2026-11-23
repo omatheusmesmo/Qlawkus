@@ -122,6 +122,10 @@ class DashboardMetricsTest {
         meters.turnGate("dashboard-probe", AgentMeters.GATE_PASS);
         meters.turnGateDuration("dashboard-probe", Duration.ofMillis(20));
         meters.store("FactStore", "markdown", "store", took, true);
+        meters.approvalRequest(AgentMeters.APPROVAL_CREATED);
+        meters.approvalDecision(AgentMeters.DECISION_APPROVED);
+        meters.approvalExecution(AgentMeters.EXECUTION_EXECUTED);
+        meters.approvalNeedsReview();
 
         String scrape = given().when().get("/q/metrics").then().statusCode(200).extract().asString();
         return scrape.lines()

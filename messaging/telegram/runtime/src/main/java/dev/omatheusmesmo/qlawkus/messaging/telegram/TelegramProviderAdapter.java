@@ -9,6 +9,8 @@ import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingProvider;
 import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressSink;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingResponse;
+import dev.omatheusmesmo.qlawkus.messaging.approval.ApprovalCallbacks;
+import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -37,6 +39,9 @@ public class TelegramProviderAdapter implements MessagingProvider {
 
     @Inject
     MessagingOrchestrator orchestrator;
+
+    @Inject
+    MessagingAuthService authService;
 
     @Inject
     MediaDownloader mediaDownloader;
@@ -129,6 +134,78 @@ public class TelegramProviderAdapter implements MessagingProvider {
                     }
                 })
                 .replaceWithVoid();
+    }
+
+    @Override
+    public Uni<Boolean> sendApprovalPrompt(String chatId, String requestId, String text) {
+        Optional<String> token = botToken();
+        if (token.isEmpty()) {
+            return Uni.createFrom().item(false);
+        }
+        var buttons = new TelegramBotClient.InlineKeyboardMarkup(List.of(List.of(
+                new TelegramBotClient.InlineKeyboardButton("Approve", ApprovalCallbacks.approve(requestId)),
+                new TelegramBotClient.InlineKeyboardButton("Deny", ApprovalCallbacks.deny(requestId)))));
+        return Uni.createFrom()
+                .item(() -> {
+                    botClient.sendMessage(token.get(),
+                            new TelegramBotClient.SendMessageRequest(chatId, text, null, buttons));
+                    return true;
+                })
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
+    }
+
+    /**
+     * Handles a pressed inline button. The press is turned into the typed {@code /approve} or {@code /deny}
+     * command from the user who pressed it and handed to the orchestrator, which applies the allowlist, so a
+     * press by anyone but the owner decides nothing and leaves the buttons in place.
+     */
+    public Uni<Void> handleCallback(TelegramUpdate update) {
+        TelegramUpdate.TelegramCallbackQuery press = update.callbackQuery();
+        Optional<String> token = botToken();
+        if (press == null || token.isEmpty()) {
+            return Uni.createFrom().voidItem();
+        }
+        TelegramUpdate.TelegramMessage origin = press.message();
+        Optional<MessagingMessage> command = origin == null || origin.chat() == null || press.from() == null
+                ? Optional.empty()
+                : ApprovalCallbacks.toCommand("telegram", String.valueOf(origin.chat().id()),
+                        String.valueOf(press.from().id()), press.data());
+        if (command.isEmpty()) {
+            return Uni.createFrom().item(() -> acknowledge(token.get(), press.id()))
+                    .runSubscriptionOn(Infrastructure.getDefaultWorkerPool()).replaceWithVoid();
+        }
+        MessagingMessage message = command.get();
+        if (!authService.isAuthorized(message)) {
+            Log.warnf("Telegram: approval button press rejected userId=%s reason=allowlist", message.userId());
+            return Uni.createFrom().item(() -> acknowledge(token.get(), press.id()))
+                    .runSubscriptionOn(Infrastructure.getDefaultWorkerPool()).replaceWithVoid();
+        }
+        return orchestrator.process(message)
+                .onItem().invoke(ignored -> removeButtons(token.get(), message.chatId(), origin.messageId()))
+                .onFailure().invoke(failure -> Log.errorf(failure, "Telegram: approval button press failed userId=%s",
+                        message.userId()))
+                .onFailure().recoverWithNull()
+                .invoke(() -> acknowledge(token.get(), press.id()))
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+                .replaceWithVoid();
+    }
+
+    private Object acknowledge(String token, String callbackQueryId) {
+        try {
+            botClient.answerCallbackQuery(token, new TelegramBotClient.AnswerCallbackQueryRequest(callbackQueryId, null));
+        } catch (RuntimeException failure) {
+            Log.debugf("Telegram: answerCallbackQuery failed: %s", failure.getMessage());
+        }
+        return null;
+    }
+
+    private void removeButtons(String token, String chatId, long messageId) {
+        try {
+            botClient.editMessageReplyMarkup(token, new TelegramBotClient.EditMessageReplyMarkupRequest(chatId,
+                    messageId, new TelegramBotClient.InlineKeyboardMarkup(List.of())));
+        } catch (RuntimeException failure) {
+            Log.debugf("Telegram: removing approval buttons failed: %s", failure.getMessage());
+        }
     }
 
     @Override

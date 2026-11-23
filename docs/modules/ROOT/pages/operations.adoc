@@ -342,6 +342,13 @@ The meters above arrive from upstream. These are the ones Qlawkus emits itself, 
 |`qlawkus.task.delivery`
 |Provider acknowledgement for a scheduled message or a failure notice, with values `sent`, `partial`, `failed`, `no_provider`, `notice_sent` and `notice_failed`.
 |`outcome`
+
+|`qlawkus.approval.requests` +
+`qlawkus.approval.decisions` +
+`qlawkus.approval.executions` +
+`qlawkus.approval.needs.review`
+|How many gated tool calls are waiting for the owner, how the owner's decisions land (a rising `refused` is a replayed or mismatched callback), whether approved calls complete, and how many a restart sent to review. Opt-in: nothing is counted until a tool is named in `qlawkus.approval.tools`. See xref:approvals.adoc[Owner Approvals].
+|`outcome` (`needs.review` is untagged)
 |===
 
 A Grafana dashboard for all of these, plus the upstream turn and model meters, ships under `examples/observability/grafana/qlawkus-agent.json`. It is versioned with the code and checked against it: the build fails when a panel queries a series the agent does not publish, or when a meter is charted nowhere.

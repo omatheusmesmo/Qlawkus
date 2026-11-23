@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.health;
 
+import dev.omatheusmesmo.qlawkus.approval.ApprovalStore;
 import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
@@ -73,6 +74,9 @@ public class CognitionReadinessCheck implements HealthCheck {
     @Inject
     SkillsConfig skillsConfig;
 
+    @Inject
+    ApprovalStore approvalStore;
+
     @Override
     public HealthCheckResponse call() {
         boolean skills = skillsConfig.enabled();
@@ -97,6 +101,7 @@ public class CognitionReadinessCheck implements HealthCheck {
         if (skills) {
             learning.put("skills", skillStore::verifyWritable);
         }
+        learning.put("approvals", approvalStore::verifyWritable);
         learning.put("soul", soulStore::verifyWritable);
         learning.put("owner", userProfileStore::verifyWritable);
         List<String> degraded = new ArrayList<>();

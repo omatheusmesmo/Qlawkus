@@ -38,6 +38,7 @@
                 <p class="nav-group-title">Agent</p>
             <a class="nav-item{#if active == 'overview'} is-active{/if}" href="/console"{#if active == 'overview'} aria-current="page"{/if}>Overview</a>
             <a class="nav-item{#if active == 'chat'} is-active{/if}" href="/console/chat"{#if active == 'chat'} aria-current="page"{/if}>Chat</a>
+            <a class="nav-item{#if active == 'approvals'} is-active{/if}" href="/console/approvals"{#if active == 'approvals'} aria-current="page"{/if}>Approvals</a>
             {#if inject:consoleNavigation.voiceEnabled}
             <a class="nav-item{#if active == 'voice'} is-active{/if}" href="/console/voice"{#if active == 'voice'} aria-current="page"{/if}>Voice</a>
             {/if}

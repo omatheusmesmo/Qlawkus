@@ -125,6 +125,18 @@ public interface TelegramBotClient {
     void deleteWebhook(@PathParam("token") String token);
 
     @POST
+    @Path("/answerCallbackQuery")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    void answerCallbackQuery(@PathParam("token") String token, AnswerCallbackQueryRequest request);
+
+    @POST
+    @Path("/editMessageReplyMarkup")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    void editMessageReplyMarkup(@PathParam("token") String token, EditMessageReplyMarkupRequest request);
+
+    @POST
     @Path("/sendChatAction")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -145,7 +157,25 @@ public interface TelegramBotClient {
     record SendMessageRequest(
             @JsonProperty("chat_id") String chatId,
             String text,
-            @JsonProperty("parse_mode") String parseMode
+            @JsonProperty("parse_mode") String parseMode,
+            @JsonProperty("reply_markup") InlineKeyboardMarkup replyMarkup
+    ) {
+        public SendMessageRequest(String chatId, String text, String parseMode) {
+            this(chatId, text, parseMode, null);
+        }
+    }
+
+    record InlineKeyboardMarkup(@JsonProperty("inline_keyboard") List<List<InlineKeyboardButton>> inlineKeyboard) {}
+
+    record InlineKeyboardButton(String text, @JsonProperty("callback_data") String callbackData) {}
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record AnswerCallbackQueryRequest(@JsonProperty("callback_query_id") String callbackQueryId, String text) {}
+
+    record EditMessageReplyMarkupRequest(
+            @JsonProperty("chat_id") String chatId,
+            @JsonProperty("message_id") long messageId,
+            @JsonProperty("reply_markup") InlineKeyboardMarkup replyMarkup
     ) {}
 
     record EditMessageTextRequest(

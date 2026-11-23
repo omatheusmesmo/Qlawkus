@@ -8,7 +8,12 @@ import dev.langchain4j.service.tool.ToolExecutor;
 import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.ToolProviderRequest;
 import dev.langchain4j.service.tool.ToolProviderResult;
+import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.StreamedToolContext;
+import dev.omatheusmesmo.qlawkus.approval.ApprovalPolicy;
+import dev.omatheusmesmo.qlawkus.approval.ApprovalGate;
+import dev.omatheusmesmo.qlawkus.approval.ApprovalToolExecutor;
+import dev.omatheusmesmo.qlawkus.approval.ApprovedToolExecutors;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.metrics.MeteredToolExecutor;
 import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
@@ -23,11 +28,12 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
-public class QlawToolProvider implements ToolProvider {
+public class QlawToolProvider implements ToolProvider, ApprovedToolExecutors {
 
     @Inject
     @QlawTool
@@ -46,6 +52,15 @@ public class QlawToolProvider implements ToolProvider {
     SecretRedactor redactor;
 
     @Inject
+    ApprovalGate approvals;
+
+    @Inject
+    ApprovalPolicy approvalPolicy;
+
+    @Inject
+    AgentDeliveryContext delivery;
+
+    @Inject
     Instance<Tracer> tracer;
 
     @ConfigProperty(name = "quarkus.langchain4j.tracing.include-tool-arguments", defaultValue = "false")
@@ -54,6 +69,14 @@ public class QlawToolProvider implements ToolProvider {
     @ConfigProperty(name = "quarkus.langchain4j.tracing.include-tool-result", defaultValue = "false")
     boolean includeToolResult;
 
+    /**
+     * The chain for each {@code @QlawTool} tool is
+     * {@code Traced(Metered(ContextBridging(ApprovalGate(Default))))}. The gate sits under the bridge
+     * because it reads the delivery values the bridge restores on the streaming path, and under the
+     * meters so a gated call is still counted and traced as the call the model made, even though it does
+     * not run. Tools an external contributor supplies are not gated: the resume path can only rebuild a
+     * {@code @QlawTool} executor by name.
+     */
     @Override
     public ToolProviderResult provideTools(ToolProviderRequest request) {
         ToolProviderResult.Builder builder = ToolProviderResult.builder();
@@ -67,7 +90,9 @@ public class QlawToolProvider implements ToolProvider {
                     Method toolMethod = findToolMethod(beanClass, spec);
                     QlawTool declaration = beanClass.getAnnotation(QlawTool.class);
                     boolean capture = declaration == null || declaration.capturePayload();
-                    add(builder, names, spec, new DefaultToolExecutor(tool, toolMethod), capture);
+                    ToolExecutor gated = new ApprovalToolExecutor(spec.name(),
+                            new DefaultToolExecutor(tool, toolMethod), approvalPolicy::requires, approvals, delivery);
+                    add(builder, names, spec, gated, capture);
                     Log.debugf("Registered extension tool: %s from %s", spec.name(), beanClass.getSimpleName());
                 }
             }
@@ -94,6 +119,23 @@ public class QlawToolProvider implements ToolProvider {
         }
         ToolExecutor bridged = new ContextBridgingToolExecutor(executor, streamedTools);
         builder.add(spec, traced(spec.name(), new MeteredToolExecutor(spec.name(), bridged, meters, redactor), capturePayload));
+    }
+
+    @Override
+    public Optional<ToolExecutor> unguardedExecutor(String toolName) {
+        if (extensionTools.isUnsatisfied()) {
+            return Optional.empty();
+        }
+        for (Object proxy : extensionTools) {
+            Object tool = ClientProxy.unwrap(proxy);
+            Class<?> beanClass = resolveBeanClass(tool);
+            for (ToolSpecification spec : ToolSpecifications.toolSpecificationsFrom(beanClass)) {
+                if (spec.name().equals(toolName)) {
+                    return Optional.of(new DefaultToolExecutor(tool, findToolMethod(beanClass, spec)));
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     /**

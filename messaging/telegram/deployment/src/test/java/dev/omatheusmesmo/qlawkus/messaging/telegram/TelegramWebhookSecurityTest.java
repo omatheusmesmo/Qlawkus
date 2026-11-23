@@ -89,6 +89,22 @@ class TelegramWebhookSecurityTest {
     }
 
     @Test
+    void aButtonPressNeedsTheConfiguredSecretBecauseAForgedOneCouldApprove() {
+        when(adapter.handleCallback(any())).thenReturn(Uni.createFrom().voidItem());
+        when(config.webhookSecretToken()).thenReturn(Optional.empty());
+
+        assertEquals(403, status(null, press()));
+        verifyNoInteractions(adapter);
+
+        when(config.webhookSecretToken()).thenReturn(Optional.of(SECRET));
+        assertEquals(403, status("invalid", press()));
+        verifyNoInteractions(adapter);
+
+        assertEquals(200, status(SECRET, press()));
+        verify(adapter, timeout(2_000)).handleCallback(any());
+    }
+
+    @Test
     void registrationPassesTheConfiguredSecretAndLeavesPollingAlone() {
         var bot = mock(TelegramBotClient.class);
         var registration = new TelegramWebhookRegistration();
@@ -112,6 +128,11 @@ class TelegramWebhookSecurityTest {
 
     private int status(String token, TelegramUpdate update) {
         return resource.webhook(token, update).await().indefinitely().getStatus();
+    }
+
+    private static TelegramUpdate press() {
+        return new TelegramUpdate(2L, null, new TelegramUpdate.TelegramCallbackQuery("cb",
+                new TelegramUpdate.TelegramUser(42L, "Owner", null), null, "qa:approve:x"));
     }
 
     private static TelegramUpdate text() {

@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.tools.mcp;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.omatheusmesmo.qlawkus.approval.ApprovedExecution;
 import io.quarkus.test.junit.QuarkusTest;
 import java.nio.file.Path;
 import java.util.List;
@@ -24,17 +25,30 @@ class McpManagementToolTest {
     }
 
     @Test
-    void approvalModeDefaultsToHitlAndTheFirstCallOnlyPreviews() throws Exception {
+    void approvalModeDefaultsToHitlAndNothingIsSavedOutsideAnApprovedExecution() throws Exception {
         try (var server = new FakeMcpHttpServer(); var fixture = new McpFixture(root)) {
             var tool = tool(fixture);
-            String preview = tool.configureMcpConnection(http("docs", server, Map.of()), false);
-            assertTrue(preview.contains("confirm=true"), preview);
-            assertTrue(preview.contains(server.url()), preview);
-            assertTrue(fixture.registry.list().isEmpty(), "nothing is saved before the owner approves");
+            String withoutConfirm = tool.configureMcpConnection(http("docs", server, Map.of()), false);
+            String selfConfirmed = tool.configureMcpConnection(http("docs", server, Map.of()), true);
+            assertTrue(withoutConfirm.contains(server.url()), withoutConfirm);
+            assertTrue(selfConfirmed.toLowerCase().contains("approval"), selfConfirmed);
+            assertFalse(selfConfirmed.contains("confirm=true"), "the model must not be taught to self-confirm");
+            assertTrue(fixture.registry.list().isEmpty(), "a flag the model sets itself approves nothing");
             assertTrue(server.requests.isEmpty(), "nothing is contacted before the owner approves");
-            String applied = tool.configureMcpConnection(http("docs", server, Map.of()), true);
+            String applied = ApprovedExecution.run(() -> tool.configureMcpConnection(http("docs", server, Map.of()), false));
             assertTrue(applied.contains("\"state\":\"READY\""), applied);
             assertEquals(1, fixture.registry.list().size());
+        }
+    }
+
+    @Test
+    void hitlHoldsTheWritingToolsOnlyAndYoloHoldsNothing() throws Exception {
+        try (var hitl = new McpFixture(root.resolve("hitl")); var yolo = new McpFixture(root.resolve("yolo"),
+                "qlawkus.mcp.approval-mode", "yolo")) {
+            assertTrue(new McpApprovalRequirement(hitl.config).requires("configureMcpConnection"));
+            assertFalse(new McpApprovalRequirement(hitl.config).requires("listMcpConnections"));
+            assertFalse(new McpApprovalRequirement(hitl.config).requires("testMcpConnection"));
+            assertFalse(new McpApprovalRequirement(yolo.config).requires("configureMcpConnection"));
         }
     }
 
@@ -43,7 +57,7 @@ class McpManagementToolTest {
         try (var fixture = new McpFixture(root)) {
             var connection = new McpConnection("local", McpTransport.STDIO, true, null,
                     List.of("/opt/never-started", "--stdio"), Map.of(), Map.of(), null);
-            String preview = tool(fixture).configureMcpConnection(connection, false);
+            String preview = tool(fixture).configureMcpConnection(connection, true);
             assertTrue(preview.contains("/opt/never-started --stdio"), preview);
             assertTrue(fixture.registry.list().isEmpty());
         }

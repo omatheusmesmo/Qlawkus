@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.tools.skillhub;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.omatheusmesmo.qlawkus.approval.ApprovedExecution;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillOrigin;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
@@ -24,14 +25,20 @@ import java.util.stream.Collectors;
  * own. Installed skills land in the owned root, so they enter the injected skills index on the next
  * turn (no restart).
  *
- * <p>Every install path honors {@link SkillHubConfig#approvalMode()}: in {@code yolo} it writes
- * immediately; in {@code hitl} the first call only previews and the owner's explicit go-ahead is
- * required before a confirmed re-call actually writes. Publish writes to the configured directory only
- * (never {@code git push}); the owner pushes from the host.
+ * <p>Every writing tool honors {@link SkillHubConfig#approvalMode()}: in {@code yolo} it writes
+ * immediately; in {@code hitl} the platform's durable approval gate holds the call until the owner
+ * approves it ({@link SkillHubApprovalRequirement}), and the tool itself writes only inside that approved
+ * execution. The {@code confirm} parameter is kept so existing tool schemas stay valid, but it is
+ * ignored: a flag the model sets itself is not an approval. Publish writes to the configured directory
+ * only (never {@code git push}); the owner pushes from the host.
  */
 @QlawTool
 @ApplicationScoped
 public class SkillHubTool {
+
+  private static final String NOT_APPROVED =
+      "Nothing was written: this change needs the owner's approval, which the platform asks for. Do not "
+          + "retry and do not pass confirm; tell the owner it is waiting.";
 
   private final SkillHub skillHub;
   private final SkillStore skillStore;
@@ -78,13 +85,12 @@ public class SkillHubTool {
       slug, or a link (a SKILL.md, GitHub, GitLab, Bitbucket or gist link, or a single-skill folder). \
       A plain name is searched for: one clear match is installed, several are listed so you can ask the \
       owner which one. For a repository, folder or archive that holds several skills, use \
-      listSkillsInSource and installSkillsFromSource instead. In HITL approval mode you MUST first call \
-      with confirm=false to preview, present it to the owner, get explicit approval, then call again \
-      with confirm=true; without approval nothing is written. In YOLO mode it installs immediately.""")
+      listSkillsInSource and installSkillsFromSource instead. In HITL approval mode the \
+      call is held until the owner approves it in chat; tell them it is waiting and do not retry. In YOLO \
+      mode it installs immediately.""")
   public String installSkill(
       @P("A skill name, or the source (slug or link) to install") String source,
-      @P("Set true only after the owner explicitly approved this install (HITL mode)")
-          boolean confirm) {
+      @P("Ignored: approval is requested from the owner by the platform") boolean confirm) {
     if (!config.enabled()) {
       return "The skill hub is disabled (qlawkus.skill-hub.enabled=false).";
     }
@@ -120,13 +126,12 @@ public class SkillHubTool {
   @Tool("""
       Install several skills from one source (a repository, a folder, an archive or a gist) under one \
       approval. Pass the skill names from listSkillsInSource comma-separated, or 'all'. A selection \
-      larger than the configured per-call cap is refused before anything is written. In HITL mode \
-      call first with confirm=false to preview the names, get the owner's approval, then call again \
-      with confirm=true.""")
+      larger than the configured per-call cap is refused before anything is written. In HITL mode the call \
+      is held until the owner approves it in chat.""")
   public String installSkillsFromSource(
       @P("The repository, folder, archive or gist link or slug") String source,
       @P("Comma-separated skill names from listSkillsInSource, or 'all'") String skills,
-      @P("Set true only after the owner explicitly approved these installs (HITL mode)") boolean confirm) {
+      @P("Ignored: approval is requested from the owner by the platform") boolean confirm) {
     if (!config.enabled()) {
       return "The skill hub is disabled (qlawkus.skill-hub.enabled=false).";
     }
@@ -141,10 +146,9 @@ public class SkillHubTool {
     List<SkillCandidate> selected = SkillSelection.select(skillHub.discover(trimmed), skills, trimmed);
     SkillSelection.requireWithinCap(selected.size(), config.maxInstallsPerCall());
     String names = selected.stream().map(SkillCandidate::name).collect(Collectors.joining(", "));
-    if (config.approvalMode() == ApprovalMode.HITL && !confirm) {
+    if (awaitsApproval()) {
       return "Installing " + selected.size() + " skill(s) from " + trimmed + ": " + names
-          + ". Ask the owner to approve, then call installSkillsFromSource again with the same source and "
-          + "skills and confirm=true.";
+          + ". " + NOT_APPROVED;
     }
     List<String> installed = SkillSelection.installAll(skillHub, selected);
     return "Installed " + installed.size() + " skill(s): " + String.join(", ", installed);
@@ -152,11 +156,11 @@ public class SkillHubTool {
 
   @Tool("""
       Install a SKILL.md the owner pasted into the chat. The text must hold a frontmatter with a name. \
-      The same validation and approval apply as installSkill: in HITL mode call with confirm=false to \
-      preview, get the owner's approval, then call again with the same text and confirm=true.""")
+      The same validation and approval apply as installSkill: in HITL mode the call is held \
+      until the owner approves it in chat.""")
   public String installSkillFromText(
       @P("The full SKILL.md text, frontmatter included") String text,
-      @P("Set true only after the owner explicitly approved this install (HITL mode)") boolean confirm) {
+      @P("Ignored: approval is requested from the owner by the platform") boolean confirm) {
     if (!config.enabled()) {
       return "The skill hub is disabled (qlawkus.skill-hub.enabled=false).";
     }
@@ -164,10 +168,9 @@ public class SkillHubTool {
       return "Paste the SKILL.md text to install.";
     }
     Skill skill = SkillMarkdown.parsePasted(text, config.maxSkillBytes());
-    if (config.approvalMode() == ApprovalMode.HITL && !confirm) {
+    if (awaitsApproval()) {
       return "Installing skill '" + skill.name() + "' (" + skill.description() + ") from the pasted text will "
-          + "write it to your skills. Ask the owner to approve, then call installSkillFromText again with the "
-          + "same text and confirm=true.";
+          + "write it to your skills. " + NOT_APPROVED;
     }
     skillStore.save(skill);
     return "Installed skill: " + skill.name();
@@ -176,10 +179,10 @@ public class SkillHubTool {
   @Tool("""
       Update an installed skill from the source it was installed from, picking up the current version. \
       Skills written by you or pasted in have no recorded source and cannot be updated this way. In HITL \
-      mode call with confirm=false to preview, get the owner's approval, then call again with confirm=true.""")
+      mode the call is held until the owner approves it in chat.""")
   public String updateSkill(
       @P("The exact name of an installed skill") String name,
-      @P("Set true only after the owner explicitly approved this update (HITL mode)") boolean confirm) {
+      @P("Ignored: approval is requested from the owner by the platform") boolean confirm) {
     if (!config.enabled()) {
       return "The skill hub is disabled (qlawkus.skill-hub.enabled=false).";
     }
@@ -188,9 +191,9 @@ public class SkillHubTool {
     }
     String skillName = name.strip();
     SkillOrigin recorded = SkillUpdates.recordedOrigin(skillStore, skillName);
-    if (config.approvalMode() == ApprovalMode.HITL && !confirm) {
+    if (awaitsApproval()) {
       return "Updating '" + skillName + "' from " + recorded.source() + " will overwrite its SKILL.md with the "
-          + "current version there. Ask the owner to approve, then call updateSkill again with confirm=true.";
+          + "current version there. " + NOT_APPROVED;
     }
     Skill updated = SkillUpdates.refresh(skillHub, skillStore, skillName);
     return "Updated skill: " + updated.name() + " from " + recorded.source();
@@ -218,8 +221,7 @@ public class SkillHubTool {
       and pushes it from the host. Honors the same HITL/YOLO approval mode as install.""")
   public String publishSkill(
       @P("The exact name of a skill in your procedural memory to publish") String name,
-      @P("Set true only after the owner explicitly approved this publish (HITL mode)")
-          boolean confirm) {
+      @P("Ignored: approval is requested from the owner by the platform") boolean confirm) {
     if (!config.enabled()) {
       return "The skill hub is disabled (qlawkus.skill-hub.enabled=false).";
     }
@@ -233,9 +235,9 @@ public class SkillHubTool {
     if (skill.isEmpty()) {
       return "No skill named '" + name + "' was found in your procedural memory.";
     }
-    if (config.approvalMode() == ApprovalMode.HITL && !confirm) {
+    if (awaitsApproval()) {
       return "Publishing '" + name + "' will write its SKILL.md to " + config.publish().dir()
-          + ". Ask the owner to approve, then call publishSkill again with confirm=true.";
+          + ". " + NOT_APPROVED;
     }
     try {
       Path written = skillHub.publish(skill.get());
@@ -244,6 +246,10 @@ public class SkillHubTool {
       Log.warnf(e, "publishSkill failed for '%s'", name);
       return "Publish failed for '" + name + "': " + e.getMessage();
     }
+  }
+
+  private boolean awaitsApproval() {
+    return config.approvalMode() == ApprovalMode.HITL && !ApprovedExecution.active();
   }
 
   private String installByName(String name, boolean confirm) {
@@ -272,9 +278,9 @@ public class SkillHubTool {
   }
 
   private String installLocation(String source, boolean confirm) {
-    if (config.approvalMode() == ApprovalMode.HITL && !confirm) {
+    if (awaitsApproval()) {
       return "Installing '" + source + "' will download a SKILL.md from the internet and add it to "
-          + "your skills. Ask the owner to approve, then call installSkill again with confirm=true.";
+          + "your skills. " + NOT_APPROVED;
     }
     Skill saved = skillHub.install(source);
     return "Installed skill: " + saved.name();

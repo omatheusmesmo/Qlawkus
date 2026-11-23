@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import dev.omatheusmesmo.qlawkus.approval.ApprovalStore;
 import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
@@ -61,8 +62,20 @@ class CognitionReadinessCheckScheduledTasksTest {
         assertEquals("ownerChats", response.getData().orElseThrow().get("degraded"));
     }
 
+    @Test
+    void anApprovalStoreThatCannotWriteIsDegradedAndTheInstanceStaysUp() {
+        CognitionReadinessCheck check = healthyCheck();
+        doThrow(new IllegalStateException("read-only file system")).when(check.approvalStore).verifyWritable();
+
+        HealthCheckResponse response = check.call();
+
+        assertEquals(HealthCheckResponse.Status.UP, response.getStatus());
+        assertEquals("approvals", response.getData().orElseThrow().get("degraded"));
+    }
+
     private static CognitionReadinessCheck healthyCheck() {
         CognitionReadinessCheck check = new CognitionReadinessCheck();
+        check.approvalStore = mock(ApprovalStore.class);
         check.soulStore = mock(SoulStore.class);
         check.userProfileStore = mock(UserProfileStore.class);
         check.skillStore = mock(SkillStore.class);

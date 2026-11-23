@@ -13,6 +13,7 @@ import dev.omatheusmesmo.qlawkus.console.management.McpConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.OverviewConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.ReadinessSource;
 import dev.omatheusmesmo.qlawkus.console.management.ScheduleConsoleResource;
+import dev.omatheusmesmo.qlawkus.console.management.ApprovalsConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.SkillsConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.SpecialistsConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.onboarding.OnboardingResource;
@@ -58,6 +59,7 @@ class ConsoleProcessor {
         return AdditionalBeanBuildItem.builder()
                 .addBeanClasses(ConsoleResource.class, ConsoleStatus.class, SetupState.class,
                         OnboardingResource.class, MemoryConsoleResource.class, SkillsConsoleResource.class,
+                        ApprovalsConsoleResource.class,
                         CognitionConsoleResource.class, ConfigConsoleResource.class, ScheduleConsoleResource.class,
                         ChatConsoleResource.class, ConsoleNavigation.class, ConsoleFeatures.class, McpConsoleResource.class,
                         ArtifactsConsoleResource.class, SpecialistsConsoleResource.class,

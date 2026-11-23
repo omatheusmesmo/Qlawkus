@@ -1,0 +1,149 @@
+= Owner Approvals
+:page-title: Owner Approvals
+:page-description: Hold selected tool calls for the owner's decision, and resume the task once it is made
+
+An autonomous agent needs a boundary the model cannot cross on its own. Owner approvals are that boundary for the tools you name: a call to one of them is recorded, shown to the owner, and does not run until the owner approves it. The model cannot approve its own request, and a confirmation it writes into the conversation is never treated as one.
+
+The gate is **opt-in**. With no tool named, every tool runs exactly as it did before, so enabling the feature changes nothing until you choose a tool.
+
+== What is gated
+
+Only `@QlawTool` tools are gated, and a tool is gated for one of two reasons: its name is listed in `qlawkus.approval.tools`, or an extension asked for it. Matching is exact on the tool name the model sees:
+
+[source,properties]
+----
+qlawkus.approval.tools=sendEmail,deleteFile
+----
+
+An extension asks for the gate by publishing an `ApprovalRequirement` bean (`boolean requires(String toolName)`). The Skill Hub does so for its writing tools and the MCP client for `configureMcpConnection`, both only while their own `approval-mode` is `hitl` (see <<The hitl modes of Skill Hub and MCP>>). A requirement can only add tools to the gated set, never remove one the operator named.
+
+Tools declared directly on the AI service (the memory and skill tools, for example) are **not gated**. The gate sits in the tool chain of each `@QlawTool`, so a tool that must be approved has to be one of those. Gating is by name, not by the kind of action: nothing is gated by default, and reads and reversible local operations stay unguarded unless you name them.
+
+== How a gated call is handled
+
+When the model calls a gated tool:
+
+1. The arguments are canonicalised (keys sorted, whitespace removed) and checked. If they look like a credential, no request is created and the model is told so: pass the secret through the vault instead of an argument.
+2. A request is persisted with the exact arguments, a SHA-256 binding over the tool name and those arguments, a bounded redacted preview, and the conversation it came from.
+3. The tool does **not** run. The model receives a result saying the action was not run, that approval request `<id>` is pending, and that it must not retry or ask for confirmation in chat.
+4. If the conversation has a chat behind it (Telegram, Discord, Slack), the owner is told the id, the tool, the preview, and how to decide. On Telegram and Discord the notice carries Approve and Deny buttons; elsewhere it names the two commands.
+
+== Lifecycle
+
+[cols="1,3"]
+|===
+| Status | Meaning
+
+| `PENDING` | Waiting for the owner. Survives restarts.
+| `APPROVED` | The owner approved; the call is about to run. Brief, and never seen after a restart.
+| `EXECUTING` | The approved call is running.
+| `EXECUTED` | The call ran and completed. Its bounded, redacted result is kept.
+| `FAILED` | The call ran and raised an error, or the arguments no longer matched the binding. It did not complete.
+| `DENIED` | The owner refused it. It can never run.
+| `EXPIRED` | Nobody decided before `qlawkus.approval.expiry`. It can never run.
+| `NEEDS_REVIEW` | A restart found it `APPROVED` or `EXECUTING`. See below.
+|===
+
+A decision is a compare-and-set from `PENDING` (or `APPROVED` to `EXECUTING`). A duplicate callback, a second click, or a replayed command finds the request already decided and does nothing, so an approved call runs at most once per request.
+
+Approval recomputes the binding hash from the stored arguments before it runs. Arguments changed after the owner was asked fail the check and the request becomes `FAILED` without running.
+
+== How the owner decides
+
+Decisions are owner-only and never reachable from the model:
+
+* **Chat commands.** `/approve <id>` and `/deny <id>` in any chat the owner's account is allowlisted for (see xref:messaging.adoc[Messaging]). The command is read before the model runs, and the sender must pass the same allowlist as every other message.
+* **Admin REST.** `GET /api/admin/approvals` lists requests, `GET /api/admin/approvals/{id}` shows one with its exact arguments, and `POST /api/admin/approvals/{id}/approve` or `/deny` decides it. A decision that takes effect answers `204`; a refused one answers `409`, and an unknown id `404`, each with an `error` message. Every endpoint is authenticated with the admin credential.
+* **Console.** The `/console/approvals` page lists the queue and drives the same two decisions over HTMX.
+
+There is no endpoint that runs a tool directly, so a decision can only release a call the owner already saw recorded.
+
+=== Buttons
+
+On **Telegram** and **Discord** the notice for a new request carries Approve and Deny buttons. A button is a convenience for typing the command, not a second decision path: a press becomes the plain `/approve <id>` or `/deny <id>` message from the user who pressed it and goes through the same orchestrator as typed text, so the messaging allowlist applies to the person who pressed, the model is never involved, and the compare-and-set above still decides.
+
+* A press by someone outside the allowlist decides nothing and leaves the buttons for the owner. Telegram answers it with an empty acknowledgement; Discord answers it privately with "Not authorized.".
+* A payload this feature did not create, or a malformed request id, is ignored without asking the allowlist.
+* After a decision is processed the buttons are removed, so a second press cannot be made. If processing fails, the buttons stay and the owner can try again.
+* The payloads are `qa:approve:<id>` and `qa:deny:<id>`, 43 bytes, inside Telegram's 64-byte `callback_data` limit.
+* On Telegram a button press arriving through the **webhook** is accepted only when `qlawkus.messaging.telegram.webhook-secret-token` is configured and the `X-Telegram-Bot-Api-Secret-Token` header matches; otherwise the webhook answers `403`. Without that check anyone who knew the owner's numeric id could post a forged press. A press received by long polling is authenticated by the bot token itself.
+* If the prompt cannot be posted with buttons (no bot token, a gateway that is down, a failed call), the same notice is sent as text with the commands, so a request is never left without a way to decide.
+
+**Slack** has no buttons. Its adapter has no interactivity endpoint and no signature verification for one, and Slack is not part of the reference distribution, so a Slack chat keeps the `/approve` and `/deny` text fallback. Adding buttons there needs its interactivity endpoint and signing-secret check first.
+
+== The hitl modes of Skill Hub and MCP
+
+`qlawkus.skill-hub.approval-mode=hitl` and `qlawkus.mcp.approval-mode=hitl` used to preview a change and then rely on the model repeating the call with `confirm=true`. That confirmation was written by the model, so it was never an owner decision. Both now use this gate:
+
+* The writing Skill Hub tools (`installSkill`, `installSkillsFromSource`, `installSkillFromText`, `updateSkill`, `publishSkill`) and `configureMcpConnection` are gated while their mode is `hitl`. The call is recorded as a request, the owner decides, and the approved call runs once with the stored arguments.
+* The tool itself also refuses to write unless it is running as an approved execution (`ApprovedExecution`, a marker only `ApprovalService` sets around the call). So a path that bypasses the provider, or a model that passes `confirm=true`, still writes nothing.
+* The `confirm` parameter is kept so existing tool schemas still validate, and is ignored. Prompts and tool descriptions no longer tell the model to use it.
+* `yolo` is unchanged: the tool acts immediately and nothing is gated.
+* The admin REST endpoints and the console panels are the owner acting directly and never ask, as before.
+
+If you relied on the old flow: nothing to configure. Set the mode to `hitl` and decisions arrive through the same commands, buttons, REST endpoints and console page as any other gated tool. Listing a tool in `qlawkus.approval.tools` still works on top of this.
+
+== Resuming the task
+
+After the owner approves or denies, the agent resumes the conversation the request came from. It is told the outcome (executed with its result, failed, or denied) and either carries on with the task or reports the outcome. Its reply goes to the same chat. The resumed turn runs on the interactive workload, since the owner is waiting for it.
+
+Expiry and review do **not** resume the agent: the owner is told in the chat, and no model turn is spent while nobody is there.
+
+Requests that came from the REST API or the console have no chat to resume into. Their outcome is recorded and visible in the queue, but the agent is not woken; the owner tells it the outcome in the next message.
+
+== Restarts and NEEDS_REVIEW
+
+Pending requests are stored on disk before the model is told about them, so a restart leaves them decidable. The owner can still approve or deny one after the agent comes back.
+
+A request that was `APPROVED` or `EXECUTING` when the process stopped is different. Whether its external effect happened is unknown, so it is never run again. At boot it becomes `NEEDS_REVIEW`, the owner is told, and the queue shows it until a person looks at it. Nothing is replayed automatically.
+
+Expired requests are swept every 60 seconds and reported to the chat that asked.
+
+== Idempotency
+
+An approved call is executed once, with the request id recorded before the call starts. No `@QlawTool` accepts an idempotency key today, so the request id is not passed to the provider. For a tool that talks to an external service, a crash during the call is therefore the `NEEDS_REVIEW` case above, not an automatic retry. Give a tool an idempotency parameter if the provider supports one.
+
+== Storage
+
+The store follows `qlawkus.cognition.backend`, like the other cognition stores. The default (`markdown`) writes one JSON file per request under `qlawkus.agent.state.root`, in `approvals/`. Each write goes to a sibling file and is moved into place, so a crash mid-write keeps the previous version. A corrupt file is skipped with a warning and never stops boot. Only settled requests are pruned, oldest first, once more than 500 accumulate; pending and `NEEDS_REVIEW` requests are never dropped.
+
+With `pgvector` the requests are rows in the `approval_request` table (created by the optional `cognition-pgvector` extension) and a decision is applied under a row lock, so two callbacks racing for one request still produce a single winner. With `hybrid` the files are the source of truth and the table is a mirror: a decision is taken on the file, and a failure to write the mirror is logged and never undoes or blocks it.
+
+The readiness check probes the approval store with the cognition stores. A failure there is reported as `degraded`, not DOWN, because the agent still answers while it cannot record decisions.
+
+The files hold the exact arguments and the results of executed calls, so they are as sensitive as the tools themselves. Keep the state root on a volume with the same access controls as the rest of the agent's data.
+
+== Configuration
+
+The full reference is in xref:config-reference.adoc#_approval[Configuration Reference]. The four properties:
+
+[cols="2,1,3"]
+|===
+| Property | Default | Meaning
+
+| `qlawkus.approval.tools` | none | Tool names that need approval. Empty means nothing is gated.
+| `qlawkus.approval.expiry` | `24h` | How long a request stays decidable.
+| `qlawkus.approval.max-pending` | `50` | Requests that may wait at once. A call beyond this is refused, not queued.
+| `qlawkus.approval.preview-max-chars` | `500` | Longest argument text shown in a preview.
+|===
+
+== Limits
+
+* Tools declared on the AI service are not gated. Only `@QlawTool` tools are.
+* Tools contributed by an external source (the remote tools of MCP servers, through `QlawToolContributor`) are not gated. The resume path can only rebuild a `@QlawTool` executor by name, so an approved remote call could not be released, and a gate that records a request it cannot execute would be worse than none. Control which servers are connected instead: `configureMcpConnection` is gated in `hitl`, and the console and admin API are owner-only.
+* Slack has no approval buttons (see <<Buttons>>).
+* Gating is by tool name. A tool that performs several actions is gated as one.
+* The model cannot approve, and no tool exposes an approval path.
+* The approval queue is per instance, like the rest of the agent state. Qlawkus is single-instance.
+* Redaction protects the preview, the notices and the result summary. It cannot stop a tool that deliberately returns a secret from doing so.
+
+== Telemetry
+
+Four counters, documented in xref:operations.adoc[Operations] and charted on the Approvals row of the reference dashboard:
+
+* `qlawkus_approval_requests_total{outcome}` - `created` or `refused` before any request existed
+* `qlawkus_approval_decisions_total{outcome}` - `approved`, `denied`, `expired`, or `refused` (a replayed or mismatched decision)
+* `qlawkus_approval_executions_total{outcome}` - `executed` or `failed`
+* `qlawkus_approval_needs_review_total` - requests a restart sent to review
+
+The logs carry request ids, tool names and counts. They never carry argument content.

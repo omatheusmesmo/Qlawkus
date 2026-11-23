@@ -138,7 +138,7 @@ The optional `qlawkus-console-skill-hub` extension (composition capability `cons
 
 Every result states what happened: *Installed*, *Refused* (with the reason), *Over a cap* (the selection exceeds `max-installs-per-call`, or the upload exceeds the upload limit), *Source unreachable* (the host could not be reached), or *Skill hub disabled*. Skill names, descriptions, sources and reasons are shown as text, never as markup.
 
-The panel's per-call cap is `qlawkus.skill-hub.max-installs-per-call` and its upload limit is `qlawkus.skill-hub.archive.max-bytes`; both are shown on the page. An install from the panel is approved by the owner's request, the same as the admin REST endpoints. The panel does not preview in HITL mode.
+The panel's per-call cap is `qlawkus.skill-hub.max-installs-per-call` and its upload limit is `qlawkus.skill-hub.archive.max-bytes`; both are shown on the page. An install from the panel is approved by the owner's request, the same as the admin REST endpoints. The panel does not ask for approval in HITL mode.
 
 == Remote Skill Hub
 
@@ -187,7 +187,7 @@ A residual risk remains: the host is resolved when the request is checked and ag
 
 == Approval
 
-Every install path honors `qlawkus.skill-hub.approval-mode`. In `hitl` the agent's tools preview first (listing the names for a multi-skill install, and the resolved source for a plain name) and write only on a confirmed re-call. In `yolo` they write immediately. The admin REST install endpoints do not preview: the request itself is the owner's approval, since the owner is authenticated and posts it directly. They keep every other limit above.
+Every install path honors `qlawkus.skill-hub.approval-mode`. In `hitl` the agent's tools do not write on the model's say-so: the platform records an owner approval request (see xref:approvals.adoc[Owner Approvals]) naming the tool and its arguments, and the tool writes only when the owner approves it and the call is released. A `confirm` argument from the model is ignored. In `yolo` they write immediately. The admin REST install endpoints do not preview: the request itself is the owner's approval, since the owner is authenticated and posts it directly. They keep every other limit above.
 
 == Where skills come from later
 
@@ -224,7 +224,7 @@ Chat attachments on Discord and Telegram are not part of this release. The conso
 
 [IMPORTANT]
 ====
-The extension defaults to `hitl`, but the reference `app` ships `yolo` - so a stock build installs a skill the moment the agent asks for one. Set `SKILL_HUB_APPROVAL_MODE=hitl` (or `qlawkus.skill-hub.approval-mode=hitl`) to be asked first.
+The extension defaults to `hitl`, but the reference `app` ships `yolo` - so a stock build installs a skill the moment the agent asks for one. Set `SKILL_HUB_APPROVAL_MODE=hitl` (or `qlawkus.skill-hub.approval-mode=hitl`) to be asked first, through the owner approvals queue (chat commands, Telegram and Discord buttons, the admin API and the console).
 ====
 
 All settings live under `qlawkus.skill-hub.*`: `enabled`, `base-url`, `well-known-hosts`, `approval-mode`, `max-results`, `request-timeout`, `max-installs-per-call`, `max-skill-bytes`, `archive.max-bytes`, `archive.max-entries`, `archive.max-expanded-bytes`, `publish.enabled` and `publish.dir`. Publishing is opt-in (`publish.enabled=false` by default). The install panel adds no settings of its own.
