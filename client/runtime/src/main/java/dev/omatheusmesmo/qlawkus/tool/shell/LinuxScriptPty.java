@@ -31,7 +31,9 @@ final class LinuxScriptPty {
         // caller's environment before executing their command, including an intentionally unset SHELL.
         String shell = environment.get("SHELL");
         String restoreShell = shell == null ? "unset SHELL" : "export SHELL=" + quote(shell);
-        String bootstrap = STTY + " rows " + rows + " cols " + columns + " && /usr/bin/tty && "
+        // Frame the device name ourselves so the reader gets one line with either GNU or uutils tty.
+        String bootstrap = STTY + " rows " + rows + " cols " + columns
+                + " && terminal=$(/usr/bin/tty) && printf '%s\\n' \"$terminal\" && "
                 + restoreShell + " && exec /bin/sh -c " + quote(command);
         var builder = new ProcessBuilder(SCRIPT, "--quiet", "--return", "--flush", "--command", bootstrap, "/dev/null")
                 .directory(directory).redirectErrorStream(true);
