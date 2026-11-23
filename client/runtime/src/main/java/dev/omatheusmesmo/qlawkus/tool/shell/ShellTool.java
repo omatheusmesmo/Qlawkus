@@ -104,7 +104,8 @@ public class ShellTool {
 
     @Tool("Run a shell command and return structured results: stdout, stderr, exit code, and duration. " +
             "Parameters: command (required) — the shell command to execute, " +
-            "workdir (optional) — working directory override (defaults to workspace root), " +
+            "workdir (optional) — explicit working directory override. Omit it to run in the configured workspace. " +
+            "Run pwd without workdir to find the actual workspace path if needed. " +
             "timeoutSeconds (optional) — execution timeout in seconds (omit to run indefinitely until completion)")
     public CommandResult runCommand(String command, String workdir, Integer timeoutSeconds) {
         long start = System.currentTimeMillis();

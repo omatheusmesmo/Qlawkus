@@ -9,6 +9,7 @@ import dev.omatheusmesmo.qlawkus.config.SkillsConfig;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import io.quarkus.logging.Log;
+import org.eclipse.microprofile.faulttolerance.exceptions.BulkheadException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
@@ -78,6 +79,9 @@ public class SkillExtractorObserver {
         Log.infof("Skill distilled: %s", s.name());
       });
       return skill;
+    } catch (BulkheadException busy) {
+      Log.info("Skipped skill distillation because the background model is busy");
+      return Optional.empty();
     } catch (Exception e) {
       Log.errorf(e, "Failed to distill skill from conversation");
       return Optional.empty();

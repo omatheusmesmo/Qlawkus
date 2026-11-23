@@ -9,6 +9,7 @@ import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.MemorySource;
 import io.quarkus.logging.Log;
+import org.eclipse.microprofile.faulttolerance.exceptions.BulkheadException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
@@ -78,6 +79,8 @@ public class SemanticExtractorObserver {
         }
       }
       Log.infof("Semantic extraction: %d facts stored, %d failed", stored, failed);
+    } catch (BulkheadException busy) {
+      Log.info("Skipped semantic extraction because the background model is busy");
     } catch (Exception e) {
       Log.errorf(e, "Failed to extract semantic facts");
     }
