@@ -21,6 +21,7 @@
 * xref:operations.adoc[Operations]
 * xref:secrets.adoc[Secrets]
 * xref:web-search.adoc[Web Search]
+* xref:web-fetch.adoc[Web Fetch]
 * xref:mcp.adoc[MCP Connections]
 * xref:google-workspace.adoc[Google Workspace Setup]
 * xref:messaging.adoc[Messaging Setup (Discord & Telegram)]

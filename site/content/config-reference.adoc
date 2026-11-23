@@ -110,6 +110,9 @@ include::includes/qlawkus-tools-skill-hub.adoc[]
 === Web Search
 include::includes/qlawkus-tools-web-search.adoc[]
 
+=== Web Fetch
+include::includes/qlawkus-tools-web-fetch.adoc[]
+
 === MCP Client
 include::includes/qlawkus-tools-mcp-client.adoc[]
 

@@ -23,6 +23,7 @@
         <module>qlawkus-tools-skill-hub</module>
         <module>qlawkus-tools-self-observe</module>
         <module>qlawkus-tools-web-search</module>
+        <module>qlawkus-tools-web-fetch</module>
         <module>qlawkus-tools-mcp-client</module>
     </modules>
 </project>

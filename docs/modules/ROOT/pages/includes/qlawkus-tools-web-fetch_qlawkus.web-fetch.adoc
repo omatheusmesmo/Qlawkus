@@ -1,0 +1,177 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-tools-web-fetch_qlawkus-web-fetch-enabled]] [.property-path]##link:#qlawkus-tools-web-fetch_qlawkus-web-fetch-enabled[`+++qlawkus.web-fetch.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.web-fetch.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Allow the agent to fetch URLs. A disabled tool never opens a connection.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WEB_FETCH_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WEB_FETCH_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-tools-web-fetch_qlawkus-web-fetch-timeout]] [.property-path]##link:#qlawkus-tools-web-fetch_qlawkus-web-fetch-timeout[`+++qlawkus.web-fetch.timeout+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.web-fetch.timeout+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Per-request timeout, clamped to 1 to 120 seconds. A timed-out request is not retried.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WEB_FETCH_TIMEOUT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WEB_FETCH_TIMEOUT+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-tools-web-fetch_qlawkus-web-fetch[icon:question-circle[title=More information about the Duration format]]
+|`+++30S+++`
+
+a| [[qlawkus-tools-web-fetch_qlawkus-web-fetch-max-response-bytes]] [.property-path]##link:#qlawkus-tools-web-fetch_qlawkus-web-fetch-max-response-bytes[`+++qlawkus.web-fetch.max-response-bytes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.web-fetch.max-response-bytes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Largest response body read, in bytes, clamped to 1 KiB to 10 MiB. A longer body is cut and marked.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WEB_FETCH_MAX_RESPONSE_BYTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WEB_FETCH_MAX_RESPONSE_BYTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|long
+|`+++1048576+++`
+
+a| [[qlawkus-tools-web-fetch_qlawkus-web-fetch-max-chars]] [.property-path]##link:#qlawkus-tools-web-fetch_qlawkus-web-fetch-max-chars[`+++qlawkus.web-fetch.max-chars+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.web-fetch.max-chars+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Largest result handed to the model, framing included, clamped to 512 to 200000 characters.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WEB_FETCH_MAX_CHARS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WEB_FETCH_MAX_CHARS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++20000+++`
+
+a| [[qlawkus-tools-web-fetch_qlawkus-web-fetch-max-redirects]] [.property-path]##link:#qlawkus-tools-web-fetch_qlawkus-web-fetch-max-redirects[`+++qlawkus.web-fetch.max-redirects+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.web-fetch.max-redirects+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Redirect hops followed, each checked as strictly as the first request, clamped to 0 to 10.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WEB_FETCH_MAX_REDIRECTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WEB_FETCH_MAX_REDIRECTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++3+++`
+
+a| [[qlawkus-tools-web-fetch_qlawkus-web-fetch-blocked-domains]] [.property-path]##link:#qlawkus-tools-web-fetch_qlawkus-web-fetch-blocked-domains[`+++qlawkus.web-fetch.blocked-domains+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.web-fetch.blocked-domains+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Domains never fetched. A listed domain also blocks its subdomains; an address literal blocks that address.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WEB_FETCH_BLOCKED_DOMAINS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WEB_FETCH_BLOCKED_DOMAINS+++`
+endif::add-copy-button-to-env-var[]
+--
+|list of string
+|
+
+a| [[qlawkus-tools-web-fetch_qlawkus-web-fetch-user-agent]] [.property-path]##link:#qlawkus-tools-web-fetch_qlawkus-web-fetch-user-agent[`+++qlawkus.web-fetch.user-agent+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.web-fetch.user-agent+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The `User-Agent` sent, browser-like by default so ordinary sites do not turn the request away.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_WEB_FETCH_USER_AGENT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_WEB_FETCH_USER_AGENT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36+++`
+
+|===
+
+ifndef::no-duration-note[]
+[NOTE]
+[id=duration-note-anchor-qlawkus-tools-web-fetch_qlawkus-web-fetch]
+.About the Duration format
+====
+To write duration values, use the standard `java.time.Duration` format.
+See the link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html#parse(java.lang.CharSequence)[Duration#parse() Java API documentation] for more information.
+
+You can also use a simplified format, starting with a number:
+
+* If the value is only a number, it represents time in seconds.
+* If the value is a number followed by `ms`, it represents time in milliseconds.
+
+In other cases, the simplified format is translated to the `java.time.Duration` format for parsing:
+
+* If the value is a number followed by `h`, `m`, or `s`, it is prefixed with `PT`.
+* If the value is a number followed by `d`, it is prefixed with `P`.
+====
+endif::no-duration-note[]
