@@ -13,6 +13,7 @@ import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
+import dev.omatheusmesmo.qlawkus.agent.AgentTurn;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
@@ -20,6 +21,7 @@ import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.Duration;
 import java.time.Instant;
@@ -68,11 +70,15 @@ class TaskSchedulerToolTest {
     @InjectMock
     OwnerChatDirectory owners;
 
+    @InjectMock
+    TaskProviderAvailability availability;
+
     @BeforeEach
     void noConversationAndNoOwnerChatUnlessATestSetsOne() {
         delivery.clear();
         when(owners.lastChat(anyString())).thenReturn(Optional.empty());
         when(owners.mostRecent()).thenReturn(Optional.empty());
+        when(availability.isAvailable(anyString())).thenReturn(true);
     }
 
     @AfterEach
@@ -86,7 +92,8 @@ class TaskSchedulerToolTest {
         Set<String> names = toolSpecifications().stream().map(ToolSpecification::name)
                 .collect(Collectors.toSet());
 
-        assertTrue(names.containsAll(List.of("scheduleTask", "listScheduledTasks", "cancelScheduledTask")), names.toString());
+        assertTrue(names.containsAll(List.of("scheduleTask", "listScheduledTasks", "cancelScheduledTask",
+                "listScheduleDestinations")), names.toString());
     }
 
     @Test
@@ -211,6 +218,84 @@ class TaskSchedulerToolTest {
         assertEquals(new TaskDestination("discord", "99"), tasks.list().get(0).task().destination());
         assertEquals(ConversationId.REST, tasks.list().get(0).task().memoryId(),
                 "the task still belongs to the REST conversation that created it");
+    }
+
+    @Test
+    void aConsoleTurnFindsARestoredDiscordChatAndSchedulesItsFiveMinuteReminderOnlyOnce() {
+        restoreDiscordTask("discord:legacy-chat", "legacy-chat");
+        delivery.set(ConversationId.REST, "rest", null);
+        assertTrue(tool.listScheduleDestinations().contains("discord: available"));
+        assertFalse(tool.listScheduleDestinations().contains("legacy-chat"));
+
+        var turn = AgentTurn.open(ConversationId.REST, "rest", true);
+        Instant before = Instant.now();
+        String result;
+        try {
+            result = tool.scheduleTask("test reminder", null, "5", "Discord");
+            assertEquals(result, tool.scheduleTask("test reminder", "", "5", "discord"));
+        } finally {
+            turn.close("ok");
+        }
+        String id = idOf(result);
+        assertTrue(result.contains("delivers to your Discord chat"), result);
+        assertEquals(2, tasks.list().size(), "the restored job and one new reminder");
+        TaskView reminder = tasks.list().stream().filter(view -> view.task().id().equals(id)).findFirst().orElseThrow();
+        assertEquals(new TaskDestination("discord", "legacy-chat"), reminder.task().destination());
+        assertTrue(reminder.task().oneShot());
+        assertTrue(reminder.nextFire().isAfter(before.plusSeconds(297)));
+        assertTrue(reminder.nextFire().isBefore(Instant.now().plusSeconds(301)));
+        assertTrue(store.loadAll().stream().anyMatch(task -> task.id().equals(id)));
+    }
+
+    @Test
+    void sharedLegacyMemoryCannotAuthorizeAnArbitraryChat() {
+        restoreDiscordTask(ConversationId.SHARED, "legacy-chat");
+        delivery.set(ConversationId.REST, "rest", null);
+        when(owners.mostRecent()).thenReturn(Optional.of(new OwnerChat("telegram", "safe-chat", Instant.now())));
+
+        String result = tool.scheduleTask("test reminder", null, "5", "discord");
+
+        assertTrue(result.contains("UNCONFIRMED_DESTINATION"), result);
+        assertTrue(result.contains("send one message"), result);
+        assertFalse(result.contains("legacy-chat") || result.contains("safe-chat"), result);
+        assertEquals(1, tasks.list().size());
+    }
+
+    @Test
+    void ambiguousLegacyChatsAskForOneConfirmationAndTheLatestAcceptedChatWins() {
+        restoreDiscordTask("discord:first-chat", "first-chat");
+        restoreDiscordTask("discord:second-chat", "second-chat");
+        delivery.set(ConversationId.REST, "rest", null);
+
+        String result = tool.scheduleTask("test reminder", null, "5", "discord");
+
+        assertTrue(result.contains("AMBIGUOUS_DESTINATION"), result);
+        assertTrue(result.contains("write from the chat"), result);
+        assertTrue(tool.listScheduleDestinations().contains("discord: AMBIGUOUS_DESTINATION"));
+        assertEquals(2, tasks.list().size());
+
+        when(owners.lastChat("discord")).thenReturn(Optional.of(new OwnerChat("discord", "first-chat", Instant.now())));
+        String id = idOf(tool.scheduleTask("test reminder", null, "5", "discord"));
+        assertEquals(new TaskDestination("discord", "first-chat"), tasks.list().stream()
+                .filter(view -> view.task().id().equals(id)).findFirst().orElseThrow().task().destination());
+    }
+
+    @Test
+    void aDisabledProviderIsReportedAndTheTaskIsNotScheduled() {
+        restoreDiscordTask("discord:legacy-chat", "legacy-chat");
+        delivery.set(ConversationId.REST, "rest", null);
+        when(availability.isAvailable("discord")).thenReturn(false);
+
+        assertTrue(tool.scheduleTask("test reminder", null, "5", "discord").contains("PROVIDER_UNAVAILABLE"));
+        assertTrue(tool.listScheduleDestinations().contains("discord: PROVIDER_UNAVAILABLE"));
+        assertEquals(1, tasks.list().size());
+    }
+
+    private void restoreDiscordTask(String memoryId, String chat) {
+        store.save(new ScheduledTask("qlawkus-task-" + UUID.randomUUID(), memoryId,
+                new TaskDestination("discord", chat), "legacy recurring reminder", RECURRING, false,
+                Instant.parse("2026-11-01T10:00:00Z"), TaskStatus.ACTIVE));
+        tasks.restore();
     }
 
     @Test
@@ -445,5 +530,13 @@ class TaskSchedulerToolTest {
         Matcher matcher = ID.matcher(reply);
         assertTrue(matcher.find(), "the reply names the task: " + reply);
         return matcher.group();
+    }
+
+    @ApplicationScoped
+    static class AvailableProviders implements TaskProviderAvailability {
+        @Override
+        public boolean isAvailable(String providerId) {
+            return true;
+        }
     }
 }

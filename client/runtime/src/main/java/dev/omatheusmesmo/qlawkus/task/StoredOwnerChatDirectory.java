@@ -7,6 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.Clock;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -65,6 +66,11 @@ public class StoredOwnerChatDirectory implements OwnerChatDirectory {
     @Override
     public Optional<OwnerChat> mostRecent() {
         return chats.values().stream().max(Comparator.comparing(OwnerChat::lastSeen));
+    }
+
+    @Override
+    public List<OwnerChat> knownChats() {
+        return List.copyOf(chats.values());
     }
 
     private void loadStored() {

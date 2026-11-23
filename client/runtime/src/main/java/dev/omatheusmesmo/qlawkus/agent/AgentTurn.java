@@ -12,6 +12,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import org.jboss.logmanager.MDC;
 
 /**
@@ -47,6 +48,7 @@ public final class AgentTurn {
     private final List<String> tools = new CopyOnWriteArrayList<>();
     private final AtomicInteger facts = new AtomicInteger();
     private final AtomicBoolean closed = new AtomicBoolean();
+    private final Map<Object, String> toolResults = new ConcurrentHashMap<>();
     private volatile Integer inputTokens;
     private volatile Integer outputTokens;
     private volatile String tier;
@@ -121,6 +123,11 @@ public final class AgentTurn {
 
     public AgentReplyStyle replyStyle() {
         return replyStyle;
+    }
+
+    /** Reuses the outcome of an identical tool operation within this turn. */
+    public String toolResultOnce(Object operation, Supplier<String> execute) {
+        return toolResults.computeIfAbsent(operation, ignored -> execute.get());
     }
 
     public void tool(String name) {

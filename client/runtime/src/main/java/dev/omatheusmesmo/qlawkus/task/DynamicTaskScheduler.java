@@ -113,8 +113,8 @@ public class DynamicTaskScheduler {
             removeRecordQuietly(id);
             throw new IllegalStateException("could not save the task, so it was not scheduled", e);
         }
-        Log.infof("Scheduled agent task %s provider=%s chatId=%s cron=%s nextFire=%s oneShot=%s", id,
-                destination.providerId(), destination.chatId(), scheduled.cron(), nextFire, scheduled.oneShot());
+        Log.infof("Scheduled agent task %s provider=%s cron=%s nextFire=%s oneShot=%s", id,
+                destination.providerId(), scheduled.cron(), nextFire, scheduled.oneShot());
         record(scheduled, null, Stage.SCHEDULED, nextFire, null);
         return new TaskView(scheduled, nextFire);
     }
@@ -145,15 +145,22 @@ public class DynamicTaskScheduler {
     }
 
     public void fire(String id) {
+        ScheduledTask task = claim(id);
+        if (task != null) {
+            run(task);
+        }
+    }
+
+    private synchronized ScheduledTask claim(String id) {
         ScheduledTask task = tasks.get(id);
         if (task == null || task.status() != TaskStatus.ACTIVE) {
             Log.debugf("Agent task %s is not due to run, nothing to do", id);
-            return;
+            return null;
         }
         if (task.oneShot()) {
             retire(id);
         }
-        run(task);
+        return task;
     }
 
     /**
