@@ -157,6 +157,14 @@ Attachment analysis uses the files and the accompanying question for that reques
 
 API clients can send `multipart/form-data` to the authenticated `POST /api/chat` with header `X-Qlawkus-Attachments: 1`, an optional `message` part and one `attachments` part per file. The response uses the existing server-sent events format.
 
+== Downloadable artifacts
+
+With the optional `artifacts` capability, ask the agent to generate a downloadable Markdown, plain text, or CSV report. In the console, open *Artifacts* to preview the plain text or download the original file. The link requires your owner login, and the preview treats even Markdown as plain text.
+
+In Discord or Telegram, explicitly ask the agent to send the generated file. Uploads go to the conversation where the artifact was registered. A Discord bot in a guild also needs the *Attach Files* permission. If the provider refuses delivery, the artifact remains available in the console until it expires.
+
+Registration copies a UTF-8 file from the workspace into `artifacts/` under `qlawkus.agent.state.root`. The store accepts up to 2 MiB per file, 25 files and 20 MiB total. Copies expire after 24 hours, and a background job deletes expired copies. Registration refuses workspace symlinks, hidden paths and recognized credentials.
+
 == Voice Support
 
 Voice messages are supported on both Discord and Telegram via file attachments (the bot does not join voice channels). When a user sends a voice message:

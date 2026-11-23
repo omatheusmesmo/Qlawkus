@@ -21,6 +21,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+import org.jboss.resteasy.reactive.client.api.ClientMultipartForm;
 
 /**
  * {@code @Retry} covers one API call, not one poll/send operation - a caller that calls a retried
@@ -50,6 +51,13 @@ public interface TelegramBotClient {
             retryOn = {TransientHttpException.class, jakarta.ws.rs.ProcessingException.class})
     @ExponentialBackoff(maxDelay = 8000, maxDelayUnit = ChronoUnit.MILLIS)
     SendMessageResponse sendMessage(@PathParam("token") String token, SendMessageRequest request);
+
+    // A lost acknowledgement does not establish that the document was not delivered. Avoid duplicating it.
+    @POST
+    @Path("/sendDocument")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    Uni<SendMessageResponse> sendDocument(@PathParam("token") String token, ClientMultipartForm form);
 
     @POST
     @Path("/editMessageText")

@@ -1,0 +1,29 @@
+{#include console/base}
+{#title}Qlawkus Console - Artifacts{/title}
+<header class="content-head">
+    <h1>Artifacts</h1>
+    <p class="lede">Download reports and other files saved by your agent. Files expire after 24 hours.</p>
+</header>
+<section class="panel" aria-label="Saved files">
+    {#if files.isEmpty}
+        <p class="muted">No files saved. Ask the agent to generate a downloadable Markdown, text or CSV file.</p>
+    {#else}
+        <table class="tbl tbl-stack">
+            <thead><tr><th scope="col">File</th><th scope="col">Size</th><th scope="col">Expires (UTC)</th><th scope="col">Actions</th></tr></thead>
+            <tbody>
+            {#for file in files}
+                <tr>
+                    <td data-label="File"><strong>{file.name}</strong><div class="muted mono">{file.mediaType}</div></td>
+                    <td data-label="Size" class="mono nowrap">{file.size} B</td>
+                    <td data-label="Expires (UTC)" class="mono">{file.expiresAt}</td>
+                    <td data-label="Actions">
+                        <a class="btn btn-secondary btn-sm" href="{file.downloadUrl}/preview" aria-label="Preview {file.name}">Preview</a>
+                        <a class="btn btn-primary btn-sm" href="{file.downloadUrl}" aria-label="Download {file.name}">Download</a>
+                    </td>
+                </tr>
+            {/for}
+            </tbody>
+        </table>
+    {/if}
+</section>
+{/include}

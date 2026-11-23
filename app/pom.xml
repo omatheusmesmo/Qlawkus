@@ -13,6 +13,11 @@
   <dependencies>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-artifacts</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-attachments</artifactId>
       <version>${project.version}</version>
     </dependency>

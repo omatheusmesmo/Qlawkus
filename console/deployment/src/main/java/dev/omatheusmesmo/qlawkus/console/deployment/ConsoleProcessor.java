@@ -5,6 +5,7 @@ import dev.omatheusmesmo.qlawkus.console.ConsoleNavigation;
 import dev.omatheusmesmo.qlawkus.console.ConsoleFeatures;
 import dev.omatheusmesmo.qlawkus.console.ConsoleStatus;
 import dev.omatheusmesmo.qlawkus.console.management.ChatConsoleResource;
+import dev.omatheusmesmo.qlawkus.console.management.ArtifactsConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.CognitionConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.ConfigConsoleResource;
 import dev.omatheusmesmo.qlawkus.console.management.MemoryConsoleResource;
@@ -42,7 +43,8 @@ class ConsoleProcessor {
                 .addBeanClasses(ConsoleResource.class, ConsoleStatus.class, SetupState.class,
                         OnboardingResource.class, MemoryConsoleResource.class, SkillsConsoleResource.class,
                         CognitionConsoleResource.class, ConfigConsoleResource.class, ScheduleConsoleResource.class,
-                        ChatConsoleResource.class, ConsoleNavigation.class, ConsoleFeatures.class, McpConsoleResource.class)
+                        ChatConsoleResource.class, ConsoleNavigation.class, ConsoleFeatures.class, McpConsoleResource.class,
+                        ArtifactsConsoleResource.class)
                 .setUnremovable()
                 .build();
     }

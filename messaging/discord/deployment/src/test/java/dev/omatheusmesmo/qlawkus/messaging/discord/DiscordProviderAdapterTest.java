@@ -11,6 +11,7 @@ import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Attachment;
 import discord4j.core.object.entity.Message;
+import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.MessageCreateFields;
 import discord4j.core.spec.MessageCreateSpec;
 import discord4j.discordjson.json.MessageCreateRequest;
@@ -152,6 +153,27 @@ class DiscordProviderAdapterTest {
         when(adapter.gatewayClient.getRestClient()).thenReturn(rest);
         when(rest.getChannelById(Snowflake.of("123"))).thenReturn(channel);
         return channel;
+    }
+
+    @Test
+    void sendsAFileToTheSuppliedChannelAndRequiresAcknowledgement() throws IOException {
+        adapter.gatewayClient = Mockito.mock(GatewayDiscordClient.class);
+        MessageChannel channel = Mockito.mock(MessageChannel.class);
+        when(adapter.gatewayClient.getChannelById(Snowflake.of("123"))).thenReturn(Mono.just(channel));
+        when(channel.createMessage(any(MessageCreateSpec.class)))
+                .thenReturn(Mono.just(Mockito.mock(Message.class)), Mono.empty());
+        byte[] report = "item,count\nbooks,2\n".getBytes(StandardCharsets.UTF_8);
+
+        adapter.sendFile("123", "report.csv", "text/csv", report).await().indefinitely();
+        var request = ArgumentCaptor.forClass(MessageCreateSpec.class);
+        verify(channel).createMessage(request.capture());
+        var attachment = request.getValue().files().getFirst();
+        assertEquals("report.csv", attachment.name());
+        try (var stream = attachment.inputStream()) {
+            assertArrayEquals(report, stream.readAllBytes());
+        }
+        assertThrows(IllegalStateException.class,
+                () -> adapter.sendFile("123", "report.csv", "text/csv", report).await().indefinitely());
     }
 
     @Test
