@@ -1,8 +1,10 @@
 package dev.omatheusmesmo.qlawkus.messaging.telegram;
 
+import dev.omatheusmesmo.qlawkus.artifact.ArtifactLibrary;
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.HeaderParam;
@@ -24,11 +26,19 @@ public class TelegramWebhookResource {
     @Inject
     TelegramConfig config;
 
+    @Inject
+    Instance<ArtifactLibrary> artifacts;
+
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     public Uni<Response> webhook(@HeaderParam(SECRET_HEADER) String token, TelegramUpdate update) {
+        boolean filesEnabled = artifacts.isResolvable();
+        // File tools can export local results, so only accept updates from the configured transport.
+        if (filesEnabled && !"webhook".equalsIgnoreCase(config.mode())) {
+            return Uni.createFrom().item(Response.status(Response.Status.NOT_FOUND).build());
+        }
         var secret = config.webhookSecretToken();
-        if (secret.isPresent() && !matches(secret.get(), token)) {
+        if ((filesEnabled && secret.isEmpty()) || (secret.isPresent() && !matches(secret.get(), token))) {
             return Uni.createFrom().item(Response.status(Response.Status.FORBIDDEN).build());
         }
         if (update == null || update.message() == null) {
