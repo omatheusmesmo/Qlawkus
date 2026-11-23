@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.model;
 
 import dev.langchain4j.model.chat.response.ChatResponse;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -22,7 +23,12 @@ public final class ServedTier {
     public static final String SECONDARY = "secondary";
     public static final String FALLBACK = "fallback";
 
+    /** The tier that answered the owner last and when, for the console. */
+    public record Last(String tier, Instant at) {
+    }
+
     private static final ThreadLocal<String> LAST = new ThreadLocal<>();
+    private static volatile Last lastInteractive;
     private static final Map<ChatResponse, String> BY_RESPONSE =
             Collections.synchronizedMap(new WeakHashMap<>());
 
@@ -32,10 +38,27 @@ public final class ServedTier {
     /** Records that {@code tier} produced {@code response} and returns the response unchanged. */
     public static ChatResponse answered(String tier, ChatResponse response) {
         LAST.set(tier);
+        if (WorkloadContext.INTERACTIVE.equals(WorkloadContext.current())) {
+            lastInteractive = new Last(tier, Instant.now());
+        }
         if (response != null) {
             BY_RESPONSE.put(response, tier);
         }
         return response;
+    }
+
+    /** Forgets what was served last, for tests that need a clean slate. */
+    public static void forgetLastServed() {
+        lastInteractive = null;
+    }
+
+    /**
+     * The tier that last answered an interactive turn, whatever thread it ran on, so the console can
+     * show it. A background answer never counts: it is not what the owner was served. A streamed answer
+     * arrives on a callback thread that carries no workload, which reads as interactive.
+     */
+    public static Optional<Last> lastServed() {
+        return Optional.ofNullable(lastInteractive);
     }
 
     /** Forgets the last answer on this thread, so a new call starts without a stale tier. */

@@ -1,10 +1,12 @@
 package dev.omatheusmesmo.qlawkus.console;
 
+import dev.omatheusmesmo.qlawkus.console.management.ReadinessSource;
 import dev.omatheusmesmo.qlawkus.console.onboarding.SetupState;
 import io.quarkus.qute.Location;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.TemplateInstance;
 import io.quarkus.security.Authenticated;
+import jakarta.enterprise.inject.Instance;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -29,17 +31,20 @@ public class ConsoleResource {
     private final ConsoleStatus consoleStatus;
     private final SetupState setupState;
     private final List<ObservabilityLink> observabilityLinks;
+    private final Instance<ReadinessSource> readiness;
 
     public ConsoleResource(@Location("console/index.html") Template index,
                            @Location("console/status.html") Template status,
                            ConsoleStatus consoleStatus,
                            SetupState setupState,
-                           ConsoleConfig config) {
+                           ConsoleConfig config,
+                           Instance<ReadinessSource> readiness) {
         this.index = index;
         this.status = status;
         this.consoleStatus = consoleStatus;
         this.setupState = setupState;
         this.observabilityLinks = ObservabilityLinks.from(config.grafanaUrl());
+        this.readiness = readiness;
     }
 
     @GET
@@ -48,6 +53,7 @@ public class ConsoleResource {
         return index
                 .data("active", "overview")
                 .data("needsSetup", setupState.needsSetup())
+                .data("health", readiness.isResolvable() && readiness.get().available())
                 .data("observability", observabilityLinks);
     }
 

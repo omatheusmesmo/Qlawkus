@@ -17,7 +17,8 @@ public record RedeployRunView(
         String startedAt,
         List<PhaseTiming> phases,
         String message,
-        String lastSuccessAt
+        String lastSuccessAt,
+        String total
 ) {
 
     /** One phase that ran, with its duration already formatted for reading. */
@@ -31,7 +32,8 @@ public record RedeployRunView(
                         entry.getKey().equals(run.failedPhase())))
                 .toList();
         return new RedeployRunView(run.outcome(), RedeployReport.FAILURE.equals(run.outcome()),
-                run.failedPhase(), run.recordedAt(), run.startedAt(), phases, run.message(), lastSuccessAt);
+                run.failedPhase(), run.recordedAt(), run.startedAt(), phases, run.message(), lastSuccessAt,
+                duration(run.phases().values().stream().mapToLong(Long::longValue).sum()));
     }
 
     static String duration(long millis) {

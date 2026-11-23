@@ -1,0 +1,28 @@
+<ul class="model-list">
+    {#for tier in chain.tiers}
+    <li class="model-row" data-tier="{tier.name}" data-state="{tier.state}">
+        {#if !tier.enabled}
+        <span class="dot dot-off" aria-hidden="true"></span>
+        <span class="model-name">{tier.name}</span>
+        <span class="model-state">not configured</span>
+        {#else if tier.failing}
+        <span class="dot dot-down" aria-hidden="true"></span>
+        <span class="model-name">{tier.name}</span>
+        <span class="model-state">{tier.state}</span>
+        <p class="model-note">This tier is failing, so the next tier answers.</p>
+        {#else}
+        <span class="dot dot-up" aria-hidden="true"></span>
+        <span class="model-name">{tier.name}</span>
+        <span class="model-state">{#if tier.healthy}healthy{#else}standing by{/if}</span>
+        {/if}
+    </li>
+    {/for}
+</ul>
+{#for p in chain.permanent}
+<p class="model-permanent" data-permanent="{p.surface}">The {p.surface} provider keeps answering HTTP {p.status} ({p.consecutive} times in a row): it rejected the credential or the model name, and no other tier is tried. Fix the setting, retrying will not help.</p>
+{/for}
+{#if chain.lastTier}
+<p class="model-last" data-last="{chain.lastTier}">Last answer came from the {chain.lastTier} tier at {chain.lastAt}.</p>
+{#else}
+<p class="muted">No turn has been answered since the agent started.</p>
+{/if}

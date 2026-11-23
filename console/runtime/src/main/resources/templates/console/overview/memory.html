@@ -1,0 +1,6 @@
+<div class="memory-card" data-journals="{journals}" data-latest="{latest ?: ''}" data-skills="{skills}">
+    <p><span class="memory-count">{journals}</span> {#if journals == 1}journal{#else}journals{/if}{#if latest}<span class="muted">, newest {latest}</span>{/if}</p>
+    {#if sources}<p class="muted">Fact sources: {#for s in sources}{s}{#if s_hasNext}, {/if}{/for}</p>{#else}<p class="muted">No facts stored yet.</p>{/if}
+    <p>{skills} {#if skills == 1}skill{#else}skills{/if} in the index</p>
+    <p><a href="/console/memory">Open memory</a> &middot; <a href="/console/skills">Open skills</a></p>
+</div>

@@ -10,10 +10,49 @@
 {/if}
 <section class="panel">
     <h2 class="panel-title">Status</h2>
-    <div class="panel-body" hx-get="/console/status" hx-trigger="load, every 5s" hx-swap="innerHTML">
+    <div class="panel-body" hx-get="/console/status" hx-trigger="load, every 5s [document.visibilityState=='visible']" hx-swap="innerHTML">
         <p class="muted">Loading status...</p>
     </div>
 </section>
+<div class="cards">
+    {#if health}
+    <section class="panel card" aria-labelledby="card-health">
+        <h2 class="panel-title" id="card-health">Health</h2>
+        <div class="panel-body" hx-get="/console/overview/health"
+             hx-trigger="load, every 10s [document.visibilityState=='visible']" hx-swap="innerHTML">
+            <p class="muted">Loading health...</p>
+        </div>
+    </section>
+    {/if}
+    <section class="panel card" aria-labelledby="card-model">
+        <h2 class="panel-title" id="card-model">Model</h2>
+        <div class="panel-body" hx-get="/console/overview/model"
+             hx-trigger="load, every 10s [document.visibilityState=='visible']" hx-swap="innerHTML">
+            <p class="muted">Loading model chain...</p>
+        </div>
+    </section>
+    <section class="panel card" aria-labelledby="card-upcoming">
+        <h2 class="panel-title" id="card-upcoming">Upcoming</h2>
+        <div class="panel-body" hx-get="/console/overview/upcoming"
+             hx-trigger="load, every 30s [document.visibilityState=='visible']" hx-swap="innerHTML">
+            <p class="muted">Loading upcoming runs...</p>
+        </div>
+    </section>
+    <section class="panel card" aria-labelledby="card-redeploy">
+        <h2 class="panel-title" id="card-redeploy">Last redeploy</h2>
+        <div class="panel-body" hx-get="/console/overview/redeploy"
+             hx-trigger="load, every 60s [document.visibilityState=='visible']" hx-swap="innerHTML">
+            <p class="muted">Loading redeploy...</p>
+        </div>
+    </section>
+    <section class="panel card" aria-labelledby="card-memory">
+        <h2 class="panel-title" id="card-memory">Memory</h2>
+        <div class="panel-body" hx-get="/console/overview/memory"
+             hx-trigger="load, every 60s [document.visibilityState=='visible']" hx-swap="innerHTML">
+            <p class="muted">Loading memory...</p>
+        </div>
+    </section>
+</div>
 {#if observability}
 <section class="panel">
     <h2 class="panel-title">Observability</h2>
