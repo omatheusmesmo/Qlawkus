@@ -1,0 +1,10 @@
+name: "Web Fetch"
+metadata:
+  qlawkus:
+    capability: "web-fetch"
+  keywords:
+    - "web-fetch"
+    - "http"
+  categories:
+    - "ai"
+  status: "experimental"

@@ -236,3 +236,5 @@ Names are namespaced where natural, and several modules may share one name (sele
 The core agent (`qlawkus-client`) is the skeleton, always present, so it declares no capability. A capability name in the manifest's `except` list that no module announces fails the build by default (see <<Running the generator>>).
 
 The optional `web-search` capability provides free SearXNG-backed web search; see xref:web-search.adoc[Web Search].
+
+The optional `web-fetch` capability lets the agent read a page it was pointed at; see xref:web-fetch.adoc[Web Fetch].
