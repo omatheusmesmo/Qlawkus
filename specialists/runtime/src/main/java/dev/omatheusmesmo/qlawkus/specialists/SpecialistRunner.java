@@ -39,6 +39,7 @@ class SpecialistRunner {
 
     private final SpecialistCatalog catalog;
     private final ExecutorService executor;
+    private final ChatModel standard;
     private final ChatModel primary;
     private final ChatModel secondary;
     private final ChatModel fallback;
@@ -47,11 +48,12 @@ class SpecialistRunner {
     private final Semaphore group = new Semaphore(1);
     private final Semaphore slots = new Semaphore(2);
 
-    SpecialistRunner(SpecialistCatalog catalog, @VirtualThreads ExecutorService executor,
+    SpecialistRunner(SpecialistCatalog catalog, @VirtualThreads ExecutorService executor, ChatModel standard,
             @ModelName("primary") ChatModel primary, @ModelName("secondary") ChatModel secondary,
             @ModelName("fallback") ChatModel fallback, SecretRedactor redactor, SpecialistsConfig config) {
         this.catalog = catalog;
         this.executor = executor;
+        this.standard = standard;
         this.primary = primary;
         this.secondary = secondary;
         this.fallback = fallback;
@@ -154,6 +156,7 @@ class SpecialistRunner {
 
     private ChatModel model(SpecialistsConfig.Tier tier) {
         return switch (tier) {
+            case DEFAULT -> standard;
             case PRIMARY -> primary;
             case SECONDARY -> secondary;
             case FALLBACK -> fallback;

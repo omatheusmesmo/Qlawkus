@@ -15,7 +15,7 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-Model tiers permitted for specialist runs and registration. The default uses the local fallback.
+Model tiers permitted for specialist runs and registration. `default` is the agent's normal chain (the primary model, then the secondary, then the local Ollama fallback). The other tiers pin one model.
 
 
 ifdef::add-copy-button-to-env-var[]
@@ -25,8 +25,8 @@ ifndef::add-copy-button-to-env-var[]
 Environment variable: `+++QLAWKUS_SPECIALISTS_ALLOWED_MODELS+++`
 endif::add-copy-button-to-env-var[]
 --
-a|list of `fallback`, `primary`, `secondary`
-|`+++fallback+++`
+a|list of `default`, `fallback`, `primary`, `secondary`
+|`+++default,fallback+++`
 
 a| [[qlawkus-specialists_qlawkus-specialists-timeout-seconds]] [.property-path]##link:#qlawkus-specialists_qlawkus-specialists-timeout-seconds[`+++qlawkus.specialists.timeout-seconds+++`]##
 ifdef::add-copy-button-to-config-props[]

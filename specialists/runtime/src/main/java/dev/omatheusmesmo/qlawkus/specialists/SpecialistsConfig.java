@@ -12,8 +12,11 @@ import java.util.List;
 @ConfigMapping(prefix = "qlawkus.specialists")
 public interface SpecialistsConfig {
 
-    /** Model tiers permitted for specialist runs and registration. The default uses the local fallback. */
-    @WithDefault("fallback")
+    /**
+     * Model tiers permitted for specialist runs and registration. {@code default} is the agent's normal chain
+     * (the primary model, then the secondary, then the local Ollama fallback). The other tiers pin one model.
+     */
+    @WithDefault("default,fallback")
     List<Tier> allowedModels();
 
     /** Deadline in seconds shared by all workers of a run. */
@@ -29,6 +32,6 @@ public interface SpecialistsConfig {
     int maxOutputTokens();
 
     enum Tier {
-        FALLBACK, PRIMARY, SECONDARY
+        DEFAULT, FALLBACK, PRIMARY, SECONDARY
     }
 }
