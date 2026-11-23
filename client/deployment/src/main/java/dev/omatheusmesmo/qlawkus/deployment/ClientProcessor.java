@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.deployment;
 import dev.langchain4j.skills.FileSystemSkill;
 import dev.langchain4j.skills.FileSystemSkillLoader;
 import dev.omatheusmesmo.qlawkus.composition.CompositionPaths;
+import dev.omatheusmesmo.qlawkus.config.metadata.ConfigMetadataIndex;
 import dev.omatheusmesmo.qlawkus.health.CognitionReadinessCheck;
 import dev.omatheusmesmo.qlawkus.health.ModelReadinessCheck;
 import dev.omatheusmesmo.qlawkus.metrics.Metered;
@@ -114,6 +115,11 @@ class ClientProcessor {
     @BuildStep
     NativeImageResourceBuildItem bundledCompositionManifest() {
         return new NativeImageResourceBuildItem(CompositionPaths.DEFAULT_MANIFEST);
+    }
+
+    @BuildStep
+    NativeImageResourceBuildItem bundledConfigMetadata() {
+        return new NativeImageResourceBuildItem(ConfigMetadataIndex.resourcePaths());
     }
 
     /**
