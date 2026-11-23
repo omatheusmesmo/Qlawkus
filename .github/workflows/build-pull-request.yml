@@ -47,6 +47,9 @@ jobs:
             -Dquarkus.native.enabled=true -Dquarkus.native.sources-only=true
           bash scripts/check-discord-native-reflection.sh integration-tests/messaging/target/native-sources/*-runner.jar
 
+      - name: Check the images share one runtime user
+        run: scripts/check-image-runtime-user.sh
+
       - name: Zip the Maven repo
         run: |
           tar -czf ${{ runner.temp }}/maven-repo.tgz -C ~ .m2/repository

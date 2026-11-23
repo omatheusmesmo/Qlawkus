@@ -22,8 +22,17 @@ import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.Capabilities;
 import io.quarkus.deployment.Capability;
 import io.quarkus.deployment.annotations.BuildStep;
+import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
+import io.quarkus.qute.TemplateData;
+import io.quarkus.qute.deployment.TemplateDataBuildItem;
+import io.quarkus.deployment.annotations.BuildProducer;
+import org.jboss.jandex.AnnotationInstance;
+import org.jboss.jandex.ClassInfo;
+import org.jboss.jandex.DotName;
+
+import java.util.List;
 
 /**
  * Build steps for the optional {@code qlawkus-console} extension: the server-rendered admin UI.
@@ -36,6 +45,8 @@ import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 class ConsoleProcessor {
 
     private static final String FEATURE = "qlawkus-console";
+
+    private static final String CONSOLE_PACKAGE = "dev.omatheusmesmo.qlawkus.console.";
 
     @BuildStep
     FeatureBuildItem feature() {
@@ -71,5 +82,20 @@ class ConsoleProcessor {
         return ReflectiveClassBuildItem.builder(SkillSummary.class.getName())
                 .methods()
                 .build();
+    }
+
+    /**
+     * A template reads a record through reflection in a JVM, but a native image has none, so the page
+     * answers 500 unless Qute generated a value resolver for the type. Asking for one per console
+     * record, instead of annotating each view, means a view added later cannot be forgotten.
+     */
+    @BuildStep
+    void consoleRecordResolvers(CombinedIndexBuildItem index, BuildProducer<TemplateDataBuildItem> templateData) {
+        DotName marker = DotName.createSimple(TemplateData.class);
+        for (ClassInfo type : index.getIndex().getKnownClasses()) {
+            if (type.isRecord() && type.name().toString().startsWith(CONSOLE_PACKAGE) && !type.hasDeclaredAnnotation(marker)) {
+                templateData.produce(new TemplateDataBuildItem(AnnotationInstance.create(marker, type, List.of()), type));
+            }
+        }
     }
 }
