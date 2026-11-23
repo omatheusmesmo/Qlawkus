@@ -3,7 +3,9 @@ package dev.omatheusmesmo.qlawkus.task;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
+import dev.omatheusmesmo.qlawkus.agent.AgentTurn;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.Instant;
@@ -19,20 +21,16 @@ public class TaskSchedulerTool {
 
     private static final String MISSED_NOTE = "missed while the agent was down, not run: cancel it to remove it";
     private static final String INVALID_NOTE = "invalid schedule, it never runs: cancel it to remove it";
-    private static final String NO_CHAT_YET = "no chat to deliver to yet: write to me on Telegram or Discord first";
-
-    private static final String REST_CHANNEL = "rest";
-
     private final DynamicTaskScheduler scheduler;
     private final AgentDeliveryContext delivery;
-    private final OwnerChatDirectory ownerChats;
+    private final TaskDestinationResolver destinations;
 
     @Inject
     public TaskSchedulerTool(DynamicTaskScheduler scheduler, AgentDeliveryContext delivery,
-            OwnerChatDirectory ownerChats) {
+            TaskDestinationResolver destinations) {
         this.scheduler = scheduler;
         this.delivery = delivery;
-        this.ownerChats = ownerChats;
+        this.destinations = destinations;
     }
 
     @Tool("Schedule a task the agent runs later at the owner's request, and deliver its reply to a chat. Use it "
@@ -45,9 +43,10 @@ public class TaskSchedulerTool {
             + "America/Sao_Paulo by default), so \"at nine\" means nine in that zone. The task text runs later, "
             + "without this conversation in view, so write it as a complete instruction with every detail it needs; "
             + "it must not ask the owner questions, because nobody answers them there. Where the reply goes: from a "
-            + "messaging chat, back to that chat. From REST or the console, to the owner's most recent chat on the "
-            + "provider named in providerId, or on any messaging provider when providerId is omitted; when the owner "
-            + "has no such chat yet the result says so, and then the owner must write to you there first. The result "
+            + "messaging chat, back to that chat. From REST or the console, use the known owner chat on the requested "
+            + "provider. If no provider is named, use the default known chat. Use listScheduleDestinations once if "
+            + "unsure. On a destination error, ask the owner the one question implied by the result. Wait for their "
+            + "answer before calling again. Never switch to a different provider or promise console delivery. The result "
             + "gives the task id, the next run, the timezone and the destination: tell the owner those. To confirm a "
             + "recurring task is really set, use listScheduledTasks rather than assuming it. " + DURABILITY)
     public String scheduleTask(
@@ -66,17 +65,38 @@ public class TaskSchedulerTool {
                     + "on any provider when this conversation is not a chat. Set it only when the owner names a provider; "
                     + "never guess one.", required = false)
             String providerId) {
-        String memoryId = delivery.memoryId();
-        if (isBlank(memoryId)) {
+        var origin = delivery.snapshot();
+        if (isBlank(origin.memoryId())) {
             return error("there is no conversation to schedule this for");
         }
+        var request = new ScheduleRequest(origin.providerId(), origin.chatId(), strip(task), strip(cron),
+                strip(inMinutes), TaskDestinationResolver.providerName(providerId));
+        AgentTurn turn = AgentTurn.current();
+        if (turn == null) {
+            turn = AgentTurn.forConversation(origin.memoryId()).filter(AgentTurn::streamed).orElse(null);
+        }
+        return turn == null ? schedule(origin, request) : turn.toolResultOnce(request, () -> schedule(origin, request));
+    }
+
+    private String schedule(AgentDeliveryContext.Snapshot origin, ScheduleRequest request) {
         try {
-            TaskDestination destination = destinationFor(providerId);
-            String resolvedCron = cronFor(cron, inMinutes);
-            return scheduled(scheduler.create(memoryId, destination, task, resolvedCron));
+            TaskDestination destination = destinations.resolve(origin, request.provider());
+            String resolvedCron = cronFor(request.cron(), request.inMinutes());
+            return scheduled(scheduler.create(origin.memoryId(), destination, request.task(), resolvedCron));
+        } catch (TaskDestinationResolver.Problem problem) {
+            Log.infof("Schedule destination resolution failed code=%s", problem.code());
+            return error("[" + problem.code() + "] " + problem.getMessage());
         } catch (IllegalArgumentException | IllegalStateException e) {
             return error(e.getMessage());
         }
+    }
+
+    @Tool("List the known messaging providers for scheduled reminders and whether each can receive one. "
+            + "Use once when unsure of the destination. If the requested provider is missing or ambiguous, "
+            + "ask the owner one question and wait. Use provider names only.")
+    public String listScheduleDestinations() {
+        var origin = delivery.snapshot();
+        return isBlank(origin.memoryId()) ? error("there is no conversation") : destinations.describe(origin);
     }
 
     @Tool("List the tasks the agent has scheduled: each task's id, its next run, its schedule in the agent's timezone, "
@@ -115,24 +135,6 @@ public class TaskSchedulerTool {
             return error(e.getMessage());
         }
         return error("no task scheduled by the agent has id " + taskId);
-    }
-
-    private TaskDestination destinationFor(String providerId) {
-        String named = isBlank(providerId) ? null : providerId.strip();
-        if (named != null && REST_CHANNEL.equalsIgnoreCase(named)) {
-            throw new IllegalArgumentException("rest is not a messaging channel, so it cannot receive a task");
-        }
-        boolean fromChat = delivery.hasDeliveryInfo();
-        if (fromChat && (named == null || named.equalsIgnoreCase(delivery.providerId()))) {
-            return new TaskDestination(delivery.providerId(), delivery.chatId());
-        }
-        if (named == null) {
-            return ownerChats.mostRecent().map(TaskSchedulerTool::destinationOf)
-                    .orElseThrow(() -> new IllegalArgumentException(NO_CHAT_YET));
-        }
-        return ownerChats.lastChat(named).map(TaskSchedulerTool::destinationOf)
-                .orElseThrow(() -> new IllegalArgumentException("no chat to deliver to on " + displayName(named)
-                        + " yet: write to me there first"));
     }
 
     private String cronFor(String cron, String inMinutes) {
@@ -187,10 +189,6 @@ public class TaskSchedulerTool {
         return "your " + displayName(destination.providerId()) + " chat";
     }
 
-    private static TaskDestination destinationOf(OwnerChat chat) {
-        return new TaskDestination(chat.providerId(), chat.chatId());
-    }
-
     private static String displayName(String provider) {
         return Character.toUpperCase(provider.charAt(0)) + provider.substring(1);
     }
@@ -201,5 +199,13 @@ public class TaskSchedulerTool {
 
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private static String strip(String value) {
+        return isBlank(value) ? null : value.strip();
+    }
+
+    private record ScheduleRequest(String originProvider, String originChat, String task, String cron,
+            String inMinutes, String provider) {
     }
 }

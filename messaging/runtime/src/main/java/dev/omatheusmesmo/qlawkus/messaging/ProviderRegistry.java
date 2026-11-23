@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.messaging;
 
+import dev.omatheusmesmo.qlawkus.task.TaskProviderAvailability;
 import io.quarkus.logging.Log;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -13,7 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @ApplicationScoped
-public class ProviderRegistry {
+public class ProviderRegistry implements TaskProviderAvailability {
 
     @Inject
     Instance<MessagingProvider> providers;
@@ -41,6 +42,11 @@ public class ProviderRegistry {
 
     public Optional<MessagingProvider> getProvider(String providerId) {
         return Optional.ofNullable(active.get(providerId));
+    }
+
+    @Override
+    public boolean isAvailable(String providerId) {
+        return active.containsKey(providerId);
     }
 
     public Collection<MessagingProvider> activeProviders() {

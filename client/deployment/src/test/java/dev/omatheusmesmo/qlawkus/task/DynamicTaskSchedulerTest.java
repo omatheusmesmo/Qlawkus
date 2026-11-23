@@ -32,6 +32,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.LogRecord;
 import org.awaitility.Awaitility;
@@ -115,6 +116,24 @@ class DynamicTaskSchedulerTest {
         assertFalse(Boolean.TRUE.equals(stillScheduledDuringRun.get()), "the job is already gone when the model is called");
         assertNull(scheduler.getScheduledJob(id));
         assertTrue(tasks.list().stream().noneMatch(view -> view.task().id().equals(id)));
+    }
+
+    @Test
+    void concurrentFiringsCanClaimAOneShotDiscordReminderOnlyOnce() throws Exception {
+        var destination = new TaskDestination("discord", "confirmed-chat");
+        String id = tasks.create("console", destination, "test reminder", tasks.cronInMinutes(5)).task().id();
+        when(runner.chat(eq("console"), anyString())).thenReturn("Reminder");
+
+        try (var dispatchers = Executors.newVirtualThreadPerTaskExecutor()) {
+            var first = dispatchers.submit(() -> tasks.fire(id));
+            var second = dispatchers.submit(() -> tasks.fire(id));
+            first.get();
+            second.get();
+        }
+
+        Mockito.verify(runner).chat(eq("console"), Mockito.contains("What the owner asked for: test reminder"));
+        Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> !ResultProbe.RESULTS.isEmpty());
+        assertEquals(List.of(new Delivered("discord", "confirmed-chat", "Reminder")), ResultProbe.RESULTS);
     }
 
     @Test
@@ -209,7 +228,7 @@ class DynamicTaskSchedulerTest {
                     .filter(m -> m.startsWith("Scheduled agent task " + view.task().id()))
                     .findFirst().orElseThrow();
             assertTrue(line.contains("provider=telegram"), line);
-            assertTrue(line.contains("chatId=42"), line);
+            assertFalse(line.contains("chatId="), line);
             assertTrue(line.contains("cron=" + RECURRING), line);
             assertTrue(line.contains("nextFire=" + view.nextFire()), line);
             assertFalse(line.contains("bake the cake"), line);

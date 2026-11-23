@@ -10,7 +10,7 @@ The authenticated Schedule page at `/console/schedule` lists the same agent-sche
 
 == What the agent can do
 
-Three tools, all available to the model in every conversation:
+Four tools, all available to the model in every conversation:
 
 [cols="1,3", options="header"]
 |===
@@ -18,6 +18,9 @@ Three tools, all available to the model in every conversation:
 
 |`scheduleTask`
 |Schedules a task. Arguments: `task` (required, the instruction to carry out later), `cron` or `inMinutes` (exactly one of them), and `providerId` (optional, a messaging provider name).
+
+|`listScheduleDestinations`
+|Lists known messaging providers and whether their chat is available, ambiguous or awaiting confirmation. The result contains provider names only.
 
 |`listScheduledTasks`
 |Lists every task the agent holds: id, next run, schedule, state, where the reply goes, and the task text.
@@ -39,7 +42,7 @@ Owner, in a Discord chat: "every weekday at nine, ask me what I want for lunch":
 `scheduleTask(task="Ask the owner what they want for lunch today.", cron="0 0 9 ? * MON-FRI *")`. The result names the next weekday at nine, the zone and `delivers to your Discord chat`.
 
 Owner, over REST or the console: "send me a reminder on Telegram at six tomorrow"::
-`scheduleTask(task="...", cron="0 0 18 21 11 ? 2026", providerId="telegram")`. The destination is the owner's last Telegram chat, so this only works once the owner has written to the agent on Telegram. Otherwise the result is `Error: no chat to deliver to on Telegram yet: write to me there first.`
+`scheduleTask(task="...", cron="0 0 18 21 11 ? 2026", providerId="telegram")`. The destination is the owner's last accepted Telegram chat or a verified chat recovered from an active schedule. If no destination is known, the result begins with `Error: [NO_DESTINATION]` and asks the owner to write on Telegram.
 
 Owner: "what do you have scheduled?"::
 `listScheduledTasks()`. Each line reads, for example, `qlawkus-task-... | next run 2026-11-20 21:50 America/Sao_Paulo | one-time | active | delivers to your Telegram chat | task: Remind the owner to stretch.`
@@ -106,12 +109,9 @@ A task has one destination: a messaging provider and a chat on it. Ids for chats
 
 The most recent chat is kept by `OwnerChatDirectory`. Each inbound message that the messaging orchestrator accepts, after the allowlist check, records its provider and chat there, so the latest accepted message sets the most recent chat. A rejected message records nothing. The directory keeps one chat per provider.
 
-When the directory has no chat for the request, the tool refuses in plain words and asks for nothing else:
+After an upgrade, an active schedule can identify a known chat when its saved conversation matches its messaging destination. When the directory is empty and several chats qualify, the tool asks which provider to use or asks for one message from the intended chat. An old schedule attached only to shared memory needs that same confirmation.
 
-* no provider given and no chat yet: `no chat to deliver to yet: write to me on Telegram or Discord first`
-* a provider given and no chat on it yet: `no chat to deliver to on Telegram yet: write to me there first`
-
-Both are returned as `Error: ...` and nothing is scheduled.
+The destination response includes a stable code such as `NO_DESTINATION`, `AMBIGUOUS_DESTINATION`, `UNCONFIRMED_DESTINATION` or `PROVIDER_UNAVAILABLE`. The agent asks for one clarification and waits. Identical schedule calls in the same turn reuse the first answer and create at most one job.
 
 The schedule reply and the listing use the same words for the destination: `delivers to your Telegram chat`, `delivers to your Discord chat`. The chat id is stored with the task so a firing can deliver, but no tool result shows it.
 
@@ -183,11 +183,13 @@ The notice contains the task ID and a short explanation. It omits task instructi
 
 == What the logs say
 
-Scheduling writes one INFO line with the destination, the cron, the next run and whether it is one-time. It never contains the task text:
+Scheduling writes one INFO line with the provider, the cron, the next run and whether it is one-time:
 
 ----
-Scheduled agent task qlawkus-task-... provider=telegram chatId=123456 cron=0 0 9 ? * MON-FRI * nextFire=2026-11-23T12:00:00Z oneShot=false
+Scheduled agent task qlawkus-task-... provider=telegram cron=0 0 9 ? * MON-FRI * nextFire=2026-11-23T12:00:00Z oneShot=false
 ----
+
+Destination failures log the bounded resolution code.
 
 A firing writes a start and an end line, both named by the task id, with the destination and the outcome. A failure writes a warning with the exception class only, never its message:
 

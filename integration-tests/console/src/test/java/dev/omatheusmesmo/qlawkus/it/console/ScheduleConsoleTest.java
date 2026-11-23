@@ -1,14 +1,29 @@
 package dev.omatheusmesmo.qlawkus.it.console;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
+import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
 import dev.omatheusmesmo.qlawkus.task.DynamicTaskScheduler;
+import dev.omatheusmesmo.qlawkus.task.ScheduledTask;
 import dev.omatheusmesmo.qlawkus.task.TaskDestination;
+import dev.omatheusmesmo.qlawkus.task.TaskStatus;
+import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import java.time.Instant;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -17,12 +32,64 @@ import org.junit.jupiter.api.Test;
  * uses, plus each job's existing manual-trigger endpoint.
  */
 @QuarkusTest
+@ConnectWireMock
 class ScheduleConsoleTest {
 
   private static final String USER = "qlawkus";
   private static final String PASS = "qlawkus-test";
 
   @Inject DynamicTaskScheduler tasks;
+  @Inject ScheduledTaskStore store;
+  WireMock wiremock;
+
+  @Test
+  void authenticatedConsoleChatCanScheduleOnceForARestoredDiscordDestination() {
+    String chatEndpoint = "/v1/chat/completions";
+    String task = "Send the console scheduling test reminder.";
+    var destination = new TaskDestination("discord", "restored-fixture-chat");
+    var legacy = new ScheduledTask(DynamicTaskScheduler.ID_PREFIX + UUID.randomUUID(),
+        "discord:restored-fixture-chat", destination, "Legacy reminder",
+        "0 0 9 * * ? 2099", false, Instant.now(), TaskStatus.ACTIVE);
+    String arguments = "{\\\"task\\\":\\\"" + task + "\\\",\\\"inMinutes\\\":\\\"5\\\",\\\"providerId\\\":\\\"discord\\\"}";
+    String vector = "[" + "0.01,".repeat(1023) + "0.01]";
+
+    wiremock.resetToDefaultMappings();
+    wiremock.resetRequests();
+    wiremock.register(post(urlEqualTo("/v1/embeddings")).willReturn(okJson(
+        "{\"data\":[{\"embedding\":" + vector + ",\"index\":0}],\"usage\":{\"prompt_tokens\":1,\"total_tokens\":1}}")));
+    wiremock.register(post(urlEqualTo(chatEndpoint)).atPriority(2).willReturn(okJson("""
+        {"id":"call-reminder","object":"chat.completion","created":1,"model":"test",
+         "choices":[{"index":0,"finish_reason":"tool_calls","message":{"role":"assistant",
+         "tool_calls":[{"id":"schedule-1","type":"function","function":{"name":"scheduleTask","arguments":"%s"}},
+                       {"id":"schedule-2","type":"function","function":{"name":"scheduleTask","arguments":"%s"}}]}}]}
+        """.formatted(arguments, arguments))));
+    wiremock.register(post(urlEqualTo(chatEndpoint)).atPriority(1)
+        .withRequestBody(matchingJsonPath("$.messages[?(@.role == 'tool')]"))
+        .willReturn(okJson("""
+            {"id":"finish-reminder","object":"chat.completion","created":1,"model":"test",
+             "choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"Reminder scheduled."}}]}
+            """)));
+    try {
+      store.save(legacy);
+      assertEquals(1, tasks.restore().restored());
+      given().auth().preemptive().basic(USER, PASS).contentType("application/json")
+          .body("{\"message\":\"Send me a simple reminder on Discord in five minutes.\"}")
+          .post("/api/chat/sync").then().statusCode(200).body(containsString("Reminder scheduled."));
+
+      var reminders = tasks.list().stream().filter(view -> view.task().task().equals(task)).toList();
+      assertEquals(1, reminders.size());
+      var reminder = reminders.getFirst();
+      assertEquals(destination, reminder.task().destination());
+      assertTrue(reminder.task().oneShot());
+      wiremock.verifyThat(1, postRequestedFor(urlEqualTo(chatEndpoint))
+          .withRequestBody(containing("Scheduled task " + reminder.task().id()))
+          .withRequestBody(containing("delivers to your Discord chat")));
+    } finally {
+      tasks.list().stream().filter(view -> view.task().id().equals(legacy.id()) || view.task().task().equals(task))
+          .forEach(view -> tasks.cancel(view.task().id()));
+      wiremock.resetToDefaultMappings();
+    }
+  }
 
   @Test
   void scheduledTasksAppearWithTheirDestinationAndCanOnlyBeCancelledByAnAuthenticatedOwner() {
