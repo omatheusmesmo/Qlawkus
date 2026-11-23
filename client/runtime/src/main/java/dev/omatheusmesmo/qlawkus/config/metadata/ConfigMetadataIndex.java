@@ -73,6 +73,11 @@ public class ConfigMetadataIndex {
         this.byProperty = Map.copyOf(index);
     }
 
+    /** Classpath metadata required at runtime, including in native builds. */
+    public static List<String> resourcePaths() {
+        return List.of(MODEL_LOCATION, JAVADOC_LOCATION, ALLOWLIST_LOCATION);
+    }
+
     /** All in-scope config roots, one per {@code @ConfigMapping} prefix, in discovery order. */
     public List<ConfigRootMetadata> roots() {
         return roots;
