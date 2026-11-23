@@ -376,6 +376,19 @@ public class DiscordProviderAdapter implements MessagingProvider {
     }
 
     @Override
+    public Uni<Void> sendFile(String channelId, String filename, String mediaType, byte[] bytes) {
+        GatewayDiscordClient gateway = gatewayClient;
+        if (gateway == null) {
+            return Uni.createFrom().failure(new IllegalStateException("Discord Gateway not connected"));
+        }
+        return Uni.createFrom().completionStage(() -> gateway.getChannelById(Snowflake.of(channelId))
+                .ofType(MessageChannel.class)
+                .flatMap(channel -> channel.createMessage(voiceMessage(bytes, filename)))
+                .switchIfEmpty(Mono.error(new IllegalStateException("Discord did not acknowledge the file")))
+                .toFuture()).replaceWithVoid();
+    }
+
+    @Override
     public Uni<Void> sendVoice(String channelId, byte[] audio, String filename, String fallbackText) {
         if (gatewayClient == null) {
             return Uni.createFrom().failure(new IllegalStateException("Discord Gateway not connected"));

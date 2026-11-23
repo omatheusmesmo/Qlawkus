@@ -14,10 +14,12 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.mutiny.subscription.Cancellable;
+import io.vertx.core.buffer.Buffer;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.jboss.resteasy.reactive.client.api.ClientMultipartForm;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -109,6 +111,23 @@ public class TelegramProviderAdapter implements MessagingProvider {
                 })
                 .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
                 .replaceWithVoid();
+    }
+
+    @Override
+    public Uni<Void> sendFile(String chatId, String filename, String mediaType, byte[] bytes) {
+        Optional<String> token = botToken();
+        if (token.isEmpty()) {
+            return Uni.createFrom().failure(new IllegalStateException("Telegram bot-token not configured"));
+        }
+        var form = ClientMultipartForm.create()
+                .attribute("chat_id", chatId, null)
+                .binaryFileUpload("document", filename, Buffer.buffer(bytes), mediaType);
+        return botClient.sendDocument(token.get(), form)
+                .onItem().invoke(response -> {
+                    if (response == null || !response.ok() || response.result() == null) {
+                        throw new IllegalStateException("Telegram did not acknowledge the document");
+                    }
+                }).replaceWithVoid();
     }
 
     @Override

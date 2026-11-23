@@ -15,6 +15,7 @@ import dev.omatheusmesmo.qlawkus.attachment.ChatAttachment;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.dto.ChatRequest;
 import io.quarkus.security.Authenticated;
+import io.quarkus.security.identity.SecurityIdentity;
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Multi;
 import jakarta.enterprise.inject.Instance;
@@ -67,6 +68,9 @@ public class ApiResource {
 
     @Inject
     AgentDeliveryContext delivery;
+
+    @Inject
+    SecurityIdentity identity;
 
     @Inject
     ObjectMapper json;
@@ -197,8 +201,8 @@ public class ApiResource {
         return node;
     }
 
-    private static AgentDeliveryContext.Snapshot restOrigin(String conversation) {
-        return new AgentDeliveryContext.Snapshot(conversation, REST_PROVIDER, null);
+    private AgentDeliveryContext.Snapshot restOrigin(String conversation) {
+        return new AgentDeliveryContext.Snapshot(conversation, REST_PROVIDER, null, identity.getPrincipal().getName());
     }
 
     private String conversationId() {

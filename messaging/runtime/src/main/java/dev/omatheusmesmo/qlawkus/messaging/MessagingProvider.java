@@ -23,6 +23,11 @@ public interface MessagingProvider {
         return send(chatId, fallbackText);
     }
 
+    /** Completes when the platform acknowledges the file. Unsupported adapters report a failure. */
+    default Uni<Void> sendFile(String chatId, String filename, String mediaType, byte[] bytes) {
+        return Uni.createFrom().failure(new UnsupportedOperationException("This provider does not support file delivery"));
+    }
+
     /**
      * The status-message operations for showing tool activity, or empty when the platform cannot
      * edit its own messages. The returned sink is called from the turn's worker thread.
