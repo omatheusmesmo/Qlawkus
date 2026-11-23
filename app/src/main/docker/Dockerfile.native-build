@@ -36,12 +36,13 @@ RUN set -eu; \
 FROM registry.access.redhat.com/ubi10/ubi-minimal:10.2
 RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 freetype fontconfig util-linux && microdnf clean all
 WORKDIR /work/
-RUN chown 1001 /work \
-    && chmod "g+rwX" /work \
-    && chown 1001:root /work
-COPY --from=build --chown=1001:root /native-app/ /work/
+ENV HOME=/home/default
+RUN mkdir -p /home/default \
+    && chown 185:0 /home/default /work \
+    && chmod g+rwX /home/default /work
+COPY --from=build --chown=185:0 /native-app/ /work/
 
 EXPOSE 8080
-USER 1001
+USER 185
 
 ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]
