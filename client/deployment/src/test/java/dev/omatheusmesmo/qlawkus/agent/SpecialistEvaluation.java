@@ -1,17 +1,13 @@
 package dev.omatheusmesmo.qlawkus.agent;
 
-import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
-import dev.langchain4j.agentic.declarative.Output;
-import dev.langchain4j.agentic.declarative.ParallelAgent;
 import dev.langchain4j.agentic.planner.AgenticService;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.service.V;
 import dev.omatheusmesmo.qlawkus.artifact.ArtifactHandle;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import java.nio.charset.StandardCharsets;
@@ -30,7 +26,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 
 public final class SpecialistEvaluation {
 
@@ -38,14 +33,15 @@ public final class SpecialistEvaluation {
     static final int MAX_OUTPUT_TOKENS = 128;
     static final int MAX_TOTAL_TOKENS = 1024;
     private static final Duration MAX_DURATION = Duration.ofSeconds(10);
+    private static final Plan DEFAULT_PLAN = new Plan(Pattern.PARALLEL, List.of(
+            new Worker("facts", Role.FACTS, "Summarize concrete facts in the supplied snapshot."),
+            new Worker("questions", Role.QUESTIONS, "Identify open questions in the supplied snapshot.")));
 
-    private final Team workflow;
     private final ExecutorService modelExecutor;
     private final Semaphore slots = new Semaphore(2);
     private final Semaphore groups = new Semaphore(1);
 
-    SpecialistEvaluation(Team workflow, ExecutorService modelExecutor) {
-        this.workflow = workflow;
+    SpecialistEvaluation(ExecutorService modelExecutor) {
         this.modelExecutor = modelExecutor;
     }
 
@@ -57,19 +53,28 @@ public final class SpecialistEvaluation {
     }
 
     Report evaluate(Run run) {
-        return evaluate(run, workflow::review);
+        return evaluateRuntime(run, DEFAULT_PLAN, Thread::startVirtualThread);
     }
 
     Report evaluateRuntime(Run run, Plan plan, Executor orchestrationExecutor) {
-        AgenticService<?, UntypedAgent> builder = switch (plan.pattern()) {
-            case SEQUENCE -> AgenticServices.sequenceBuilder();
-            case PARALLEL -> AgenticServices.parallelBuilder().executor(orchestrationExecutor);
-        };
-        builder.subAgents(plan.workers().stream().map(SpecialistEvaluation::createWorker).toList());
-        builder.output(scope -> new Report(plan.workers().stream()
-                .map(worker -> (Result) scope.readState(worker.outputKey())).toList(), run.artifacts()));
-        UntypedAgent flow = builder.build();
-        return evaluate(run, current -> (Report) flow.invoke(Map.of("run", current)));
+        if (!groups.tryAcquire()) {
+            return new Report(plan.workers().stream().map(worker -> Result.stopped(worker.name(), Status.BUSY)).toList(),
+                    List.of());
+        }
+        try {
+            AgenticService<?, UntypedAgent> builder = switch (plan.pattern()) {
+                case SEQUENCE -> AgenticServices.sequenceBuilder();
+                case PARALLEL -> AgenticServices.parallelBuilder().executor(orchestrationExecutor);
+            };
+            builder.subAgents(plan.workers().stream().map(SpecialistEvaluation::createWorker).toList());
+            builder.output(scope -> new Report(plan.workers().stream()
+                    .map(worker -> (Result) scope.readState(worker.outputKey())).toList(), run.artifacts()));
+            UntypedAgent flow = builder.build();
+            run.start();
+            return (Report) flow.invoke(Map.of("run", run));
+        } finally {
+            groups.release();
+        }
     }
 
     private static AgenticServices.AgenticScopeFunction<Result> createWorker(Worker worker) {
@@ -78,45 +83,6 @@ public final class SpecialistEvaluation {
             Source source = worker.role() == Role.FACTS ? run.facts : run.questions;
             return run.review(worker.name(), worker.instructions(), source);
         }).name(worker.name()).inputKey(Run.class, "run").outputKey(worker.outputKey()).outputType(Result.class).build();
-    }
-
-    private Report evaluate(Run run, Function<Run, Report> execute) {
-        if (!groups.tryAcquire()) {
-            return new Report(List.of(Result.stopped("facts", Status.BUSY), Result.stopped("questions", Status.BUSY)), List.of());
-        }
-        try {
-            run.start();
-            return execute.apply(run);
-        } finally {
-            groups.release();
-        }
-    }
-
-    public interface Team {
-
-        @ParallelAgent(outputKey = "report", subAgents = { Facts.class, Questions.class })
-        Report review(@V("run") Run run);
-
-        @Output
-        static Report combine(@V("factsResult") Result facts, @V("questionsResult") Result questions, @V("run") Run run) {
-            return new Report(List.of(facts, questions), run.artifacts());
-        }
-    }
-
-    public static final class Facts {
-
-        @Agent(outputKey = "factsResult")
-        public static Result summarize(@V("run") Run run) {
-            return run.review("facts", "Summarize concrete facts in the supplied snapshot.", run.facts);
-        }
-    }
-
-    public static final class Questions {
-
-        @Agent(outputKey = "questionsResult")
-        public static Result identify(@V("run") Run run) {
-            return run.review("questions", "Identify open questions in the supplied snapshot.", run.questions);
-        }
     }
 
     record Source(String snapshot, ChatModel model, ArtifactHandle artifact) {
