@@ -1,8 +1,8 @@
 = Console
 :page-title: Console
-:page-description: The optional server-rendered admin UI - first-run setup, chat with the agent, plus memory, skills, cognition, config and schedule management.
+:page-description: The optional server-rendered admin UI - first-run setup, chat, voice, approvals, specialists, artifacts, memory, skills, cognition, config, MCP connections and schedule, each with a screenshot.
 
-The console is an optional server-rendered admin UI at `/console`. It is a first-run setup wizard and a set of management pages over the agent's existing admin API - memory, skills, cognition, configuration, and the background schedule. It is built with Qute templates and https://htmx.org[HTMX], so it needs no Node build and no separate frontend.
+The console is an optional server-rendered admin UI at `/console`. It is a first-run setup wizard and a set of management pages over the agent's existing admin API - chat, voice, approvals, specialists, artifacts, memory, skills, cognition, configuration, MCP connections and the background schedule. It is built with Qute templates and https://htmx.org[HTMX], so it needs no Node build and no separate frontend.
 
 The console never re-implements admin logic. Its read views inject the same SPIs the agent uses (`FactStore`, `SkillStore`, the live Quarkus `Scheduler`, the config-metadata index); every mutating action is driven from the page by HTMX against the existing `/api/admin/*` endpoints. So the UI and the API can never drift, and anything the console does is equally scriptable with `curl`.
 
@@ -14,7 +14,7 @@ Every console page is `@Authenticated` and carries no login of its own: it reuse
 
 == Navigation
 
-The sidebar groups the pages: *Agent* (Overview, Chat, Voice), *Knowledge* (Specialists, Artifacts, Memory, Skills, Cognition) and *System* (Config, MCP connections, Schedule). An entry that belongs to an optional capability appears only when that capability is composed in, so a slimmed distribution shows a shorter menu, never a dead link.
+The sidebar groups the pages: *Agent* (Overview, Chat, Approvals, Voice), *Knowledge* (Specialists, Artifacts, Memory, Skills, Cognition) and *System* (Config, MCP connections, Schedule). An entry that belongs to an optional capability appears only when that capability is composed in, so a slimmed distribution shows a shorter menu, never a dead link.
 
 On a narrow screen (900 px or less) the sidebar becomes a slim top bar with a menu button. The menu opens as a drawer: focus moves into it, Tab stays inside it, and Escape or a tap outside closes it and returns focus to the button. The first Tab stop on every page is a link that skips straight to the content.
 
@@ -34,24 +34,33 @@ It is split into two phases by the closed-world boundary, because some steps onl
 
 So a typical bring-up is: run the wizard's Phase A, rebuild and redeploy with the staged manifest (see xref:composition.adoc#_the_restart_contract[the restart contract]), then return to the wizard for Phase B on the capabilities you turned on.
 
-== Management pages
+== Pages
 
-[cols="1,3",options="header"]
-|===
-|Page |What it does
+Every page the sidebar can show has a section here, in sidebar order, with a screenshot in the light and dark theme (the one matching your system is shown). A page that belongs to an optional capability is marked, and is absent from a distribution without it.
 
-|*Overview* (`/console`) |A live status panel - app version, the baked composition posture and capability set, and a server clock that ticks on every HTMX poll to show the refresh is live - above a row of health cards (see below). Hosts the first-run setup banner, and, once `qlawkus.console.grafana-url` is set, an Observability card (see below).
-|*Chat* (`/console/chat`) |Talk to the agent. The page is a server-rendered shell with one small script (`/console/chat.js`, no build step, no library): the browser calls the existing `POST /api/chat` server-sent-events endpoint and streams the reply into the page, so the console adds no chat logic of its own. See <<_chat,Chat>> below.
-|*Memory* (`/console/memory`) |The most recent facts, the fact sources in use, and the episodic journals. Review, curate and purge are HTMX calls to `/api/admin/memory/*`. See xref:memory.adoc[Memory].
-|*Skills* (`/console/skills`) |The current skill index. Pin, delete, curate and the lifecycle sweep call `/api/admin/skills/*`. See xref:skills.adoc[Skills].
-|*Cognition* (`/console/cognition`) |Reconcile and migrate between the markdown and pgvector representations, over `/api/admin/cognition/*`. Shown only when the `cognition.pgvector` capability is baked in (the console does not depend on that extension - it reads the manifest to decide). See xref:storage.adoc[Storage].
-|*Config* (`/console/config`) |The full configuration editor: one section per documented config root, generated from the same `quarkus-config-doc` metadata that builds xref:config-reference.adoc[the config reference], never a hand-maintained list. Each property shows its live effective value and a short source label (`application.properties`, `env`, `keystore`, `default`, ...; the full source name is the tooltip); secrets never appear. Apply routes by config phase - `RUN_TIME` properties to `/api/admin/runtime-toggles` (apply on restart), `BUILD_TIME` ones to `/api/admin/config-overrides` (staged, apply on the next rebuild) - and the outcome shows beside the row it came from, with a note that the change waits for a restart or a rebuild. A toolbar searches names and descriptions (press `/`), narrows to the properties changed from their default, and to one phase. Sections start collapsed: only a section holding something you set (an entry in the override file, a staged build-time value, an environment variable, a system property, the keystore or `agent.yml`) starts open, never the defaults the distribution ships in its own property files. The search, the filters and the opened sections live in the URL hash, so a view can be shared, and a section index (a list on wide screens, a jump menu on narrow ones) goes straight to a root. See xref:composition.adoc#_the_configuration_editor[Composition > the configuration editor].
-|*Schedule* (`/console/schedule`) |Agent-scheduled tasks show their instructions, schedule, destination, status and next run in the configured timezone. Cancel calls `DELETE /api/admin/scheduled-tasks/{id}`. The five background jobs (memory review, memory curation, episodic consolidation, skill curation, skill lifecycle). Each row's effective cron and previous/next fire times come from the live Quarkus `Scheduler`, looked up by the explicit `@Scheduled(identity = ...)` each job declares, so the schedule shown always matches what is actually registered. The job list itself - label, cron property, trigger endpoint - is a static registry in the page: nothing in the framework links a job to the config property holding its cron. Editing a cron reuses the `RUN_TIME` runtime-toggle path; triggering a job now hits its manual `/api/admin/*` endpoint. Below the jobs, a read-only panel shows the last redeploy the external loop reported (outcome, failed phase, per-phase durations, last success); there is nothing to trigger there, since the redeploy runs outside the app.
-|===
+=== Overview
+
+++++
+<picture>
+<source srcset="../images/console/overview-dark.png" media="(prefers-color-scheme: dark)">
+<img src="../images/console/overview-light.png" alt="The console Overview with the status panel and the health cards" width="1280" height="800" loading="lazy">
+</picture>
+++++
+
+`/console` is a live status panel - app version, the baked composition posture and capability set, and a server clock that ticks on every HTMX poll to show the refresh is live - above a row of health cards (see <<_health_cards,Health cards>>). It hosts the first-run setup banner, and, once `qlawkus.console.grafana-url` is set, an Observability card (see <<_observability_links,Observability links>>).
 
 === Chat
 
-`/console/chat` streams the agent's reply as it is written. Enter sends, Shift+Enter adds a line, and the send button stays disabled while a reply streams. An error line reports a 401, a server error, or a lost connection. Replies get light formatting (paragraphs, bold, inline code, fenced code blocks, lists) built node by node from plain text, so nothing a model writes is ever parsed as HTML. Each reply has a relative timestamp and a copy button, and the view follows the reply until you scroll up.
+++++
+<picture>
+<source srcset="../images/console/chat-dark.png" media="(prefers-color-scheme: dark)">
+<img src="../images/console/chat-light.png" alt="The chat page with the message box and a streamed reply" width="1280" height="800" loading="lazy">
+</picture>
+++++
+
+`/console/chat` talks to the agent. The page is a server-rendered shell with one small script (`/console/chat.js`, no build step, no library): the browser calls the existing `POST /api/chat` server-sent-events endpoint and streams the reply into the page, so the console adds no chat logic of its own.
+
+The page streams the agent's reply as it is written. Enter sends, Shift+Enter adds a line, and the send button stays disabled while a reply streams. An error line reports a 401, a server error, or a lost connection. Replies get light formatting (paragraphs, bold, inline code, fenced code blocks, lists) built node by node from plain text, so nothing a model writes is ever parsed as HTML. Each reply has a relative timestamp and a copy button, and the view follows the reply until you scroll up.
 
 *Which conversation.* The page sends no memory id: `/api/chat` picks it, so the console is the same conversation as every other channel. With `qlawkus.agent.shared-context.enabled` on (the default, and on in the bundled app) that is the shared conversation also used by Discord and Telegram, so a thread started in the console can continue there. With it off, the console shares the REST API's own conversation.
 
@@ -73,6 +82,117 @@ qlawkus.console.chat.tool-progress=preview
 |===
 
 The page sends the mode with each message, so the endpoint itself leaves out whatever the mode hides. It is a `RUN_TIME` property, editable from the Config page. Once a reply finishes, its cards fold into one "N tools, Xs" line per run of consecutive tool calls, which expands on click.
+
+
+=== Approvals
+
+++++
+<picture>
+<source srcset="../images/console/approvals-dark.png" media="(prefers-color-scheme: dark)">
+<img src="../images/console/approvals-light.png" alt="The Approvals page listing gated tool calls with Approve and Deny buttons" width="1280" height="800" loading="lazy">
+</picture>
+++++
+
+`/console/approvals` is the owner's queue: tool calls the agent was not allowed to run on its own, each with the tool name, a bounded redacted preview of the arguments, its status and when it expires. A pending request has *Approve* and *Deny* buttons that drive the same two decisions as the chat commands and the REST endpoints; a decided one shows the outcome instead. The page is empty until a tool is gated (see xref:approvals.adoc[Owner Approvals] for how a tool becomes gated and what happens after a decision).
+
+=== Voice
+
+++++
+<picture>
+<source srcset="../images/console/voice-dark.png" media="(prefers-color-scheme: dark)">
+<img src="../images/console/voice-light.png" alt="The Voice page with the microphone controls and the live transcript" width="1280" height="800" loading="lazy">
+</picture>
+++++
+
+`/console/voice` holds a live, two-way voice conversation: press *Start*, speak, and the reply is spoken back sentence by sentence while it is typed into the transcript. It needs the optional `console.voice` capability and a speech-to-text and text-to-speech provider; see xref:voice.adoc#_live_voice_sessions_console[the live voice section] for the controls, the language selector and the limits.
+
+=== Specialists
+
+++++
+<picture>
+<source srcset="../images/console/specialists-dark.png" media="(prefers-color-scheme: dark)">
+<img src="../images/console/specialists-light.png" alt="The Specialists page with the catalog and the form for a new specialist" width="1280" height="800" loading="lazy">
+</picture>
+++++
+
+`/console/specialists` is the catalog of reusable roles the agent can delegate bounded, read-only analysis to. Create a specialist with an identifier, instructions (up to 1,200 characters) and a model tier, edit or disable it, or remove it; changes apply immediately and persist in `specialists.json`. It needs the optional `specialists` capability. See xref:architecture.adoc#_bounded_specialist_delegation[Bounded specialist delegation] for how runs work and which tiers are permitted.
+
+=== Artifacts
+
+++++
+<picture>
+<source srcset="../images/console/artifacts-dark.png" media="(prefers-color-scheme: dark)">
+<img src="../images/console/artifacts-light.png" alt="The Artifacts page listing files the agent saved, with Preview and Download actions" width="1280" height="800" loading="lazy">
+</picture>
+++++
+
+`/console/artifacts` lists the reports and files the agent saved for you (Markdown, plain text or CSV), with their size and expiry. Preview opens the text in the page; Download saves the file. Files expire after 24 hours. It needs the optional `artifacts` capability; ask the agent for a downloadable report to fill it (see xref:messaging.adoc#_downloadable_artifacts[Downloadable artifacts]).
+
+=== Memory
+
+++++
+<picture>
+<source srcset="../images/console/memory-dark.png" media="(prefers-color-scheme: dark)">
+<img src="../images/console/memory-light.png" alt="The Memory page with recent facts, fact sources and episodic journals" width="1280" height="800" loading="lazy">
+</picture>
+++++
+
+`/console/memory` shows the most recent facts, the fact sources in use, and the episodic journals. Review, curate and purge are HTMX calls to `/api/admin/memory/*`. See xref:memory.adoc[Memory].
+
+=== Skills
+
+++++
+<picture>
+<source srcset="../images/console/skills-dark.png" media="(prefers-color-scheme: dark)">
+<img src="../images/console/skills-light.png" alt="The Skills page listing the skill index with pin and delete actions" width="1280" height="800" loading="lazy">
+</picture>
+++++
+
+`/console/skills` is the current skill index. Pin, delete, curate and the lifecycle sweep call `/api/admin/skills/*`. With the optional `console.skill-hub` extension, the page links to the install panel at `/console/skills/install`. See xref:skills.adoc[Skills].
+
+=== Cognition
+
+++++
+<picture>
+<source srcset="../images/console/cognition-dark.png" media="(prefers-color-scheme: dark)">
+<img src="../images/console/cognition-light.png" alt="The Cognition page with the reconcile and migrate actions" width="1280" height="800" loading="lazy">
+</picture>
+++++
+
+`/console/cognition` reconciles and migrates between the markdown and pgvector representations, over `/api/admin/cognition/*`. Shown only when the `cognition.pgvector` capability is baked in (the console does not depend on that extension - it reads the manifest to decide). See xref:storage.adoc[Storage].
+
+=== Config
+
+++++
+<picture>
+<source srcset="../images/console/config-dark.png" media="(prefers-color-scheme: dark)">
+<img src="../images/console/config-light.png" alt="The configuration editor with the search toolbar and collapsed sections" width="1280" height="800" loading="lazy">
+</picture>
+++++
+
+`/console/config` is the full configuration editor: one section per documented config root, generated from the same `quarkus-config-doc` metadata that builds xref:config-reference.adoc[the config reference], never a hand-maintained list. Each property shows its live effective value and a short source label (`application.properties`, `env`, `keystore`, `default`, ...; the full source name is the tooltip); secrets never appear. Apply routes by config phase - `RUN_TIME` properties to `/api/admin/runtime-toggles` (apply on restart), `BUILD_TIME` ones to `/api/admin/config-overrides` (staged, apply on the next rebuild) - and the outcome shows beside the row it came from, with a note that the change waits for a restart or a rebuild. A toolbar searches names and descriptions (press `/`), narrows to the properties changed from their default, and to one phase. Sections start collapsed: only a section holding something you set (an entry in the override file, a staged build-time value, an environment variable, a system property, the keystore or `agent.yml`) starts open, never the defaults the distribution ships in its own property files. The search, the filters and the opened sections live in the URL hash, so a view can be shared, and a section index (a list on wide screens, a jump menu on narrow ones) goes straight to a root. See xref:composition.adoc#_the_configuration_editor[Composition > the configuration editor].
+
+=== MCP connections
+
+++++
+<picture>
+<source srcset="../images/console/mcp-dark.png" media="(prefers-color-scheme: dark)">
+<img src="../images/console/mcp-light.png" alt="The MCP connections page with the connection list and the add form" width="1280" height="800" loading="lazy">
+</picture>
+++++
+
+`/console/mcp` adds, edits, tests, disables and removes the connections that give the agent new tools. Connection changes take effect without restarting, and saving an enabled connection tests it first, so a failed update keeps the working one. Credentials are references to the vault, never values on the page. It needs the optional `mcp-client` capability. See xref:mcp.adoc[MCP] for transports, OAuth and the endpoint policy.
+
+=== Schedule
+
+++++
+<picture>
+<source srcset="../images/console/schedule-dark.png" media="(prefers-color-scheme: dark)">
+<img src="../images/console/schedule-light.png" alt="The Schedule page with agent tasks, background jobs and the last redeploy" width="1280" height="800" loading="lazy">
+</picture>
+++++
+
+`/console/schedule` is the agent's calendar. Agent-scheduled tasks show their instructions, schedule, destination, status and next run in the configured timezone. Cancel calls `DELETE /api/admin/scheduled-tasks/{id}`. The five background jobs (memory review, memory curation, episodic consolidation, skill curation, skill lifecycle). Each row's effective cron and previous/next fire times come from the live Quarkus `Scheduler`, looked up by the explicit `@Scheduled(identity = ...)` each job declares, so the schedule shown always matches what is actually registered. The job list itself - label, cron property, trigger endpoint - is a static registry in the page: nothing in the framework links a job to the config property holding its cron. Editing a cron reuses the `RUN_TIME` runtime-toggle path; triggering a job now hits its manual `/api/admin/*` endpoint. Below the jobs, a read-only panel shows the last redeploy the external loop reported (outcome, failed phase, per-phase durations, last success); there is nothing to trigger there, since the redeploy runs outside the app.
 
 A note the Config and Schedule pages surface: when a property's effective value already comes from a source that outranks the runtime-toggle override file (an environment variable, `.env`, or a `-D` flag), the page warns that saving there will not take effect until that higher-priority source is removed - so a silent no-op is caught in the UI rather than by trial and error.
 
@@ -104,7 +224,7 @@ The console follows your system color scheme and shares its palette, type and co
 
 Every text color is checked against its background for at least 4.5:1 contrast in both the light and the dark theme.
 
-=== Health cards
+== Health cards
 
 The Overview answers "is the agent all right?" without opening another page. Five cards sit under the status panel, and each one polls its own endpoint, so a slow source never holds the others back. Polling pauses while the browser tab is hidden and resumes when it is shown again.
 
@@ -127,6 +247,18 @@ The console does not embed telemetry, it links to it. Set `qlawkus.console.grafa
 * Grafana Explore on Prometheus, Tempo and Loki, selecting the data sources the `grafana/otel-lgtm` image provisions under the uids `prometheus`, `tempo` and `loki`. They are reached through Grafana because it is the only port the bundled stack publishes.
 
 With nothing configured the card is absent. Only a plain `http` or `https` URL is accepted, without credentials, query or fragment: anything else is ignored with a warning (the value is not echoed, since a URL can carry credentials) and the agent still boots, because a cosmetic link must not take a single-instance agent down. A sub-path such as `https://ops.example.com/grafana` is kept. The Compose stacks set it to `http://localhost:3000`; override it in `.env` when Grafana is reached by another name.
+
+== Regenerating the screenshots
+
+The images under `site/public/images/console/` are committed, not built, so the documentation build stays deterministic and needs no browser. Regenerate them when a page changes. `scripts/docs-screenshots.mjs` drives a running agent with Playwright and writes one light and one dark image per page, at 1280 by 800:
+
+[source,bash]
+----
+mvn -pl app -am quarkus:dev     # a throwaway instance, with its data roots pointed at an empty directory
+QLAWKUS_PASSWORD=dev BASE_URL=http://localhost:8080 node scripts/docs-screenshots.mjs
+----
+
+Use an instance that holds no real data: the script seeds a sample specialist and photographs whatever the pages show. Set `PLAYWRIGHT_INDEX` to Playwright's `index.mjs` when it is not importable, and `CHROMIUM_PATH` for a browser of your own. `scripts/check-docs-content.sh` fails when a page the sidebar serves has no section here or no image in either theme, so adding a console page without documenting it breaks the check.
 
 == What's next?
 

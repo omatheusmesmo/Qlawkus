@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" width="900" height="340" role="img" aria-labelledby="t d">
+  <title id="t">How the agent drains on SIGTERM</title>
+  <desc id="d">On SIGTERM the platform waits the shutdown delay, then runs the pre-shutdown phase, which refuses new work, then the shutdown phase, which releases resources and awaits the Discord logout. Each listener acknowledges in a finally block. The whole drain fits inside quarkus.shutdown.timeout, which fits inside the Kubernetes grace period. Running scheduled jobs are abandoned, not awaited.</desc>
+  <style>
+    svg { --bg: #faf8f6; --surface: #ffffff; --text: #232027; --muted: #5f5a64; --border: #b9b2aa;
+          --accent: #b85609; --accent-fill: #fdf0e3; --up: #2f7d40; --up-fill: #e8f4ea;
+          --danger: #c0392b; --danger-fill: #fdeeec; --note: #3b6fb0; --note-fill: #e9f0f9; }
+    @media (prefers-color-scheme: dark) {
+      svg { --bg: #15131a; --surface: #1d1a23; --text: #ece9f0; --muted: #a9a3b1; --border: #5a5466;
+            --accent: #f2a45c; --accent-fill: #3a2a1a; --up: #63c27a; --up-fill: #173222;
+            --danger: #ef6f60; --danger-fill: #3a1f1d; --note: #7fa8dc; --note-fill: #1c2a3d; }
+    }
+    text { font-family: "Manrope", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: var(--text); font-size: 14px; }
+    .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+    .small { font-size: 12px; fill: var(--muted); }
+    .head { font-weight: 700; font-size: 15px; }
+    .box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+    .accent { fill: var(--accent-fill); stroke: var(--accent); stroke-width: 1.5; }
+    .up { fill: var(--up-fill); stroke: var(--up); stroke-width: 1.5; }
+    .danger { fill: var(--danger-fill); stroke: var(--danger); stroke-width: 1.5; }
+    .note { fill: var(--note-fill); stroke: var(--note); stroke-width: 1.5; }
+    .lane { fill: none; stroke: var(--border); stroke-width: 1; stroke-dasharray: 5 4; }
+    .line { stroke: var(--muted); stroke-width: 1.6; fill: none; }
+    .dash { stroke: var(--muted); stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+    .arrow { fill: var(--muted); }
+    .c { text-anchor: middle; }
+  </style>
+  <rect class="danger" x="20" y="30" width="120" height="76" rx="10"/>
+  <text x="80.0" y="72.0" class="head c">SIGTERM</text>
+  <rect class="box" x="180" y="30" width="170" height="76" rx="10"/>
+  <text x="265.0" y="63.0" class="head c">Delay</text>
+  <text x="265.0" y="81.0" class="small c">3 s, balancers drop it</text>
+  <rect class="accent" x="390" y="30" width="190" height="76" rx="10"/>
+  <text x="485.0" y="54.0" class="head c">preShutdown</text>
+  <text x="485.0" y="72.0" class="small c">refuse new work</text>
+  <text x="485.0" y="90.0" class="small c">Telegram stops polling</text>
+  <rect class="accent" x="620" y="30" width="260" height="76" rx="10"/>
+  <text x="750.0" y="54.0" class="head c">shutdown</text>
+  <text x="750.0" y="72.0" class="small c">close PTY sessions</text>
+  <text x="750.0" y="90.0" class="small c">await Discord logout, join poll</text>
+  <line class="line" x1="140" y1="68" x2="180" y2="68"/>
+  <polygon class="arrow" points="180,68 170.0,73.0 170.0,63.0"/>
+  <line class="line" x1="350" y1="68" x2="390" y2="68"/>
+  <polygon class="arrow" points="390,68 380.0,73.0 380.0,63.0"/>
+  <line class="line" x1="580" y1="68" x2="620" y2="68"/>
+  <polygon class="arrow" points="620,68 610.0,73.0 610.0,63.0"/>
+  <rect class="accent" x="180" y="140" width="520" height="30" rx="8"/>
+  <text x="440" y="160" class="c">quarkus.shutdown.timeout: 20 s for every listener together</text>
+  <rect class="note" x="20" y="190" width="860" height="30" rx="8"/>
+  <text x="450" y="210" class="c">terminationGracePeriodSeconds: 30 s in the reference Deployment</text>
+  <rect class="box" x="20" y="245" width="420" height="36" rx="10"/>
+  <text x="230.0" y="267.0" class="c">done() sits in a finally: a failing listener never costs the timeout</text>
+  <rect class="box" x="460" y="245" width="420" height="36" rx="10"/>
+  <text x="670.0" y="267.0" class="c">Running scheduled jobs are abandoned: they are re-runnable</text>
+  <text x="450" y="312" class="small c">Each bar must fit inside the one below it, or a clean drain turns into a kill</text>
+</svg>

@@ -64,6 +64,52 @@ The markdown directories default under `${user.home}/.qlawkus` and are configura
 
 In the Docker images these sit under the container `HOME` (`/home/default`), which is backed by the `qlawkus_workspace` named volume, so they persist across restarts. They live outside the agent's shell workspace (`QLAWKUS_WORKSPACE_ROOT`), so the agent mutates them only through the cognition tools, never by raw file edits.
 
+== Back up and restore state
+
+Everything the agent knows lives in two places, and a backup is a copy of both: the files under `HOME` and, for a `pgvector` or `hybrid` build, the PostgreSQL databases. In the Compose stacks they are the named volumes `qlawkus_workspace` (mounted at `/home/default`) and `qlawkus_postgres`. A run from source keeps the files under `~/.qlawkus`.
+
+[cols="2,3",options="header"]
+|===
+|What |Why it matters
+
+|`qlawkus_workspace` (or `~/.qlawkus`) |Facts, journals, skills, working memory, the persona and owner files, specialists, scheduled tasks, artifacts, the runtime overrides and the secret keystore `secrets.p12`.
+|PostgreSQL databases `qlawkus`, `qlawkus_google_auth`, `qlawkus_brag` |The `pgvector` and `hybrid` stores and the Google and Brag data. A markdown-only build has none of them.
+|The keystore password |`QLAWKUS_SECRETS_KEYSTORE_PASSWORD`. A keystore without its password cannot be read, so keep the password in a password manager, never next to the backup.
+|===
+
+Not worth backing up: the `.embeddings.json` cache (rebuilt from the facts), the `qlawkus_lgtm-data` telemetry volume and the `qlawkus_ollama-data` model cache.
+
+*Back up.* Stop the agent first, so no write is half done (it is single-instance, and the files are only consistent while it is stopped). The database is dumped while it runs:
+
+[source,bash]
+----
+docker compose stop qlawkus
+mkdir -p backup && cd backup
+docker run --rm -v qlawkus_workspace:/data:ro -v "$PWD":/out alpine \
+  tar czf /out/workspace.tgz -C /data .
+for db in qlawkus qlawkus_google_auth qlawkus_brag; do
+  docker compose exec -T postgres pg_dump -U qlawkus -Fc "$db" > "$db.dump"
+done
+cd .. && docker compose start qlawkus
+----
+
+*Restore* onto a stopped agent. Recreate the volume empty, unpack the files, and load each dump into the matching database:
+
+[source,bash]
+----
+docker compose stop qlawkus
+docker run --rm -v qlawkus_workspace:/data -v "$PWD/backup":/in alpine \
+  sh -c 'rm -rf /data/* /data/.[!.]* ; tar xzf /in/workspace.tgz -C /data'
+for db in qlawkus qlawkus_google_auth qlawkus_brag; do
+  docker compose exec -T postgres pg_restore -U qlawkus -d "$db" --clean --if-exists < "backup/$db.dump"
+done
+docker compose start qlawkus
+----
+
+Then open the console Overview: Health reads `UP` once the stores are readable, and the Memory page shows the facts and journals back. If the user, password or database name differ from the defaults, use the `POSTGRES_USER` and `POSTGRES_DB` values from your `.env`.
+
+On a `hybrid` build the markdown files are the source of truth for facts, journals and skills, so those come back from `workspace.tgz` alone: the boot-time reconcile (see below) rebuilds their Postgres mirror. The persona, the owner profile and working memory stay in Postgres only on that backend, and the Google credentials and Brag documents have no file form, so keep the dumps too. `./run.sh migrate-postgres` is a separate tool, for moving data out of an old PostgreSQL 17 volume.
+
 == Switching backends: reconcile and migrate
 
 The backend is build-time fixed, so changing it means rebuilding. Because each cognition store keeps a parallel markdown representation alongside its Postgres form, Qlawkus can move data between the two - something a plain embedding store cannot do, since langchain4j's `EmbeddingStore`/`ChatMemoryStore` SPIs are isolated silos with no second representation to sync against. Both operations live in the `qlawkus-cognition-pgvector` extension, so they only run in a `pgvector` or `hybrid` build (a markdown-only build has no Postgres side in-process).

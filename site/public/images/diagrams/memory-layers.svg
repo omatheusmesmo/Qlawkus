@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460" role="img" aria-labelledby="t d">
+  <title id="t">The memory layers behind every agent turn</title>
+  <desc id="d">Persona, owner profile and recalled facts are injected into the prompt every turn by SoulEngine and the retrieval augmentor. Working memory holds the last 40 messages. Transcripts and journals are searched or summarized by tools and background jobs. Each store is a markdown, pgvector or hybrid backend chosen at build time.</desc>
+  <style>
+    svg { --bg: #faf8f6; --surface: #ffffff; --text: #232027; --muted: #5f5a64; --border: #b9b2aa;
+          --accent: #b85609; --accent-fill: #fdf0e3; --up: #2f7d40; --up-fill: #e8f4ea;
+          --danger: #c0392b; --danger-fill: #fdeeec; --note: #3b6fb0; --note-fill: #e9f0f9; }
+    @media (prefers-color-scheme: dark) {
+      svg { --bg: #15131a; --surface: #1d1a23; --text: #ece9f0; --muted: #a9a3b1; --border: #5a5466;
+            --accent: #f2a45c; --accent-fill: #3a2a1a; --up: #63c27a; --up-fill: #173222;
+            --danger: #ef6f60; --danger-fill: #3a1f1d; --note: #7fa8dc; --note-fill: #1c2a3d; }
+    }
+    text { font-family: "Manrope", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: var(--text); font-size: 14px; }
+    .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+    .small { font-size: 12px; fill: var(--muted); }
+    .head { font-weight: 700; font-size: 15px; }
+    .box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+    .accent { fill: var(--accent-fill); stroke: var(--accent); stroke-width: 1.5; }
+    .up { fill: var(--up-fill); stroke: var(--up); stroke-width: 1.5; }
+    .danger { fill: var(--danger-fill); stroke: var(--danger); stroke-width: 1.5; }
+    .note { fill: var(--note-fill); stroke: var(--note); stroke-width: 1.5; }
+    .lane { fill: none; stroke: var(--border); stroke-width: 1; stroke-dasharray: 5 4; }
+    .line { stroke: var(--muted); stroke-width: 1.6; fill: none; }
+    .dash { stroke: var(--muted); stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+    .arrow { fill: var(--muted); }
+    .c { text-anchor: middle; }
+  </style>
+  <text x="20" y="28" class="head">Stores (one SPI each)</text>
+  <text x="340" y="28" class="head">Injected every turn</text>
+  <text x="640" y="28" class="head">Tools and background jobs</text>
+  <rect class="accent" x="20" y="44" width="230" height="50" rx="10"/>
+  <text x="135.0" y="64.0" class="head c">Persona</text>
+  <text x="135.0" y="82.0" class="small c">Soul, soul.md</text>
+  <rect class="accent" x="20" y="106" width="230" height="50" rx="10"/>
+  <text x="135.0" y="126.0" class="head c">Owner</text>
+  <text x="135.0" y="144.0" class="small c">UserProfile, owner.md</text>
+  <rect class="accent" x="20" y="168" width="230" height="50" rx="10"/>
+  <text x="135.0" y="188.0" class="head c">Facts</text>
+  <text x="135.0" y="206.0" class="small c">FactStore, vector index</text>
+  <rect class="box" x="20" y="230" width="230" height="50" rx="10"/>
+  <text x="135.0" y="250.0" class="head c">Working memory</text>
+  <text x="135.0" y="268.0" class="small c">last 40 messages</text>
+  <rect class="box" x="20" y="292" width="230" height="50" rx="10"/>
+  <text x="135.0" y="312.0" class="head c">Transcripts</text>
+  <text x="135.0" y="330.0" class="small c">source=transcript</text>
+  <rect class="box" x="20" y="354" width="230" height="50" rx="10"/>
+  <text x="135.0" y="374.0" class="head c">Journals</text>
+  <text x="135.0" y="392.0" class="small c">one per day</text>
+  <rect class="up" x="340" y="44" width="220" height="96" rx="10"/>
+  <text x="450.0" y="78.0" class="head c">SoulEngine</text>
+  <text x="450.0" y="96.0" class="small c">system message</text>
+  <text x="450.0" y="114.0" class="small c">persona + owner + skills</text>
+  <rect class="up" x="340" y="176" width="220" height="60" rx="10"/>
+  <text x="450.0" y="201.0" class="head c">Active Memory</text>
+  <text x="450.0" y="219.0" class="small c">relevant facts, no transcripts</text>
+  <rect class="box" x="340" y="270" width="220" height="60" rx="10"/>
+  <text x="450.0" y="295.0" class="head c">Model call</text>
+  <text x="450.0" y="313.0" class="small c">prompt + chat history + tools</text>
+  <line class="line" x1="250" y1="69" x2="340" y2="69"/>
+  <polygon class="arrow" points="340,69 330.0,74.0 330.0,64.0"/>
+  <line class="line" x1="250" y1="131" x2="340" y2="131"/>
+  <polygon class="arrow" points="340,131 330.0,136.0 330.0,126.0"/>
+  <line class="line" x1="250" y1="200" x2="340" y2="200"/>
+  <polygon class="arrow" points="340,200 330.0,205.0 330.0,195.0"/>
+  <line class="line" x1="250" y1="275" x2="340" y2="295"/>
+  <polygon class="arrow" points="340,295 329.2,297.7 331.3,287.9"/>
+  <line class="line" x1="450" y1="140" x2="450" y2="176"/>
+  <polygon class="arrow" points="450,176 445.0,166.0 455.0,166.0"/>
+  <line class="line" x1="450" y1="236" x2="450" y2="270"/>
+  <polygon class="arrow" points="450,270 445.0,260.0 455.0,260.0"/>
+  <rect class="note" x="640" y="44" width="240" height="62" rx="10"/>
+  <text x="760.0" y="70.0" class="head c">Semantic extractor</text>
+  <text x="760.0" y="88.0" class="small c">adds facts after each turn</text>
+  <rect class="note" x="640" y="122" width="240" height="62" rx="10"/>
+  <text x="760.0" y="148.0" class="head c">Review and curation</text>
+  <text x="760.0" y="166.0" class="small c">dedup facts, update owner</text>
+  <rect class="note" x="640" y="200" width="240" height="62" rx="10"/>
+  <text x="760.0" y="226.0" class="head c">Episodic consolidator</text>
+  <text x="760.0" y="244.0" class="small c">nightly journal, embedded as fact</text>
+  <rect class="note" x="640" y="278" width="240" height="62" rx="10"/>
+  <text x="760.0" y="304.0" class="head c">session_search tool</text>
+  <text x="760.0" y="322.0" class="small c">the model queries transcripts</text>
+  <rect class="box" x="20" y="420" width="860" height="30" rx="10"/>
+  <text x="450.0" y="439.0" class="c">Backend per store, chosen at build time: markdown (files, no database), pgvector, or hybrid (files plus a mirror)</text>
+</svg>
