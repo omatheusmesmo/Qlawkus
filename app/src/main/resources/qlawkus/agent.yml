@@ -23,6 +23,7 @@ build-time:
     - heartbeat
     - decision.nvidia
     - observability
+    - observability.langfuse
     - self-observe
     - web-search
     - web-fetch

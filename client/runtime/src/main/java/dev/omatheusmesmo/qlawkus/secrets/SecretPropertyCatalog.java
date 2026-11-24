@@ -18,6 +18,8 @@ public final class SecretPropertyCatalog {
             "quarkus.langchain4j.openai.\"primary\".api-key",
             "qlawkus.embedding.api-key",
             "qlawkus.decision.nvidia.api-key",
+            "quarkus.langfuse.public-key",
+            "quarkus.langfuse.secret-key",
             "qlawkus.admin.password-hash",
             "qlawkus.google.auth.client-secret",
             "qlawkus.google.vault.encryption-passphrase",

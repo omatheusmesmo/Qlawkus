@@ -1,0 +1,12 @@
+name: Qlawkus Langfuse Observability
+description: Export agent trace metadata to Langfuse.
+metadata:
+  keywords:
+    - qlawkus
+    - langfuse
+    - opentelemetry
+  categories:
+    - "observability"
+  status: "preview"
+  qlawkus:
+    capability: "observability.langfuse"

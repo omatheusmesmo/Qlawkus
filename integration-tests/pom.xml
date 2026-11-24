@@ -21,6 +21,7 @@
     <module>mcp-client</module>
     <module>skill-hub</module>
     <module>google</module>
+    <module>langfuse</module>
     <module>terminal</module>
     <module>smoke</module>
     <module>brag</module>

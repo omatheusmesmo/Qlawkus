@@ -86,6 +86,10 @@ include::includes/qlawkus-heartbeat.adoc[]
 
 include::includes/qlawkus-cognition-decision.adoc[]
 
+== Langfuse (qlawkus-observability-langfuse)
+
+include::includes/qlawkus-observability-langfuse.adoc[]
+
 == Messaging
 
 === Core
