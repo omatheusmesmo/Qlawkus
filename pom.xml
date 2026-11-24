@@ -31,6 +31,8 @@
 
   <properties>
     <compiler-plugin.version>3.16.0</compiler-plugin.version>
+    <!-- 1.7.25 accepts null application_id on Discord voice channels. Keep Discord4J on Reactor Netty 1.1. -->
+    <discord-json.version>1.7.25</discord-json.version>
     <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -45,6 +47,16 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>com.discord4j</groupId>
+        <artifactId>discord-json</artifactId>
+        <version>${discord-json.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.discord4j</groupId>
+        <artifactId>discord-json-api</artifactId>
+        <version>${discord-json.version}</version>
+      </dependency>
       <!-- Imported ahead of the platform so its langchain4j versions win (declaration order decides).
            Drop this import once the platform ships quarkus-langchain4j >= 1.14.2. -->
       <dependency>
