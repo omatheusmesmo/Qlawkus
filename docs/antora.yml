@@ -6,3 +6,5 @@ nav:
 asciidoc:
   attributes:
     page-toclevels: 3
+    image-root: ''
+    html-image-root: _images/

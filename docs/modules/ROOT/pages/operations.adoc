@@ -103,7 +103,7 @@ The lock is per host, which matches a ReadWriteOnce volume. It does not stop two
 
 On SIGTERM the agent drains before it exits, and the drain is waited on, not fired and forgotten. Each part that holds something registers a listener with the platform, which runs them in two ordered phases under one budget:
 
-image::../images/diagrams/shutdown-sequence.svg["On SIGTERM the agent waits the shutdown delay, refuses new work, then releases resources, all inside the shutdown timeout, which fits inside the Kubernetes grace period"]
+image::{image-root}diagrams/shutdown-sequence.svg["On SIGTERM the agent waits the shutdown delay, refuses new work, then releases resources, all inside the shutdown timeout, which fits inside the Kubernetes grace period"]
 
 * *preShutdown* refuses new work: the Telegram adapter stops polling.
 * *shutdown* releases resources: interactive shell sessions are closed, the Discord logout is awaited and the Telegram poll thread is joined.

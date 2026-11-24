@@ -78,7 +78,7 @@ sequenceDiagram
 
 The model call in that flow goes through a chain of tiers. The primary model answers while it is healthy; once its retries are exhausted and its circuit breaker opens, the secondary model of the same provider answers, and the local Ollama model is the last resort. A permanent provider error (401, 403, 404 or 410) is not handed on, since another tier would hide a revoked key or a retired model; readiness reports it instead. Background work runs on its own workload with its own breaker, so a nightly job that trips a rate limit never opens the one the owner's next message uses.
 
-image::../images/diagrams/model-chain.svg["A turn goes to the primary model, then the secondary on an open breaker, then Ollama; permanent errors are not handed on and background work stops at the primary when its bulkhead is full"]
+image::{image-root}diagrams/model-chain.svg["A turn goes to the primary model, then the secondary on an open breaker, then Ollama; permanent errors are not handed on and background work stops at the primary when its bulkhead is full"]
 
 == Reply language across channels
 
@@ -242,7 +242,7 @@ The defining idea is two deliberate choices that set Qlawkus apart from agents t
 
 See xref:memory.adoc[Memory] for the full treatment of this approach.
 
-image::../images/diagrams/memory-layers.svg["Persona, owner and recalled facts are injected every turn; working memory, transcripts and journals feed search and background jobs; each store is a markdown, pgvector or hybrid backend"]
+image::{image-root}diagrams/memory-layers.svg["Persona, owner and recalled facts are injected every turn; working memory, transcripts and journals feed search and background jobs; each store is a markdown, pgvector or hybrid backend"]
 
 * *Persona* - the agent's own `Soul` (mood, focus, identity), rendered into the system prompt. Persisted by a pluggable `SoulStore` (markdown `soul.md` or a Postgres table) on the same `qlawkus.cognition.backend` switch.
 * *Owner profile* - a `UserProfile` (the single person served) injected on every turn. Maintained by the `updateUserProfile` tool and refreshed nightly by the curation job. Persisted by a pluggable `UserProfileStore` (markdown `owner.md` or a Postgres table).

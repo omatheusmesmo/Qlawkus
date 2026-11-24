@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 970 330" width="970" height="330" role="img" aria-labelledby="t d">
+  <title id="t">How agent.yml becomes a running agent</title>
+  <desc id="d">The agent.yml manifest feeds the qlawkus:generate Maven goal, which edits pom.xml to add or remove capability dependencies. A normal Maven or Quarkus build then produces the agent artifact. The runtime section of the manifest skips the rebuild and is read on every boot.</desc>
+  <style>
+    svg { --bg: #faf8f6; --surface: #ffffff; --text: #232027; --muted: #5f5a64; --border: #b9b2aa;
+          --accent: #b85609; --accent-fill: #fdf0e3; --up: #2f7d40; --up-fill: #e8f4ea;
+          --danger: #c0392b; --danger-fill: #fdeeec; --note: #3b6fb0; --note-fill: #e9f0f9; }
+    @media (prefers-color-scheme: dark) {
+      svg { --bg: #15131a; --surface: #1d1a23; --text: #ece9f0; --muted: #a9a3b1; --border: #5a5466;
+            --accent: #f2a45c; --accent-fill: #3a2a1a; --up: #63c27a; --up-fill: #173222;
+            --danger: #ef6f60; --danger-fill: #3a1f1d; --note: #7fa8dc; --note-fill: #1c2a3d; }
+    }
+    text { font-family: "Manrope", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: var(--text); font-size: 14px; }
+    .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+    .small { font-size: 12px; fill: var(--muted); }
+    .head { font-weight: 700; font-size: 15px; }
+    .box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+    .accent { fill: var(--accent-fill); stroke: var(--accent); stroke-width: 1.5; }
+    .up { fill: var(--up-fill); stroke: var(--up); stroke-width: 1.5; }
+    .danger { fill: var(--danger-fill); stroke: var(--danger); stroke-width: 1.5; }
+    .note { fill: var(--note-fill); stroke: var(--note); stroke-width: 1.5; }
+    .lane { fill: none; stroke: var(--border); stroke-width: 1; stroke-dasharray: 5 4; }
+    .line { stroke: var(--muted); stroke-width: 1.6; fill: none; }
+    .dash { stroke: var(--muted); stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+    .arrow { fill: var(--muted); }
+    .c { text-anchor: middle; }
+  </style>
+  <rect class="accent" x="20" y="40" width="170" height="80" rx="10"/>
+  <text x="105.0" y="75.0" class="head c">agent.yml</text>
+  <text x="105.0" y="93.0" class="small c">build-time + runtime</text>
+  <rect class="box" x="240" y="40" width="200" height="80" rx="10"/>
+  <text x="340.0" y="75.0" class="head c">qlawkus:generate</text>
+  <text x="340.0" y="93.0" class="small c">Maven plugin, before build</text>
+  <rect class="box" x="490" y="40" width="190" height="80" rx="10"/>
+  <text x="585.0" y="75.0" class="head c">pom.xml</text>
+  <text x="585.0" y="93.0" class="small c">capability dependencies</text>
+  <rect class="up" x="790" y="40" width="160" height="80" rx="10"/>
+  <text x="870.0" y="75.0" class="head c">Agent artifact</text>
+  <text x="870.0" y="93.0" class="small c">JVM jar or native</text>
+  <line class="line" x1="190" y1="80" x2="240" y2="80"/>
+  <polygon class="arrow" points="240,80 230.0,85.0 230.0,75.0"/>
+  <line class="line" x1="440" y1="80" x2="490" y2="80"/>
+  <polygon class="arrow" points="490,80 480.0,85.0 480.0,75.0"/>
+  <line class="line" x1="680" y1="80" x2="790" y2="80"/>
+  <polygon class="arrow" points="790,80 780.0,85.0 780.0,75.0"/>
+  <text x="735" y="70" class="small c">mvn package</text>
+  <rect class="note" x="240" y="180" width="200" height="70" rx="10"/>
+  <text x="340.0" y="210.0" class="head c">Capability catalog</text>
+  <text x="340.0" y="228.0" class="small c">from quarkus-extension.yaml</text>
+  <line class="dash" x1="340" y1="180" x2="340" y2="122"/>
+  <polygon class="arrow" points="340,122 345.0,132.0 335.0,132.0"/>
+  <text x="350" y="158" class="small">resolves names</text>
+  <rect class="accent" x="20" y="230" width="220" height="70" rx="10"/>
+  <text x="130.0" y="260.0" class="head c">runtime section</text>
+  <text x="130.0" y="278.0" class="small c">overrides, read every boot</text>
+  <polyline class="dash" points="105,120 105,230"/>
+  <line class="dash" x1="240" y1="265" x2="870" y2="265"/>
+  <polygon class="arrow" points="870,265 860.0,270.0 860.0,260.0"/>
+  <line class="dash" x1="870" y1="265" x2="870" y2="122"/>
+  <polygon class="arrow" points="870,122 875.0,132.0 865.0,132.0"/>
+  <text x="555" y="285" class="small c">no rebuild: applied on the next restart</text>
+</svg>
