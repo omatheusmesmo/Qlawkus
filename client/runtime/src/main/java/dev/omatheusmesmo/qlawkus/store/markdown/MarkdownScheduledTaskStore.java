@@ -1,8 +1,5 @@
 package dev.omatheusmesmo.qlawkus.store.markdown;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
 import dev.omatheusmesmo.qlawkus.task.ScheduledTask;
@@ -42,9 +39,6 @@ public class MarkdownScheduledTaskStore implements ScheduledTaskStore {
     private static final String SUFFIX = ".json";
     private static final String TEMP_SUFFIX = ".tmp";
     private static final Pattern SAFE_ID = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,127}");
-    private static final ObjectMapper JSON = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     private final Path directory;
 
@@ -67,7 +61,7 @@ public class MarkdownScheduledTaskStore implements ScheduledTaskStore {
         try {
             Files.createDirectories(directory);
             Path temp = file.resolveSibling(file.getFileName() + TEMP_SUFFIX);
-            Files.writeString(temp, JSON.writeValueAsString(task), StandardCharsets.UTF_8);
+            Files.writeString(temp, ScheduledTaskJson.write(task), StandardCharsets.UTF_8);
             try {
                 Files.move(temp, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             } catch (AtomicMoveNotSupportedException e) {
@@ -127,7 +121,7 @@ public class MarkdownScheduledTaskStore implements ScheduledTaskStore {
         String name = file.getFileName().toString();
         String id = name.substring(0, name.length() - SUFFIX.length());
         try {
-            ScheduledTask task = JSON.readValue(file.toFile(), ScheduledTask.class);
+            ScheduledTask task = ScheduledTaskJson.read(Files.readString(file, StandardCharsets.UTF_8));
             if (!id.equals(task.id()) || task.status() == null) {
                 throw new IOException("the record does not belong to its file name");
             }
