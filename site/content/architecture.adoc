@@ -146,6 +146,16 @@ bounded by `qlawkus.file.edit.max-diff-chars` (default 12000, clamped to 512 to 
 preview is explicitly marked and is not a complete patch. The edit itself is fully applied.
 Set `qlawkus.file.edit.enabled=false` to disable this tool.
 
+== Multi-file patches
+
+`applyPatch` applies several workspace operations in one tool call. The model sends a
+`Begin Patch` / `End Patch` envelope: `Add File:` (path then full content), `Update File:`
+(same exact `<<<SEARCH` / `===` / `>>>` blocks as `editFile`), `Delete File:`, and
+`Move File:` with a following `To:` line. Operations run in order; the first failure stops
+the batch and leaves any earlier writes on disk. Each changed file contributes a bounded
+unified diff in the response, reusing `qlawkus.file.edit.max-diff-chars`.
+Set `qlawkus.file.patch.enabled=false` to disable this tool.
+
 Paths resolve from the configured workspace. Canonical path checks reject symlink escapes.
 Calls editing the same canonical path are serialized within the process. The file identity,
 modification time and bytes are checked again before the atomic replacement, which also
