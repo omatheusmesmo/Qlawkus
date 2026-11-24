@@ -37,6 +37,19 @@ public interface FileConfig {
      */
     Edit edit();
 
+    /**
+     * Multi-file patch envelope (add, update, delete, move) in a single tool call.
+     */
+    Patch patch();
+
+    interface Patch {
+        /**
+         * Enable the applyPatch tool. When false, calls return an error without touching files.
+         */
+        @WithDefault("true")
+        boolean enabled();
+    }
+
     interface Edit {
         /**
          * Enable exact text editing. Unmatched or ambiguous text never changes a file.

@@ -243,6 +243,10 @@ class FileEditToolTest {
                     public int maxDiffChars() { return maxDiff; }
                 };
             }
+
+            public Patch patch() {
+                return () -> true;
+            }
         };
         WorkspaceConfinement confinement = new WorkspaceConfinement();
         confinement.workspaceRoot = workspace.toString();
