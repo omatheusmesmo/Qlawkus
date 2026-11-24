@@ -178,7 +178,7 @@ The webhook path is `/api/webhook/telegram` (the Slack and WhatsApp adapters, wh
 
 == Documents and images
 
-Attach a PDF, PNG or JPEG in the console chat, or send it to the bot in Discord or Telegram. Add a question in the chat message or caption. With a file alone, Qlawkus describes its contents. Each file can contain up to 2 MiB. The console and Discord accept up to three files per message. Telegram analyzes each document or photo message separately. Webhook delivery of those updates requires the shared secret described above.
+In the console chat, the paperclip button next to the message box opens the file chooser. The chosen files appear above the message box with their size and a button to remove each one, and a file that is too large, empty or not a PDF, PNG or JPEG is refused as soon as it is chosen, with the reason. You can also send a file to the bot in Discord or Telegram. Add a question in the chat message or caption. With a file alone, Qlawkus describes its contents. Each file can contain up to 2 MiB. The console and Discord accept up to three files per message. Telegram analyzes each document or photo message separately. Webhook delivery of those updates requires the shared secret described above.
 
 The optional `attachments` capability uses LangChain4j multimodal inputs. Set `qlawkus.attachments.image-model` to a model tier that supports images, such as `fallback` with a compatible local Ollama model. Set `qlawkus.attachments.pdf-model` to a tier that supports PDF input to send the original PDF to that provider. Both settings accept `primary`, `secondary` and `fallback`. When selecting separate tiers for images and PDFs, send them in separate messages.
 

@@ -13,13 +13,23 @@
         <p class="chat-empty" id="chat-empty">Say something to start. Enter sends, Shift+Enter adds a line.</p>
     </div>
     <div class="chat-error" id="chat-error" role="alert" hidden></div>
-    <form class="chat-form" id="chat-form" data-endpoint="{endpoint}" data-tool-progress="{toolProgress}">
-        <label class="sr-only" for="chat-input">Message</label>
-        <textarea id="chat-input" name="message" rows="1" placeholder="Message the agent" autocomplete="off"></textarea>
-        <button type="submit" id="chat-send">Send</button>
+    <form class="chat-form" id="chat-form" data-endpoint="{endpoint}" data-tool-progress="{toolProgress}" data-max-files="3" data-max-bytes="2097152">
         {#if attachmentsEnabled}
-        <label for="chat-attachments">Attach PDF, PNG or JPEG</label>
-        <input type="file" id="chat-attachments" name="attachments" accept=".pdf,.png,.jpg,.jpeg" multiple>
+        <ul class="chat-files" id="chat-files" aria-label="Attached files" hidden></ul>
+        {/if}
+        <div class="chat-compose">
+            {#if attachmentsEnabled}
+            <button type="button" class="btn btn-secondary chat-attach" id="chat-attach" aria-label="Attach files" aria-controls="chat-attachments" aria-describedby="chat-attach-hint" title="Attach PDF, PNG or JPEG">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21.4 11.1l-9.2 9.2a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5"/></svg>
+            </button>
+            <input type="file" id="chat-attachments" name="attachments" accept=".pdf,.png,.jpg,.jpeg" multiple hidden>
+            {/if}
+            <label class="sr-only" for="chat-input">Message</label>
+            <textarea class="textarea chat-input" id="chat-input" name="message" rows="1" placeholder="Message the agent" autocomplete="off"></textarea>
+            <button type="submit" class="btn btn-primary" id="chat-send">Send</button>
+        </div>
+        {#if attachmentsEnabled}
+        <p class="sr-only" id="chat-attach-hint">PDF, PNG or JPEG, up to 3 files of 2 MiB each</p>
         {/if}
     </form>
 </section>
