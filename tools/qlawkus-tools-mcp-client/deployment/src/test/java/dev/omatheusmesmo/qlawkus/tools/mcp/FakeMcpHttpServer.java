@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.tools.mcp;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import java.time.Duration;
@@ -36,7 +36,7 @@ final class FakeMcpHttpServer implements AutoCloseable {
             request.body().onSuccess(body -> {
                 try {
                     JsonNode message = FakeMcpProtocol.JSON.readTree(body.getBytes());
-                    String method = message.path("method").asText();
+                    String method = message.path("method").asString();
                     requests.computeIfAbsent(method, ignored -> new AtomicInteger()).incrementAndGet();
                     if (redirectTo != null) {
                         request.response().setStatusCode(307).putHeader("Location", redirectTo).end();
@@ -71,7 +71,7 @@ final class FakeMcpHttpServer implements AutoCloseable {
                             request.response().putHeader("Content-Type", "application/json").end(response.toString());
                         }
                     };
-                    if (method.equals("tools/call") && message.path("params").path("name").asText().equals("slow")) {
+                    if (method.equals("tools/call") && message.path("params").path("name").asString().equals("slow")) {
                         vertx.setTimer(Math.max(1, toolDelay.toMillis()), ignored -> send.run());
                     } else {
                         send.run();

@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.heartbeat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.mcp;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import dev.langchain4j.service.tool.ToolProviderResult;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.config.SecretsConfig;
@@ -40,7 +41,7 @@ final class McpFixture implements AutoCloseable {
         secrets = new KeystoreSecretWriter(smallRye.getConfigMapping(SecretsConfig.class));
         config = smallRye.getConfigMapping(McpConfig.class);
         var agent = smallRye.getConfigMapping(AgentConfig.class);
-        registry = new McpRegistry(config, agent, secrets, new ObjectMapper(), vertx, null, executor,
+        registry = new McpRegistry(config, agent, secrets, JsonMapper.builder().build(), null, executor,
                 policy == null ? new McpEndpointPolicy(config.allowPrivateEndpoints()) : policy);
         var initialize = McpRegistry.class.getDeclaredMethod("initialize");
         initialize.setAccessible(true);

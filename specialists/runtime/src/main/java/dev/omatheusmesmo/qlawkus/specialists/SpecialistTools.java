@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.specialists;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
@@ -73,7 +73,7 @@ public class SpecialistTools {
             var ids = specialists == null ? null : Arrays.stream(specialists.split(",", -1)).map(String::strip).toList();
             try {
                 return json.writeValueAsString(runner.run(mode, ids, snapshot));
-            } catch (JsonProcessingException failure) {
+            } catch (JacksonException failure) {
                 throw SpecialistProblem.unavailable();
             }
         });

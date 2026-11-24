@@ -1,10 +1,10 @@
 package dev.omatheusmesmo.qlawkus.console.voice;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import dev.omatheusmesmo.qlawkus.agent.AgentEvent;
 import dev.omatheusmesmo.qlawkus.agent.AgentStream;
 import dev.omatheusmesmo.qlawkus.agent.AgentReplyStyle;
@@ -94,16 +94,16 @@ final class VoiceSession {
         JsonNode node;
         try {
             node = services.json().readTree(text);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             submit(() -> sendRaw(error(null, "invalid-message")));
             return;
         }
-        switch (node.path("type").asText("")) {
+        switch (node.path("type").asString("")) {
             case "start" -> startUtterance(node.path("sampleRate").asInt(DEFAULT_SAMPLE_RATE));
             case "utterance-end" -> endUtterance();
             case "interrupt" -> interrupt();
-            case "language" -> chooseLanguage(node.path("language").asText(""));
-            case "text" -> typedMessage(node.path("text").asText(""));
+            case "language" -> chooseLanguage(node.path("language").asString(""));
+            case "text" -> typedMessage(node.path("text").asString(""));
             case "stop" -> close("stopped", true);
             default -> submit(() -> sendRaw(error(null, "unknown-message")));
         }
@@ -462,7 +462,7 @@ final class VoiceSession {
         }
         try {
             connection.sendTextAndAwait(services.json().writeValueAsString(node));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Could not serialize a voice event", e);
         } catch (RuntimeException e) {
             Log.debugf("Voice send failed on %s: %s", connectionId, e.getClass().getSimpleName());

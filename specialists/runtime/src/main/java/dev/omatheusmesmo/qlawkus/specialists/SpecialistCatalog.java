@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.specialists;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import io.quarkus.logging.Log;

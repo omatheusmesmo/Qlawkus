@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.mcp;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.approval.ApprovedExecution;
@@ -111,7 +111,7 @@ public class McpManagementTool {
     private String render(Object value) {
         try {
             return json.writeValueAsString(value);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return "Error: MCP status could not be rendered.";
         }
     }

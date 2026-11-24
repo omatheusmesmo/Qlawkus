@@ -2,6 +2,8 @@ package dev.omatheusmesmo.qlawkus.tools.selfobserve;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
 import java.time.Duration;
@@ -15,12 +17,14 @@ import org.junit.jupiter.api.Test;
  * is unset, and a backend URL that is not HTTP.
  */
 class SelfObserveToolGateTest {
+private static final ObjectMapper JSON = JsonMapper.builder().build();
+
 
   @Test
   void disabledRefusesEveryToolAndSendsNothing() {
     RecordingHttp http = new RecordingHttp();
     SelfObserveTool tool = new SelfObserveTool(
-        new TestConfig(false, "http://prom", "http://tempo", "http://loki"), http);
+        new TestConfig(false, "http://prom", "http://tempo", "http://loki"), http, JSON);
 
     List<String> results = List.of(
         tool.queryMetrics("up", null),
@@ -35,7 +39,7 @@ class SelfObserveToolGateTest {
   @Test
   void anUnsetBackendIsNamedInsteadOfFailing() {
     RecordingHttp http = new RecordingHttp();
-    SelfObserveTool tool = new SelfObserveTool(new TestConfig(true, null, null, null), http);
+    SelfObserveTool tool = new SelfObserveTool(new TestConfig(true, null, null, null), http, JSON);
 
     assertTrue(tool.queryMetrics("up", null).contains("qlawkus.self-observe.prometheus-url"));
     assertTrue(tool.findTraces("{ status = error }", null).contains("qlawkus.self-observe.tempo-url"));
@@ -50,7 +54,7 @@ class SelfObserveToolGateTest {
   void aNonHttpBackendUrlIsRefused() {
     RecordingHttp http = new RecordingHttp();
     SelfObserveTool tool = new SelfObserveTool(
-        new TestConfig(true, "file:///etc", null, null), http);
+        new TestConfig(true, "file:///etc", null, null), http, JSON);
 
     assertTrue(tool.queryMetrics("up", null).contains("prometheus-url"));
     assertEquals(List.of(), http.calls);
@@ -60,7 +64,7 @@ class SelfObserveToolGateTest {
   void aBlankQueryIsRefused() {
     RecordingHttp http = new RecordingHttp();
     SelfObserveTool tool = new SelfObserveTool(
-        new TestConfig(true, "http://prom", "http://tempo", "http://loki"), http);
+        new TestConfig(true, "http://prom", "http://tempo", "http://loki"), http, JSON);
 
     assertTrue(tool.queryMetrics("  ", null).contains("PromQL"));
     assertTrue(tool.queryLogs(null, null).contains("LogQL"));
@@ -71,7 +75,7 @@ class SelfObserveToolGateTest {
   void anUnparseableLookbackIsRefused() {
     RecordingHttp http = new RecordingHttp();
     SelfObserveTool tool = new SelfObserveTool(
-        new TestConfig(true, "http://prom", "http://tempo", "http://loki"), http);
+        new TestConfig(true, "http://prom", "http://tempo", "http://loki"), http, JSON);
 
     assertTrue(tool.queryLogs("{a=\"b\"}", "yesterday").contains("lookback"));
     assertEquals(List.of(), http.calls);
@@ -81,7 +85,7 @@ class SelfObserveToolGateTest {
     final List<URI> calls = new ArrayList<>();
 
     RecordingHttp() {
-      super(new TestConfig(true, null, null, null), url -> jakarta.ws.rs.core.Response.ok("{}").build());
+      super(new TestConfig(true, null, null, null), url -> jakarta.ws.rs.core.Response.ok("{}").build(), JSON);
     }
 
     @Override

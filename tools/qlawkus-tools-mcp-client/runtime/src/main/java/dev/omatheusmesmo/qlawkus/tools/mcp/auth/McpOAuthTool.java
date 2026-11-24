@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.mcp.auth;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
@@ -24,7 +24,7 @@ public class McpOAuthTool {
             + "The browser must be able to authenticate to this Qlawkus console for the callback.")
     public String authorizeMcpConnection(@P("Configured MCP connection id") String id) {
         try { return json.writeValueAsString(oauth.begin(connection(id), null)); }
-        catch (McpRegistryException | JsonProcessingException failure) {
+        catch (McpRegistryException | JacksonException failure) {
             return "Error: MCP authorization could not be started.";
         }
     }
@@ -32,7 +32,7 @@ public class McpOAuthTool {
     @Tool("Check MCP OAuth authorization status without exposing tokens or contacting the provider.")
     public String mcpAuthorizationStatus(@P("Configured MCP connection id") String id) {
         try { return json.writeValueAsString(oauth.status(connection(id))); }
-        catch (McpRegistryException | JsonProcessingException failure) {
+        catch (McpRegistryException | JacksonException failure) {
             return "Error: MCP authorization status is unavailable.";
         }
     }
@@ -44,7 +44,7 @@ public class McpOAuthTool {
             McpConnection current = connection(id);
             registry.put(McpOAuthResource.disabled(current));
             return json.writeValueAsString(oauth.disconnect(current));
-        } catch (McpRegistryException | JsonProcessingException failure) {
+        } catch (McpRegistryException | JacksonException failure) {
             return "Error: MCP authorization could not be disconnected.";
         }
     }

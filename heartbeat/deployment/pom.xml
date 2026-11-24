@@ -14,6 +14,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-jackson-deployment</artifactId>
+        </dependency>
+        <dependency>
             <groupId>dev.omatheusmesmo</groupId>
             <artifactId>qlawkus-heartbeat</artifactId>
             <version>${project.version}</version>

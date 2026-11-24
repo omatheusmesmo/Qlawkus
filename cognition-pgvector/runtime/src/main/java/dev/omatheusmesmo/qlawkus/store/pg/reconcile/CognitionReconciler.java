@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.store.pg.reconcile;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.ChatMessage;
@@ -129,7 +129,7 @@ public class CognitionReconciler {
   }
 
   Stats reconcileFacts(Direction direction) {
-    MarkdownFactFiles files = new MarkdownFactFiles(Path.of(config.facts().root()));
+    MarkdownFactFiles files = new MarkdownFactFiles(Path.of(config.facts().root()), objectMapper);
     long toPg = 0;
     long toFiles = 0;
     if (direction.toPg()) {

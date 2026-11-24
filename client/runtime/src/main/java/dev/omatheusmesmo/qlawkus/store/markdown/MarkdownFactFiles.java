@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.store.markdown;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import io.quarkus.logging.Log;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -30,13 +30,12 @@ public class MarkdownFactFiles {
   private static final String CACHE_FILE = ".embeddings.json";
   private static final String CACHE_MODEL_FILE = ".embeddings.model";
   private static final String DELIMITER = "---";
-  private static final ObjectMapper MAPPER = new ObjectMapper();
-
   private final Path root;
   private final String cacheModel;
+  private final ObjectMapper mapper;
 
-  public MarkdownFactFiles(Path root) {
-    this(root, null);
+  public MarkdownFactFiles(Path root, ObjectMapper mapper) {
+    this(root, null, mapper);
   }
 
   /**
@@ -46,7 +45,8 @@ public class MarkdownFactFiles {
    * facts are re-embedded. Keying on the name rather than asking the model its dimension keeps a
    * fully cached boot offline. A null model disables the check.
    */
-  public MarkdownFactFiles(Path root, String cacheModel) {
+  public MarkdownFactFiles(Path root, String cacheModel, ObjectMapper mapper) {
+    this.mapper = mapper;
     this.root = root;
     this.cacheModel = cacheModel;
   }
@@ -121,7 +121,7 @@ public class MarkdownFactFiles {
       return new LinkedHashMap<>();
     }
     try {
-      Map<String, float[]> cache = MAPPER.readValue(Files.readString(file, StandardCharsets.UTF_8),
+      Map<String, float[]> cache = mapper.readValue(Files.readString(file, StandardCharsets.UTF_8),
           new TypeReference<LinkedHashMap<String, float[]>>() {});
       return cache == null ? new LinkedHashMap<>() : cache;
     } catch (IOException e) {
@@ -133,7 +133,7 @@ public class MarkdownFactFiles {
   public void saveCache(Map<String, float[]> cache) {
     try {
       Files.createDirectories(root);
-      Files.writeString(root.resolve(CACHE_FILE), MAPPER.writeValueAsString(cache),
+      Files.writeString(root.resolve(CACHE_FILE), mapper.writeValueAsString(cache),
           StandardCharsets.UTF_8);
       if (cacheModel != null) {
         Files.writeString(root.resolve(CACHE_MODEL_FILE), cacheModel, StandardCharsets.UTF_8);

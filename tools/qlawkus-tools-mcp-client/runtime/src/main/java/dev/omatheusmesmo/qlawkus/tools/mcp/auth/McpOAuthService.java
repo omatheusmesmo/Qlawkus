@@ -1,8 +1,8 @@
 package dev.omatheusmesmo.qlawkus.tools.mcp.auth;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import dev.omatheusmesmo.qlawkus.secrets.KeystoreSecretWriter;
 import dev.omatheusmesmo.qlawkus.tools.mcp.McpConfig;
 import dev.omatheusmesmo.qlawkus.tools.mcp.McpConnection;
@@ -256,7 +256,7 @@ public class McpOAuthService {
         for (int i = 0; failure != null && i < 4; i++, failure = failure.getCause()) {
             if (failure instanceof OidcClientException && failure.getMessage() != null && failure.getMessage().length() <= 32768) {
                 try {
-                    String code = json.readTree(failure.getMessage()).path("error").asText();
+                    String code = json.readTree(failure.getMessage()).path("error").asString();
                     if (code.equals("invalid_grant") || code.equals("invalid_token")) return true;
                 } catch (Exception ignored) { }
             }
@@ -275,9 +275,9 @@ public class McpOAuthService {
         try {
             require(value.length() <= 32768, "Invalid OAuth token bundle");
             JsonNode node = json.readTree(value);
-            if (!fingerprint(connection).equals(node.path("connection_hash").asText())) return null;
-            String access = token(node.path("access_token").asText(null));
-            String refresh = node.path("refresh_token").isTextual() ? token(node.path("refresh_token").asText()) : null;
+            if (!fingerprint(connection).equals(node.path("connection_hash").asString())) return null;
+            String access = token(node.path("access_token").asString(null));
+            String refresh = node.path("refresh_token").isTextual() ? token(node.path("refresh_token").asString()) : null;
             return new Bundle(access, refresh, node.path("expires_at").asLong(0));
         } catch (Exception failure) {
             throw new McpRegistryException("Invalid OAuth authorization in vault");

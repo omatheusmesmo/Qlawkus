@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.store.pg;
 
+import tools.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -45,23 +46,23 @@ public class HybridFactStore implements FactStore {
   @Inject
   public HybridFactStore(AgentConfig config, EmbeddingModel embeddingModel,
       EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository,
-      AgentMeters meters, PgWriteProbe writeProbe) {
+      AgentMeters meters, PgWriteProbe writeProbe, ObjectMapper json) {
     this(config.facts().root(), embeddingModel, embeddingStore, embeddingRepository,
         new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars()), meters,
-        writeProbe);
+        writeProbe, json);
   }
 
   HybridFactStore(String root, EmbeddingModel embeddingModel,
       EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository,
-      PgWriteProbe writeProbe) {
+      PgWriteProbe writeProbe, ObjectMapper json) {
     this(root, embeddingModel, embeddingStore, embeddingRepository, new FactChunker(1200, 120),
-        AgentMeters.disabled(), writeProbe);
+        AgentMeters.disabled(), writeProbe, json);
   }
 
   private HybridFactStore(String root, EmbeddingModel embeddingModel,
       EmbeddingStore<TextSegment> embeddingStore, EmbeddingRepository embeddingRepository,
-      FactChunker chunker, AgentMeters meters, PgWriteProbe writeProbe) {
-    this.files = new MarkdownFactFiles(Path.of(root));
+      FactChunker chunker, AgentMeters meters, PgWriteProbe writeProbe, ObjectMapper json) {
+    this.files = new MarkdownFactFiles(Path.of(root), json);
     this.embeddingModel = embeddingModel;
     this.embeddingStore = embeddingStore;
     this.embeddingRepository = embeddingRepository;

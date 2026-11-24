@@ -1,10 +1,11 @@
 package dev.omatheusmesmo.qlawkus.composition;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.exc.ValueInstantiationException;
+import tools.jackson.dataformat.yaml.YAMLMapper;
+import tools.jackson.dataformat.yaml.YAMLWriteFeature;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,9 +19,10 @@ import java.nio.file.Path;
  */
 public final class CompositionManifestParser {
 
-    private static final ObjectMapper YAML = new ObjectMapper(
-            new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
-            .setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+    private static final ObjectMapper YAML = YAMLMapper.builder()
+            .disable(YAMLWriteFeature.WRITE_DOC_START_MARKER)
+            .changeDefaultPropertyInclusion(value -> value.withValueInclusion(JsonInclude.Include.NON_EMPTY))
+            .build();
 
     private CompositionManifestParser() {
     }
@@ -33,7 +35,7 @@ public final class CompositionManifestParser {
     public static CompositionManifest parse(String yaml) {
         try {
             return require(YAML.readValue(yaml, CompositionManifest.class));
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw wrap(e);
         }
     }
@@ -46,7 +48,7 @@ public final class CompositionManifestParser {
     public static CompositionManifest parse(InputStream in) {
         try {
             return require(YAML.readValue(in, CompositionManifest.class));
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw wrap(e);
         }
     }
@@ -70,7 +72,7 @@ public final class CompositionManifestParser {
     public static String render(CompositionManifest manifest) {
         try {
             return YAML.writeValueAsString(manifest);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new InvalidManifestException("Cannot render manifest: " + e.getMessage(), e);
         }
     }
@@ -82,7 +84,7 @@ public final class CompositionManifestParser {
         return manifest;
     }
 
-    private static InvalidManifestException wrap(IOException e) {
+    private static InvalidManifestException wrap(JacksonException e) {
         Throwable cause = e instanceof ValueInstantiationException vie && vie.getCause() != null
                 ? vie.getCause()
                 : e;

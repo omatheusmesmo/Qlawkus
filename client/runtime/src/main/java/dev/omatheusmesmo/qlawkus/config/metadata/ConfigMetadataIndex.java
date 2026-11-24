@@ -1,7 +1,8 @@
 package dev.omatheusmesmo.qlawkus.config.metadata;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.inject.Inject;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import dev.omatheusmesmo.qlawkus.secrets.SecretPropertyCatalog;
 import io.quarkus.runtime.annotations.ConfigPhase;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -42,16 +43,18 @@ public class ConfigMetadataIndex {
     private static final String MODEL_LOCATION = "META-INF/quarkus-config-doc/quarkus-config-model.json";
     private static final String JAVADOC_LOCATION = "META-INF/quarkus-config-doc/quarkus-config-javadoc.json";
     private static final String ALLOWLIST_LOCATION = "qlawkus/config-editor-quarkus-allowlist.txt";
-    private static final ObjectMapper JSON = new ObjectMapper();
 
+    private final ObjectMapper json;
     private final List<ConfigRootMetadata> roots;
     private final Map<String, ConfigPropertyMetadata> byProperty;
 
-    public ConfigMetadataIndex() {
-        this(Thread.currentThread().getContextClassLoader());
+    @Inject
+    public ConfigMetadataIndex(ObjectMapper json) {
+        this(Thread.currentThread().getContextClassLoader(), json);
     }
 
-    ConfigMetadataIndex(ClassLoader loader) {
+    ConfigMetadataIndex(ClassLoader loader, ObjectMapper json) {
+        this.json = json;
         Map<String, String> javadoc = loadJavadoc(loader);
         Set<String> quarkusAllowlist = loadAllowlist(loader);
         List<ConfigRootMetadata> loadedRoots = new ArrayList<>();
@@ -89,15 +92,15 @@ public class ConfigMetadataIndex {
     }
 
     private static ConfigRootMetadata parseRoot(JsonNode root, Map<String, String> javadoc, Set<String> quarkusAllowlist) {
-        String prefix = root.path("prefix").asText("");
-        String extensionName = root.path("extension").path("name").asText(null);
+        String prefix = root.path("prefix").asString("");
+        String extensionName = root.path("extension").path("name").asString(null);
         List<ConfigPropertyMetadata> properties = new ArrayList<>();
         for (JsonNode item : root.path("items")) {
             if (!"io.quarkus.annotation.processor.documentation.config.model.ConfigProperty"
-                    .equals(item.path("@class").asText())) {
+                    .equals(item.path("@class").asString())) {
                 continue;
             }
-            String property = item.path("path").path("property").asText(null);
+            String property = item.path("path").path("property").asString(null);
             if (property == null || !inScope(property, quarkusAllowlist) || SecretPropertyCatalog.isSecret(property)) {
                 continue;
             }
@@ -115,17 +118,17 @@ public class ConfigMetadataIndex {
 
     private static ConfigPropertyMetadata parseProperty(JsonNode item, String property, String prefix,
                                                           Map<String, String> javadoc) {
-        String env = item.path("path").path("environmentVariable").asText(null);
-        ConfigPhase phase = parsePhase(item.path("phase").asText(null));
-        String type = item.path("type").asText(null);
-        String typeDescription = item.path("typeDescription").asText(null);
-        String defaultValue = item.hasNonNull("defaultValue") ? item.get("defaultValue").asText() : null;
+        String env = item.path("path").path("environmentVariable").asString(null);
+        ConfigPhase phase = parsePhase(item.path("phase").asString(null));
+        String type = item.path("type").asString(null);
+        String typeDescription = item.path("typeDescription").asString(null);
+        String defaultValue = item.hasNonNull("defaultValue") ? item.get("defaultValue").asString() : null;
         boolean optional = item.path("optional").asBoolean(false);
         List<String> allowedValues = new ArrayList<>();
         JsonNode values = item.path("enumAcceptedValues").path("values");
-        values.fieldNames().forEachRemaining(allowedValues::add);
-        String sourceType = item.path("sourceType").asText(null);
-        String sourceElementName = item.path("sourceElementName").asText(null);
+        values.propertyNames().forEach(allowedValues::add);
+        String sourceType = item.path("sourceType").asString(null);
+        String sourceElementName = item.path("sourceElementName").asString(null);
         String description = sourceType != null && sourceElementName != null
                 ? javadoc.get(sourceType + "." + sourceElementName)
                 : null;
@@ -144,12 +147,12 @@ public class ConfigMetadataIndex {
         }
     }
 
-    private static Map<String, String> loadJavadoc(ClassLoader loader) {
+    private Map<String, String> loadJavadoc(ClassLoader loader) {
         Map<String, String> merged = new LinkedHashMap<>();
         for (JsonNode doc : loadJsonDocs(loader, JAVADOC_LOCATION)) {
             JsonNode elements = doc.path("elements");
-            elements.fields().forEachRemaining(entry ->
-                    merged.put(entry.getKey(), entry.getValue().path("description").asText(null)));
+            elements.properties().forEach(entry ->
+                    merged.put(entry.getKey(), entry.getValue().path("description").asString(null)));
         }
         return merged;
     }
@@ -182,14 +185,14 @@ public class ConfigMetadataIndex {
         return allowlist;
     }
 
-    private static List<JsonNode> loadJsonDocs(ClassLoader loader, String location) {
+    private List<JsonNode> loadJsonDocs(ClassLoader loader, String location) {
         List<JsonNode> docs = new ArrayList<>();
         try {
             Enumeration<URL> resources = loader.getResources(location);
             while (resources.hasMoreElements()) {
                 URL url = resources.nextElement();
                 try (InputStream in = url.openStream()) {
-                    docs.add(JSON.readTree(in));
+                    docs.add(json.readTree(in));
                 }
             }
         } catch (IOException e) {

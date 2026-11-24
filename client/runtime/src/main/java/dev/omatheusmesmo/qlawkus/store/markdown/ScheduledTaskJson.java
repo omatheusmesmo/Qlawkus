@@ -1,9 +1,10 @@
 package dev.omatheusmesmo.qlawkus.store.markdown;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import dev.omatheusmesmo.qlawkus.task.ScheduledTask;
 import dev.omatheusmesmo.qlawkus.task.TaskDestination;
 import dev.omatheusmesmo.qlawkus.task.TaskStatus;
@@ -16,12 +17,12 @@ import java.time.Instant;
  */
 final class ScheduledTaskJson {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
     private ScheduledTaskJson() {
     }
 
-    static String write(ScheduledTask task) throws JsonProcessingException {
+    static String write(ScheduledTask task) {
         ObjectNode node = MAPPER.createObjectNode();
         node.put("id", task.id());
         node.put("memoryId", task.memoryId());
@@ -41,7 +42,7 @@ final class ScheduledTaskJson {
         return MAPPER.writeValueAsString(node);
     }
 
-    static ScheduledTask read(String json) throws JsonProcessingException {
+    static ScheduledTask read(String json) {
         JsonNode node = MAPPER.readTree(json);
         if (node == null || !node.isObject()) {
             throw new IllegalArgumentException("not a task record");

@@ -5,7 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import java.net.URI;
@@ -39,7 +40,7 @@ class InteractiveShellToolTest {
                 """;
         var start = request(http, "POST", "start?cmd=" + encode(command));
         assertEquals(200, start.statusCode(), start.body());
-        String session = new ObjectMapper().readTree(start.body()).path("sessionId").asText();
+        String session = JsonMapper.builder().build().readTree(start.body()).path("sessionId").asString();
         assertTrue(session.matches("[0-9a-f-]{36}"), start.body());
 
         try {

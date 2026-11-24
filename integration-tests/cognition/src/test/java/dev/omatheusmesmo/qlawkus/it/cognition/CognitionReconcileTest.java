@@ -37,6 +37,8 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,6 +52,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @QuarkusTest
 @ConnectWireMock
 class CognitionReconcileTest {
+private static final ObjectMapper JSON = JsonMapper.builder().build();
+
 
   private static final LocalDate JOURNAL_DATE = LocalDate.of(2026, 1, 2);
   private static final String CONVERSATION = "recon-conv";
@@ -144,7 +148,7 @@ class CognitionReconcileTest {
   }
 
   private MarkdownFactFiles factFiles() {
-    return new MarkdownFactFiles(Path.of(config.facts().root()));
+    return new MarkdownFactFiles(Path.of(config.facts().root()), JSON);
   }
 
   private MarkdownEpisodicFiles journalFiles() {

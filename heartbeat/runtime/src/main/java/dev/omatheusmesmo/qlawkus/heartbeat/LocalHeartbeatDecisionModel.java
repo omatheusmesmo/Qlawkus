@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.heartbeat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -48,7 +48,7 @@ class LocalHeartbeatDecisionModel implements HeartbeatDecisionModel {
                 throw new IllegalArgumentException("The heartbeat decision must not call tools.");
             }
             return HeartbeatDecision.from(response.aiMessage().text(), response.tokenUsage());
-        } catch (JsonProcessingException failure) {
+        } catch (JacksonException failure) {
             throw new IllegalArgumentException("Could not encode heartbeat decision input.");
         }
     }

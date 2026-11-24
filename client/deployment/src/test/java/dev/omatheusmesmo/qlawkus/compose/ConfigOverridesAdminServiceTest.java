@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import dev.omatheusmesmo.qlawkus.config.InvalidConfigOverrideException;
 import dev.omatheusmesmo.qlawkus.config.metadata.ConfigMetadataIndex;
@@ -24,8 +26,10 @@ import org.junit.jupiter.api.io.TempDir;
  * {@code client} rather than synthetic ones.
  */
 class ConfigOverridesAdminServiceTest {
+private static final ObjectMapper JSON = JsonMapper.builder().build();
 
-    private static final ConfigMetadataIndex METADATA = new ConfigMetadataIndex();
+
+    private static final ConfigMetadataIndex METADATA = new ConfigMetadataIndex(JSON);
 
     // qlawkus.composition.manifest is BUILD_TIME; qlawkus.memory-curation.enabled is RUN_TIME.
     private static final String BUILD_TIME_PROPERTY = "qlawkus.composition.manifest";

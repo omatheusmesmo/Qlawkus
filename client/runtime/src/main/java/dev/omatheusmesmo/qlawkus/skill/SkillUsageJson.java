@@ -1,9 +1,10 @@
 package dev.omatheusmesmo.qlawkus.skill;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -15,12 +16,12 @@ import java.util.Map;
  */
 final class SkillUsageJson {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
   private SkillUsageJson() {
   }
 
-  static Map<String, SkillUsage> read(String json) throws JsonProcessingException {
+  static Map<String, SkillUsage> read(String json) {
     Map<String, SkillUsage> usage = new LinkedHashMap<>();
     JsonNode root = MAPPER.readTree(json);
     if (root == null || !root.isObject()) {
@@ -30,7 +31,7 @@ final class SkillUsageJson {
     return usage;
   }
 
-  static String write(Map<String, SkillUsage> usage) throws JsonProcessingException {
+  static String write(Map<String, SkillUsage> usage) {
     ObjectNode root = MAPPER.createObjectNode();
     usage.forEach((name, value) -> root.set(name, node(value)));
     return MAPPER.writeValueAsString(root);

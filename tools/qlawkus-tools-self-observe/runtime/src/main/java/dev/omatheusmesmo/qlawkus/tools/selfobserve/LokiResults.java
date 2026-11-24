@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.tools.selfobserve;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -24,14 +24,14 @@ final class LokiResults {
 
   static Rendering render(JsonNode root, int maxResults) {
     JsonNode data = root.path("data");
-    if (!data.path("resultType").asText().equals("streams")) {
+    if (!data.path("resultType").asString().equals("streams")) {
       return PrometheusResults.render("Loki", root, maxResults);
     }
     List<Entry> entries = new ArrayList<>();
     for (JsonNode stream : data.path("result")) {
       String level = level(stream.path("stream"));
       for (JsonNode value : stream.path("values")) {
-        entries.add(new Entry(value.path(0).asLong(), level, value.path(1).asText("")));
+        entries.add(new Entry(value.path(0).asLong(), level, value.path(1).asString("")));
       }
     }
     entries.sort(Comparator.comparingLong(Entry::nanos).reversed());
@@ -47,7 +47,7 @@ final class LokiResults {
 
   private static String level(JsonNode labels) {
     for (String label : LEVEL_LABELS) {
-      String value = labels.path(label).asText("");
+      String value = labels.path(label).asString("");
       if (!value.isBlank()) {
         return Rendering.flatten(value, 20);
       }

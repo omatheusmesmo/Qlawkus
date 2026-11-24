@@ -7,8 +7,9 @@ import static dev.omatheusmesmo.qlawkus.it.consolevoice.VoiceTestSupport.USER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import dev.langchain4j.data.message.UserMessage;
 import dev.omatheusmesmo.qlawkus.agent.AgentStream;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
@@ -86,7 +87,7 @@ class VoiceTurnsTest {
             VoiceClient.assertOrdered(events, "transcript", "text");
             VoiceClient.assertOrdered(events, "text", "audio");
             VoiceClient.assertOrdered(events, "audio", "turn-done");
-            assertEquals("what time is it", events.get(VoiceClient.indexOf(events, "transcript")).path("text").asText());
+            assertEquals("what time is it", events.get(VoiceClient.indexOf(events, "transcript")).path("text").asString());
             assertEquals(List.of("speech:First sentence.", "speech:Second sentence."), spokenSentences(events));
             assertTrue(ScriptedTranscriber.mimeTypes().contains("audio/wav"), "utterances go to STT as WAV");
         }
@@ -125,8 +126,8 @@ class VoiceTurnsTest {
             client.awaitType("ready");
             client.speakUtterance(3200);
             client.awaitTypeWhere("turn-done", event -> event.path("turn").asInt() == 1);
-            String displayed = client.snapshot().stream().filter(event -> "text".equals(event.path("type").asText()))
-                    .map(event -> event.path("chunk").asText()).collect(Collectors.joining());
+            String displayed = client.snapshot().stream().filter(event -> "text".equals(event.path("type").asString()))
+                    .map(event -> event.path("chunk").asString()).collect(Collectors.joining());
             assertEquals("Check the settings. Read the guide.", displayed);
             assertEquals(List.of("speech:Check the settings.", "speech:Read the guide."), spokenSentences(client.snapshot()));
         }
@@ -139,7 +140,7 @@ class VoiceTurnsTest {
         ScriptedTranscriber.say(ownerText);
         String conversation;
         try (VoiceClient client = open()) {
-            conversation = client.awaitType("ready").path("conversation").asText();
+            conversation = client.awaitType("ready").path("conversation").asString();
             client.speakUtterance(3200);
             client.awaitTypeWhere("turn-done", event -> event.path("turn").asInt() == 1);
         }
@@ -149,19 +150,19 @@ class VoiceTurnsTest {
                 .map(UserMessage.class::cast).anyMatch(message -> message.singleText().equals(ownerText)));
         String regularMessage = "ordinary text turn after spoken turn";
         agent.stream("voice-style-reset-check", regularMessage).collect().asList().await().atMost(Duration.ofSeconds(15));
-        ObjectMapper json = new ObjectMapper();
+        ObjectMapper json = JsonMapper.builder().build();
         boolean ordinaryRequestSeen = false;
         for (var request : wiremock.find(postRequestedFor(urlEqualTo("/api/chat")))) {
             JsonNode messages = json.readTree(request.getBodyAsString()).path("messages");
             boolean ordinary = false;
             for (JsonNode message : messages) {
-                if ("user".equals(message.path("role").asText()) && regularMessage.equals(message.path("content").asText())) ordinary = true;
+                if ("user".equals(message.path("role").asString()) && regularMessage.equals(message.path("content").asString())) ordinary = true;
             }
             if (ordinary) {
                 ordinaryRequestSeen = true;
                 for (JsonNode message : messages) {
-                    if ("system".equals(message.path("role").asText())) {
-                        assertTrue(!message.path("content").asText().contains("Spoken conversation"),
+                    if ("system".equals(message.path("role").asString())) {
+                        assertTrue(!message.path("content").asString().contains("Spoken conversation"),
                                 "speech presentation must not leak into an ordinary turn on the same worker");
                     }
                 }
@@ -191,7 +192,7 @@ class VoiceTurnsTest {
             client.awaitTypeWhere("turn-done", event -> event.path("turn").asInt() == 2);
 
             client.assertAllOfTypeAbsent("audio", event -> event.path("turn").asInt() == 1);
-            assertTrue(client.snapshot().stream().anyMatch(event -> "audio".equals(event.path("type").asText())
+            assertTrue(client.snapshot().stream().anyMatch(event -> "audio".equals(event.path("type").asString())
                     && event.path("turn").asInt() == 2), "the superseding turn is still spoken");
         }
     }
@@ -203,8 +204,8 @@ class VoiceTurnsTest {
 
     private static List<String> spokenSentences(List<JsonNode> events) {
         return events.stream()
-                .filter(event -> "audio".equals(event.path("type").asText()))
-                .map(event -> new String(Base64.getDecoder().decode(event.path("data").asText()),
+                .filter(event -> "audio".equals(event.path("type").asString()))
+                .map(event -> new String(Base64.getDecoder().decode(event.path("data").asString()),
                         StandardCharsets.UTF_8))
                 .toList();
     }

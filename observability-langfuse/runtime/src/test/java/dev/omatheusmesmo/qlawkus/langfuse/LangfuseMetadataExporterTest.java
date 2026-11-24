@@ -9,12 +9,38 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.sdk.trace.ReadWriteSpan;
 import io.opentelemetry.sdk.trace.ReadableSpan;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
+import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import org.junit.jupiter.api.Test;
 
 class LangfuseMetadataExporterTest {
+
+    /**
+     * OpenTelemetry SDK 1.67 hands out non-recording spans from a provider with no span processor,
+     * so the test registers one that does nothing.
+     */
+    private static final SpanProcessor RECORDING = new SpanProcessor() {
+        @Override
+        public void onStart(Context parentContext, ReadWriteSpan span) {
+        }
+
+        @Override
+        public boolean isStartRequired() {
+            return true;
+        }
+
+        @Override
+        public void onEnd(ReadableSpan span) {
+        }
+
+        @Override
+        public boolean isEndRequired() {
+            return true;
+        }
+    };
 
     @Test
     void keepsOnlyMetadataInTheLangfuseCopy() {
@@ -22,7 +48,7 @@ class LangfuseMetadataExporterTest {
                 .put("service.name", "qlawkus")
                 .put("host.name", "private-host")
                 .build());
-        try (var provider = SdkTracerProvider.builder().setResource(resource).build()) {
+        try (var provider = SdkTracerProvider.builder().setResource(resource).addSpanProcessor(RECORDING).build()) {
             var tracer = provider.get("test");
             var turn = tracer.spanBuilder("private span name").startSpan();
             var tool = tracer.spanBuilder("private tool span name")

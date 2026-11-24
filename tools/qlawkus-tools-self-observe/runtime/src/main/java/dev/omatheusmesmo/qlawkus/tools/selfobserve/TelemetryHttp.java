@@ -1,7 +1,8 @@
 package dev.omatheusmesmo.qlawkus.tools.selfobserve;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import dev.omatheusmesmo.qlawkus.http.TransientHttpException;
 import io.smallrye.faulttolerance.api.ExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -40,12 +41,13 @@ public class TelemetryHttp {
 
   private final SelfObserveConfig config;
   private final TelemetryQueryClient client;
-  private final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper mapper;
 
   @Inject
-  public TelemetryHttp(SelfObserveConfig config, @RestClient TelemetryQueryClient client) {
+  public TelemetryHttp(SelfObserveConfig config, @RestClient TelemetryQueryClient client, ObjectMapper mapper) {
     this.config = config;
     this.client = client;
+    this.mapper = mapper;
   }
 
   @Retry(maxRetries = 3, delay = 500, delayUnit = ChronoUnit.MILLIS,
@@ -107,11 +109,11 @@ public class TelemetryHttp {
     try {
       JsonNode json = mapper.readTree(body);
       if (json != null && json.hasNonNull("error")) {
-        text = json.path("error").asText();
+        text = json.path("error").asString();
       } else if (json != null && json.hasNonNull("message")) {
-        text = json.path("message").asText();
+        text = json.path("message").asString();
       }
-    } catch (IOException e) {
+    } catch (JacksonException e) {
       text = body;
     }
     return Rendering.flatten(text.isBlank() ? "(no detail)" : text, MAX_ERROR_CHARS);

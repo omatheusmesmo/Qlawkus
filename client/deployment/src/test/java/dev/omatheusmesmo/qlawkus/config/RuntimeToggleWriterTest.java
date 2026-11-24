@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import dev.omatheusmesmo.qlawkus.config.metadata.ConfigMetadataIndex;
 import java.nio.file.Path;
@@ -17,8 +19,10 @@ import org.junit.jupiter.api.io.TempDir;
  * {@code client} rather than synthetic ones.
  */
 class RuntimeToggleWriterTest {
+private static final ObjectMapper JSON = JsonMapper.builder().build();
 
-    private static final ConfigMetadataIndex METADATA = new ConfigMetadataIndex();
+
+    private static final ConfigMetadataIndex METADATA = new ConfigMetadataIndex(JSON);
 
     // qlawkus.memory-curation.enabled is RUN_TIME; qlawkus.composition.manifest is BUILD_TIME.
     private static final String RUN_TIME_PROPERTY = "qlawkus.memory-curation.enabled";

@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.heartbeat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import dev.omatheusmesmo.qlawkus.heartbeat.HeartbeatDecision.Action;
 import dev.omatheusmesmo.qlawkus.heartbeat.HeartbeatRun.Outcome;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
@@ -189,7 +189,7 @@ class HeartbeatServiceTest {
         final TestDelivery delivery = new TestDelivery();
         final SimpleMeterRegistry meters = new SimpleMeterRegistry();
         final HeartbeatStateFile state = new HeartbeatStateFile(directory.resolve("heartbeat.json"),
-                new ObjectMapper().registerModule(new JavaTimeModule()));
+                JsonMapper.builder().build());
         final AtomicInteger modelCalls = new AtomicInteger();
         final AtomicReference<HeartbeatDecision> answer = new AtomicReference<>(new HeartbeatDecision(Action.NO_OP, 10));
         final AtomicReference<HeartbeatObservations> observed = new AtomicReference<>(new HeartbeatObservations(3, 2, "fixture", true));

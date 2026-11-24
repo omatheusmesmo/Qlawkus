@@ -1,14 +1,15 @@
 package dev.omatheusmesmo.qlawkus.tools.mcp;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import java.util.Map;
 import java.util.Set;
 
 /** Small test server protocol; the code under test remains the released upstream MCP transport. */
 final class FakeMcpProtocol {
-    static final ObjectMapper JSON = new ObjectMapper();
+    static final ObjectMapper JSON = JsonMapper.builder().build();
     static final String MODERN = "2026-07-28";
     static final String LEGACY = "2025-11-25";
     static final String STDERR_SENTINEL = "MCP_FIXTURE_STDERR_DO_NOT_LOG";
@@ -22,7 +23,7 @@ final class FakeMcpProtocol {
         ObjectNode response = JSON.createObjectNode().put("jsonrpc", "2.0");
         response.set("id", request.get("id"));
         ObjectNode result = response.putObject("result");
-        switch (request.path("method").asText()) {
+        switch (request.path("method").asString()) {
             case "server/discover" -> {
                 result.put("resultType", "complete");
                 result.putArray("supportedVersions").add(MODERN);
@@ -51,11 +52,11 @@ final class FakeMcpProtocol {
                 }
             }
             case "tools/call" -> {
-                String name = request.path("params").path("name").asText();
+                String name = request.path("params").path("name").asString();
                 String text = switch (name) {
                     case "environment" -> environmentCheck(environment);
                     case "pid" -> Long.toString(ProcessHandle.current().pid());
-                    default -> output == null ? "echo:" + request.path("params").path("arguments").path("value").asText()
+                    default -> output == null ? "echo:" + request.path("params").path("arguments").path("value").asString()
                             : output;
                 };
                 result.putArray("content").addObject().put("type", "text").put("text", text);

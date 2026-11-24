@@ -5,8 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import dev.omatheusmesmo.qlawkus.agent.AgentEvent;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;
@@ -34,7 +35,7 @@ import org.junit.jupiter.api.Test;
 @ConnectWireMock
 class ApiResourceToolEventsTest {
 
-  private static final ObjectMapper JSON = new ObjectMapper();
+  private static final ObjectMapper JSON = JsonMapper.builder().build();
   private static final String LONG_ARGUMENT = "skill-" + "x".repeat(120);
 
   WireMock wiremock;
@@ -77,11 +78,11 @@ class ApiResourceToolEventsTest {
     assertEquals("All done.", text.data(), "the text event keeps the bare data: line and no event name");
 
     JsonNode start = json(events.get(0));
-    assertEquals("viewSkill", start.get("name").asText());
-    assertTrue(start.get("id").asText().length() > 0);
+    assertEquals("viewSkill", start.get("name").asString());
+    assertTrue(start.get("id").asString().length() > 0);
     JsonNode end = json(events.get(1));
-    assertEquals(start.get("id").asText(), end.get("id").asText(), "start and end of one call share the id");
-    assertEquals("viewSkill", end.get("name").asText());
+    assertEquals(start.get("id").asString(), end.get("id").asString(), "start and end of one call share the id");
+    assertEquals("viewSkill", end.get("name").asString());
     assertTrue(end.get("ok").asBoolean());
     assertTrue(end.get("durationMs").asLong() >= 0);
     assertFalse(end.has("result"), "a tool result can be large and carry third-party text, so it never streams");
@@ -95,7 +96,7 @@ class ApiResourceToolEventsTest {
   void previewIsTheDefaultAndTruncatesArgumentsToFortyCharacters() {
     JsonNode start = json(chat("{\"message\": \"load the skill\"}").get(0));
 
-    String detail = start.get("arguments").asText();
+    String detail = start.get("arguments").asString();
     assertTrue(detail.length() <= 43, "preview keeps 40 characters plus the marker: " + detail);
     assertTrue(detail.contains("skill-xxx"));
   }
@@ -104,7 +105,7 @@ class ApiResourceToolEventsTest {
   void statusSendsNamesOnly() {
     JsonNode start = json(chat("{\"message\": \"load the skill\", \"toolProgress\": \"status\"}").get(0));
 
-    assertEquals("viewSkill", start.get("name").asText());
+    assertEquals("viewSkill", start.get("name").asString());
     assertFalse(start.has("arguments"), "status mode never sends argument detail");
   }
 
@@ -112,7 +113,7 @@ class ApiResourceToolEventsTest {
   void verboseSendsArgumentsTruncatedToThreeHundredCharacters() {
     JsonNode start = json(chat("{\"message\": \"load the skill\", \"toolProgress\": \"verbose\"}").get(0));
 
-    String arguments = start.get("arguments").asText();
+    String arguments = start.get("arguments").asString();
     assertTrue(arguments.contains(LONG_ARGUMENT), "verbose carries the whole argument that fits");
     assertTrue(arguments.length() <= 303);
   }

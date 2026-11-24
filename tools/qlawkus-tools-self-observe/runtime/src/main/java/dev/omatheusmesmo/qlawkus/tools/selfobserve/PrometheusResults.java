@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.tools.selfobserve;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,17 +18,17 @@ final class PrometheusResults {
 
   static Rendering render(String backend, JsonNode root, int maxResults) {
     JsonNode data = root.path("data");
-    String type = data.path("resultType").asText("");
+    String type = data.path("resultType").asString("");
     JsonNode result = data.path("result");
     if (type.equals("scalar") || type.equals("string")) {
-      return new Rendering(backend + ": a " + type + ".", type + " " + result.path(1).asText());
+      return new Rendering(backend + ": a " + type + ".", type + " " + result.path(1).asString());
     }
     List<String> lines = new ArrayList<>();
     for (int i = 0; i < result.size() && i < maxResults; i++) {
       JsonNode series = result.get(i);
       String labels = labels(series.path("metric"));
       lines.add(type.equals("matrix") ? labels + "  " + summarize(series.path("values"))
-          : labels + "  " + series.path("value").path(1).asText());
+          : labels + "  " + series.path("value").path(1).asString());
     }
     String summary = backend + ": " + result.size() + " series."
         + Rendering.omitted(result.size(), lines.size(), "series");
@@ -36,11 +36,11 @@ final class PrometheusResults {
   }
 
   private static String labels(JsonNode metric) {
-    String name = metric.path("__name__").asText("");
+    String name = metric.path("__name__").asString("");
     List<String> pairs = new ArrayList<>();
     for (Map.Entry<String, JsonNode> label : metric.properties()) {
       if (!label.getKey().equals("__name__")) {
-        pairs.add(label.getKey() + "=\"" + label.getValue().asText() + "\"");
+        pairs.add(label.getKey() + "=\"" + label.getValue().asString() + "\"");
       }
     }
     return name + "{" + String.join(",", pairs) + "}";
@@ -53,7 +53,7 @@ final class PrometheusResults {
     String min = null;
     String max = null;
     for (JsonNode point : values) {
-      String value = point.path(1).asText();
+      String value = point.path(1).asString();
       if (min == null || number(value) < number(min)) {
         min = value;
       }
@@ -61,7 +61,7 @@ final class PrometheusResults {
         max = value;
       }
     }
-    String last = values.get(values.size() - 1).path(1).asText();
+    String last = values.get(values.size() - 1).path(1).asString();
     return "points=" + values.size() + " min=" + min + " max=" + max + " last=" + last;
   }
 

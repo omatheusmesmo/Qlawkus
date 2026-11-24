@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.audit;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import java.time.Instant;
 import java.util.UUID;
 

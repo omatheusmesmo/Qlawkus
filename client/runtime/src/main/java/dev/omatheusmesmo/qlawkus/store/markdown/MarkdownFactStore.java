@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.store.markdown;
 
+import tools.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -56,32 +57,35 @@ public class MarkdownFactStore implements FactStore {
 
   @Inject
   public MarkdownFactStore(AgentConfig config, EmbeddingModel embeddingModel, AgentMeters meters,
-      @ConfigProperty(name = "qlawkus.embedding.model-name") Optional<String> embeddingModelName) {
+      @ConfigProperty(name = "qlawkus.embedding.model-name") Optional<String> embeddingModelName,
+      ObjectMapper json) {
     this(config.facts().root(), embeddingModel,
         new FactChunker(config.facts().chunkMaxChars(), config.facts().chunkOverlapChars()), meters,
-        embeddingModelName.orElse(null));
+        embeddingModelName.orElse(null), json);
   }
 
-  public MarkdownFactStore(String root, EmbeddingModel embeddingModel, String embeddingModelName) {
-    this(root, embeddingModel, new FactChunker(1200, 120), AgentMeters.disabled(), embeddingModelName);
+  public MarkdownFactStore(String root, EmbeddingModel embeddingModel, String embeddingModelName,
+      ObjectMapper json) {
+    this(root, embeddingModel, new FactChunker(1200, 120), AgentMeters.disabled(), embeddingModelName, json);
   }
 
-  public MarkdownFactStore(String root, EmbeddingModel embeddingModel) {
-    this(root, embeddingModel, new FactChunker(1200, 120));
-  }
-
-  public MarkdownFactStore(String root, EmbeddingModel embeddingModel, FactChunker chunker) {
-    this(root, embeddingModel, chunker, AgentMeters.disabled());
+  public MarkdownFactStore(String root, EmbeddingModel embeddingModel, ObjectMapper json) {
+    this(root, embeddingModel, new FactChunker(1200, 120), json);
   }
 
   public MarkdownFactStore(String root, EmbeddingModel embeddingModel, FactChunker chunker,
-      AgentMeters meters) {
-    this(root, embeddingModel, chunker, meters, null);
+      ObjectMapper json) {
+    this(root, embeddingModel, chunker, AgentMeters.disabled(), json);
+  }
+
+  public MarkdownFactStore(String root, EmbeddingModel embeddingModel, FactChunker chunker,
+      AgentMeters meters, ObjectMapper json) {
+    this(root, embeddingModel, chunker, meters, null, json);
   }
 
   private MarkdownFactStore(String root, EmbeddingModel embeddingModel, FactChunker chunker,
-      AgentMeters meters, String embeddingModelName) {
-    this.files = new MarkdownFactFiles(Path.of(root), embeddingModelName);
+      AgentMeters meters, String embeddingModelName, ObjectMapper json) {
+    this.files = new MarkdownFactFiles(Path.of(root), embeddingModelName, json);
     this.embeddingModel = embeddingModel;
     this.chunker = chunker;
     this.meters = meters;

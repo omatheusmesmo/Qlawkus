@@ -1,7 +1,8 @@
 package dev.omatheusmesmo.qlawkus.it.markdown;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
@@ -80,13 +81,13 @@ class DashboardMetricsTest {
 
     @Test
     void everyRatioPanelIsBoundedToOne() throws IOException {
-        JsonNode dashboard = new ObjectMapper().readTree(DASHBOARD.toFile());
+        JsonNode dashboard = JsonMapper.builder().build().readTree(DASHBOARD.toFile());
         Set<String> unbounded = new TreeSet<>();
         for (JsonNode panel : dashboard.path("panels")) {
             JsonNode defaults = panel.path("fieldConfig").path("defaults");
-            boolean ratio = "percentunit".equals(defaults.path("unit").asText());
+            boolean ratio = "percentunit".equals(defaults.path("unit").asString());
             if (ratio && (defaults.path("min").asDouble(-1) != 0 || defaults.path("max").asDouble(-1) != 1)) {
-                unbounded.add(panel.path("title").asText());
+                unbounded.add(panel.path("title").asString());
             }
         }
 
@@ -95,10 +96,10 @@ class DashboardMetricsTest {
     }
 
     private Set<String> queriedSeries() throws IOException {
-        JsonNode dashboard = new ObjectMapper().readTree(DASHBOARD.toFile());
+        JsonNode dashboard = JsonMapper.builder().build().readTree(DASHBOARD.toFile());
         Set<String> series = new TreeSet<>();
         for (JsonNode expr : dashboard.findValues("expr")) {
-            Matcher matcher = SERIES.matcher(expr.asText());
+            Matcher matcher = SERIES.matcher(expr.asString());
             while (matcher.find()) {
                 series.add(matcher.group());
             }

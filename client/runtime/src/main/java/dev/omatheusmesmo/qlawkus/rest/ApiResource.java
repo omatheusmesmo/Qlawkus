@@ -1,8 +1,8 @@
 package dev.omatheusmesmo.qlawkus.rest;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.AgentEvent;
 import dev.omatheusmesmo.qlawkus.agent.AgentService;
@@ -193,7 +193,7 @@ public class ApiResource {
         try {
             return sse.newEventBuilder().name(name)
                     .data(json.writeValueAsString(payload)).build();
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Could not serialize the " + name + " event", e);
         }
     }
