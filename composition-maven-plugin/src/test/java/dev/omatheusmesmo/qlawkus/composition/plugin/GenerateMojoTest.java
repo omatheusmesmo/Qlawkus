@@ -199,4 +199,81 @@ class GenerateMojoTest {
 
         assertEquals(afterFirst, afterSecond, "second run leaves the pom byte-identical");
     }
+
+    @Test
+    void updatesOnlyTheDirectDependencyEntries() throws Exception {
+        String excluded = """
+                    <dependency>
+                      <groupId>dev.omatheusmesmo</groupId>
+                      <artifactId>qlawkus-tools-brag</artifactId>
+                    </dependency>
+                """;
+        String selected = excluded.replace("qlawkus-tools-brag", "qlawkus-messaging-discord");
+        String directDependencies = """
+                  <dependencies>
+                    <!-- keep this: café -->
+                    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-arc</artifactId></dependency>
+                %s  </dependencies>
+                """;
+        String template = """
+                <project xmlns="http://maven.apache.org/POM/4.0.0">
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>dev.omatheusmesmo</groupId>
+                  <artifactId>my-agent</artifactId>
+                  <version>1.0.0</version> <!-- keep the skeleton -->
+                  <dependencyManagement>
+                    <dependencies>
+                %s    </dependencies>
+                  </dependencyManagement>
+                %s  <profiles>
+                    <profile>
+                      <id>example</id>
+                      <dependencies>
+                %s      </dependencies>
+                    </profile>
+                  </profiles>
+                </project>
+                """;
+        String original = template.formatted(excluded.indent(4), directDependencies.formatted(excluded), excluded.indent(6));
+        String expected = template.formatted(excluded.indent(4), directDependencies.formatted(selected), excluded.indent(6));
+        Path pom = Files.writeString(dir.resolve("pom.xml"), original.replace("\n", "\r\n"));
+
+        mojoFor(pom, discordManifest()).execute();
+
+        assertEquals(expected.replace("\n", "\r\n"), Files.readString(pom));
+    }
+
+    @Test
+    void createsADependencyBlockAndPreservesTheRestOfThePom() throws Exception {
+        String original = SKELETON_POM.replaceFirst("(?s)  <dependencies>.*?</dependencies>\n", "")
+                .replace("</project>", "  <!-- keep this -->\n</project>");
+        Path pom = Files.writeString(dir.resolve("pom.xml"), original);
+
+        mojoFor(pom, discordManifest()).execute();
+
+        String updated = Files.readString(pom);
+        assertTrue(updated.startsWith(original.substring(0, original.indexOf("</project>"))));
+        assertTrue(has(readPom(pom), "qlawkus-messaging-discord"));
+    }
+
+    @Test
+    void expandsASelfClosingDependenciesBlock() throws Exception {
+        String original = SKELETON_POM.replaceFirst("(?s)<dependencies>.*?</dependencies>", "<dependencies />");
+        Path pom = Files.writeString(dir.resolve("pom.xml"), original);
+
+        mojoFor(pom, discordManifest()).execute();
+
+        assertTrue(has(readPom(pom), "qlawkus-messaging-discord"));
+        assertTrue(Files.readString(pom).startsWith(original.substring(0, original.indexOf("<dependencies"))));
+    }
+
+    private Path discordManifest() throws Exception {
+        return Files.writeString(dir.resolve("agent.yml"), """
+                version: 1
+                build-time:
+                  default: disabled
+                  except:
+                    - messaging.discord
+                """);
+    }
 }

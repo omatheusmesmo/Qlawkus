@@ -61,7 +61,7 @@ By default the manifest lives at `src/main/resources/qlawkus/agent.yml`. Point e
 mvn qlawkus:generate
 ----
 
-The plugin reads the manifest, resolves the selected capabilities, and reconciles the pom's `<dependencies>` block in place: it adds the selected capabilities, removes the deselected ones, and leaves everything else (parent, plugins, container-image - the skeleton) untouched. It is idempotent, so a pom already in sync is left byte-identical. Capability dependencies are added with no version, managed by the platform BOM in your pom skeleton, exactly as `quarkus extension add` does.
+The plugin reads the manifest, resolves the selected capabilities, and updates their entries in the pom's top-level `<dependencies>` block. It preserves the comments and formatting around those entries and throughout the rest of the pom. Running the generator again with the same composition leaves the file byte-identical. Capability dependencies are added with no version, managed by the platform BOM in your pom skeleton, exactly as `quarkus extension add` does.
 
 Each run logs the resolved capability set (what it selected, what it left out), so the manifest's policy-and-exceptions shorthand never hides the full picture.
 

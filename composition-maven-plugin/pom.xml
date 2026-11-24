@@ -22,6 +22,7 @@
         <argLine></argLine>
         <maven.version>3.10.2</maven.version>
         <maven-plugin-tools.version>3.16.0</maven-plugin-tools.version>
+        <woodstox.version>7.2.0</woodstox.version>
         <!-- slf4j-api (test only): instantiating MavenProject in the reactor-catalog test triggers
              its static logger init. maven-core is provided, so slf4j is not otherwise on the test cp.
              Aligned with the slf4j Maven 3.10.x ships; the same dependency Quarkus's own maven-plugin tests pull. -->
@@ -43,6 +44,11 @@
             <groupId>dev.omatheusmesmo</groupId>
             <artifactId>qlawkus-composition-model</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.woodstox</groupId>
+            <artifactId>woodstox-core</artifactId>
+            <version>${woodstox.version}</version>
         </dependency>
 
         <dependency>
