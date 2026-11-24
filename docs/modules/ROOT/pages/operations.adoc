@@ -396,6 +396,8 @@ Both are build-time properties. The scrape on 9000 takes no credential, delibera
 
 If you build your own distribution, either keep the same split or put `/q/metrics` behind whichever auth mechanism you wired in. The extension deliberately imposes no policy, because the mechanism is the integrator's choice.
 
+`GET /api/admin/ops/dashboard` (authenticated) serves plain HTML with the registered tool names and per-tool invocation counters when a registry is present. When the management interface is enabled, the same page is also at `GET /q/dashboard` on port 9000, unauthenticated, by the same network boundary rule as `/q/metrics`. For interactive admin and Grafana links, use `/console` instead.
+
 == Troubleshooting
 
 === How to read an agent turn
