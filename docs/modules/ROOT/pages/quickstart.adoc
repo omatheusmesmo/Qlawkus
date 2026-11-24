@@ -2,6 +2,43 @@
 :page-title: Quick Start
 :page-description: Get Qlawkus running in minutes
 
+== Guide: first agent in ten minutes
+
+This guide takes a clean clone to a chat reply with nothing but Docker and an LLM key. It uses the containerized run, so no JDK or Maven is needed. Allow a few extra minutes the first time: the image compiles the whole project in the container.
+
+*1. Get the code.*
+
+[source,bash]
+----
+git clone https://github.com/omatheusmesmo/qlawkus.git
+cd qlawkus
+----
+
+*2. Create your settings.* Create a `.env` file in the repository root with three values: your provider key (`LLM_API_KEY`), a password for Grafana (`GRAFANA_ADMIN_PASSWORD`, since the bundled Grafana refuses to start without one) and an Argon2id hash of the password you will log in with (`QLAWKUS_ADMIN_PASSWORD_HASH`). The production profile refuses to boot without a credential, so the hash is not optional. See <<_authentication,Authentication>> and xref:secrets.adoc[Secrets] for generating the hash. Add `LLM_KIND` too when your provider is not NVIDIA.
+
+*3. Start the stack.*
+
+[source,bash]
+----
+./run.sh prod up
+----
+
+`up` checks that ports 8742, 5432 and 3000 are free, builds the image, starts the agent with PostgreSQL and the telemetry stack, and waits for `/q/health/ready` before it prints the URL. It exits non-zero with the last log lines if the agent does not come up.
+
+*4. Open the console.* Browse to `http://localhost:8742/console` and sign in as `qlawkus` with the password you chose. The Overview shows the Health and Model cards; both read `UP` once the agent can reach your provider. A setup banner at the top means a key is still missing: follow it to the setup wizard (see xref:console.adoc#_first_run_setup_wizard[the console guide]).
+
+*5. Say hello.* Open *Chat* in the sidebar and send a message. The reply streams in as it is written, and any tool the agent calls shows as a small card in the reply. The same call works from a terminal:
+
+[source,bash]
+----
+curl -X POST http://localhost:8742/api/chat/sync -u qlawkus:<your password> \
+  -H 'Content-Type: application/json' -d '{"message":"Hello, who are you?"}'
+----
+
+*6. Check it is learning.* Tell the agent something about yourself, then open *Memory*: the fact appears after the turn, and the agent will use it next time without being asked.
+
+If a step fails, `./run.sh prod logs` shows the agent's output and `./run.sh prod status` lists each service and its state. For the development setup (hot reload, no `.env`), use the sections below instead.
+
 == Prerequisites
 
 * Docker -- the only requirement for the containerized run modes below; their images compile the whole project in-container

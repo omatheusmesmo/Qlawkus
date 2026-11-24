@@ -97,6 +97,19 @@ That decides the rollout strategy. The reference Deployment uses `replicas: 1` w
 The lock is per host, which matches a ReadWriteOnce volume. It does not stop two instances on different hosts that share only a database (a `pgvector` backend with no shared state volume); keep those to one instance by deployment.
 ====
 
+== Shutdown and rollouts
+
+On SIGTERM the agent drains before it exits, and the drain is waited on, not fired and forgotten. Each part that holds something registers a listener with the platform, which runs them in two ordered phases under one budget:
+
+image::../images/diagrams/shutdown-sequence.svg["On SIGTERM the agent waits the shutdown delay, refuses new work, then releases resources, all inside the shutdown timeout, which fits inside the Kubernetes grace period"]
+
+* *preShutdown* refuses new work: the Telegram adapter stops polling.
+* *shutdown* releases resources: interactive shell sessions are closed, the Discord logout is awaited and the Telegram poll thread is joined.
+
+Running scheduled jobs are abandoned, not awaited. A nightly consolidation makes model calls and cannot fit any sane grace period, and the jobs are safe to cut because they are re-runnable: a second run converges on the same result.
+
+The reference stack sets `quarkus.shutdown.delay=3s` (so load balancers can stop sending traffic before it stops serving) and `quarkus.shutdown.timeout=20s` for every listener together, and the reference Deployment sets `terminationGracePeriodSeconds: 30`. Raise one without the other and a clean drain turns into a kill. The timeout also caps in-flight HTTP: an `/api/chat` stream can run for minutes, so a long turn is cut rather than holding the rollout. Working memory is append-only, so a cut turn loses a reply, not state.
+
 == PostgreSQL debug history
 
 The reference app keeps an execution history in the existing Postgres database. Distributions that include `cognition.pgvector` can enable it with `qlawkus.debug-history.enabled=true`. Read it using the same credentials as the other admin endpoints.
@@ -212,6 +225,33 @@ With tracing on, every tool call in a ReAct turn is its own span under the turn,
 * status ERROR, with the exception recorded, when the tool throws or returns an error result
 
 Tool arguments and results stay out of the span by default, since either can carry what the owner said. The upstream switches cover both kinds of tool: `quarkus.langchain4j.tracing.include-tool-arguments` and `quarkus.langchain4j.tracing.include-tool-result`, both runtime properties.
+
+=== Read an agent turn in Grafana
+
+This guide follows one slow or failed turn from the dashboard to the log lines that explain it. It assumes the bundled stack (`./run.sh prod`) and an owner signed in to Grafana with `admin` and the `GRAFANA_ADMIN_PASSWORD` from `.env`.
+
+*1. Start at the dashboard.* Open the console Overview and follow the Qlawkus dashboard link in the Observability card, or browse to `http://localhost:3000`, where the dashboard is the home page. The panels chart the turn latency, tool calls, retrieval and model fallbacks. A bump in fallbacks while the primary is healthy points at the model chain; a slow tool points at one tool.
+
+*2. Find the turn.* In Grafana, open *Explore* and pick the *Tempo* data source. Search for the slow or failed turns with TraceQL:
+
+[source,text]
+----
+{ status = error }
+{ name =~ "langchain4j.tools.*" && duration > 5s }
+----
+
+Open one result. The turn is the root span, and each tool call is a child named `langchain4j.tools.<tool name>`, so the waterfall shows how many tools ran, in what order and which one stalled.
+
+*3. Jump to its logs.* The Tempo and Loki data sources are linked both ways: use the logs button on the span to open the log lines written while it was current, matched on `trace_id`. They are the `Agent turn` line, one `Tool call` line per tool and, when a reply was sent, the `Reply delivery` line.
+
+*4. Read the outcome.* On the `Agent turn` line, `outcome` says `ok`, `error` or `cancelled`, `tier` says which model answered and `cause` names the root failure. <<_how_to_read_an_agent_turn,How to read an agent turn>> lists every field and what each failure means. To see the whole conversation around it, filter Loki on the `conversation` value that line names:
+
+[source,text]
+----
+|= "conversation=qlawkus-shared"
+----
+
+*5. Close the loop.* If the cause is a model tier, the console Overview Model card shows each breaker. If it is a tool, the tool's own span carries the error status and the recorded exception. Prompts, replies and tool arguments are never in either backend by default.
 
 === AI traces in Langfuse
 

@@ -4,6 +4,27 @@
 
 Qlawkus includes messaging adapters for Discord and Telegram with voice support. Slack and WhatsApp adapters exist but are not wired into the default `app/` module (only `qlawkus-messaging`, `qlawkus-messaging-discord`, and `qlawkus-messaging-telegram` are).
 
+== Connect a channel
+
+This is the shortest path to talking to the agent from your phone. It uses Telegram in polling mode, which needs no public URL; Discord follows the same four steps with its own variables (see <<_discord_bot,Discord Bot>>). It assumes the agent already runs (see xref:quickstart.adoc#_guide_first_agent_in_ten_minutes[the first-agent guide]).
+
+*1. Create the bot.* In Telegram, message @BotFather, send `/newbot`, follow the prompts and copy the token it gives you.
+
+*2. Find your user ID.* Message @userinfobot; it replies with your numeric ID. The agent answers only people on its allowlist, and an empty list rejects everyone, so this step is not optional.
+
+*3. Give the agent both values.* Either use the console's setup wizard (Phase B, after the capability is baked in), which stores the token in the keystore, or put them in `.env`:
+
+[source,bash]
+----
+QLAWKUS_MESSAGING_TELEGRAM_BOT_TOKEN=your-bot-token
+QLAWKUS_MESSAGING_TELEGRAM_MODE=polling
+QLAWKUS_MESSAGING_AUTH_ALLOWED_USERS_TELEGRAM=123456789
+----
+
+*4. Restart and test.* A change to `.env` needs the app container recreated: `./run.sh prod restart`. Then message your bot. A reply means the channel works. If nothing comes back, the startup log carries a WARN naming any channel whose allowlist is empty, and `/q/health/ready` lists each adapter.
+
+Because all channels share one conversation by default, what you say to the bot continues in the console chat and the other way round. Reminders the agent schedules for you and approval requests raised from a chat arrive in that chat; see xref:scheduler.adoc[Scheduler] and xref:approvals.adoc[Owner Approvals].
+
 == Conversation context
 
 When you chat with the agent via any channel (REST, Discord, Telegram), it keeps a working memory of the back-and-forth conversation. Two knobs govern that context, both on the `qlawkus.agent` root:

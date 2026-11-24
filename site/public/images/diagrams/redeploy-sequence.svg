@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-labelledby="t d">
+  <title id="t">The five-phase redeploy loop</title>
+  <desc id="d">A sequence between the owner, the running agent and the external redeploy loop. The owner stages a manifest through the admin API. The loop fetches it, promotes it into the source tree, builds, restarts the instance, verifies health, discards what it consumed and reports the run back to the agent.</desc>
+  <style>
+    svg { --bg: #faf8f6; --surface: #ffffff; --text: #232027; --muted: #5f5a64; --border: #b9b2aa;
+          --accent: #b85609; --accent-fill: #fdf0e3; --up: #2f7d40; --up-fill: #e8f4ea;
+          --danger: #c0392b; --danger-fill: #fdeeec; --note: #3b6fb0; --note-fill: #e9f0f9; }
+    @media (prefers-color-scheme: dark) {
+      svg { --bg: #15131a; --surface: #1d1a23; --text: #ece9f0; --muted: #a9a3b1; --border: #5a5466;
+            --accent: #f2a45c; --accent-fill: #3a2a1a; --up: #63c27a; --up-fill: #173222;
+            --danger: #ef6f60; --danger-fill: #3a1f1d; --note: #7fa8dc; --note-fill: #1c2a3d; }
+    }
+    text { font-family: "Manrope", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: var(--text); font-size: 14px; }
+    .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+    .small { font-size: 12px; fill: var(--muted); }
+    .head { font-weight: 700; font-size: 15px; }
+    .box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+    .accent { fill: var(--accent-fill); stroke: var(--accent); stroke-width: 1.5; }
+    .up { fill: var(--up-fill); stroke: var(--up); stroke-width: 1.5; }
+    .danger { fill: var(--danger-fill); stroke: var(--danger); stroke-width: 1.5; }
+    .note { fill: var(--note-fill); stroke: var(--note); stroke-width: 1.5; }
+    .lane { fill: none; stroke: var(--border); stroke-width: 1; stroke-dasharray: 5 4; }
+    .line { stroke: var(--muted); stroke-width: 1.6; fill: none; }
+    .dash { stroke: var(--muted); stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+    .arrow { fill: var(--muted); }
+    .c { text-anchor: middle; }
+  </style>
+  <rect class="box" x="20" y="14" width="180" height="36" rx="10"/>
+  <text x="110.0" y="36.0" class="head c">Owner</text>
+  <polyline class="dash" points="110,50 110,420"/>
+  <rect class="box" x="240" y="14" width="180" height="36" rx="10"/>
+  <text x="330.0" y="36.0" class="head c">Agent (running)</text>
+  <polyline class="dash" points="330,50 330,420"/>
+  <rect class="box" x="470" y="14" width="180" height="36" rx="10"/>
+  <text x="560.0" y="36.0" class="head c">Redeploy loop</text>
+  <polyline class="dash" points="560,50 560,420"/>
+  <rect class="box" x="700" y="14" width="180" height="36" rx="10"/>
+  <text x="790.0" y="36.0" class="head c">Builder + new agent</text>
+  <polyline class="dash" points="790,50 790,420"/>
+  <line class="line" x1="110" y1="82" x2="322" y2="82"/>
+  <polygon class="arrow" points="322,82 312.0,87.0 312.0,77.0"/>
+  <text x="220.0" y="76" class="small c">stage agent.yml (POST)</text>
+  <line class="line" x1="560" y1="122" x2="338" y2="122"/>
+  <polygon class="arrow" points="338,122 348.0,117.0 348.0,127.0"/>
+  <text x="445.0" y="116" class="small c">1 fetch (GET composition)</text>
+  <polyline class="line" points="560,162 610,162 610,180 560,180"/>
+  <line class="line" x1="566" y1="180" x2="560" y2="180"/>
+  <polygon class="arrow" points="560,180 570.0,175.0 570.0,185.0"/>
+  <text x="618" y="176" class="small">2 promote into source tree</text>
+  <line class="line" x1="560" y1="202" x2="782" y2="202"/>
+  <polygon class="arrow" points="782,202 772.0,207.0 772.0,197.0"/>
+  <text x="675.0" y="196" class="small c">3 build (qlawkus:generate)</text>
+  <line class="line" x1="560" y1="242" x2="782" y2="242"/>
+  <polygon class="arrow" points="782,242 772.0,247.0 772.0,237.0"/>
+  <text x="675.0" y="236" class="small c">4 restart instance</text>
+  <line class="line" x1="560" y1="282" x2="782" y2="282"/>
+  <polygon class="arrow" points="782,282 772.0,287.0 772.0,277.0"/>
+  <text x="675.0" y="276" class="small c">5 verify: wait for /q/health/ready</text>
+  <line class="line" x1="560" y1="322" x2="338" y2="322"/>
+  <polygon class="arrow" points="338,322 348.0,317.0 348.0,327.0"/>
+  <text x="445.0" y="316" class="small c">discard consumed (DELETE)</text>
+  <line class="line" x1="560" y1="372" x2="338" y2="372"/>
+  <polygon class="arrow" points="338,372 348.0,367.0 348.0,377.0"/>
+  <text x="445.0" y="366" class="small c">report the run (POST redeploys)</text>
+</svg>
