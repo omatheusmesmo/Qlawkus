@@ -147,6 +147,70 @@
   });
 }());
 
+/* Theme: system (the default, follows prefers-color-scheme), light or dark. The head script in the layout
+   applies a stored light or dark choice before the first paint; this part drives the three-way switch in the
+   navigation. The choice lives in localStorage only, so a blocked store simply keeps the system theme. */
+(function () {
+  "use strict";
+
+  var KEY = "qlawkus-theme";
+  var choices = Array.prototype.slice.call(document.querySelectorAll("[data-theme-choice]"));
+  if (!choices.length) {
+    return;
+  }
+
+  function stored() {
+    try {
+      var value = window.localStorage.getItem(KEY);
+      return value === "light" || value === "dark" ? value : "system";
+    } catch (ignored) {
+      return "system";
+    }
+  }
+
+  function apply(choice, persist) {
+    if (choice === "system") {
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      document.documentElement.setAttribute("data-theme", choice);
+    }
+    if (persist) {
+      try {
+        if (choice === "system") {
+          window.localStorage.removeItem(KEY);
+        } else {
+          window.localStorage.setItem(KEY, choice);
+        }
+      } catch (ignored) {
+      }
+    }
+    choices.forEach(function (button) {
+      var on = button.getAttribute("data-theme-choice") === choice;
+      button.setAttribute("aria-checked", on ? "true" : "false");
+      button.tabIndex = on ? 0 : -1;
+    });
+  }
+
+  choices.forEach(function (button, index) {
+    button.addEventListener("click", function () {
+      apply(button.getAttribute("data-theme-choice"), true);
+    });
+    button.addEventListener("keydown", function (event) {
+      var step = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
+        : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 0;
+      if (!step) {
+        return;
+      }
+      event.preventDefault();
+      var next = choices[(index + step + choices.length) % choices.length];
+      apply(next.getAttribute("data-theme-choice"), true);
+      next.focus();
+    });
+  });
+
+  apply(stored(), false);
+}());
+
 /* The navigation is a drawer below 900px. Focus moves into it on open, Tab stays inside while it is open,
    Escape and a click on the backdrop close it, and focus returns to the button that opened it. */
 (function () {
