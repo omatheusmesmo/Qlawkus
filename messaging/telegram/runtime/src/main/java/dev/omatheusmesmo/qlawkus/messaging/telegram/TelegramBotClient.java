@@ -60,6 +60,12 @@ public interface TelegramBotClient {
     Uni<SendMessageResponse> sendDocument(@PathParam("token") String token, ClientMultipartForm form);
 
     @POST
+    @Path("/sendAudio")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    Uni<SendMessageResponse> sendAudio(@PathParam("token") String token, ClientMultipartForm form);
+
+    @POST
     @Path("/editMessageText")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
