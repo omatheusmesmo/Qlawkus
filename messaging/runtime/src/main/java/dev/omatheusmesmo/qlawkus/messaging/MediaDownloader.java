@@ -2,60 +2,47 @@ package dev.omatheusmesmo.qlawkus.messaging;
 
 import dev.omatheusmesmo.qlawkus.attachment.AttachmentRejected;
 import dev.omatheusmesmo.qlawkus.attachment.ChatAttachment;
-import jakarta.annotation.PostConstruct;
+import dev.omatheusmesmo.qlawkus.http.TransientHttpException;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 
 /**
-* Provider-agnostic downloader for inbound media (voice notes, attachments).
-* Retries transient network failures via MicroProfile Fault Tolerance so each
-* messaging adapter only needs to resolve the media URL, not the fetch logic.
-*/
+ * Provider-agnostic downloader for inbound media (voice notes, attachments).
+ * Retries transient network failures via MicroProfile Fault Tolerance so each
+ * messaging adapter only needs to resolve the media URL, not the fetch logic.
+ */
 @ApplicationScoped
 public class MediaDownloader {
 
-    private HttpClient client;
+    private final MediaDownloadClient client;
 
-    @PostConstruct
-    void init() {
-        this.client = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .followRedirects(HttpClient.Redirect.NEVER)
-            .build();
-    }
-
-    void setClient(HttpClient client) {
+    @Inject
+    MediaDownloader(@RestClient MediaDownloadClient client) {
         this.client = client;
     }
 
     @Retry(maxRetries = 2, delay = 500, delayUnit = ChronoUnit.MILLIS,
-            jitter = 200, jitterDelayUnit = ChronoUnit.MILLIS)
+            jitter = 200, jitterDelayUnit = ChronoUnit.MILLIS,
+            retryOn = TransientHttpException.class)
     @Timeout(value = 40, unit = ChronoUnit.SECONDS)
     public byte[] download(String url) {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(30))
-                .build();
+        Response response = open(url);
         try {
-            HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-            if (response.statusCode() != 200) {
-                throw new MediaDownloadException("media download returned status " + response.statusCode());
+            if (response.getStatus() != 200) {
+                throw new MediaDownloadException("media download returned status " + response.getStatus());
             }
-            return response.body();
-        } catch (IOException e) {
-            throw new MediaDownloadException("media download failed", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new MediaDownloadException("media download interrupted", e);
+            return response.readEntity(byte[].class);
+        } finally {
+            response.close();
         }
     }
 
@@ -65,22 +52,36 @@ public class MediaDownloader {
      */
     @Timeout(value = 30, unit = ChronoUnit.SECONDS)
     public byte[] downloadAttachment(URI uri) {
-        HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(25)).build();
+        Response response;
         try {
-            var response = client.send(request, metadata -> metadata.statusCode() == 200
-                    ? HttpResponse.BodyHandlers.limiting(HttpResponse.BodyHandlers.ofByteArray(),
-                            ChatAttachment.MAX_BYTES).apply(metadata)
-                    : HttpResponse.BodySubscribers.replacing(null));
-            if (response.statusCode() == 200) {
-                ChatAttachment.checkSize(response.body().length);
-                return response.body();
-            }
-        } catch (IOException e) {
-            throw new AttachmentRejected("Could not download the attachment within the size limit.");
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            response = open(uri.toString());
+        } catch (TransientHttpException e) {
+            throw new AttachmentRejected("Could not download the attachment from the messaging provider.");
         }
-        throw new AttachmentRejected("Could not download the attachment from the messaging provider.");
+        try {
+            if (response.getStatus() != 200) {
+                throw new AttachmentRejected("Could not download the attachment from the messaging provider.");
+            }
+            byte[] bytes = response.readEntity(byte[].class);
+            ChatAttachment.checkSize(bytes.length);
+            return bytes;
+        } catch (AttachmentRejected e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw new AttachmentRejected("Could not download the attachment within the size limit.");
+        } finally {
+            response.close();
+        }
+    }
+
+    private Response open(String url) {
+        try {
+            return client.get(url);
+        } catch (WebApplicationException e) {
+            return e.getResponse();
+        } catch (ProcessingException e) {
+            throw new TransientHttpException("media download failed", e);
+        }
     }
 
     public static class MediaDownloadException extends RuntimeException {

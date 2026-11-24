@@ -3,11 +3,15 @@ package dev.omatheusmesmo.qlawkus.messaging;
 import com.sun.net.httpserver.HttpServer;
 import dev.omatheusmesmo.qlawkus.attachment.AttachmentRejected;
 import dev.omatheusmesmo.qlawkus.attachment.ChatAttachment;
+import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -30,9 +34,7 @@ class MediaDownloaderTest {
         server.start();
         try {
             int port = server.getAddress().getPort();
-            MediaDownloader downloader = new MediaDownloader();
-            downloader.setClient(HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10)).build());
+            MediaDownloader downloader = new MediaDownloader(jdkClient());
             byte[] result = downloader.download("http://localhost:" + port + "/file");
             assertArrayEquals(payload, result);
         } finally {
@@ -63,8 +65,7 @@ class MediaDownloaderTest {
         server.start();
         try {
             String base = "http://127.0.0.1:" + server.getAddress().getPort();
-            var downloader = new MediaDownloader();
-            downloader.init();
+            var downloader = new MediaDownloader(jdkClient());
 
             assertThrows(AttachmentRejected.class, () -> downloader.downloadAttachment(URI.create(base + "/redirect")));
             assertFalse(redirected.get());
@@ -84,13 +85,31 @@ class MediaDownloaderTest {
         server.start();
         try {
             int port = server.getAddress().getPort();
-            MediaDownloader downloader = new MediaDownloader();
-            downloader.setClient(HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10)).build());
+            MediaDownloader downloader = new MediaDownloader(jdkClient());
             assertThrows(MediaDownloader.MediaDownloadException.class,
                     () -> downloader.download("http://localhost:" + port + "/file"));
         } finally {
             server.stop(0);
         }
+    }
+
+    private static MediaDownloadClient jdkClient() {
+        HttpClient http = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .build();
+        return url -> {
+            try {
+                HttpResponse<byte[]> response = http.send(
+                        HttpRequest.newBuilder().uri(URI.create(url)).timeout(Duration.ofSeconds(30)).GET().build(),
+                        HttpResponse.BodyHandlers.ofByteArray());
+                return Response.status(response.statusCode()).entity(response.body()).build();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
+        };
     }
 }
