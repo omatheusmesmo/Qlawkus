@@ -82,6 +82,14 @@ public class GenerateMojo extends AbstractMojo {
     @Parameter(property = "qlawkus.composition.fail-on-unknown-capability", defaultValue = "true")
     boolean failOnUnknownCapability;
 
+    /**
+     * When {@code true}, refuse to rewrite the pom if it disagrees with the manifest, and fail the build
+     * instead, listing dependencies that would be added or removed. Defaults to {@code false} so local
+     * runs can reconcile in place; CI sets this through {@code qlawkus.composition.fail-on-pom-drift}.
+     */
+    @Parameter(property = "qlawkus.composition.fail-on-pom-drift", defaultValue = "false")
+    boolean failOnPomDrift;
+
     private CapabilityCatalog catalog;
 
     @Override
@@ -141,10 +149,19 @@ public class GenerateMojo extends AbstractMojo {
     }
 
     private void reconcilePom(Resolution resolution) throws MojoExecutionException {
+        if (resolution.catalogWasEmpty()) {
+            getLog().info(pom + " left unchanged; capability catalog is empty.");
+            return;
+        }
+
         Path path = pom.toPath();
         try {
             String source = Files.readString(path);
             Model model = new MavenXpp3Reader().read(new StringReader(source));
+            PomDrift drift = PomComposer.plan(model, resolution);
+            if (failOnPomDrift && !drift.isEmpty()) {
+                throw new MojoExecutionException(driftMessage(drift));
+            }
             var before = List.copyOf(model.getDependencies());
             if (!PomComposer.compose(model, resolution)) {
                 getLog().info(pom + " already matches the manifest; no change.");
@@ -158,6 +175,22 @@ public class GenerateMojo extends AbstractMojo {
         } catch (XMLStreamException e) {
             throw new MojoExecutionException("Cannot locate dependencies in " + pom + ": " + e.getMessage(), e);
         }
+    }
+
+    private String driftMessage(PomDrift drift) {
+        StringBuilder message = new StringBuilder();
+        message.append("Composition manifest and pom are out of sync; the generator would change ")
+                .append(pom)
+                .append('.');
+        if (!drift.added().isEmpty()) {
+            message.append("\n  would add: ").append(String.join(", ", drift.added()));
+        }
+        if (!drift.removed().isEmpty()) {
+            message.append("\n  would remove: ").append(String.join(", ", drift.removed()));
+        }
+        message.append("\nKeep agent.yml and the pom aligned, or run mvn qlawkus:generate locally to reconcile.");
+        message.append(" Set -Dqlawkus.composition.fail-on-pom-drift=false to rewrite instead.");
+        return message.toString();
     }
 
     private void writePom(Path path, String updated) throws IOException {
@@ -194,5 +227,9 @@ public class GenerateMojo extends AbstractMojo {
 
     void setPom(File pom) {
         this.pom = pom;
+    }
+
+    void setFailOnPomDrift(boolean failOnPomDrift) {
+        this.failOnPomDrift = failOnPomDrift;
     }
 }

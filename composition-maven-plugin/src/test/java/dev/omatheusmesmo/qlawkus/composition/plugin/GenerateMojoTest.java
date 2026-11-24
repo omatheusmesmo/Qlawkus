@@ -182,6 +182,56 @@ class GenerateMojoTest {
     }
 
     @Test
+    void pomDriftFailsWithoutRewriting() throws Exception {
+        Path pom = Files.writeString(dir.resolve("pom.xml"), """
+                <project xmlns="http://maven.apache.org/POM/4.0.0">
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>dev.omatheusmesmo</groupId>
+                  <artifactId>my-agent</artifactId>
+                  <version>1.0.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>dev.omatheusmesmo</groupId>
+                      <artifactId>qlawkus-tools-brag</artifactId>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """);
+        Path manifest = Files.writeString(dir.resolve("agent.yml"), """
+                version: 1
+                build-time:
+                  default: disabled
+                  except:
+                    - messaging.discord
+                """);
+
+        GenerateMojo mojo = mojoFor(pom, manifest);
+        mojo.setFailOnPomDrift(true);
+
+        MojoExecutionException error =
+                assertThrows(MojoExecutionException.class, mojo::execute);
+        assertTrue(error.getMessage().contains("would add"));
+        assertTrue(error.getMessage().contains("qlawkus-messaging-discord"));
+        assertTrue(error.getMessage().contains("would remove"));
+        assertTrue(error.getMessage().contains("qlawkus-tools-brag"));
+        String unchanged = """
+                <project xmlns="http://maven.apache.org/POM/4.0.0">
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>dev.omatheusmesmo</groupId>
+                  <artifactId>my-agent</artifactId>
+                  <version>1.0.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>dev.omatheusmesmo</groupId>
+                      <artifactId>qlawkus-tools-brag</artifactId>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """;
+        assertEquals(unchanged, Files.readString(pom), "pom bytes unchanged on drift failure");
+    }
+
+    @Test
     void rerunIsIdempotent() throws Exception {
         Path pom = Files.writeString(dir.resolve("pom.xml"), SKELETON_POM);
         Path manifest = Files.writeString(dir.resolve("agent.yml"), """

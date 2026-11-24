@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.composition.plugin;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -23,11 +24,48 @@ public final class PomComposer {
     }
 
     /**
+     * Describes what {@link #compose} would change without mutating {@code model}.
+     */
+    public static PomDrift plan(Model model, Resolution resolution) {
+        Set<String> selected = new LinkedHashSet<>();
+        resolution.selectedCoordinates().forEach(c -> selected.add(key(c)));
+
+        Set<String> managed = new LinkedHashSet<>(selected);
+        resolution.excluded().forEach(c -> managed.add(key(c.coordinates())));
+
+        List<String> removed = new ArrayList<>();
+        for (Dependency dependency : model.getDependencies()) {
+            String dependencyKey = key(dependency.getGroupId(), dependency.getArtifactId());
+            if (managed.contains(dependencyKey) && !selected.contains(dependencyKey)) {
+                removed.add(dependencyKey);
+            }
+        }
+
+        Set<String> present = new LinkedHashSet<>();
+        model.getDependencies().forEach(d -> present.add(key(d.getGroupId(), d.getArtifactId())));
+
+        List<String> added = new ArrayList<>();
+        for (Coordinates coordinates : resolution.selectedCoordinates()) {
+            String coords = key(coordinates);
+            if (!present.contains(coords)) {
+                added.add(coords);
+            }
+        }
+
+        return new PomDrift(added, removed);
+    }
+
+    /**
      * Brings {@code model}'s dependency block in line with {@code resolution}.
      *
      * @return true if the model was changed (so a no-op run never rewrites the file)
      */
     public static boolean compose(Model model, Resolution resolution) {
+        PomDrift drift = plan(model, resolution);
+        if (drift.isEmpty()) {
+            return false;
+        }
+
         Set<String> selected = new LinkedHashSet<>();
         resolution.selectedCoordinates().forEach(c -> selected.add(key(c)));
 

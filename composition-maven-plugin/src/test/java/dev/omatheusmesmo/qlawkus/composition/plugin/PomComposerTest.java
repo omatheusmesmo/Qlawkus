@@ -90,6 +90,19 @@ class PomComposerTest {
     }
 
     @Test
+    void planDescribesAddsAndRemovesWithoutMutating() {
+        Model model = modelWith("io.quarkus:quarkus-arc", "dev.omatheusmesmo:qlawkus-tools-brag");
+        Resolution resolution = resolution(List.of(DISCORD), List.of(BRAG, SKILL_HUB));
+
+        PomDrift drift = PomComposer.plan(model, resolution);
+
+        assertEquals(List.of("dev.omatheusmesmo:qlawkus-messaging-discord"), drift.added());
+        assertEquals(List.of("dev.omatheusmesmo:qlawkus-tools-brag"), drift.removed());
+        assertTrue(hasDependency(model, "dev.omatheusmesmo", "qlawkus-tools-brag"), "plan does not remove");
+        assertFalse(hasDependency(model, "dev.omatheusmesmo", "qlawkus-messaging-discord"), "plan does not add");
+    }
+
+    @Test
     void leavesUnknownDepsAlone_onlyManagedCapabilitiesRemoved() {
         Model model = modelWith("org.example:not-a-capability");
 
