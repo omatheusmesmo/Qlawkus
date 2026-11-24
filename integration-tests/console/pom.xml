@@ -39,7 +39,6 @@
       <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-attachments</artifactId>
       <version>${project.version}</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
