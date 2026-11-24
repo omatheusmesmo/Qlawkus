@@ -212,6 +212,10 @@ Every link, button, field and disclosure shows the same orange focus ring, the f
 
 Whatever you do in the console answers in the same three ways. A notification appears in the corner of the screen: success disappears after a few seconds, an error stays about twelve and can be dismissed, and screen readers announce both. The button you pressed shows a spinner and is disabled until the server replies, so a slow request can never be sent twice. When the server rejects a form because of one field, that field is outlined in red, linked to the message that explains it, and given keyboard focus; editing it clears the mark.
 
+== Times
+
+Every timestamp the console shows is a `<time>` element. Its text reads relative to now ("in 3 hours", "2 days ago"), and hovering it shows the exact local time and the zone, for example `2026-10-01 09:00:00 (America/Sao_Paulo)`. The zone is the one the page already names for scheduled tasks (`qlawkus.agent.timezone`), never the browser's. With scripting off the exact local time is the text itself. The labels refresh every minute and after each HTMX swap, so a card that polls never goes stale. The "server time" on the status panel is the one live clock and keeps its plain reading.
+
 == Confirming destructive actions
 
 Anything that deletes or overwrites data asks first, through one dialog shared by every page instead of the browser's own prompt. The dialog names what the action touches in a monospace line (the property, the skill, the task, the connection), says in a sentence what follows, and labels its red button with the action itself ("Purge all memory", "Remove connection") rather than a bare "OK". Cancel has the focus when it opens, so an Enter pressed by reflex cancels. Escape, a click outside the dialog and Cancel all close it without sending anything, and focus goes back to the control that asked.

@@ -6,8 +6,8 @@ import io.quarkus.qute.TemplateData;
 
 @TemplateData
 public record ScheduledTaskView(String id, String description, String cron, String provider, String chat,
-                                boolean oneShot, TaskStatus status, String nextFireTime) {
-    static ScheduledTaskView of(TaskView view, String nextFireTime) {
+                                boolean oneShot, TaskStatus status, TimeLabel nextFireTime) {
+    static ScheduledTaskView of(TaskView view, TimeLabel nextFireTime) {
         var task = view.task();
         return new ScheduledTaskView(task.id(), task.task(), task.cron(), task.destination().providerId(),
                 task.destination().chatId(), task.oneShot(), task.status(), nextFireTime);

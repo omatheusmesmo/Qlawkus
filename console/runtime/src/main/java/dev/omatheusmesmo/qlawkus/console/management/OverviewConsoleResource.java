@@ -26,7 +26,6 @@ import jakarta.ws.rs.core.MediaType;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -43,7 +42,6 @@ import java.util.function.Supplier;
 @Produces(MediaType.TEXT_HTML)
 public class OverviewConsoleResource {
 
-    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm");
 
     private final Template health;
     private final Template upcoming;
@@ -136,7 +134,7 @@ public class OverviewConsoleResource {
 
     private TemplateInstance redeployCard() {
         RedeployRunView last = redeploys.lastRun()
-                .map(run -> RedeployRunView.of(run, redeploys.history().lastSuccessAt()))
+                .map(run -> RedeployRunView.of(run, redeploys.history().lastSuccessAt(), tasks.zone()))
                 .orElse(null);
         return redeploy.data("redeploy", last);
     }
@@ -187,6 +185,6 @@ public class OverviewConsoleResource {
     }
 
     private UpcomingRun run(String label, String kind, Instant at) {
-        return new UpcomingRun(label, kind, at, at == null ? null : WHEN.format(at.atZone(tasks.zone())));
+        return new UpcomingRun(label, kind, at, TimeLabel.of(at, tasks.zone()));
     }
 }

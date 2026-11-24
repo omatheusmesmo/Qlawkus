@@ -13,7 +13,7 @@ public record ScheduledJobView(
         String sourceLabel,
         String shadowWarning,
         String triggerPath,
-        String previousFireTime,
-        String nextFireTime
+        TimeLabel previousFireTime,
+        TimeLabel nextFireTime
 ) {
 }

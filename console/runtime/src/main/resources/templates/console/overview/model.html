@@ -22,7 +22,7 @@
 <p class="model-permanent" data-permanent="{p.surface}">The {p.surface} provider keeps answering HTTP {p.status} ({p.consecutive} times in a row): it rejected the credential or the model name, and no other tier is tried. Fix the setting, retrying will not help.</p>
 {/for}
 {#if chain.lastTier}
-<p class="model-last" data-last="{chain.lastTier}">Last answer came from the {chain.lastTier} tier at {chain.lastAt}.</p>
+<p class="model-last" data-last="{chain.lastTier}">Last answer came from the {chain.lastTier} tier {#if chain.lastAt}at {#include console/time t=chain.lastAt /}{/if}.</p>
 {#else}
 <p class="muted">No turn has been answered since the agent started.</p>
 {/if}

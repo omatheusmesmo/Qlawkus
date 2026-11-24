@@ -19,7 +19,6 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.config.ConfigValue;
 
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -40,8 +39,6 @@ import java.util.List;
 @Authenticated
 @Produces(MediaType.TEXT_HTML)
 public class ScheduleConsoleResource {
-    private static final DateTimeFormatter TASK_TIME = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss");
-
     record JobDescriptor(String identity, String label, String cronProperty, String triggerPath) {
     }
 
@@ -85,11 +82,10 @@ public class ScheduleConsoleResource {
     public TemplateInstance page() {
         List<ScheduledJobView> jobs = JOBS.stream().map(this::toView).toList();
         RedeployRunView redeploy = redeploys.lastRun()
-                .map(run -> RedeployRunView.of(run, redeploys.history().lastSuccessAt()))
+                .map(run -> RedeployRunView.of(run, redeploys.history().lastSuccessAt(), tasks.zone()))
                 .orElse(null);
         var taskRows = tasks.list().stream().map(view -> {
-            String next = view.nextFire() == null ? null : TASK_TIME.format(view.nextFire().atZone(tasks.zone()));
-            return ScheduledTaskView.of(view, next);
+            return ScheduledTaskView.of(view, TimeLabel.of(view.nextFire(), tasks.zone()));
         }).toList();
         return scheduleTemplate.data("active", "schedule").data("jobs", jobs).data("redeploy", redeploy)
                 .data("agentTasks", taskRows).data("taskZone", tasks.zone().getId())
@@ -108,8 +104,8 @@ public class ScheduleConsoleResource {
                 ConfigSourceLabel.of(value.getSourceName()),
                 shadowWarning(value),
                 job.triggerPath(),
-                formatInstant(trigger == null ? null : trigger.getPreviousFireTime()),
-                formatInstant(trigger == null ? null : trigger.getNextFireTime()));
+                label(trigger == null ? null : trigger.getPreviousFireTime()),
+                label(trigger == null ? null : trigger.getNextFireTime()));
     }
 
     private String shadowWarning(ConfigValue value) {
@@ -120,7 +116,7 @@ public class ScheduleConsoleResource {
                 .formatted(ConfigSourceLabel.of(value.getSourceName()), value.getSourceOrdinal());
     }
 
-    private static String formatInstant(Instant instant) {
-        return instant == null ? null : instant.toString();
+    private TimeLabel label(Instant instant) {
+        return TimeLabel.of(instant, tasks.zone());
     }
 }

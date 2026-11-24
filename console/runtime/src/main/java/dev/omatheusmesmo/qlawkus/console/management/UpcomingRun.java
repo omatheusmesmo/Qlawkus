@@ -9,7 +9,7 @@ import java.time.Instant;
  * when. {@code kind} is {@code job} or {@code task} and only drives the label next to the time.
  */
 @TemplateData
-public record UpcomingRun(String label, String kind, Instant at, String when) {
+public record UpcomingRun(String label, String kind, Instant at, TimeLabel when) {
 
     public String kindLabel() {
         return "task".equals(kind) ? "Agent task" : "Background job";
