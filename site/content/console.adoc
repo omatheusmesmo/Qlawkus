@@ -82,6 +82,10 @@ Every form in the console is built from the same few parts, so a field looks and
 
 Buttons come in three kinds: primary (save or apply), secondary (neutral actions such as refresh or reset) and danger (anything that deletes), each with a small size for table rows. The buttons that scripts build, like the per-connection actions on the MCP page, use the same classes.
 
+== Feedback after an action
+
+Whatever you do in the console answers in the same three ways. A notification appears in the corner of the screen: success disappears after a few seconds, an error stays about twelve and can be dismissed, and screen readers announce both. The button you pressed shows a spinner and is disabled until the server replies, so a slow request can never be sent twice. When the server rejects a form because of one field, that field is outlined in red, linked to the message that explains it, and given keyboard focus; editing it clears the mark.
+
 == Confirming destructive actions
 
 Anything that deletes or overwrites data asks first, through one dialog shared by every page instead of the browser's own prompt. The dialog names what the action touches in a monospace line (the property, the skill, the task, the connection), says in a sentence what follows, and labels its red button with the action itself ("Purge all memory", "Remove connection") rather than a bare "OK". Cancel has the focus when it opens, so an Enter pressed by reflex cancels. Escape, a click outside the dialog and Cancel all close it without sending anything, and focus goes back to the control that asked.

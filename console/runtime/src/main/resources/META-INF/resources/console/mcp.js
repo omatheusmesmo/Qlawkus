@@ -10,8 +10,8 @@
   function feedback(text, error) {
     const node = byId("mcp-feedback");
     node.className = "result-msg " + (error ? "result-err" : "result-ok");
-    node.setAttribute("role", error ? "alert" : "status");
     node.textContent = text;
+    window.qlawkusToast(text, error ? "error" : "ok");
   }
 
   async function request(url, method, body) {
