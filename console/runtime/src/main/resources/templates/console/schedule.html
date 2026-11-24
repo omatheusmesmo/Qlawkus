@@ -29,7 +29,7 @@
                     </td>
                     <td data-label="Actions">
                         <button class="btn btn-danger btn-sm" hx-delete="/api/admin/scheduled-tasks/{row.id}"
-                                hx-confirm="Cancel this scheduled task?" hx-target="#agent-tasks-result"
+                                data-confirm-action="Cancel task" data-confirm-target="{row.description}" data-confirm="The task stops and its record is removed. It will not run again." hx-target="#agent-tasks-result"
                                 data-refresh-on-success>Cancel</button>
                     </td>
                 </tr>

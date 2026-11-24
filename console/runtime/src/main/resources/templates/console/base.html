@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/console/app.css">
     <script src="/console/htmx.min.js" defer></script>
     <script src="/console/console.js" defer></script>
+    <script src="/console/confirm.js" defer></script>
 {#insert head}{/insert}
     <noscript><style>.nav { visibility: visible !important; transform: none !important; position: static !important; }</style></noscript>
 </head>
@@ -69,5 +70,16 @@
 {#insert /}
     </main>
 </div>
+<dialog class="confirm" id="qk-confirm" aria-labelledby="qk-confirm-title" aria-describedby="qk-confirm-body">
+    <form method="dialog" class="confirm-form">
+        <h2 class="confirm-title" id="qk-confirm-title"></h2>
+        <p class="confirm-target mono" id="qk-confirm-target"></p>
+        <p class="confirm-body" id="qk-confirm-body"></p>
+        <div class="confirm-actions">
+            <button type="submit" value="cancel" class="btn btn-secondary" autofocus>Cancel</button>
+            <button type="submit" value="confirm" class="btn btn-danger-solid" id="qk-confirm-ok"></button>
+        </div>
+    </form>
+</dialog>
 </body>
 </html>

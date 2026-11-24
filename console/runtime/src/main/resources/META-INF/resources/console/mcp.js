@@ -163,11 +163,15 @@
             link.textContent = "Open secure sign-in";
             byId("mcp-feedback").append(document.createTextNode(" "), link);
           }), button("Disconnect login", async () => {
+            if (!await window.qlawkusConfirm({action: "Disconnect login", target: connection.id,
+              message: "The stored access is removed and the provider is asked to revoke it. The connection needs a new sign-in."})) return;
             const result = await request(path + "/auth", "DELETE");
             feedback(result.remoteRevoked ? "Access disconnected and revoked." : "Local access disconnected. Provider revocation was unavailable.", false);
           }));
         }
         const remove = button("Remove", async () => {
+          if (!await window.qlawkusConfirm({action: "Remove connection", target: connection.id,
+            message: "The connection and its tools are removed from the agent, and any sign-in stored for it is forgotten."})) return;
           await request(path, "DELETE"); await load(); feedback("Connection removed.", false);
         });
         remove.classList.add("mcp-danger");
