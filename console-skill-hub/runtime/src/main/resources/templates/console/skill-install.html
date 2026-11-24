@@ -65,7 +65,7 @@
                 <td data-label="Actions">
                     <div class="row-actions">
                         {#if s.updatable}<button class="btn btn-secondary btn-sm" hx-post="/api/admin/skills/install/update/{s.name}" hx-target="#install-result" hx-swap="innerHTML" data-ok="Updated {s.name}.">Update</button>{/if}
-                        <button class="btn btn-danger btn-sm" hx-delete="/api/admin/skills/{s.name}" hx-confirm="Uninstall {s.name}?" hx-target="#install-result" hx-swap="innerHTML" data-ok="Uninstalled {s.name}." data-remove-row>Uninstall</button>
+                        <button class="btn btn-danger btn-sm" hx-delete="/api/admin/skills/{s.name}" data-confirm-action="Uninstall skill" data-confirm-target="{s.name}" data-confirm="The skill is removed from the owned skills and leaves the injected index from the next turn." hx-target="#install-result" hx-swap="innerHTML" data-ok="Uninstalled {s.name}." data-remove-row>Uninstall</button>
                     </div>
                 </td>
             </tr>

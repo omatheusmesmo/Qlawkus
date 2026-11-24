@@ -119,7 +119,13 @@
     });
 
     remove.addEventListener("click", async () => {
-        if (busy || !current || !window.confirm("Remove " + current + " from the specialist catalog?")) return;
+        if (busy || !current) return;
+        const agreed = await window.qlawkusConfirm({
+            action: "Remove specialist",
+            target: current,
+            message: "The specialist leaves the catalog and the agent can no longer delegate to it."
+        });
+        if (!agreed || busy) return;
         busy = true;
         save.disabled = true;
         const selected = current;

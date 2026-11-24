@@ -40,7 +40,7 @@
                             <input type="text" name="value" value="{p.effectiveValue}" placeholder="{p.defaultValue ?: ''}" aria-label="Value for {p.property}">
                             <button type="submit" class="btn btn-primary" data-ok="Saved {p.property}. It applies on the next restart.">Apply</button>
                         </form>
-                        <button class="btn btn-secondary" hx-delete="/api/admin/runtime-toggles?property={p.property}" hx-confirm="Remove the override for {p.property}?" hx-target="#cfg-result" hx-swap="innerHTML" data-ok="Removed the override for {p.property}. The default applies on the next restart.">Reset</button>
+                        <button class="btn btn-secondary" hx-delete="/api/admin/runtime-toggles?property={p.property}" data-confirm-action="Remove override" data-confirm-target="{p.property}" data-confirm="The override is deleted and the default applies again after the next restart." hx-target="#cfg-result" hx-swap="innerHTML" data-ok="Removed the override for {p.property}. The default applies on the next restart.">Reset</button>
                     </div>
                     <div class="cfg-hint">Applies on restart</div>
                     {#else}
@@ -50,7 +50,7 @@
                             <input type="text" name="value" value="{p.effectiveValue}" placeholder="{p.defaultValue ?: ''}" aria-label="Value for {p.property}">
                             <button type="submit" class="btn btn-primary" data-ok="Staged {p.property}. It applies on the next rebuild.">Stage</button>
                         </form>
-                        <button class="btn btn-secondary" hx-delete="/api/admin/config-overrides?property={p.property}" hx-confirm="Discard the staged override for {p.property}?" hx-target="#cfg-result" hx-swap="innerHTML" data-ok="Discarded the staged override for {p.property}.">Unstage</button>
+                        <button class="btn btn-secondary" hx-delete="/api/admin/config-overrides?property={p.property}" data-confirm-action="Discard staged override" data-confirm-target="{p.property}" data-confirm="The staged value is dropped and the property keeps the value baked into the running build." hx-target="#cfg-result" hx-swap="innerHTML" data-ok="Discarded the staged override for {p.property}.">Unstage</button>
                     </div>
                     <div class="cfg-hint">Applies on next rebuild</div>
                     {/if}
@@ -66,7 +66,7 @@
     <h2 class="step-title">Staged build-time overrides</h2>
     <p class="muted">Stage build-time values above; they are promoted together on the next rebuild.</p>
     <div class="actions">
-        <button class="btn btn-danger" hx-delete="/api/admin/config-overrides/overrides" hx-confirm="Discard ALL staged config overrides?" hx-target="#cfg-result" hx-swap="innerHTML" data-ok="Discarded all staged overrides.">Discard all staged overrides</button>
+        <button class="btn btn-danger" hx-delete="/api/admin/config-overrides/overrides" data-confirm-action="Discard all staged overrides" data-confirm-target="Every staged build-time override" data-confirm="All staged build-time values are dropped. Run-time overrides are not affected." hx-target="#cfg-result" hx-swap="innerHTML" data-ok="Discarded all staged overrides.">Discard all staged overrides</button>
     </div>
 </section>
 {/include}
