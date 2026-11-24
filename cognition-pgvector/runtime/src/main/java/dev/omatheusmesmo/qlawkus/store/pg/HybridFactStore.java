@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiPredicate;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 
@@ -128,7 +129,9 @@ public class HybridFactStore implements FactStore {
 
   @Override
   public long purgeNearDuplicates(double maxCosineDistance, BiPredicate<String, String> sameFact) {
-    return NearDuplicatePurge.run(embeddingRepository, maxCosineDistance, sameFact);
+    Set<String> doomed = NearDuplicatePurge.doomed(embeddingRepository, maxCosineDistance, sameFact);
+    doomed.forEach(files::delete);
+    return embeddingRepository.deleteFacts(doomed);
   }
 
   @Override

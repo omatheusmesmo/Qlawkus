@@ -19,6 +19,12 @@ final class NearDuplicatePurge {
   }
 
   static long run(EmbeddingRepository repository, double maxCosineDistance, BiPredicate<String, String> sameFact) {
+    return repository.deleteFacts(doomed(repository, maxCosineDistance, sameFact));
+  }
+
+  /** The fact keys the judge confirmed as duplicates, for a caller that has more to remove than table rows. */
+  static Set<String> doomed(EmbeddingRepository repository, double maxCosineDistance,
+      BiPredicate<String, String> sameFact) {
     Set<String> doomed = new LinkedHashSet<>();
     for (EmbeddingRepository.NearPair pair : repository.nearDuplicatePairs(maxCosineDistance)) {
       if (!doomed.contains(pair.keptFact()) && !doomed.contains(pair.candidateFact())
@@ -26,6 +32,6 @@ final class NearDuplicatePurge {
         doomed.add(pair.candidateFact());
       }
     }
-    return repository.deleteFacts(doomed);
+    return doomed;
   }
 }
