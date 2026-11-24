@@ -1,0 +1,19 @@
+# MCP client
+
+The optional MCP client extension.
+
+Behavior and configuration are documented for users in `site/content/mcp.adoc`, which is the source of truth. This page keeps the implementation rationale and the traps worth knowing before changing the code.
+
+## tools/qlawkus-tools-mcp-client
+
+**`tools/qlawkus-tools-mcp-client`** - Optional MCP client extension (`deployment/` + `runtime/`, capability `mcp-client`; in `app/` through both the pom and the `agent.yml` `except` list, since the generator drops a pom dependency whose capability is not listed).
+It reuses the upstream quarkus-langchain4j HTTP and langchain4j stdio transports; no transport is implemented here.
+`McpRegistry` owns the runtime connections: bootstrap `qlawkus.mcp.servers.<id>.*` seeds an absent `<state root>/mcp-connections.json`, which then owns desired state; a replacement is discovered before it is committed, so a bad update keeps the working one; a failed call plus a failed health probe recycles the client for reconnection after `retry-backoff`.
+The same registry serves the `McpManagementTool` and `McpOAuthTool` `@QlawTool`s, the authenticated `McpAdminResource`/`McpOAuthResource` (`/api/admin/mcp/...`) and the console's `/console/mcp` page (a `ConsoleFeature` found through config metadata, so `console` has no MCP dependency).
+Remote tools reach the agent as a `QlawToolContributor`, the one SPI `client` knows: `QlawToolProvider` gives them turn context, metrics and spans but never captures their payloads.
+Safety rules, each pinned by a test: records hold vault alias references in the connection's own namespace (`qlawkus.mcp.servers.<id>.headers|environment|oauth...`), resolved from the live vault on each connect and masked in output; `McpEndpointPolicy` refuses non-public HTTP and OAuth targets unless `qlawkus.mcp.allow-private-endpoints`, and its `guard` installs a Vert.x `connectionHandler` on the MCP HTTP client that closes a connection landing on a non-public peer before any request is written (closes the DNS-rebinding gap for MCP traffic; the OIDC token calls have no hook, so only the name check covers them); the agent's `configureMcpConnection` honors `qlawkus.mcp.approval-mode` (`hitl` default: held as a durable owner approval, `confirm` ignored) like skill-hub and may not repoint a credentialed connection; stdio gets a masked environment (`McpEnvironment`); `McpOutput` frames results as untrusted `<mcp-data>` within `max-output-chars`, and remote tool descriptions are labelled untrusted; discovery, call, tool-count and response sizes are bounded.
+OAuth (`auth/`: client credentials and authorization code with PKCE, tokens as a vault bundle, renewal through Quarkus `OidcClient`) is owner-completed consent; the state and PKCE verifier are generated here because quarkus-oidc keeps its own private and tied to a browser session, but the `SecureRandom` is created per call, never a static field (a static one fails the native image build: `McpNativeImageHeapTest`).
+`quarkus-langchain4j-mcp` is declared with the transitive `langchain4j-http-client-jdk` excluded: two LangChain4j HTTP client factories on one classpath make every other builder of an HTTP client (the web search engine) fail at first use, pinned by `McpHttpClientFactoryTest`.
+Budgets are Bean Validation constraints on `McpConfig` (`quarkus-hibernate-validator`), and background work runs on the platform `@VirtualThreads` executor.
+`McpReadinessCheck` (`@Readiness`, a bean through SmallRye Health's own scoping, so the health API stays optional) reads `McpRegistry.health()`, which takes no lock because `put` holds the registry while it waits for discovery, and never connects: it is always UP, names a failed or sign-in-pending connection under `degraded` as `<id> <reason>` (the entry the console Health card renders), and publishes only ids and a count, pinned by `McpReadinessCheckTest`.
+See `site/content/mcp.adoc`.
