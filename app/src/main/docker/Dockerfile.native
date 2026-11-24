@@ -16,7 +16,7 @@
 # The ` registry.access.redhat.com/ubi10/ubi-minimal:10.2` base image is based on UBI 10.
 # To use UBI 8, switch to `quay.io/ubi8/ubi-minimal:8.10`.
 ###
-FROM registry.access.redhat.com/ubi10/ubi-minimal:10.2
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.3
 RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 util-linux && microdnf clean all
 WORKDIR /work/
 RUN chown 1001 /work \

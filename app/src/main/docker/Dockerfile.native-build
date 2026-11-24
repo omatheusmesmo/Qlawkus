@@ -33,7 +33,7 @@ RUN set -eu; \
     done
 
 # --- Runtime stage: Quarkus native runtime with headless PDF and PTY support ---
-FROM registry.access.redhat.com/ubi10/ubi-minimal:10.2
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.3
 RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 freetype fontconfig util-linux && microdnf clean all
 WORKDIR /work/
 ENV HOME=/home/default
