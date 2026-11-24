@@ -27,6 +27,11 @@
             <artifactId>quarkus-arc</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-health</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>com.discord4j</groupId>
             <artifactId>discord4j-core</artifactId>
             <!-- 3.3.0 supports enforce_nonce and keeps Reactor Netty on the Netty 4.1 line. -->

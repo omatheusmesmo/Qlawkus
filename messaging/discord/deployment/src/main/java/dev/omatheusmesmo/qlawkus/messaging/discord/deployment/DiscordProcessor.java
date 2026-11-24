@@ -11,6 +11,10 @@ import discord4j.discordjson.json.gateway.HeartbeatConverter;
 import discord4j.discordjson.json.gateway.OpcodeConverter;
 import discord4j.discordjson.possible.PossibleFilter;
 import discord4j.rest.json.response.ErrorResponse;
+import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
+import io.quarkus.arc.processor.DotNames;
+import io.quarkus.deployment.Capabilities;
+import io.quarkus.deployment.Capability;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
@@ -28,6 +32,17 @@ class DiscordProcessor {
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
+    }
+
+    @BuildStep
+    void registerHealthCheck(Capabilities capabilities, BuildProducer<AdditionalBeanBuildItem> beans) {
+        if (capabilities.isPresent(Capability.SMALLRYE_HEALTH)) {
+            beans.produce(AdditionalBeanBuildItem.builder()
+                    .addBeanClass("dev.omatheusmesmo.qlawkus.messaging.discord.DiscordReadinessCheck")
+                    .setDefaultScope(DotNames.APPLICATION_SCOPED)
+                    .setUnremovable()
+                    .build());
+        }
     }
 
     @BuildStep(onlyIf = NativeOrNativeSourcesBuild.class)

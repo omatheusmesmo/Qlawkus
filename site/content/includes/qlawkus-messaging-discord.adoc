@@ -15,7 +15,7 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-Discord Bot Token from the Developer Portal. Leave unset to disable Discord provider.
+Discord bot token from the Developer Portal. Leave unset to disable the Discord adapter. When set, Qlawkus retries failed Gateway logins with backoff.
 
 
 ifdef::add-copy-button-to-env-var[]

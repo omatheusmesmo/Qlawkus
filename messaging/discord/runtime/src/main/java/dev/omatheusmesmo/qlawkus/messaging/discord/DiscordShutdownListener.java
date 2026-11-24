@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.messaging.discord;
 
+import discord4j.core.GatewayDiscordClient;
 import io.quarkus.arc.Arc;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.shutdown.ShutdownListener;
@@ -36,10 +37,11 @@ public class DiscordShutdownListener implements ShutdownListener {
             return;
         }
         DiscordProviderAdapter adapter = Arc.container().instance(DiscordProviderAdapter.class).get();
-        if (adapter == null || adapter.gatewayClient == null) {
+        GatewayDiscordClient gateway = adapter == null ? null : adapter.stop();
+        if (gateway == null) {
             return;
         }
-        adapter.gatewayClient.logout().block(LOGOUT_TIMEOUT);
+        gateway.logout().block(LOGOUT_TIMEOUT);
         Log.info("Discord: Gateway logged out");
     }
 }

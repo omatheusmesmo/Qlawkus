@@ -12,7 +12,8 @@ import java.util.Optional;
 public interface DiscordConfig {
 
     /**
-     * Discord Bot Token from the Developer Portal. Leave unset to disable Discord provider.
+     * Discord bot token from the Developer Portal. Leave unset to disable the Discord adapter.
+     * When set, Qlawkus retries failed Gateway logins with backoff.
      */
     Optional<String> botToken();
 
