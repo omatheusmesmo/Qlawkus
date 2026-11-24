@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{#insert title}Qlawkus Console{/insert}</title>
+    <script src="/console/theme.js"></script>
     <link rel="stylesheet" href="/console/app.css">
     <script src="/console/htmx.min.js" defer></script>
     <script src="/console/console.js" defer></script>
@@ -62,6 +63,14 @@
             <a class="nav-item{#if active == 'mcp'} is-active{/if}" href="/console/mcp"{#if active == 'mcp'} aria-current="page"{/if}>MCP connections</a>
             {/if}
             <a class="nav-item{#if active == 'schedule'} is-active{/if}" href="/console/schedule"{#if active == 'schedule'} aria-current="page"{/if}>Schedule</a>
+            </div>
+            <div class="nav-group theme-group" data-nav-group="theme">
+                <p class="nav-group-title" id="theme-title">Theme</p>
+                <div class="theme-switch" role="radiogroup" aria-label="Theme" aria-describedby="theme-title">
+                    <button type="button" class="theme-choice" role="radio" aria-checked="true" tabindex="0" data-theme-choice="system">System</button>
+                    <button type="button" class="theme-choice" role="radio" aria-checked="false" tabindex="-1" data-theme-choice="light">Light</button>
+                    <button type="button" class="theme-choice" role="radio" aria-checked="false" tabindex="-1" data-theme-choice="dark">Dark</button>
+                </div>
             </div>
         </nav>
         <div class="nav-backdrop" id="nav-backdrop" hidden></div>

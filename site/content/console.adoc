@@ -82,6 +82,12 @@ Every form in the console is built from the same few parts, so a field looks and
 
 Buttons come in three kinds: primary (save or apply), secondary (neutral actions such as refresh or reset) and danger (anything that deletes), each with a small size for table rows. The buttons that scripts build, like the per-connection actions on the MCP page, use the same classes.
 
+== Theme and keyboard
+
+The console follows your system's light or dark setting. The Theme switch at the bottom of the menu lets you pin System, Light or Dark instead; the choice is kept in the browser (not on the server) and applied before the page paints, so a reload never flashes the wrong theme. The three choices behave as one control: Tab reaches it once and the arrow keys move between them.
+
+Every link, button, field and disclosure shows the same orange focus ring, the first Tab stop is a "Skip to content" link, and the current page is marked in the menu for screen readers. The browser check `integration-tests/console/browser/a11y-check.mjs` runs axe-core on every console page in both themes and fails on a serious or critical finding.
+
 == Feedback after an action
 
 Whatever you do in the console answers in the same three ways. A notification appears in the corner of the screen: success disappears after a few seconds, an error stays about twelve and can be dismissed, and screen readers announce both. The button you pressed shows a spinner and is disabled until the server replies, so a slow request can never be sent twice. When the server rejects a form because of one field, that field is outlined in red, linked to the message that explains it, and given keyboard focus; editing it clears the mark.

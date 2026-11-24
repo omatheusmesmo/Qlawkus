@@ -216,7 +216,8 @@ body {
 }
 .skip-link:focus { top: 12px; }
 
-.nav-item:focus-visible, .nav-toggle:focus-visible, .content:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.content:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .content:focus { outline: none; }
 
 .nav-item {
@@ -232,6 +233,11 @@ body {
 .nav-item.is-active { box-shadow: inset 3px 0 0 var(--accent); }
 .nav-item:hover { background: var(--sidebar-soft); color: #fff; }
 
+.theme-group { margin-top: 18px; }
+.theme-switch { display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: var(--sidebar-soft); }
+.theme-choice { flex: 1; min-height: 32px; padding: 4px 8px; border: 0; border-radius: 8px; background: transparent; color: #cfcad6; font: inherit; font-size: 13px; cursor: pointer; }
+.theme-choice:hover { color: #fff; }
+.theme-choice[aria-checked="true"] { background: var(--accent-strong); color: #fff; font-weight: 600; }
 .sidebar-foot { margin-top: auto; color: #a8a2b0; font-size: 13px; }
 
 .content {
@@ -401,7 +407,7 @@ body {
 .check-desc { grid-column: 2; grid-row: 2; color: var(--muted); font-size: 13px; }
 
 .pill { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; padding: 2px 8px; border-radius: 999px; vertical-align: middle; }
-.pill-ok { background: rgba(63, 154, 82, 0.14); color: var(--up); }
+.pill-ok { background: var(--up-soft); color: var(--text); }
 .pill-err { background: var(--danger-soft); color: var(--danger); }
 
 .phaseb { padding: 12px 0; border-top: 1px solid var(--border); }
@@ -742,11 +748,11 @@ body {
   padding: 10px 20px;
   border: none;
   border-radius: 8px;
-  background: var(--accent);
+  background: var(--accent-strong);
   color: #fff;
   cursor: pointer;
 }
-.chat-form button:hover { background: var(--accent-ink); }
+.chat-form button:hover { background: var(--accent-strong-hover); }
 .chat-form button:disabled { background: var(--border); color: var(--faint); cursor: default; }
 
 @media (max-width: 800px) {
