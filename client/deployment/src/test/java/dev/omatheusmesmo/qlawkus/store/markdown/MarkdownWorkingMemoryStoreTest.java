@@ -6,7 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ChatMessageDeserializer;
+import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.UserMessage;
+import dev.omatheusmesmo.qlawkus.store.ChatMessageJson;
 import io.quarkus.test.junit.QuarkusTest;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -43,6 +46,16 @@ class MarkdownWorkingMemoryStoreTest {
     assertEquals(2, messages.size());
     assertEquals("hi", ((UserMessage) messages.get(0)).singleText());
     assertEquals("hello", ((AiMessage) messages.get(1)).text());
+  }
+
+  @Test
+  void addsAMissingDiscriminatorAtTheMessageLevel() {
+    String json = """
+        {"contents":[{"type":"TEXT","text":"hello"}],"attributes":{}}
+        """;
+    String typed = ChatMessageJson.withType(json, ChatMessageType.USER);
+    assertEquals("hello", ((UserMessage) ChatMessageDeserializer.messageFromJson(typed)).singleText());
+    assertEquals(typed, ChatMessageJson.withType(typed, ChatMessageType.USER));
   }
 
   @Test

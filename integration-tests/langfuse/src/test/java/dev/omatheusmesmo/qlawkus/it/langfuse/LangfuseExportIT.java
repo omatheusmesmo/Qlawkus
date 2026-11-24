@@ -18,6 +18,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
@@ -31,9 +32,10 @@ class LangfuseExportIT {
 
     @Test
     void exportsModelAndBothToolSpansWithoutContentInLangfuse() throws Exception {
+        URI conversation = URI.create(turn + "?id=" + UUID.randomUUID());
         try (var http = HttpClient.newHttpClient()) {
             for (int i = 0; i < 2; i++) {
-                var request = HttpRequest.newBuilder(turn).timeout(Duration.ofSeconds(20)).build();
+                var request = HttpRequest.newBuilder(conversation).timeout(Duration.ofSeconds(20)).build();
                 var response = http.send(request, HttpResponse.BodyHandlers.ofString());
                 assertEquals(200, response.statusCode(), response.body());
                 assertEquals("private-completion-fixture", response.body());
@@ -54,6 +56,9 @@ class LangfuseExportIT {
             assertEquals(session, attribute(fileTool, "session.id"));
             assertEquals("owner", attribute(fileTool, "user.id"));
             assertEquals("interactive", attribute(fileTool, "qlawkus.workload"));
+            var tags = fileTool.getAttributesList().stream().filter(value -> value.getKey().equals("langfuse.trace.tags"))
+                    .findFirst().orElseThrow().getValue().getArrayValue().getValuesList();
+            assertEquals(List.of("interactive"), tags.stream().map(value -> value.getStringValue()).toList());
             assertTrue(trace.stream().anyMatch(span -> span.getName().equals("tool respondWithVoice")));
             assertTrue(trace.stream().anyMatch(span -> attribute(span, "gen_ai.response.model").equals("fixture-model")));
             assertTrue(local.stream().anyMatch(span -> span.getSpanId().equals(fileTool.getSpanId())));

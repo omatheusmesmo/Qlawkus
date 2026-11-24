@@ -2,8 +2,8 @@ package dev.omatheusmesmo.qlawkus.store.pg;
 
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageDeserializer;
-import dev.langchain4j.data.message.ChatMessageSerializer;
 import dev.langchain4j.data.message.ChatMessageType;
+import dev.omatheusmesmo.qlawkus.store.ChatMessageJson;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -81,11 +81,15 @@ public class ChatMessageEntity extends PanacheEntityBase {
     ChatMessageEntity entity = new ChatMessageEntity();
     entity.memoryId = memoryId;
     entity.type = message.type();
-    entity.content = ChatMessageSerializer.messageToJson(message);
+    entity.content = ChatMessageJson.serialize(message);
     return entity;
   }
 
   public ChatMessage toChatMessage() {
-    return ChatMessageDeserializer.messageFromJson(content);
+    return ChatMessageDeserializer.messageFromJson(jsonWithType());
+  }
+
+  String jsonWithType() {
+    return ChatMessageJson.withType(content, type);
   }
 }

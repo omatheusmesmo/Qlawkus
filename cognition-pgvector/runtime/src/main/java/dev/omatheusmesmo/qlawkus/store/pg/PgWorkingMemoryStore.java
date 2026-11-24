@@ -1,8 +1,8 @@
 package dev.omatheusmesmo.qlawkus.store.pg;
 
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ChatMessageSerializer;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
+import dev.omatheusmesmo.qlawkus.store.ChatMessageJson;
 import dev.omatheusmesmo.qlawkus.store.MessagesAppendedEvent;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import io.quarkus.arc.properties.IfBuildProperty;
@@ -40,7 +40,7 @@ public class PgWorkingMemoryStore implements WorkingMemoryStore, ChatMemoryStore
   @Transactional
   public void updateMessages(String memoryId, List<ChatMessage> messages) {
     List<ChatMessageEntity> existing = ChatMessageEntity.findByMemoryIdOrdered(memoryId);
-    Set<String> existingJson = existing.stream().map(e -> e.content).collect(Collectors.toSet());
+    Set<String> existingJson = existing.stream().map(ChatMessageEntity::jsonWithType).collect(Collectors.toSet());
 
     if (isAppendOf(existing, messages)) {
       for (ChatMessage message : messages.subList(existing.size(), messages.size())) {
@@ -54,7 +54,7 @@ public class PgWorkingMemoryStore implements WorkingMemoryStore, ChatMemoryStore
     }
 
     List<ChatMessage> appended = messages.stream()
-        .filter(m -> !existingJson.contains(ChatMessageSerializer.messageToJson(m)))
+        .filter(m -> !existingJson.contains(ChatMessageJson.serialize(m)))
         .toList();
     if (!appended.isEmpty()) {
       messagesAppended.fireAsync(new MessagesAppendedEvent(memoryId, appended));
@@ -73,8 +73,8 @@ public class PgWorkingMemoryStore implements WorkingMemoryStore, ChatMemoryStore
       return false;
     }
     for (int i = 0; i < existing.size(); i++) {
-      String incomingJson = ChatMessageSerializer.messageToJson(incoming.get(i));
-      if (!existing.get(i).content.equals(incomingJson)) {
+      String incomingJson = ChatMessageJson.serialize(incoming.get(i));
+      if (!existing.get(i).jsonWithType().equals(incomingJson)) {
         return false;
       }
     }

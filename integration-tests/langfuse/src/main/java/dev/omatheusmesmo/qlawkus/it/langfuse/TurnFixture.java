@@ -7,6 +7,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
 @Path("/test/turn")
@@ -20,8 +21,8 @@ public class TurnFixture {
 
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    public String turn() {
-        String conversation = "private-conversation-fixture";
+    public String turn(@QueryParam("id") String id) {
+        String conversation = "private-conversation-fixture-" + id;
         AgentTurn turn = AgentTurn.open(conversation, "test", false);
         try (var binding = turn.bind()) {
             var span = tracer.spanBuilder("agent fixture").startSpan();

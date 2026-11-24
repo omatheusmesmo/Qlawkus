@@ -2,9 +2,9 @@ package dev.omatheusmesmo.qlawkus.store.markdown;
 
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageDeserializer;
-import dev.langchain4j.data.message.ChatMessageSerializer;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
+import dev.omatheusmesmo.qlawkus.store.ChatMessageJson;
 import dev.omatheusmesmo.qlawkus.store.MessagesAppendedEvent;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
 import dev.omatheusmesmo.qlawkus.store.markdown.MarkdownWorkingMemoryFiles.StoredMessage;
@@ -60,7 +60,7 @@ public class MarkdownWorkingMemoryStore implements WorkingMemoryStore, ChatMemor
   public void updateMessages(String memoryId, List<ChatMessage> messages) {
     List<StoredMessage> existing = files.read(memoryId);
     List<String> existingJson = existing.stream().map(StoredMessage::messageJson).toList();
-    List<String> incomingJson = messages.stream().map(ChatMessageSerializer::messageToJson).toList();
+    List<String> incomingJson = messages.stream().map(ChatMessageJson::serialize).toList();
 
     List<ChatMessage> appended;
     if (isAppendOf(existingJson, incomingJson)) {
@@ -72,7 +72,7 @@ public class MarkdownWorkingMemoryStore implements WorkingMemoryStore, ChatMemor
     } else {
       files.replace(memoryId, incomingJson);
       appended = messages.stream()
-          .filter(m -> !existingJson.contains(ChatMessageSerializer.messageToJson(m)))
+          .filter(m -> !existingJson.contains(ChatMessageJson.serialize(m)))
           .toList();
     }
 

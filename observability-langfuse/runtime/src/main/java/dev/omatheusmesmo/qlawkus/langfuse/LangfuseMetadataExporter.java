@@ -23,7 +23,9 @@ import io.opentelemetry.sdk.trace.export.SpanExporter;
 final class LangfuseMetadataExporter implements SpanExporter {
 
     static final AttributeKey<String> TURN_SESSION = AttributeKey.stringKey("qlawkus.langfuse.session");
+    static final AttributeKey<String> WORKLOAD = AttributeKey.stringKey("qlawkus.workload");
     private static final AttributeKey<String> SESSION_ID = AttributeKey.stringKey("session.id");
+    private static final AttributeKey<List<String>> TRACE_TAGS = AttributeKey.stringArrayKey("langfuse.trace.tags");
     private static final AttributeKey<String> CONVERSATION_ID = AttributeKey.stringKey("gen_ai.conversation.id");
     private static final AttributeKey<String> OPERATION = AttributeKey.stringKey("gen_ai.operation.name");
     private static final AttributeKey<String> TOOL_NAME = AttributeKey.stringKey("gen_ai.tool.name");
@@ -75,6 +77,10 @@ final class LangfuseMetadataExporter implements SpanExporter {
         }
         if (original.get(TOOL_NAME) != null) {
             allowed.put("langfuse.observation.type", "tool");
+        }
+        String workload = original.get(WORKLOAD);
+        if (workload != null) {
+            allowed.put(TRACE_TAGS, List.of(workload));
         }
         return new MetadataSpan(span, allowed.build());
     }
