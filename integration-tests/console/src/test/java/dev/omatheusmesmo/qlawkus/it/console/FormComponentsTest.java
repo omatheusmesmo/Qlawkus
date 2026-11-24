@@ -27,6 +27,7 @@ class FormComponentsTest {
       CONSOLE.resolve("templates/console/config.html"), CONSOLE.resolve("templates/console/schedule.html"),
       CONSOLE.resolve("templates/console/skills.html"), CONSOLE.resolve("templates/console/cognition.html"),
       CONSOLE.resolve("templates/console/memory.html"), CONSOLE.resolve("templates/console/setup.html"),
+      CONSOLE.resolve("templates/console/chat.html"),
       SKILL_HUB.resolve("templates/console/skill-install.html"));
   private static final Set<String> NOT_TEXT_ENTRY = Set.of("hidden", "checkbox", "radio", "file", "submit", "button");
   private static final Pattern TAG = Pattern.compile("<(input|select|textarea|button)\\b([^>]*)>", Pattern.DOTALL);

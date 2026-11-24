@@ -3,6 +3,8 @@
 
   var form = document.getElementById('chat-form');
   var attachmentInput = document.getElementById('chat-attachments');
+  var attachButton = document.getElementById('chat-attach');
+  var fileList = document.getElementById('chat-files');
   if (!form) {
     return;
   }
@@ -16,6 +18,10 @@
   var mode = form.getAttribute('data-tool-progress') || 'preview';
   var streaming = false;
   var stick = true;
+  var maxFiles = parseInt(form.getAttribute('data-max-files'), 10) || 3;
+  var maxBytes = parseInt(form.getAttribute('data-max-bytes'), 10) || 2 * 1024 * 1024;
+  var allowedTypes = /\.(pdf|png|jpe?g)$/i;
+  var selected = [];
 
   function make(tag, className, text) {
     var node = document.createElement(tag);
@@ -392,10 +398,80 @@
     streaming = on;
     send.disabled = on;
     input.disabled = on;
-    if (attachmentInput) attachmentInput.disabled = on;
+    if (attachButton) attachButton.disabled = on;
+    Array.prototype.forEach.call(form.querySelectorAll('.chat-file-remove'), function (button) {
+      button.disabled = on;
+    });
     form.classList.toggle('is-streaming', on);
     if (!on) {
       input.focus({ preventScroll: true });
+    }
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) {
+      return bytes + ' B';
+    }
+    if (bytes < 1024 * 1024) {
+      return Math.round(bytes / 1024) + ' KB';
+    }
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function sameFile(a, b) {
+    return a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
+  }
+
+  function renderFiles() {
+    if (!fileList) {
+      return;
+    }
+    fileList.textContent = '';
+    selected.forEach(function (file) {
+      var item = make('li', 'chat-file');
+      var name = make('span', 'chat-file-name', file.name);
+      name.title = file.name;
+      var remove = make('button', 'chat-file-remove', '\u00d7');
+      remove.type = 'button';
+      remove.setAttribute('aria-label', 'Remove ' + file.name);
+      remove.disabled = streaming;
+      remove.addEventListener('click', function () {
+        selected = selected.filter(function (other) { return other !== file; });
+        renderFiles();
+        clearError();
+        var next = fileList.querySelector('.chat-file-remove');
+        (next || attachButton).focus();
+      });
+      item.appendChild(name);
+      item.appendChild(make('span', 'chat-file-size', formatSize(file.size)));
+      item.appendChild(remove);
+      fileList.appendChild(item);
+    });
+    fileList.hidden = selected.length === 0;
+  }
+
+  function addFiles(chosen) {
+    clearError();
+    var problems = [];
+    chosen.forEach(function (file) {
+      if (selected.some(function (other) { return sameFile(other, file); })) {
+        return;
+      }
+      if (!allowedTypes.test(file.name)) {
+        problems.push(file.name + ' is not a PDF, PNG or JPEG.');
+      } else if (!file.size) {
+        problems.push(file.name + ' is empty.');
+      } else if (file.size > maxBytes) {
+        problems.push(file.name + ' is larger than ' + formatSize(maxBytes) + '.');
+      } else if (selected.length >= maxFiles) {
+        problems.push('Attach up to ' + maxFiles + ' files; ' + file.name + ' was left out.');
+      } else {
+        selected.push(file);
+      }
+    });
+    renderFiles();
+    if (problems.length) {
+      showError(problems.join(' '));
     }
   }
 
@@ -545,19 +621,26 @@
   form.addEventListener('submit', function (event) {
     event.preventDefault();
     var message = input.value.trim();
-    var files = attachmentInput ? Array.from(attachmentInput.files) : [];
+    var files = selected.slice();
     if (streaming || (!message && !files.length)) {
       return;
     }
-    if (files.length > 3 || files.some(function (file) { return !file.size || file.size > 2 * 1024 * 1024; })) {
-      showError('Send up to three attachments between 1 byte and 2 MiB each.');
-      return;
-    }
     input.value = '';
-    if (attachmentInput) attachmentInput.value = '';
+    selected = [];
+    renderFiles();
     fitInput();
     ask(message, files);
   });
+
+  if (attachButton && attachmentInput) {
+    attachButton.addEventListener('click', function () {
+      attachmentInput.click();
+    });
+    attachmentInput.addEventListener('change', function () {
+      addFiles(Array.from(attachmentInput.files));
+      attachmentInput.value = '';
+    });
+  }
 
   input.addEventListener('keydown', function (event) {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
