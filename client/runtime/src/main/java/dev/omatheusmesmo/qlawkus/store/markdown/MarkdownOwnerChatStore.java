@@ -1,8 +1,5 @@
 package dev.omatheusmesmo.qlawkus.store.markdown;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.OwnerChatStore;
 import dev.omatheusmesmo.qlawkus.task.DynamicTaskScheduler;
@@ -41,9 +38,6 @@ public class MarkdownOwnerChatStore implements OwnerChatStore {
     private static final String SUFFIX = ".json";
     private static final String TEMP_SUFFIX = ".tmp";
     private static final Pattern SAFE_PROVIDER = Pattern.compile("[a-z][a-z0-9-]{0,31}");
-    private static final ObjectMapper JSON = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     private final Path directory;
 
@@ -65,7 +59,7 @@ public class MarkdownOwnerChatStore implements OwnerChatStore {
         try {
             Files.createDirectories(directory);
             Path temp = file.resolveSibling(file.getFileName() + TEMP_SUFFIX);
-            Files.writeString(temp, JSON.writeValueAsString(chat), StandardCharsets.UTF_8);
+            Files.writeString(temp, OwnerChatJson.write(chat), StandardCharsets.UTF_8);
             try {
                 Files.move(temp, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             } catch (AtomicMoveNotSupportedException e) {
@@ -113,7 +107,7 @@ public class MarkdownOwnerChatStore implements OwnerChatStore {
         String name = file.getFileName().toString();
         String provider = name.substring(0, name.length() - SUFFIX.length());
         try {
-            OwnerChat chat = JSON.readValue(file.toFile(), OwnerChat.class);
+            OwnerChat chat = OwnerChatJson.read(Files.readString(file, StandardCharsets.UTF_8));
             if (!SAFE_PROVIDER.matcher(provider).matches() || !provider.equals(chat.providerId())
                     || chat.chatId() == null || chat.chatId().isBlank()
                     || chat.chatId().length() > DynamicTaskScheduler.MAX_DESTINATION_LENGTH
