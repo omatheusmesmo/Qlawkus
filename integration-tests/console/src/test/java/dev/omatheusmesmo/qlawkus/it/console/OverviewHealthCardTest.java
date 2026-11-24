@@ -41,6 +41,14 @@ class OverviewHealthCardTest {
     }
 
     @Test
+    void aDistributionWithoutTheMcpClientRendersTheCardWithNoMcpRow() {
+        String card = card("/console/overview/health");
+
+        assertThat(card, containsString("data-check=\"qlawkus-model\""));
+        assertThat(card, not(containsString("qlawkus-mcp-client")));
+    }
+
+    @Test
     void aFailingCheckIsDownAndStatesItsReasonInPlainWords() {
         readiness.failWith("the vault is unreachable");
 

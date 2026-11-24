@@ -157,6 +157,20 @@ capture arguments or results, even when local tool payload tracing is enabled.
 
 See xref:config-reference.adoc[Configuration Reference] for all `qlawkus.mcp.*` budgets.
 
+== Readiness
+
+With SmallRye Health on the classpath the extension adds a `qlawkus-mcp-client` readiness check,
+which the console overview's Health card lists next to the core checks. It reads what the registry
+already holds and never opens a connection, so polling it costs no traffic to your servers.
+
+The check is always up: an MCP server is optional tooling, and taking the only agent out of rotation
+because an external server is away would turn that server's incident into an outage here. A
+connection that failed (an unreachable server or an exited stdio process) or that waits for your
+sign-in is named instead, as `<id> unreachable` or `<id> needs sign-in`, and the card shows the row
+as degraded. A connection nobody has used yet is not degraded, because connections open on the first
+turn that needs them, and a disabled connection is your choice, not a fault. The check publishes
+connection ids and a count, never an address, header, alias or token.
+
 == OAuth and SSO
 
 For a server protected by OAuth, set the connection's `oauth` metadata instead of an

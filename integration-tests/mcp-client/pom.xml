@@ -7,6 +7,7 @@
   <dependencies>
     <dependency><groupId>dev.omatheusmesmo</groupId><artifactId>qlawkus-tools-mcp-client</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>dev.omatheusmesmo</groupId><artifactId>qlawkus-console</artifactId><version>${project.version}</version></dependency>
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-smallrye-health</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-junit</artifactId><scope>test</scope></dependency>
     <dependency><groupId>io.rest-assured</groupId><artifactId>rest-assured</artifactId><scope>test</scope></dependency>
   </dependencies>
