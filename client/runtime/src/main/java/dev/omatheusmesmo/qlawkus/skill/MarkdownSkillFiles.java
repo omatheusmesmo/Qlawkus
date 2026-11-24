@@ -1,7 +1,5 @@
 package dev.omatheusmesmo.qlawkus.skill;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.skills.FileSystemSkill;
 import dev.langchain4j.skills.FileSystemSkillLoader;
 import dev.omatheusmesmo.qlawkus.store.markdown.WriteProbe;
@@ -30,7 +28,6 @@ public class MarkdownSkillFiles {
 
   private static final String SKILL_FILE = "SKILL.md";
   private static final String USAGE_FILE = ".qlawkus-usage.json";
-  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private final List<Path> roots;
 
@@ -210,11 +207,8 @@ public class MarkdownSkillFiles {
       return new LinkedHashMap<>();
     }
     try {
-      Map<String, SkillUsage> parsed = MAPPER.readValue(
-          Files.readString(file, StandardCharsets.UTF_8),
-          new TypeReference<LinkedHashMap<String, SkillUsage>>() {});
-      return parsed == null ? new LinkedHashMap<>() : parsed;
-    } catch (IOException e) {
+      return SkillUsageJson.read(Files.readString(file, StandardCharsets.UTF_8));
+    } catch (IOException | RuntimeException e) {
       Log.warnf(e, "Failed to read skill usage sidecar %s", file);
       return new LinkedHashMap<>();
     }
@@ -226,7 +220,7 @@ public class MarkdownSkillFiles {
     }
     try {
       Files.createDirectories(ownedRoot());
-      Files.writeString(usageFile(), MAPPER.writeValueAsString(usage), StandardCharsets.UTF_8);
+      Files.writeString(usageFile(), SkillUsageJson.write(usage), StandardCharsets.UTF_8);
     } catch (IOException e) {
       Log.warnf(e, "Failed to write skill usage sidecar");
     }
