@@ -81,6 +81,53 @@ class EmbeddingDimensionMigrationTest {
         }
     }
 
+    @Test
+    void aNewModelAtTheSameDimensionClearsVectorsButKeepsTheText() throws Exception {
+        String schema = scratchTable("[1,2,3]");
+        try {
+            applyScript(schema, 3, "model-b");
+
+            assertEquals(3, columnDimension(schema));
+            assertNull(firstVector(schema),
+                    "the vector came from another model, so it is not comparable and must be re-embedded");
+            assertEquals("kept text", firstText(schema), "the text survives, so the fact can be re-embedded");
+            assertEquals("model-b", recordedModel(schema));
+        } finally {
+            execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
+        }
+    }
+
+    @Test
+    void anUnchangedModelKeepsTheVectorsOnEveryBoot() throws Exception {
+        String schema = scratchTable("[1,2,3]");
+        try {
+            applyScript(schema, 3, "model-a");
+            applyScript(schema, 3, "model-a");
+
+            assertEquals("[1,2,3]", firstVector(schema));
+            assertEquals("model-a", recordedModel(schema));
+        } finally {
+            execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
+        }
+    }
+
+    @Test
+    void vectorsStoredBeforeAnyModelWasRecordedAreReembeddedOnce() throws Exception {
+        String schema = scratchTable("[1,2,3]");
+        execute("DROP TABLE " + schema + ".embedding_model_marker");
+        try {
+            applyScript(schema, 3, "model-a");
+            assertNull(firstVector(schema), "nothing proves which model produced them, so they are rebuilt");
+            assertEquals("model-a", recordedModel(schema));
+
+            execute("UPDATE " + schema + ".embeddings SET embedding = '[4,5,6]'");
+            applyScript(schema, 3, "model-a");
+            assertEquals("[4,5,6]", firstVector(schema), "once recorded, the next boot keeps them");
+        } finally {
+            execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
+        }
+    }
+
     private void migrateProbe(String schema, String n) {
         Flyway.configure()
                 .dataSource(dataSource)
@@ -91,21 +138,29 @@ class EmbeddingDimensionMigrationTest {
                 .migrate();
     }
 
-    /** A copy of the pre-V8 shape: a fixed-size, NOT NULL vector column with one stored row. */
+    /** A copy of the pre-V8 shape: a fixed-size, NOT NULL vector column with one stored row and a recorded model. */
     private String scratchTable(String vector) throws SQLException {
         String schema = "dimension_probe_" + UUID.randomUUID().toString().replace("-", "");
         execute("CREATE SCHEMA " + schema);
         execute("CREATE TABLE " + schema + ".embeddings (embedding vector(3) NOT NULL, text TEXT NOT NULL)");
         execute("INSERT INTO " + schema + ".embeddings VALUES ('" + vector + "', 'kept text')");
+        execute("CREATE TABLE " + schema + ".embedding_model_marker (id BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (id),"
+                + " model TEXT NOT NULL)");
+        execute("INSERT INTO " + schema + ".embedding_model_marker (id, model) VALUES (TRUE, 'model-a')");
         return schema;
     }
 
     private void applyScript(String schema, int newDimension) throws SQLException, IOException {
+        applyScript(schema, newDimension, "model-a");
+    }
+
+    private void applyScript(String schema, int newDimension, String model) throws SQLException, IOException {
         String sql;
         try (InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream(SCRIPT)) {
             assertTrue(in != null, SCRIPT + " is missing");
             sql = new String(in.readAllBytes(), StandardCharsets.UTF_8)
-                    .replace("${embedding_dimension}", Integer.toString(newDimension));
+                    .replace("${embedding_dimension}", Integer.toString(newDimension))
+                    .replace("${embedding_model}", model);
         }
         try (Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement()) {
@@ -125,6 +180,10 @@ class EmbeddingDimensionMigrationTest {
 
     private String firstVector(String schema) throws SQLException {
         return queryString("SELECT embedding::text FROM " + schema + ".embeddings LIMIT 1");
+    }
+
+    private String recordedModel(String schema) throws SQLException {
+        return queryString("SELECT model FROM " + schema + ".embedding_model_marker");
     }
 
     private String firstText(String schema) throws SQLException {

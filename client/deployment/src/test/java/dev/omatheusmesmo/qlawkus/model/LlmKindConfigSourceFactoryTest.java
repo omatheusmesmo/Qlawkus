@@ -60,7 +60,7 @@ class LlmKindConfigSourceFactoryTest {
                         Map.of("LLM_KIND", "nvidia"), "env", OVERRIDE_SOURCE_ORDINAL))
                 .build();
 
-        assertEquals("nvidia/nemotron-3-embed-1b",
+        assertEquals("nvidia/nemotron-3.5-embed-1b",
                 config.getConfigValue("qlawkus.embedding.model-name").getValue());
         assertEquals(2048, ProviderKind.NVIDIA.embeddingDimensions(),
                 "the model rejects any other dimension, and the pgvector column is sized from this");
