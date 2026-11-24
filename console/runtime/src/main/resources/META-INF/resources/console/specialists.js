@@ -18,6 +18,11 @@
     let current = null;
     let busy = false;
 
+    function report(text, error) {
+        status.textContent = text;
+        window.qlawkusToast(text, error ? "error" : "ok");
+    }
+
     async function request(path, method = "GET", body) {
         const options = {method, headers: {"Accept": "application/json"}};
         if (body !== undefined) {
@@ -132,9 +137,9 @@
         try {
             await request("/" + encodeURIComponent(selected), "DELETE");
             await load(null);
-            status.textContent = "Removed " + selected + ".";
+            report("Removed " + selected + ".", false);
         } catch (failure) {
-            status.textContent = failure.message;
+            report(failure.message, true);
         } finally {
             busy = false;
             save.disabled = model.options.length === 0;
@@ -154,9 +159,9 @@
                 await request("", "POST", body);
             }
             await load(body);
-            status.textContent = "Saved " + body.id + ".";
+            report("Saved " + body.id + ".", false);
         } catch (failure) {
-            status.textContent = failure.message;
+            report(failure.message, true);
         } finally {
             busy = false;
             save.disabled = model.options.length === 0;
@@ -166,6 +171,6 @@
     load(null).catch((failure) => {
         catalog.setAttribute("aria-busy", "false");
         catalog.replaceChildren();
-        status.textContent = failure.message;
+        report(failure.message, true);
     });
 })();
