@@ -213,6 +213,18 @@ With tracing on, every tool call in a ReAct turn is its own span under the turn,
 
 Tool arguments and results stay out of the span by default, since either can carry what the owner said. The upstream switches cover both kinds of tool: `quarkus.langchain4j.tracing.include-tool-arguments` and `quarkus.langchain4j.tracing.include-tool-result`, both runtime properties.
 
+=== AI traces in Langfuse
+
+The reference app includes the `observability.langfuse` capability. A custom distribution can select it in `agent.yml` alongside `observability`. It exports to an existing Langfuse Cloud or self-hosted project. Langfuse Dev Services are off by default.
+
+Set `quarkus.langfuse.base-url` to the project's server URL (for example, `https://cloud.langfuse.com`) and store the two project keys in the xref:secrets.adoc#_what_to_store[keystore]. The Compose stacks already enable the OpenTelemetry SDK. For a standalone run, set `quarkus.otel.sdk.disabled=false` and configure your collector if you use Tempo. Restart the agent to apply the settings. To stop exporting to Langfuse, set `qlawkus.observability.langfuse.enabled=false`.
+
+Langfuse receives model and tool names, token counts, timing, status codes and trace relationships. When a conversation is known, a SHA-256 hash of its ID groups turns into a session, and the user is labelled `owner`. The `qlawkus.workload` attribute distinguishes interactive turns from batch jobs. The session ID is pseudonymous and lets the Langfuse project correlate turns from the same conversation.
+
+Qlawkus strips prompts, completions, tool arguments and results, exception messages, and raw conversation and user IDs from the Langfuse export. The same filter applies when local tracing is configured to capture content. Tempo receives traces according to its existing local settings. Keep `quarkus.langfuse.otel.enabled=false` so the Qlawkus processor is the sole Langfuse exporter.
+
+Langfuse estimates generation cost from its model prices. Configure the price for your provider and tier in Langfuse if the default differs from what you pay, including free-tier NVIDIA NIM.
+
 === Logs that join their trace
 
 Selecting the capability also switches the console to JSON, one object per line, which is what a container log pipeline can parse and query. `quarkus:dev` and test runs keep the readable format; turn JSON off in a deployment with `quarkus.log.console.json.enabled=false`, a runtime property.

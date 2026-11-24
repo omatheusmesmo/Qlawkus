@@ -21,6 +21,7 @@
     <module>console-skill-hub</module>
         <module>heartbeat</module>
         <module>observability</module>
+        <module>observability-langfuse</module>
         <module>tools</module>
         <module>messaging</module>
         <module>app</module>
@@ -41,6 +42,7 @@
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
     <quarkus.platform.version>3.40.1.2</quarkus.platform.version>
     <quarkus-langchain4j.version>1.15.1</quarkus-langchain4j.version>
+    <quarkus-langfuse.version>0.9.1</quarkus-langfuse.version>
     <quarkus-wiremock.version>1.8.1</quarkus-wiremock.version>
     <skipITs>true</skipITs>
     <surefire-plugin.version>3.6.1</surefire-plugin.version>
