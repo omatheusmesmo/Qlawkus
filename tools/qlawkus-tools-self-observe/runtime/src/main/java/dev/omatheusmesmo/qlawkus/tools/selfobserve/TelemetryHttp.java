@@ -6,17 +6,17 @@ import dev.omatheusmesmo.qlawkus.http.TransientHttpException;
 import io.smallrye.faulttolerance.api.ExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketTimeoutException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpConnectTimeoutException;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.temporal.ChronoUnit;
 import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 /**
  * The one HTTP call the self-observation tools make: a GET to a backend's query API, with a URI the
@@ -39,16 +39,13 @@ public class TelemetryHttp {
   private static final int MAX_ERROR_CHARS = 500;
 
   private final SelfObserveConfig config;
-  private final HttpClient client;
+  private final TelemetryQueryClient client;
   private final ObjectMapper mapper = new ObjectMapper();
 
   @Inject
-  public TelemetryHttp(SelfObserveConfig config) {
+  public TelemetryHttp(SelfObserveConfig config, @RestClient TelemetryQueryClient client) {
     this.config = config;
-    this.client = HttpClient.newBuilder()
-        .connectTimeout(config.timeout())
-        .followRedirects(HttpClient.Redirect.NEVER)
-        .build();
+    this.client = client;
   }
 
   @Retry(maxRetries = 3, delay = 500, delayUnit = ChronoUnit.MILLIS,
@@ -56,14 +53,21 @@ public class TelemetryHttp {
       retryOn = TransientHttpException.class)
   @ExponentialBackoff(maxDelay = 8000, maxDelayUnit = ChronoUnit.MILLIS)
   public String get(String backend, URI uri) {
-    HttpRequest request = HttpRequest.newBuilder(uri)
-        .timeout(config.timeout())
-        .header("Accept", "application/json")
-        .GET()
-        .build();
-    HttpResponse<InputStream> response = send(backend, request);
-    int status = response.statusCode();
-    try (InputStream body = response.body()) {
+    Response response;
+    try {
+      response = client.get(uri.toString());
+    } catch (WebApplicationException e) {
+      response = e.getResponse();
+    } catch (ProcessingException e) {
+      if (isReadTimeout(e)) {
+        throw new TelemetryQueryException(backend + " timed out after "
+            + QueryWindow.format(config.timeout()) + " (qlawkus.self-observe.timeout). The query is "
+            + "too expensive: narrow the window, the selector or the query itself.");
+      }
+      throw new TransientHttpException(backend + " is unreachable: " + e.getMessage(), e);
+    }
+    int status = response.getStatus();
+    try (InputStream body = response.readEntity(InputStream.class)) {
       if (status / 100 == 2) {
         byte[] bytes = body.readNBytes(MAX_RESPONSE_BYTES + 1);
         if (bytes.length > MAX_RESPONSE_BYTES) {
@@ -80,24 +84,22 @@ public class TelemetryHttp {
           + detail);
     } catch (IOException e) {
       throw new TransientHttpException(backend + " response could not be read", e);
+    } finally {
+      response.close();
     }
   }
 
-  private HttpResponse<InputStream> send(String backend, HttpRequest request) {
-    try {
-      return client.send(request, HttpResponse.BodyHandlers.ofInputStream());
-    } catch (HttpConnectTimeoutException e) {
-      throw new TransientHttpException(backend + " did not accept a connection", e);
-    } catch (HttpTimeoutException e) {
-      throw new TelemetryQueryException(backend + " timed out after "
-          + QueryWindow.format(config.timeout()) + " (qlawkus.self-observe.timeout). The query is "
-          + "too expensive: narrow the window, the selector or the query itself.");
-    } catch (IOException e) {
-      throw new TransientHttpException(backend + " is unreachable: " + e.getMessage(), e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new TelemetryQueryException(backend + " request was interrupted.");
+  private static boolean isReadTimeout(Throwable e) {
+    while (e != null) {
+      if (e instanceof SocketTimeoutException) {
+        return true;
+      }
+      if (e.getMessage() != null && e.getMessage().contains("timeout period")) {
+        return true;
+      }
+      e = e.getCause();
     }
+    return false;
   }
 
   private String detail(String body) {
