@@ -47,6 +47,7 @@ Scheduled background jobs, each with a manual `POST /api/admin/memory/*` trigger
   Unlike the turn gate this **fails safe**: a throw or timeout keeps both facts (a deletion cannot be undone, a surviving duplicate is retried next run), counted in `qlawkus.turn.gate{question=duplicate-fact}`.
   The `@DefaultBean` `PassThroughDuplicateJudge` answers yes (distance alone, as before); `decision.nvidia` supplies `NvidiaDuplicateJudge` (`qlawkus.decision.nvidia.duplicate-threshold`, default 0.9).
   The pg and hybrid stores pair facts, not rows: rows sharing a `factHash` are one fact, so the segments of a chunked fact are never judged against each other. They read the pairs in one transaction, judge each fact's whole text (segment 0's `factText`) outside any transaction, and delete every segment of a confirmed duplicate in a second (`NearDuplicatePurge`), so a connection never waits on a model call.
+  The hybrid store also removes the `.md` file of each doomed fact before the table rows (files first, so a failure leaves rows the next run can re-derive, never a file the reconcile would restore).
 - `MemoryCurationJob` - folds facts into the owner profile, reconciling contradictions; leaves facts untouched (`/curate`).
 - `SemanticExtractorObserver` - extracts facts from a conversation on `ChatCompletedEvent`.
   The event is emitted channel-agnostically by `ChatCompletionEmitter`, which observes the store-level `MessagesAppendedEvent` and fires once per turn (when a final assistant message - one without tool-execution requests - is appended).
