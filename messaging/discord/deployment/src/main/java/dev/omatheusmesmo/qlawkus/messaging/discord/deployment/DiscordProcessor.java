@@ -1,10 +1,25 @@
 package dev.omatheusmesmo.qlawkus.messaging.discord.deployment;
 
+import java.util.List;
+
+import org.jboss.jandex.ClassInfo;
+import org.jboss.jandex.DotName;
+
+import com.fasterxml.jackson.databind.ser.std.ClassSerializer;
 import dev.omatheusmesmo.qlawkus.messaging.discord.DiscordShutdownListener;
+import discord4j.discordjson.json.gateway.HeartbeatConverter;
+import discord4j.discordjson.json.gateway.OpcodeConverter;
+import discord4j.discordjson.possible.PossibleFilter;
+import discord4j.rest.json.response.ErrorResponse;
+import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
+import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.builditem.IndexDependencyBuildItem;
 import io.quarkus.deployment.builditem.ShutdownListenerBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedClassBuildItem;
+import io.quarkus.deployment.pkg.steps.NativeOrNativeSourcesBuild;
 
 class DiscordProcessor {
 
@@ -13,6 +28,43 @@ class DiscordProcessor {
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
+    }
+
+    @BuildStep(onlyIf = NativeOrNativeSourcesBuild.class)
+    List<IndexDependencyBuildItem> indexDiscordPayloads() {
+        return List.of(
+                new IndexDependencyBuildItem("com.discord4j", "discord-json"),
+                new IndexDependencyBuildItem("com.discord4j", "discord-json-api"),
+                new IndexDependencyBuildItem("com.discord4j", "discord4j-gateway"),
+                new IndexDependencyBuildItem("com.discord4j", "discord4j-voice"));
+    }
+
+    @BuildStep(onlyIf = NativeOrNativeSourcesBuild.class)
+    void registerDiscordPayloads(CombinedIndexBuildItem index, BuildProducer<ReflectiveClassBuildItem> reflection) {
+        String[] payloads = index.getIndex().getKnownClasses().stream()
+                .map(ClassInfo::name)
+                .filter(DiscordProcessor::isGeneratedPayload)
+                .map(DotName::toString)
+                .sorted()
+                .toArray(String[]::new);
+        reflection.produce(ReflectiveClassBuildItem.builder(payloads)
+                .reason("Discord4J Jackson payloads")
+                .constructors().methods().fields().build());
+        reflection.produce(ReflectiveClassBuildItem.builder(
+                HeartbeatConverter.class, OpcodeConverter.class, PossibleFilter.class, ClassSerializer.class)
+                .constructors().build());
+        reflection.produce(ReflectiveClassBuildItem.builder(ErrorResponse.class)
+                .constructors().methods().fields().build());
+        reflection.produce(ReflectiveClassBuildItem.builder(
+                "com.github.benmanes.caffeine.cache.SI", "com.github.benmanes.caffeine.cache.PW")
+                .reason("Caffeine cache constructors used by Discord4J")
+                .constructors().build());
+    }
+
+    private static boolean isGeneratedPayload(DotName type) {
+        String name = type.withoutPackagePrefix();
+        return type.toString().startsWith("discord4j.discordjson.json.")
+                && name.startsWith("Immutable") && (!name.contains("$") || name.endsWith("$Json"));
     }
 
     /**

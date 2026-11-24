@@ -41,6 +41,12 @@ jobs:
       - name: Build with Maven
         run: ./mvnw -B clean install -DskipTests -Dno-format -ntp
 
+      - name: Check Discord native reflection
+        run: |
+          ./mvnw -B -ntp -f integration-tests/messaging/pom.xml package -DskipTests \
+            -Dquarkus.native.enabled=true -Dquarkus.native.sources-only=true
+          bash scripts/check-discord-native-reflection.sh integration-tests/messaging/target/native-sources/*-runner.jar
+
       - name: Zip the Maven repo
         run: |
           tar -czf ${{ runner.temp }}/maven-repo.tgz -C ~ .m2/repository
