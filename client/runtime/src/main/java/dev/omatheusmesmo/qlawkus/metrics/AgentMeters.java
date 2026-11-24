@@ -76,6 +76,7 @@ public class AgentMeters {
     public static final String STORE_DURATION = "qlawkus.store.duration";
 
     public static final String TURN_GATE = "qlawkus.turn.gate";
+    public static final String TURN_GATE_DURATION = "qlawkus.turn.gate.duration";
 
     /** The {@code outcome} tag of {@link #TURN_GATE} when the gate lets the generation run. */
     public static final String GATE_PASS = "pass";
@@ -322,6 +323,12 @@ public class AgentMeters {
     public void turnGate(String question, String outcome) {
         if (registry != null) {
             registry.counter(TURN_GATE, Tags.of(TAG_QUESTION, question, TAG_OUTCOME, outcome)).increment();
+        }
+    }
+
+    public void turnGateDuration(String question, Duration took) {
+        if (registry != null) {
+            registry.timer(TURN_GATE_DURATION, Tags.of(TAG_QUESTION, question)).record(took);
         }
     }
 

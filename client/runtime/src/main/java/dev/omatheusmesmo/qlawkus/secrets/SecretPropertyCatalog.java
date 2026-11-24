@@ -17,6 +17,7 @@ public final class SecretPropertyCatalog {
     private static final Set<String> SECRET_PROPERTIES = Set.of(
             "quarkus.langchain4j.openai.\"primary\".api-key",
             "qlawkus.embedding.api-key",
+            "qlawkus.decision.nvidia.api-key",
             "qlawkus.admin.password-hash",
             "qlawkus.google.auth.client-secret",
             "qlawkus.google.vault.encryption-passphrase",

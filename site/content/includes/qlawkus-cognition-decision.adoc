@@ -1,0 +1,136 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-cognition-decision_qlawkus-decision-nvidia-enabled]] [.property-path]##link:#qlawkus-cognition-decision_qlawkus-decision-nvidia-enabled[`+++qlawkus.decision.nvidia.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.decision.nvidia.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether to send completed-turn text to NVIDIA to decide which extractors to run.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_DECISION_NVIDIA_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_DECISION_NVIDIA_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-cognition-decision_qlawkus-decision-nvidia-api-key]] [.property-path]##link:#qlawkus-cognition-decision_qlawkus-decision-nvidia-api-key[`+++qlawkus.decision.nvidia.api-key+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.decision.nvidia.api-key+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+NVIDIA API key. Defaults to the primary model's key when it already uses NVIDIA's hosted endpoint.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_DECISION_NVIDIA_API_KEY+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_DECISION_NVIDIA_API_KEY+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-cognition-decision_qlawkus-decision-nvidia-model]] [.property-path]##link:#qlawkus-cognition-decision_qlawkus-decision-nvidia-model[`+++qlawkus.decision.nvidia.model+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.decision.nvidia.model+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+NVIDIA hosted model that returns Yes and No token log probabilities.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_DECISION_NVIDIA_MODEL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_DECISION_NVIDIA_MODEL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++nvidia/nemotron-3.5-lightning-30b-a3b+++`
+
+a| [[qlawkus-cognition-decision_qlawkus-decision-nvidia-durable-fact-threshold]] [.property-path]##link:#qlawkus-cognition-decision_qlawkus-decision-nvidia-durable-fact-threshold[`+++qlawkus.decision.nvidia.durable-fact-threshold+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.decision.nvidia.durable-fact-threshold+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Minimum normalized yes score for the durable-fact extractor.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_DECISION_NVIDIA_DURABLE_FACT_THRESHOLD+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_DECISION_NVIDIA_DURABLE_FACT_THRESHOLD+++`
+endif::add-copy-button-to-env-var[]
+--
+|double
+|`+++0.5+++`
+
+a| [[qlawkus-cognition-decision_qlawkus-decision-nvidia-reusable-procedure-threshold]] [.property-path]##link:#qlawkus-cognition-decision_qlawkus-decision-nvidia-reusable-procedure-threshold[`+++qlawkus.decision.nvidia.reusable-procedure-threshold+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.decision.nvidia.reusable-procedure-threshold+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Minimum normalized yes score for the reusable-procedure extractor.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_DECISION_NVIDIA_REUSABLE_PROCEDURE_THRESHOLD+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_DECISION_NVIDIA_REUSABLE_PROCEDURE_THRESHOLD+++`
+endif::add-copy-button-to-env-var[]
+--
+|double
+|`+++0.5+++`
+
+a| [[qlawkus-cognition-decision_qlawkus-decision-nvidia-achievement-threshold]] [.property-path]##link:#qlawkus-cognition-decision_qlawkus-decision-nvidia-achievement-threshold[`+++qlawkus.decision.nvidia.achievement-threshold+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.decision.nvidia.achievement-threshold+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Minimum normalized yes score for the achievement extractor.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_DECISION_NVIDIA_ACHIEVEMENT_THRESHOLD+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_DECISION_NVIDIA_ACHIEVEMENT_THRESHOLD+++`
+endif::add-copy-button-to-env-var[]
+--
+|double
+|`+++0.5+++`
+
+|===

@@ -109,6 +109,22 @@ The API returns newest events first. The default `limit` is 100, with a maximum 
 
 Metadata expires after 14 days by default. Set `qlawkus.debug-history.retention-days` to a value from 1 to 90. To opt in to short redacted excerpts of user messages and model replies, set `qlawkus.debug-history.capture-text=true` and request `includeText=true`. Excerpts expire after 24 hours. The journal excludes assembled prompts, task instructions, headers, audio and tool arguments and results. Treat optional excerpts as conversation data.
 
+== NVIDIA post-turn decisions
+
+Add the `decision.nvidia` capability in `agent.yml`, rebuild and set `qlawkus.decision.nvidia.enabled=true` at runtime.
+The gate sends the completed turn's user and assistant text to NVIDIA.
+System messages, tool outputs and binary attachments stay out of the request. Request and response bodies stay out of the gate's logs and spans.
+
+Set `QLAWKUS_DECISION_NVIDIA_API_KEY` or use the primary model's key when the primary provider is configured for NVIDIA's hosted endpoint. See xref:secrets.adoc[Secrets] for the keystore alias.
+Nemotron Lightning is the default. Its adapter implements LangChain4j's text yes/no `DecisionModel` and normalizes the returned token probabilities over the two answers.
+Set the threshold separately for facts, reusable procedures and achievements.
+An unavailable provider, timeout, or missing probability data lets the extractor run normally.
+Other extensions can inject the same text yes/no `DecisionModel` with `@Identifier("nvidia-turn-gate")` and define their own timeout and failure handling.
+
+Use the Turn gate dashboard row to compare passed and skipped generations and see request duration.
+Calculate the share saved as skips divided by passes, skips and errors combined.
+Decisions run on the batch workload after the owner's turn.
+
 == Telemetry
 
 Metrics and tracing arrive as a composable capability rather than a hand-edited dependency. Select it in `agent.yml`:
@@ -283,6 +299,10 @@ The meters above arrive from upstream. These are the ones Qlawkus emits itself, 
 |`qlawkus.turn.gate`
 |How often the turn gate lets a post-turn generation run (`pass`) or skips it (`skip`), and how often the gate threw and the generation ran anyway (`error`). Read `skip` against the model calls it saved; a rising `error` means the gate itself is failing open.
 |`question`, `outcome`
+
+|`qlawkus.turn.gate.duration`
+|Duration of NVIDIA decision requests, including failures.
+|`question`
 
 |`qlawkus.tool.invocations` +
 `qlawkus.tool.duration`
