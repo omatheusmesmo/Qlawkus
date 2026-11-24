@@ -1,0 +1,33 @@
+{
+  "t": "INTERACTION_CREATE",
+  "s": 1,
+  "op": 0,
+  "d": {
+    "id": "700",
+    "application_id": "300",
+    "type": 2,
+    "data": {
+      "id": "701",
+      "name": "qlawkus",
+      "type": 1,
+      "options": [
+        {
+          "type": 1,
+          "name": "help",
+          "options": []
+        }
+      ]
+    },
+    "channel_id": "400",
+    "user": {
+      "id": "100",
+      "username": "fixture-user",
+      "discriminator": "0",
+      "avatar": null,
+      "bot": false
+    },
+    "token": "fixture-token",
+    "version": 1,
+    "entitlements": []
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "t": "GUILD_CREATE",
+  "s": 1,
+  "op": 0,
+  "d": {
+    "id": "200",
+    "name": "Fixture server",
+    "owner_id": "100",
+    "afk_timeout": 300,
+    "verification_level": 0,
+    "default_message_notifications": 0,
+    "explicit_content_filter": 0,
+    "mfa_level": 0,
+    "premium_tier": 0,
+    "preferred_locale": "en-US",
+    "nsfw_level": 0,
+    "joined_at": "2025-01-01T00:00:00Z",
+    "large": false,
+    "member_count": 1,
+    "roles": [],
+    "emojis": [],
+    "stickers": [],
+    "voice_states": [],
+    "members": [],
+    "channels": [
+      {
+        "type": 2,
+        "application_id": null,
+        "rtc_region": null,
+        "theme_color": null,
+        "voice_hangout": null,
+        "voice_background_display": null,
+        "bitrate": 64000,
+        "user_limit": 0,
+        "id": "400",
+        "name": "Fixture voice",
+        "parent_id": "401",
+        "permission_overwrites": []
+      }
+    ],
+    "threads": [],
+    "presences": []
+  }
+}
