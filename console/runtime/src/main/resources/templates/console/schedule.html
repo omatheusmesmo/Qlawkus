@@ -23,7 +23,7 @@
                         <code>{row.cron}</code>
                     </td>
                     <td data-label="Destination">{row.provider} <span class="mono">{row.chat}</span></td>
-                    <td class="mono" data-label="Next run">{row.nextFireTime ?: 'not scheduled'}</td>
+                    <td class="mono" data-label="Next run">{#if row.nextFireTime}{#include console/time t=row.nextFireTime /}{#else}not scheduled{/if}</td>
                     <td data-label="Status">
                         <span class="pill {#if row.active}pill-ok{#else}pill-err{/if}">{row.statusLabel}</span>
                     </td>
@@ -56,8 +56,8 @@
                     <div><span class="cfg-src" title="{j.effectiveSource ?: 'default'}">{j.sourceLabel}</span></div>
                     {#if j.shadowWarning}<div class="cfg-warn">{j.shadowWarning}</div>{/if}
                 </td>
-                <td class="mono nowrap" data-label="Previous run">{j.previousFireTime ?: 'never'}</td>
-                <td class="mono nowrap" data-label="Next run">{j.nextFireTime ?: 'not scheduled'}</td>
+                <td class="mono nowrap" data-label="Previous run">{#if j.previousFireTime}{#include console/time t=j.previousFireTime /}{#else}never{/if}</td>
+                <td class="mono nowrap" data-label="Next run">{#if j.nextFireTime}{#include console/time t=j.nextFireTime /}{#else}not scheduled{/if}</td>
                 <td data-label="Run now">
                     <button class="btn btn-secondary btn-sm" hx-post="{j.triggerPath}" hx-target="#sched-result" hx-swap="innerHTML">Run now</button>
                 </td>
@@ -105,7 +105,7 @@
     {#if redeploy}
         <p>
             {#if redeploy.failed}<span class="pill pill-err">{redeploy.outcome}</span> failed in {redeploy.failedPhase}{#else}<span class="pill pill-ok">{redeploy.outcome}</span>{/if}
-            <span class="muted">reported <span class="mono">{redeploy.recordedAt}</span>, started <span class="mono">{redeploy.startedAt}</span></span>
+            <span class="muted">reported <span class="mono">{#if redeploy.recordedAt}{#include console/time t=redeploy.recordedAt /}{#else}unknown{/if}</span>, started <span class="mono">{#if redeploy.startedAt}{#include console/time t=redeploy.startedAt /}{#else}unknown{/if}</span></span>
         </p>
         {#if redeploy.message}<p class="mono">{redeploy.message}</p>{/if}
         <table class="tbl">
@@ -116,7 +116,7 @@
             {/for}
             </tbody>
         </table>
-        <p class="muted">Last success: <span class="mono">{redeploy.lastSuccessAt ?: 'never'}</span>. Full history at <span class="mono">GET /api/admin/composition/redeploys</span>.</p>
+        <p class="muted">Last success: <span class="mono">{#if redeploy.lastSuccessAt}{#include console/time t=redeploy.lastSuccessAt /}{#else}never{/if}</span>. Full history at <span class="mono">GET /api/admin/composition/redeploys</span>.</p>
     {#else}
         <p class="muted">No redeploy has been reported yet. The redeploy loop reports each run here when it finishes.</p>
     {/if}

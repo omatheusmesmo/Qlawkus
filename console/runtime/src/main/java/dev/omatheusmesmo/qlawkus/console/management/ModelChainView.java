@@ -5,14 +5,11 @@ import io.quarkus.qute.TemplateData;
 
 import java.time.Instant;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /** The model chain as the Model card renders it: plain strings and flags, nothing to resolve by reflection. */
 @TemplateData
-public record ModelChainView(List<TierRow> tiers, List<PermanentRow> permanent, String lastTier, String lastAt) {
-
-    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm");
+public record ModelChainView(List<TierRow> tiers, List<PermanentRow> permanent, String lastTier, TimeLabel lastAt) {
 
     @TemplateData
     public record TierRow(String name, boolean enabled, String state, boolean failing, boolean healthy) {
@@ -33,6 +30,6 @@ public record ModelChainView(List<TierRow> tiers, List<PermanentRow> permanent, 
                 .toList();
         String tier = snapshot.lastServed().map(ModelChainStatus.Served::tier).orElse(null);
         Instant at = snapshot.lastServed().map(ModelChainStatus.Served::at).orElse(null);
-        return new ModelChainView(tiers, permanent, tier, at == null ? null : WHEN.format(at.atZone(zone)));
+        return new ModelChainView(tiers, permanent, tier, TimeLabel.of(at, zone));
     }
 }

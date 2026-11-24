@@ -4,9 +4,9 @@
         {#if redeploy.failed}<span class="pill pill-err">{redeploy.outcome}</span> failed in {redeploy.failedPhase}{#else}<span class="pill pill-ok">{redeploy.outcome}</span>{/if}
         <span class="muted">took <span class="mono">{redeploy.total}</span></span>
     </p>
-    <p class="muted">Reported <span class="mono">{redeploy.recordedAt}</span></p>
+    <p class="muted">Reported <span class="mono">{#if redeploy.recordedAt}{#include console/time t=redeploy.recordedAt /}{#else}unknown{/if}</span></p>
     {#if redeploy.message}<p class="mono redeploy-message">{redeploy.message}</p>{/if}
-    <p class="muted">Last success: <span class="mono">{redeploy.lastSuccessAt ?: 'never'}</span>. <a href="/console/schedule">Phase timings</a></p>
+    <p class="muted">Last success: <span class="mono">{#if redeploy.lastSuccessAt}{#include console/time t=redeploy.lastSuccessAt /}{#else}never{/if}</span>. <a href="/console/schedule">Phase timings</a></p>
 </div>
 {#else}
 <p class="muted">No redeploy has been reported yet.</p>

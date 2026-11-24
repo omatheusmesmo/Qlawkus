@@ -4,7 +4,7 @@
 <ul class="upcoming-list">
     {#for run in runs}
     <li class="upcoming-row" data-kind="{run.kind}" data-at="{run.at}">
-        <span class="upcoming-when">{run.when}</span>
+        <span class="upcoming-when">{#if run.when}{#include console/time t=run.when /}{/if}</span>
         <span class="upcoming-label">{run.label}</span>
         <span class="upcoming-kind">{run.kindLabel}</span>
     </li>
