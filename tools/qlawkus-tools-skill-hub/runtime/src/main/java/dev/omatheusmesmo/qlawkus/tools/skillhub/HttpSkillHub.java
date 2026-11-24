@@ -20,14 +20,14 @@ import io.quarkus.logging.Log;
 import io.smallrye.faulttolerance.api.ExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,6 +39,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 /**
  * Default {@link SkillHub}: talks to the registry over plain HTTP from Java (native-image friendly,
@@ -68,14 +69,15 @@ public class HttpSkillHub implements SkillHub {
   private final SkillHubConfig config;
   private final SkillStore skillStore;
   private final OutboundPolicy policy;
-  private final HttpClient httpClient;
+  private final SkillHubFetchClient fetchClient;
   private final ObjectMapper mapper = new ObjectMapper();
   private final String githubRawBase;
   private final String githubApiBase;
 
   @Inject
-  public HttpSkillHub(SkillHubConfig config, SkillStore skillStore, OutboundPolicy policy) {
-    this(config, skillStore, GITHUB_RAW, GITHUB_API, policy);
+  public HttpSkillHub(SkillHubConfig config, SkillStore skillStore, OutboundPolicy policy,
+      @RestClient SkillHubFetchClient fetchClient) {
+    this(config, skillStore, GITHUB_RAW, GITHUB_API, policy, fetchClient);
   }
 
   HttpSkillHub(SkillHubConfig config, SkillStore skillStore, String githubRawBase, String githubApiBase) {
@@ -84,13 +86,15 @@ public class HttpSkillHub implements SkillHub {
 
   HttpSkillHub(SkillHubConfig config, SkillStore skillStore, String githubRawBase, String githubApiBase,
       OutboundPolicy policy) {
+    this(config, skillStore, githubRawBase, githubApiBase, policy, SkillHubFetchClients.jdk(config));
+  }
+
+  HttpSkillHub(SkillHubConfig config, SkillStore skillStore, String githubRawBase, String githubApiBase,
+      OutboundPolicy policy, SkillHubFetchClient fetchClient) {
     this.config = config;
     this.skillStore = skillStore;
     this.policy = policy;
-    this.httpClient = HttpClient.newBuilder()
-        .connectTimeout(config.requestTimeout())
-        .followRedirects(HttpClient.Redirect.NEVER)
-        .build();
+    this.fetchClient = fetchClient;
     this.githubRawBase = githubRawBase;
     this.githubApiBase = githubApiBase;
   }
@@ -434,35 +438,36 @@ public class HttpSkillHub implements SkillHub {
       retryOn = TransientHttpException.class)
   @ExponentialBackoff(maxDelay = 8000, maxDelayUnit = ChronoUnit.MILLIS)
   Exchange exchange(URI uri, long limit) {
+    Response response;
     try {
-      HttpRequest request = HttpRequest.newBuilder(uri)
-          .timeout(config.requestTimeout())
-          .header("Accept", "application/json, text/plain, */*")
-          .GET()
-          .build();
-      HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
-      int status = response.statusCode();
-      try (InputStream body = response.body()) {
-        if (status == 429 || status >= 500) {
-          throw new TransientHttpException(status, "from " + uri);
+      response = fetchClient.get(uri.toString());
+    } catch (WebApplicationException e) {
+      response = e.getResponse();
+    } catch (ProcessingException e) {
+      throw new TransientHttpException("Request failed: " + uri, e);
+    }
+    int status = response.getStatus();
+    try {
+      if (status == 429 || status >= 500) {
+        throw new TransientHttpException(status, "from " + uri);
+      }
+      if (status >= 300 && status < 400) {
+        String location = response.getHeaderString("Location");
+        if (location == null) {
+          throw new IllegalStateException("HTTP " + status + " without a Location header from " + uri);
         }
-        if (status >= 300 && status < 400) {
-          String location = response.headers().firstValue("Location").orElse(null);
-          if (location == null) {
-            throw new IllegalStateException("HTTP " + status + " without a Location header from " + uri);
-          }
-          return new Exchange(location, null);
-        }
-        if (status / 100 != 2) {
-          throw new IllegalStateException("HTTP " + status + " from " + uri);
-        }
+        return new Exchange(location, null);
+      }
+      if (status / 100 != 2) {
+        throw new IllegalStateException("HTTP " + status + " from " + uri);
+      }
+      try (InputStream body = response.readEntity(InputStream.class)) {
         return new Exchange(null, readBounded(body, limit, uri));
       }
     } catch (IOException e) {
       throw new TransientHttpException("Request failed: " + uri, e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Request interrupted: " + uri, e);
+    } finally {
+      response.close();
     }
   }
 
