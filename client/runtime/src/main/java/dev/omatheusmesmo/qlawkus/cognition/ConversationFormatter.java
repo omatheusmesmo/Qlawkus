@@ -13,12 +13,12 @@ import dev.langchain4j.data.message.UserMessage;
  * {@code UserMessage { contents = [TextContent { text = "..." }] }}) into the extraction and
  * consolidation prompts, which degraded fact quality.
  */
-final class ConversationFormatter {
+public final class ConversationFormatter {
 
   private ConversationFormatter() {
   }
 
-  static String format(Iterable<ChatMessage> messages) {
+  public static String format(Iterable<ChatMessage> messages) {
     StringBuilder conversation = new StringBuilder();
     for (ChatMessage message : messages) {
       conversation.append(message.type().name()).append(": ").append(text(message)).append("\n");

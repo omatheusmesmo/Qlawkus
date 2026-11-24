@@ -82,6 +82,10 @@ include::includes/qlawkus-console-voice_qlawkus.console.adoc[]
 
 include::includes/qlawkus-heartbeat.adoc[]
 
+== NVIDIA decision gate (qlawkus-cognition-decision)
+
+include::includes/qlawkus-cognition-decision.adoc[]
+
 == Messaging
 
 === Core
