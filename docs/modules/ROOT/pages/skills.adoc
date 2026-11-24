@@ -1,4 +1,6 @@
 = Skills
+:page-nav-group: Memory & skills
+:page-nav-order: 120
 :page-title: Skills
 :page-description: Procedural memory the agent writes, uses, and curates itself
 

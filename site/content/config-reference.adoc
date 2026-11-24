@@ -1,4 +1,7 @@
 = Configuration Reference
+:page-nav-group: Reference
+:page-nav-order: 400
+:page-nav-title: Configuration
 
 All runtime configuration for every module. Override any variable in your `.env`, shell, or `docker-compose.yml`.
 

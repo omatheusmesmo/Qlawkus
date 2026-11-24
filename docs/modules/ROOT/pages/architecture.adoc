@@ -1,4 +1,6 @@
 = Architecture
+:page-nav-group: Getting started
+:page-nav-order: 30
 
 This is an operator-level overview of how Qlawkus is structured and how the pieces fit together.
 

@@ -1,4 +1,6 @@
 = Web Search
+:page-nav-group: Integrations
+:page-nav-order: 300
 :page-title: Web Search
 :page-description: Free web search with a self-hosted SearXNG instance
 

@@ -291,7 +291,55 @@ body {
 }
 
 /* Code blocks (asciidoctor listingblock) */
-.listingblock, .literalblock { margin: 0 0 1.3rem; }
+.listingblock, .literalblock { margin: 0 0 1.3rem; position: relative; }
+.copy-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 10px;
+  font: 600 12px/1.6 var(--font);
+  color: var(--code-text);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+.listingblock:hover .copy-button,
+.literalblock:hover .copy-button,
+.copy-button:focus-visible,
+.copy-button[data-state] { opacity: 1; }
+.copy-button:hover { background: rgba(255, 255, 255, 0.16); }
+.copy-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.copy-button[data-state="copied"] { color: #8fe0a0; border-color: #8fe0a0; }
+.copy-button[data-state="failed"] { color: #ffb4a8; border-color: #ffb4a8; }
+@media (hover: none) { .copy-button { opacity: 1; } }
+
+/* Search (Roq lunr plugin): theme variables follow the shared tokens, so dark mode comes for free */
+html:root {
+  --search-bg-color: rgba(10, 8, 14, 0.78);
+  --search-input-bg: var(--surface);
+  --search-input-color: var(--text);
+  --search-highlight-color: var(--accent-ink);
+  --search-result-bg: var(--surface);
+  --search-hover-bg: var(--accent-soft);
+  --search-result-text: var(--muted);
+  --search-result-title: var(--text);
+  --search-placeholder-color: var(--faint);
+  --search-border-color: var(--border-strong);
+  --search-result-url-color: var(--faint);
+  --search-close-color: #fff;
+}
+.sidebar .search-trigger-input {
+  background: var(--sidebar-soft);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #d8d4dd;
+  margin-bottom: 14px;
+}
+.sidebar .search-trigger-text, .sidebar .search-trigger-shortcut { color: #b6b1bd; }
+.sidebar .search-trigger-shortcut { background: rgba(255, 255, 255, 0.08); }
+.sidebar .search-trigger-icon { fill: #b6b1bd; }
 .listingblock pre, .literalblock pre {
   background: var(--code-bg);
   color: var(--code-text);

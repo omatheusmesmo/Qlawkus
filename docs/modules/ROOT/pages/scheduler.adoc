@@ -1,4 +1,6 @@
 = Scheduler
+:page-nav-group: Platform
+:page-nav-order: 220
 :page-title: Scheduler
 :page-description: Reminders and recurring tasks the agent schedules at the owner's request: timing, where replies go, persistence, logs and troubleshooting
 

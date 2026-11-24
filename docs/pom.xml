@@ -15,7 +15,8 @@
     Generates the AsciiDoc config reference from the @ConfigMapping classes
     (quarkus-config-doc-maven-plugin, build-time augmentation only, no datasource)
     into site/content/includes/, then syncs site/content/ into modules/ROOT/pages/
-    for Antora. Depends on the extension deployment artifacts so their config metadata
+    for Antora, and generates both navigations (site/data/nav.yml and modules/ROOT/nav.adoc) from the
+    :page-nav-*: attributes of each page through nav/DocsNav.java. Depends on the extension deployment artifacts so their config metadata
     is available; it never starts the agent.
   </description>
 
@@ -179,6 +180,27 @@
         </configuration>
       </plugin>
       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.6.3</version>
+        <executions>
+          <execution>
+            <id>generate-docs-nav</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>${java.home}/bin/java</executable>
+              <arguments>
+                <argument>${project.basedir}/nav/DocsNav.java</argument>
+                <argument>${project.basedir}/..</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <executions>
@@ -196,6 +218,9 @@
                 <resource>
                   <directory>${project.basedir}/../site/content</directory>
                   <filtering>false</filtering>
+                  <excludes>
+                    <exclude>search-index.json</exclude>
+                  </excludes>
                 </resource>
               </resources>
             </configuration>

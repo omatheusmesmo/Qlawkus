@@ -1,4 +1,6 @@
 = Web Fetch
+:page-nav-group: Integrations
+:page-nav-order: 310
 :page-title: Web Fetch
 :page-description: Let the agent read a web page it was pointed at, without opening the private network
 

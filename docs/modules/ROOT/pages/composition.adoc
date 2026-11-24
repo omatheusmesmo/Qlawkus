@@ -1,4 +1,6 @@
 = Composition
+:page-nav-group: Platform
+:page-nav-order: 200
 :page-title: Composition
 :page-description: Let agent.yml decide which capabilities are built into your agent, by generating the pom before the build.
 

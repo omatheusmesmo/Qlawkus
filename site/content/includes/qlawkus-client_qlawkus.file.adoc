@@ -154,5 +154,26 @@ endif::add-copy-button-to-env-var[]
 |int
 |`+++12000+++`
 
+a| [[qlawkus-client_qlawkus-file-patch-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-file-patch-enabled[`+++qlawkus.file.patch.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.file.patch.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Enable the applyPatch tool. When false, calls return an error without touching files.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_FILE_PATCH_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_FILE_PATCH_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
 |===
 

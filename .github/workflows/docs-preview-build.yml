@@ -9,6 +9,7 @@ on:
       - 'site/**'
       - 'docs/**'
       - '**/runtime/**/*.java'
+      - 'scripts/*docs*'
       - '.github/workflows/docs-preview-build.yml'
 
 jobs:
@@ -30,9 +31,16 @@ jobs:
       - name: Build extensions
         run: mvn -B -ntp install -DskipTests
 
-      # Generate the AsciiDoc config reference into site/content/includes.
-      - name: Generate config reference
-        run: mvn -B -ntp -f docs/pom.xml package -DskipTests
+      - name: Test the docs navigation generator and drift check
+        run: scripts/test-docs-nav.sh
+
+      # Generate the config reference into site/content/includes, the navigation into site/data and
+      # docs/modules/ROOT/nav.adoc, and mirror site/content into docs/ (the verify phase).
+      - name: Generate config reference, navigation and mirror
+        run: mvn -B -ntp -f docs/pom.xml verify -DskipTests
+
+      - name: Check generated documentation files are committed
+        run: scripts/check-docs-drift.sh
 
       # Generate the static site into site/target/roq. SITE_PATH_PREFIX is empty
       # because Surge serves the preview at the domain root.

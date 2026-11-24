@@ -10,8 +10,10 @@
   {#bundle /}
   {/insert}
   {#insert head /}
+  {#search-script /}
 </head>
 <body>
+  {#search-overlay /}
   <input type="checkbox" id="nav-toggle" class="nav-toggle" hidden>
   <div class="layout">
     <aside class="sidebar">
@@ -29,32 +31,14 @@
           <span class="brand-sub">docs</span>
         </span>
       </a>
+      {#search-button-input /}
       <nav class="nav" aria-label="Documentation">
-        <span class="nav-section">Getting started</span>
-        <a href="{site.url.resolve('quickstart')}"{#if page.title == 'Quick Start'} aria-current="page"{/if}>Quick Start</a>
-        <a href="{site.url.resolve('architecture')}"{#if page.title == 'Architecture'} aria-current="page"{/if}>Architecture</a>
-
-        <span class="nav-section">Memory &amp; skills</span>
-        <a href="{site.url.resolve('memory')}"{#if page.title == 'Memory'} aria-current="page"{/if}>Memory</a>
-        <a href="{site.url.resolve('storage')}"{#if page.title == 'Storage'} aria-current="page"{/if}>Storage</a>
-        <a href="{site.url.resolve('skills')}"{#if page.title == 'Skills'} aria-current="page"{/if}>Skills</a>
-
-        <span class="nav-section">Platform</span>
-        <a href="{site.url.resolve('composition')}"{#if page.title == 'Composition'} aria-current="page"{/if}>Composition</a>
-        <a href="{site.url.resolve('console')}"{#if page.title == 'Console'} aria-current="page"{/if}>Console</a>
-        <a href="{site.url.resolve('scheduler')}"{#if page.title == 'Scheduler'} aria-current="page"{/if}>Scheduler</a>
-        <a href="{site.url.resolve('secrets')}"{#if page.title == 'Secrets'} aria-current="page"{/if}>Secrets</a>
-
-        <span class="nav-section">Integrations</span>
-        <a href="{site.url.resolve('web-search')}"{#if page.title == 'Web Search'} aria-current="page"{/if}>Web Search</a>
-        <a href="{site.url.resolve('web-fetch')}"{#if page.title == 'Web Fetch'} aria-current="page"{/if}>Web Fetch</a>
-        <a href="{site.url.resolve('mcp')}"{#if page.title == 'MCP Connections'} aria-current="page"{/if}>MCP Connections</a>
-        <a href="{site.url.resolve('google-workspace')}"{#if page.title == 'Google Workspace Tools Setup'} aria-current="page"{/if}>Google Workspace</a>
-        <a href="{site.url.resolve('messaging')}"{#if page.title == 'Messaging Setup (Discord & Telegram)'} aria-current="page"{/if}>Messaging</a>
-        <a href="{site.url.resolve('voice')}"{#if page.title == 'Voice Setup (STT / TTS)'} aria-current="page"{/if}>Voice</a>
-
-        <span class="nav-section">Reference</span>
-        <a href="{site.url.resolve('config-reference')}"{#if page.title == 'Configuration Reference'} aria-current="page"{/if}>Configuration</a>
+        {#for group in cdi:nav.groups}
+        <span class="nav-section">{group.title}</span>
+        {#for item in group.pages}
+        <a href="{#if item.path == 'index'}{site.url}{#else}{site.url.resolve(item.path)}{/if}"{#if page.source.path == item.file} aria-current="page"{/if}>{item.title}</a>
+        {/for}
+        {/for}
       </nav>
       <div class="sidebar-foot">
         <a class="foot-github" href="https://github.com/omatheusmesmo/Qlawkus" target="_blank" rel="noopener">
@@ -107,6 +91,6 @@
     })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <script>mermaid.initialize({ startOnLoad: true, theme: 'default' });</script>
+  <script>mermaid.initialize({ startOnLoad: true, theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default' });</script>
 </body>
 </html>

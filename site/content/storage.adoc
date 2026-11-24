@@ -1,4 +1,6 @@
 = Storage
+:page-nav-group: Memory & skills
+:page-nav-order: 110
 :page-title: Storage
 :page-description: How cognition data is persisted - markdown, pgvector or hybrid - and how to move between them
 
