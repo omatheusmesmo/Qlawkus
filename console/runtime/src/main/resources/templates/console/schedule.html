@@ -50,7 +50,7 @@
                 <td data-label="Cron">
                     <form class="cfg-row" hx-put="/api/admin/runtime-toggles" hx-target="#sched-result" hx-swap="innerHTML">
                         <input type="hidden" name="property" value="{j.cronProperty}">
-                        <input type="text" name="value" value="{j.currentCron}">
+                        <input class="input input-sm" type="text" name="value" value="{j.currentCron}" aria-label="Cron for {j.label}">
                         <button type="submit" class="btn btn-primary btn-sm" data-ok="Saved the cron for {j.label}. It applies on the next restart.">Apply</button>
                     </form>
                     <div><span class="cfg-src" title="{j.effectiveSource ?: 'default'}">{j.sourceLabel}</span></div>
@@ -85,14 +85,12 @@
     </table>
     <form>
         <fieldset disabled>
-            <div class="cfg-row">
-                <label><input type="checkbox" name="enabled"> Enable heartbeat</label>
-                <label>Interval in minutes <input type="number" name="interval" min="1" max="1440" required></label>
-            </div>
-            <p><label>Owner instructions<br><textarea name="prompt" rows="3" maxlength="1000" cols="48"></textarea></label></p>
-            <div class="cfg-row">
-                <label>Notification provider <select name="provider"></select></label>
-                <button class="btn btn-primary btn-sm" type="submit">Save heartbeat</button>
+            <div class="form">
+                <label class="field-check"><input type="checkbox" name="enabled"> Enable heartbeat</label>
+                <label class="field"><span class="field-label">Interval in minutes</span><input class="input" type="number" name="interval" min="1" max="1440" required></label>
+                <label class="field"><span class="field-label">Owner instructions</span><textarea class="textarea" name="prompt" rows="3" maxlength="1000"></textarea></label>
+                <label class="field"><span class="field-label">Notification provider</span><select class="select" name="provider"></select></label>
+                <div class="actions"><button class="btn btn-primary" type="submit">Save heartbeat</button></div>
             </div>
         </fieldset>
     </form>

@@ -17,11 +17,11 @@
 <div class="cfg-toolbar" id="cfg-toolbar" role="search" hidden>
     <label class="cfg-search-field">
         <span class="sr-only">Search properties by name or description</span>
-        <input type="search" id="cfg-search" placeholder="Search name or description (press /)" autocomplete="off" spellcheck="false" aria-controls="cfg-sections">
+        <input type="search" class="input" id="cfg-search" placeholder="Search name or description (press /)" autocomplete="off" spellcheck="false" aria-controls="cfg-sections">
     </label>
     <label class="cfg-check"><input type="checkbox" id="cfg-changed"> Changed from default</label>
     <label class="cfg-phase-field">Phase
-        <select id="cfg-phase">
+        <select class="select" id="cfg-phase">
             <option value="">All</option>
             <option value="run">Run time</option>
             <option value="build">Build time</option>
@@ -35,7 +35,7 @@
     <nav class="cfg-index" aria-label="Config sections">
         <label class="cfg-jump-field">
             <span class="sr-only">Jump to a config section</span>
-            <select id="cfg-jump">
+            <select class="select" id="cfg-jump">
                 <option value="">Jump to section</option>
                 {#for root in roots}<option value="{root.anchor}">{root.prefix}</option>{/for}
             </select>
@@ -73,7 +73,7 @@
                     <div class="cfg-set">
                         <form class="cfg-row" hx-put="/api/admin/runtime-toggles" hx-target="next .cfg-row-result" hx-swap="innerHTML">
                             <input type="hidden" name="property" value="{p.property}">
-                            <input type="text" name="value" value="{p.effectiveValue}" placeholder="{p.defaultValue ?: ''}" aria-label="Value for {p.property}">
+                            <input class="input input-sm" type="text" name="value" value="{p.effectiveValue}" placeholder="{p.defaultValue ?: ''}" aria-label="Value for {p.property}">
                             <button type="submit" class="btn btn-primary" data-ok="Saved {p.property}. It applies on the next restart.">Apply</button>
                         </form>
                         <button class="btn btn-secondary" hx-delete="/api/admin/runtime-toggles?property={p.property}" data-confirm-action="Remove override" data-confirm-target="{p.property}" data-confirm="The override is deleted and the default applies again after the next restart." hx-target="next .cfg-row-result" hx-swap="innerHTML" data-ok="Removed the override for {p.property}. The default applies on the next restart.">Reset</button>
@@ -83,7 +83,7 @@
                     <div class="cfg-set">
                         <form class="cfg-row" hx-put="/api/admin/config-overrides" hx-target="next .cfg-row-result" hx-swap="innerHTML">
                             <input type="hidden" name="property" value="{p.property}">
-                            <input type="text" name="value" value="{p.effectiveValue}" placeholder="{p.defaultValue ?: ''}" aria-label="Value for {p.property}">
+                            <input class="input input-sm" type="text" name="value" value="{p.effectiveValue}" placeholder="{p.defaultValue ?: ''}" aria-label="Value for {p.property}">
                             <button type="submit" class="btn btn-primary" data-ok="Staged {p.property}. It applies on the next rebuild.">Stage</button>
                         </form>
                         <button class="btn btn-secondary" hx-delete="/api/admin/config-overrides?property={p.property}" data-confirm-action="Discard staged override" data-confirm-target="{p.property}" data-confirm="The staged value is dropped and the property keeps the value baked into the running build." hx-target="next .cfg-row-result" hx-swap="innerHTML" data-ok="Discarded the staged override for {p.property}.">Unstage</button>

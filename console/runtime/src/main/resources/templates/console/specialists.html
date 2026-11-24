@@ -12,17 +12,23 @@
 </section>
 <section class="panel" aria-labelledby="specialist-editor-heading">
     <h2 id="specialist-editor-heading" class="panel-title">New specialist</h2>
-    <form id="specialist-editor" class="specialist-editor">
-        <label for="specialist-id">Identifier</label>
-        <input id="specialist-id" required maxlength="32" pattern="[a-z][a-z0-9\-]&#123;0,31&#125;"
-               placeholder="release-review" autocomplete="off">
-        <label for="specialist-instructions">Instructions</label>
-        <textarea id="specialist-instructions" rows="5" required maxlength="1200"
-                  placeholder="Identify missing release notes and explain which change each note should cover."></textarea>
-        <label for="specialist-model">Model tier</label>
-        <select id="specialist-model" required></select>
-        <label class="specialist-enabled"><input id="specialist-enabled" type="checkbox" checked> Enabled</label>
-        <div class="specialist-actions">
+    <form id="specialist-editor" class="form">
+        <div class="field">
+            <label class="field-label" for="specialist-id">Identifier</label>
+            <input class="input" id="specialist-id" required maxlength="32" pattern="[a-z][a-z0-9\-]&#123;0,31&#125;"
+                   placeholder="release-review" autocomplete="off">
+        </div>
+        <div class="field">
+            <label class="field-label" for="specialist-instructions">Instructions</label>
+            <textarea class="textarea" id="specialist-instructions" rows="5" required maxlength="1200"
+                      placeholder="Identify missing release notes and explain which change each note should cover."></textarea>
+        </div>
+        <div class="field">
+            <label class="field-label" for="specialist-model">Model tier</label>
+            <select class="select" id="specialist-model" required></select>
+        </div>
+        <label class="field-check"><input id="specialist-enabled" type="checkbox" checked> Enabled</label>
+        <div class="actions">
             <button type="submit" class="btn btn-primary" id="specialist-save" disabled>Save specialist</button>
             <button type="button" class="btn btn-secondary" id="specialist-new" hidden>New specialist</button>
             <button type="button" class="btn btn-danger" id="specialist-remove" hidden>Remove specialist</button>

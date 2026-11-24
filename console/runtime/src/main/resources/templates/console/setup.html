@@ -41,9 +41,9 @@
             <h2 class="step-title">1. Language model {#if llmConfigured}<span class="pill pill-ok">configured</span>{/if}</h2>
             <p class="muted">The provider and key the agent talks to. Saved to the keystore; applies on the next restart.</p>
             <form class="form" hx-post="/console/setup/llm" hx-target="#llm-result" hx-swap="innerHTML">
-                <label>Base URL<input name="baseUrl" placeholder="https://integrate.api.nvidia.com/v1"></label>
-                <label>Chat model<input name="chatModel" placeholder="e.g. meta/llama-3.1-70b-instruct"></label>
-                <label>API key<input name="apiKey" type="password" placeholder="paste the provider API key"></label>
+                <label class="field"><span class="field-label">Base URL</span><input class="input" name="baseUrl" placeholder="https://integrate.api.nvidia.com/v1"></label>
+                <label class="field"><span class="field-label">Chat model</span><input class="input" name="chatModel" placeholder="e.g. meta/llama-3.1-70b-instruct"></label>
+                <label class="field"><span class="field-label">API key</span><input class="input" name="apiKey" type="password" placeholder="paste the provider API key"></label>
                 <button type="submit" class="btn btn-primary">Save LLM settings</button>
             </form>
             <div id="llm-result" class="result"></div>
@@ -93,7 +93,7 @@
                     <h3>{step.label} token {#if step.done}<span class="pill pill-ok">saved</span>{/if}</h3>
                     <form class="form" hx-post="/console/setup/messaging" hx-target="#msg-{step_count}" hx-swap="innerHTML">
                         <input type="hidden" name="property" value="{step.tokenProperty}">
-                        <label>Bot token<input name="token" type="password" placeholder="paste the bot token"></label>
+                        <label class="field"><span class="field-label">Bot token</span><input class="input" name="token" type="password" placeholder="paste the bot token"></label>
                         <button type="submit" class="btn btn-primary">Save token</button>
                     </form>
                     <div id="msg-{step_count}" class="result"></div>

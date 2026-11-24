@@ -113,9 +113,10 @@
     byId("mcp-transport").focus();
   }
 
-  function button(text, work) {
+  function button(text, work, variant) {
     const node = document.createElement("button");
     node.type = "button";
+    node.className = "btn btn-" + (variant || "secondary") + " btn-sm";
     node.textContent = text;
     node.addEventListener("click", () => action(work));
     return node;
@@ -173,8 +174,7 @@
           if (!await window.qlawkusConfirm({action: "Remove connection", target: connection.id,
             message: "The connection and its tools are removed from the agent, and any sign-in stored for it is forgotten."})) return;
           await request(path, "DELETE"); await load(); feedback("Connection removed.", false);
-        });
-        remove.classList.add("mcp-danger");
+        }, "danger");
         actions.append(remove); row.append(title, detail, actions); container.append(row);
       }
     } finally { container.setAttribute("aria-busy", "false"); }
