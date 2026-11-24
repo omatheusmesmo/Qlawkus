@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.console.management;
 
+import java.util.Set;
+
 /**
  * Maps a MicroProfile config source name to the short label an operator reads. The full name stays
  * available to the page as a tooltip, since the raw form carries jar paths and class names.
@@ -10,6 +12,21 @@ public final class ConfigSourceLabel {
     private static final String SOURCE_MARKER = "[source=";
 
     private ConfigSourceLabel() {
+    }
+
+    private static final Set<String> OWNER_SOURCES = Set.of("env", "system property", "override file", "keystore",
+            "agent.yml");
+
+    public static boolean isDefault(String sourceName) {
+        return DEFAULT.equals(of(sourceName));
+    }
+
+    /**
+     * True when the value comes from a source the owner controls at deploy or run time, as opposed to the
+     * defaults the distribution and its extensions ship in their own property files.
+     */
+    public static boolean isOwnerSource(String sourceName) {
+        return OWNER_SOURCES.contains(of(sourceName));
     }
 
     public static String of(String sourceName) {
