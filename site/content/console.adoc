@@ -42,10 +42,11 @@ Every page the sidebar can show has a section here, in sidebar order, with a scr
 
 === Overview
 
+[subs=attributes]
 ++++
 <picture>
-<source srcset="../images/console/overview-dark.png" media="(prefers-color-scheme: dark)">
-<img src="../images/console/overview-light.png" alt="The console Overview with the status panel and the health cards" width="1280" height="800" loading="lazy">
+<source srcset="{html-image-root}console/overview-dark.png" media="(prefers-color-scheme: dark)">
+<img src="{html-image-root}console/overview-light.png" alt="The console Overview with the status panel and the health cards" width="1280" height="800" loading="lazy">
 </picture>
 ++++
 
@@ -53,10 +54,11 @@ Every page the sidebar can show has a section here, in sidebar order, with a scr
 
 === Chat
 
+[subs=attributes]
 ++++
 <picture>
-<source srcset="../images/console/chat-dark.png" media="(prefers-color-scheme: dark)">
-<img src="../images/console/chat-light.png" alt="The chat page with the message box and a streamed reply" width="1280" height="800" loading="lazy">
+<source srcset="{html-image-root}console/chat-dark.png" media="(prefers-color-scheme: dark)">
+<img src="{html-image-root}console/chat-light.png" alt="The chat page with the message box and a streamed reply" width="1280" height="800" loading="lazy">
 </picture>
 ++++
 
@@ -88,10 +90,11 @@ The page sends the mode with each message, so the endpoint itself leaves out wha
 
 === Approvals
 
+[subs=attributes]
 ++++
 <picture>
-<source srcset="../images/console/approvals-dark.png" media="(prefers-color-scheme: dark)">
-<img src="../images/console/approvals-light.png" alt="The Approvals page listing gated tool calls with Approve and Deny buttons" width="1280" height="800" loading="lazy">
+<source srcset="{html-image-root}console/approvals-dark.png" media="(prefers-color-scheme: dark)">
+<img src="{html-image-root}console/approvals-light.png" alt="The Approvals page listing gated tool calls with Approve and Deny buttons" width="1280" height="800" loading="lazy">
 </picture>
 ++++
 
@@ -99,10 +102,11 @@ The page sends the mode with each message, so the endpoint itself leaves out wha
 
 === Voice
 
+[subs=attributes]
 ++++
 <picture>
-<source srcset="../images/console/voice-dark.png" media="(prefers-color-scheme: dark)">
-<img src="../images/console/voice-light.png" alt="The Voice page with the microphone controls and the live transcript" width="1280" height="800" loading="lazy">
+<source srcset="{html-image-root}console/voice-dark.png" media="(prefers-color-scheme: dark)">
+<img src="{html-image-root}console/voice-light.png" alt="The Voice page with the microphone controls and the live transcript" width="1280" height="800" loading="lazy">
 </picture>
 ++++
 
@@ -110,10 +114,11 @@ The page sends the mode with each message, so the endpoint itself leaves out wha
 
 === Specialists
 
+[subs=attributes]
 ++++
 <picture>
-<source srcset="../images/console/specialists-dark.png" media="(prefers-color-scheme: dark)">
-<img src="../images/console/specialists-light.png" alt="The Specialists page with the catalog and the form for a new specialist" width="1280" height="800" loading="lazy">
+<source srcset="{html-image-root}console/specialists-dark.png" media="(prefers-color-scheme: dark)">
+<img src="{html-image-root}console/specialists-light.png" alt="The Specialists page with the catalog and the form for a new specialist" width="1280" height="800" loading="lazy">
 </picture>
 ++++
 
@@ -121,10 +126,11 @@ The page sends the mode with each message, so the endpoint itself leaves out wha
 
 === Artifacts
 
+[subs=attributes]
 ++++
 <picture>
-<source srcset="../images/console/artifacts-dark.png" media="(prefers-color-scheme: dark)">
-<img src="../images/console/artifacts-light.png" alt="The Artifacts page listing files the agent saved, with Preview and Download actions" width="1280" height="800" loading="lazy">
+<source srcset="{html-image-root}console/artifacts-dark.png" media="(prefers-color-scheme: dark)">
+<img src="{html-image-root}console/artifacts-light.png" alt="The Artifacts page listing files the agent saved, with Preview and Download actions" width="1280" height="800" loading="lazy">
 </picture>
 ++++
 
@@ -132,10 +138,11 @@ The page sends the mode with each message, so the endpoint itself leaves out wha
 
 === Memory
 
+[subs=attributes]
 ++++
 <picture>
-<source srcset="../images/console/memory-dark.png" media="(prefers-color-scheme: dark)">
-<img src="../images/console/memory-light.png" alt="The Memory page with recent facts, fact sources and episodic journals" width="1280" height="800" loading="lazy">
+<source srcset="{html-image-root}console/memory-dark.png" media="(prefers-color-scheme: dark)">
+<img src="{html-image-root}console/memory-light.png" alt="The Memory page with recent facts, fact sources and episodic journals" width="1280" height="800" loading="lazy">
 </picture>
 ++++
 
@@ -143,10 +150,11 @@ The page sends the mode with each message, so the endpoint itself leaves out wha
 
 === Skills
 
+[subs=attributes]
 ++++
 <picture>
-<source srcset="../images/console/skills-dark.png" media="(prefers-color-scheme: dark)">
-<img src="../images/console/skills-light.png" alt="The Skills page listing the skill index with pin and delete actions" width="1280" height="800" loading="lazy">
+<source srcset="{html-image-root}console/skills-dark.png" media="(prefers-color-scheme: dark)">
+<img src="{html-image-root}console/skills-light.png" alt="The Skills page listing the skill index with pin and delete actions" width="1280" height="800" loading="lazy">
 </picture>
 ++++
 
@@ -154,10 +162,11 @@ The page sends the mode with each message, so the endpoint itself leaves out wha
 
 === Cognition
 
+[subs=attributes]
 ++++
 <picture>
-<source srcset="../images/console/cognition-dark.png" media="(prefers-color-scheme: dark)">
-<img src="../images/console/cognition-light.png" alt="The Cognition page with the reconcile and migrate actions" width="1280" height="800" loading="lazy">
+<source srcset="{html-image-root}console/cognition-dark.png" media="(prefers-color-scheme: dark)">
+<img src="{html-image-root}console/cognition-light.png" alt="The Cognition page with the reconcile and migrate actions" width="1280" height="800" loading="lazy">
 </picture>
 ++++
 
@@ -165,10 +174,11 @@ The page sends the mode with each message, so the endpoint itself leaves out wha
 
 === Config
 
+[subs=attributes]
 ++++
 <picture>
-<source srcset="../images/console/config-dark.png" media="(prefers-color-scheme: dark)">
-<img src="../images/console/config-light.png" alt="The configuration editor with the search toolbar and collapsed sections" width="1280" height="800" loading="lazy">
+<source srcset="{html-image-root}console/config-dark.png" media="(prefers-color-scheme: dark)">
+<img src="{html-image-root}console/config-light.png" alt="The configuration editor with the search toolbar and collapsed sections" width="1280" height="800" loading="lazy">
 </picture>
 ++++
 
@@ -176,10 +186,11 @@ The page sends the mode with each message, so the endpoint itself leaves out wha
 
 === MCP connections
 
+[subs=attributes]
 ++++
 <picture>
-<source srcset="../images/console/mcp-dark.png" media="(prefers-color-scheme: dark)">
-<img src="../images/console/mcp-light.png" alt="The MCP connections page with the connection list and the add form" width="1280" height="800" loading="lazy">
+<source srcset="{html-image-root}console/mcp-dark.png" media="(prefers-color-scheme: dark)">
+<img src="{html-image-root}console/mcp-light.png" alt="The MCP connections page with the connection list and the add form" width="1280" height="800" loading="lazy">
 </picture>
 ++++
 
@@ -187,10 +198,11 @@ The page sends the mode with each message, so the endpoint itself leaves out wha
 
 === Schedule
 
+[subs=attributes]
 ++++
 <picture>
-<source srcset="../images/console/schedule-dark.png" media="(prefers-color-scheme: dark)">
-<img src="../images/console/schedule-light.png" alt="The Schedule page with agent tasks, background jobs and the last redeploy" width="1280" height="800" loading="lazy">
+<source srcset="{html-image-root}console/schedule-dark.png" media="(prefers-color-scheme: dark)">
+<img src="{html-image-root}console/schedule-light.png" alt="The Schedule page with agent tasks, background jobs and the last redeploy" width="1280" height="800" loading="lazy">
 </picture>
 ++++
 

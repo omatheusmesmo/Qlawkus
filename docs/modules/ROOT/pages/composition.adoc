@@ -15,7 +15,7 @@ Composing a capability in or out is a build-time concern by design: a rebuild, t
 
 Quarkus resolves Maven dependencies *before* augmentation runs, and Maven does no tree-shaking, so a build step cannot add or drop dependencies for its own build. The only place a manifest can decide the dependencies is a step that runs *ahead* of the build. Qlawkus does this with a Maven plugin, the same idea as `quarkus extension add`:
 
-image::../images/diagrams/composition-flow.svg["agent.yml feeds the qlawkus:generate Maven goal, which edits pom.xml; a normal build then produces the agent artifact, while the runtime section needs no rebuild"]
+image::{image-root}diagrams/composition-flow.svg["agent.yml feeds the qlawkus:generate Maven goal, which edits pom.xml; a normal build then produces the agent artifact, while the runtime section needs no rebuild"]
 
 A deselected capability is left out of the pom entirely, so the result is lean by construction - not by relying on native-image dead-code elimination.
 
@@ -174,7 +174,7 @@ Qlawkus defines that as a five-phase contract and ships reference implementation
 |5. verify |Wait for health, then discard whatever was consumed (`DELETE`).
 |===
 
-image::../images/diagrams/redeploy-sequence.svg["The owner stages a manifest; the redeploy loop fetches it, promotes it, builds, restarts, verifies health, discards what it consumed and reports the run to the agent"]
+image::{image-root}diagrams/redeploy-sequence.svg["The owner stages a manifest; the redeploy loop fetches it, promotes it, builds, restarts, verifies health, discards what it consumed and reports the run to the agent"]
 
 The app stays passive: it only fetches (`GET`), discards (`DELETE`) and records the report of a finished run (`POST`, see below); everything that executes a build or a restart lives in the redeploy tooling, never in the app. The two staged documents are fetched, promoted, and discarded independently - a rebuild can be driven by either one alone, or both together. Phases 1, 2 and 5 are the environment-independent hook (`examples/redeploy/redeploy.sh`); phases 3 and 4 are the parts each reference implementation fills in:
 

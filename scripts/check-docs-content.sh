@@ -32,8 +32,13 @@ for svg in composition-flow memory-layers model-chain redeploy-sequence shutdown
 done
 
 while IFS= read -r ref; do
-  [ -s "$root/site/public/${ref#../}" ] || fail "image reference does not exist: $ref"
-done < <(grep -rhoE '(image::?|src="|srcset=")\.\./images/[^["]+' "$content"/*.adoc | sed -E 's/^(image::?|src="|srcset=")//' | sort -u)
+  [ -s "$root/site/public/images/$ref" ] || fail "image reference does not exist: $ref"
+  [ -s "$root/docs/modules/ROOT/images/$ref" ] || fail "image missing from the Antora mirror: $ref"
+done < <(grep -rhoE '(image::?|src="|srcset=")\{(image-root|html-image-root)\}[^["]+' "$content"/*.adoc | sed -E 's/^(image::?|src="|srcset=")\{(image-root|html-image-root)\}//' | sort -u)
+
+if grep -rnE '(image::?|src="|srcset=")\.\./images/' "$content"/*.adoc; then
+  fail "an image path is hard-coded to ../images/; use {image-root} or {html-image-root} so the Roq site and Antora both resolve it"
+fi
 
 while IFS= read -r ref; do
   page="${ref%%#*}"
