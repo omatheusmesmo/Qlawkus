@@ -76,6 +76,12 @@ The page sends the mode with each message, so the endpoint itself leaves out wha
 
 A note the Config and Schedule pages surface: when a property's effective value already comes from a source that outranks the runtime-toggle override file (an environment variable, `.env`, or a `-D` flag), the page warns that saving there will not take effect until that higher-priority source is removed - so a silent no-op is caught in the UI rather than by trial and error.
 
+== Forms and buttons
+
+Every form in the console is built from the same few parts, so a field looks and behaves the same on the Specialists, MCP, Config, Schedule and Setup pages. A `.field` holds a label, one control and an optional hint; `.input`, `.select` and `.textarea` are the controls, and `.actions` lays out the buttons under them. Controls fill their column and can shrink, so no form pushes the page wider than a 320px screen, and the keyboard focus ring is the same orange outline everywhere.
+
+Buttons come in three kinds: primary (save or apply), secondary (neutral actions such as refresh or reset) and danger (anything that deletes), each with a small size for table rows. The buttons that scripts build, like the per-connection actions on the MCP page, use the same classes.
+
 == Confirming destructive actions
 
 Anything that deletes or overwrites data asks first, through one dialog shared by every page instead of the browser's own prompt. The dialog names what the action touches in a monospace line (the property, the skill, the task, the connection), says in a sentence what follows, and labels its red button with the action itself ("Purge all memory", "Remove connection") rather than a bare "OK". Cancel has the focus when it opens, so an Enter pressed by reflex cancels. Escape, a click outside the dialog and Cancel all close it without sending anything, and focus goes back to the control that asked.

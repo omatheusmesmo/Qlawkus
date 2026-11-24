@@ -105,15 +105,6 @@
   src: url("fonts/manrope-latin.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-.specialist-editor {
-    display: grid;
-    gap: .55rem;
-    max-width: 40rem;
-}
-
-.specialist-editor label { font-weight: 600; }
-.specialist-editor textarea { resize: vertical; }
-.specialist-enabled, .specialist-actions { display: flex; align-items: center; gap: .65rem; margin-top: .5rem; }
 .specialist-instructions { max-width: 42ch; overflow-wrap: anywhere; white-space: pre-wrap; }
 
 /* Connection management follows the console's warm surfaces and compact control-plane rhythm. */
@@ -124,23 +115,6 @@
 .mcp-connection h3 { margin: 0; font-family: var(--mono); font-size: 16px; }
 .mcp-connection p { margin: 4px 0 12px; }
 .mcp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.mcp-actions .mcp-danger { color: var(--danger); background: var(--surface); border: 1px solid var(--danger-border); }
-.mcp-editor { display: grid; gap: 10px; }
-.mcp-editor label { font-size: 14px; font-weight: 600; }
-.mcp-editor input:not([type=checkbox]), .mcp-editor textarea, .mcp-editor select {
-  width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--border-strong);
-  border-radius: 6px; color: var(--text); background: var(--surface); font: inherit;
-}
-.mcp-editor textarea { font-family: var(--mono); font-size: 13px; resize: vertical; }
-.mcp-editor input:focus-visible, .mcp-editor textarea:focus-visible, .mcp-editor select:focus-visible {
-  outline: 2px solid var(--accent); outline-offset: 2px;
-}
-.mcp-editor details { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 14px 0; }
-.mcp-editor details label { display: block; margin-top: 12px; margin-bottom: 5px; }
-.mcp-editor summary { cursor: pointer; font-weight: 600; }
-.mcp-editor .muted { font-size: 13px; margin: 4px 0 12px; }
-.mcp-check { display: flex; gap: 8px; align-items: center; }
-.mcp-editor > button { justify-self: start; }
 
 * { box-sizing: border-box; }
 
@@ -415,17 +389,11 @@ body {
 .step-note li { margin: 4px 0; }
 
 .form { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; max-width: 640px; }
-.form label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--muted); }
-.form input[type="text"], .form input[type="password"], .form input:not([type]) {
-  font: inherit;
-  padding: 9px 11px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--text);
-}
-.form input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
-.form button { align-self: flex-start; }
+.form .btn { align-self: flex-start; }
+.form .muted { margin: 0; font-size: 13px; }
+.form details { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 14px 0; }
+.form summary { cursor: pointer; font-weight: 600; }
+.form details .field-group { margin-top: 14px; }
 
 .form label.check { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 2px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .check input { grid-column: 1; grid-row: 1; }
@@ -446,6 +414,44 @@ body {
 .result:empty { display: none; }
 .result-sticky { position: sticky; top: 12px; z-index: 5; margin-top: 20px; }
 .result-sticky .result-msg { box-shadow: 0 6px 18px rgba(35, 32, 39, 0.1); }
+
+/* ---------- Form components ----------
+   One set for every form: a .field groups a label, a control and an optional hint; .input, .select and
+   .textarea are the controls. They fill their column and may shrink inside a flex or grid row, so a
+   form never pushes the page wider than a 320px screen. */
+.field { display: grid; gap: 6px; min-width: 0; }
+.field-label { font-size: 14px; font-weight: 600; color: var(--text); }
+.field-hint { margin: 0; font-size: 13px; color: var(--muted); }
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.4;
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.input::placeholder, .textarea::placeholder { color: var(--faint); }
+.input:hover, .select:hover, .textarea:hover { border-color: var(--muted); }
+.input:focus-visible, .select:focus-visible, .textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent-strong);
+}
+.input:disabled, .select:disabled, .textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+.input[readonly] { background: var(--bg); }
+.input-sm, .select-sm { padding: 7px 10px; font-size: 13px; }
+.textarea { min-height: 5.5rem; resize: vertical; }
+.textarea-mono { font-family: var(--mono); font-size: 13px; }
+.field-check { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--text); }
+.field-group { display: grid; gap: 14px; min-width: 0; }
+.field-group[hidden] { display: none; }
 
 /* ---------- Buttons ----------
    One system for the whole console: primary applies or saves, secondary is a neutral action
@@ -527,19 +533,6 @@ body {
 .cfg-set { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .cfg-hint { margin-top: 6px; font-size: 12px; color: var(--faint); }
 .cfg-row { display: flex; gap: 8px; flex: 1 1 220px; min-width: 0; margin: 0; }
-.cfg-row input[type="text"] {
-  flex: 1 1 auto;
-  min-width: 0;
-  width: 100%;
-  font: inherit;
-  font-size: 13px;
-  padding: 7px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-}
-.cfg-row input[type="text"]:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
 
 .cfg-toolbar {
   position: sticky; top: 0; z-index: 6;
@@ -549,10 +542,6 @@ body {
 }
 .cfg-toolbar[hidden] { display: none; }
 .cfg-search-field { flex: 1 1 260px; min-width: 0; }
-.cfg-search-field input, .cfg-phase-field select, .cfg-jump-field select {
-  width: 100%; min-width: 0; font: inherit; font-size: 14px; padding: 8px 10px;
-  border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--text);
-}
 .cfg-phase-field { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
 .cfg-phase-field select { width: auto; }
 .cfg-check { display: flex; align-items: center; gap: 8px; font-size: 14px; }

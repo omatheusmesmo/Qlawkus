@@ -14,8 +14,8 @@
 <section class="panel">
     <h2 class="panel-title">From a link or repository</h2>
     <form class="form" id="install-link-form">
-        <label>Link, owner/repo slug, folder or gist
-            <input type="text" name="source" id="install-source" autocomplete="off" required placeholder="https://github.com/owner/repo/tree/main/skills">
+        <label class="field"><span class="field-label">Link, owner/repo slug, folder or gist</span>
+            <input class="input" type="text" name="source" id="install-source" autocomplete="off" required placeholder="https://github.com/owner/repo/tree/main/skills">
         </label>
         <button class="btn btn-primary" type="submit">Find skills</button>
     </form>
@@ -24,8 +24,8 @@
 <section class="panel">
     <h2 class="panel-title">Pasted text</h2>
     <form class="form" id="install-text-form">
-        <label>SKILL.md text, frontmatter included
-            <textarea name="text" id="install-text" rows="8" required></textarea>
+        <label class="field"><span class="field-label">SKILL.md text, frontmatter included</span>
+            <textarea class="textarea textarea-mono" name="text" id="install-text" rows="8" required></textarea>
         </label>
         <button class="btn btn-primary" type="submit">Install pasted skill</button>
     </form>
@@ -34,8 +34,8 @@
 <section class="panel">
     <h2 class="panel-title">Upload</h2>
     <form class="form" id="install-upload-form">
-        <label>SKILL.md, .zip or .tar.gz (up to {uploadLimitKib} KiB)
-            <input type="file" name="file" id="install-file" accept=".md,.zip,.tgz,.tar.gz,application/zip,application/gzip" required>
+        <label class="field"><span class="field-label">SKILL.md, .zip or .tar.gz (up to {uploadLimitKib} KiB)</span>
+            <input class="input" type="file" name="file" id="install-file" accept=".md,.zip,.tgz,.tar.gz,application/zip,application/gzip" required>
         </label>
         <button class="btn btn-primary" type="submit">Find skills</button>
     </form>
