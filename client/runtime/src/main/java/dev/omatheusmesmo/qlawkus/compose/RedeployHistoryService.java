@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.compose;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.dto.RedeployHistory;
 import dev.omatheusmesmo.qlawkus.dto.RedeployPhaseTotal;
@@ -50,24 +50,25 @@ public class RedeployHistoryService {
     static final int MAX_RUNS = 20;
 
     private static final String NO_PHASE = "none";
-    private static final ObjectMapper JSON = new ObjectMapper();
     private static final RedeployHistory EMPTY = new RedeployHistory(null, List.of(), List.of(), List.of());
 
     private final Path file;
     private final AgentMeters meters;
     private final Clock clock;
+    private final ObjectMapper json;
 
     private volatile RedeployHistory history;
 
     @Inject
-    public RedeployHistoryService(AgentConfig config, AgentMeters meters) {
-        this(Path.of(config.state().root(), HISTORY_FILE), meters, Clock.systemUTC());
+    public RedeployHistoryService(AgentConfig config, AgentMeters meters, ObjectMapper json) {
+        this(Path.of(config.state().root(), HISTORY_FILE), meters, Clock.systemUTC(), json);
     }
 
-    RedeployHistoryService(Path file, AgentMeters meters, Clock clock) {
+    RedeployHistoryService(Path file, AgentMeters meters, Clock clock, ObjectMapper json) {
         this.file = file;
         this.meters = meters;
         this.clock = clock;
+        this.json = json;
         this.history = load(file);
     }
 
@@ -187,7 +188,7 @@ public class RedeployHistoryService {
     private void write(RedeployHistory next) throws IOException {
         Files.createDirectories(file.getParent());
         Path temp = file.resolveSibling(file.getFileName() + ".tmp");
-        Files.writeString(temp, JSON.writeValueAsString(next), StandardCharsets.UTF_8);
+        Files.writeString(temp, json.writeValueAsString(next), StandardCharsets.UTF_8);
         try {
             Files.move(temp, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
         } catch (AtomicMoveNotSupportedException e) {
@@ -199,17 +200,17 @@ public class RedeployHistoryService {
      * Reads the history, treating an unreadable file as empty. Redeploy history is observability: a
      * corrupt file must cost its contents, never the agent's boot.
      */
-    private static RedeployHistory load(Path file) {
+    private RedeployHistory load(Path file) {
         if (!Files.exists(file)) {
             return EMPTY;
         }
         try {
-            RedeployHistory loaded = JSON.readValue(file.toFile(), RedeployHistory.class);
+            RedeployHistory loaded = json.readValue(file.toFile(), RedeployHistory.class);
             return new RedeployHistory(loaded.lastSuccessAt(),
                     loaded.runs() == null ? List.of() : List.copyOf(loaded.runs()),
                     loaded.totals() == null ? List.of() : List.copyOf(loaded.totals()),
                     loaded.phaseTotals() == null ? List.of() : List.copyOf(loaded.phaseTotals()));
-        } catch (IOException | RuntimeException e) {
+        } catch (RuntimeException e) {
             Log.warnf(e, "Redeploy history at %s is unreadable; starting a new one", file);
             return EMPTY;
         }

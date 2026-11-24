@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.tools.selfobserve;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -40,17 +40,17 @@ final class TempoResults {
     List<String> lines = new ArrayList<>();
     for (int i = 0; i < traces.size() && i < maxResults; i++) {
       JsonNode trace = traces.get(i);
-      StringBuilder line = new StringBuilder("- ").append(trace.path("traceID").asText())
-          .append("  \"").append(trace.path("rootTraceName").asText("?")).append("\"")
-          .append(" (service ").append(trace.path("rootServiceName").asText("?")).append(")")
-          .append("  started ").append(instant(trace.path("startTimeUnixNano").asText("0")))
-          .append("  ").append(trace.has("durationMs") ? trace.path("durationMs").asText() : "<1")
+      StringBuilder line = new StringBuilder("- ").append(trace.path("traceID").asString())
+          .append("  \"").append(trace.path("rootTraceName").asString("?")).append("\"")
+          .append(" (service ").append(trace.path("rootServiceName").asString("?")).append(")")
+          .append("  started ").append(instant(trace.path("startTimeUnixNano").asString("0")))
+          .append("  ").append(trace.has("durationMs") ? trace.path("durationMs").asString() : "<1")
           .append(" ms");
       int matched = 0;
       for (JsonNode spanSet : spanSets(trace)) {
         for (JsonNode span : spanSet.path("spans")) {
           if (matched++ < MAX_MATCHED_SPANS) {
-            line.append("\n    matched ").append(span.path("name").asText("?")).append("  ")
+            line.append("\n    matched ").append(span.path("name").asString("?")).append("  ")
                 .append(millis(span.path("durationNanos").asLong()));
           }
         }
@@ -132,19 +132,19 @@ final class TempoResults {
 
   private static Span span(JsonNode span, String service) {
     JsonNode status = span.path("status");
-    String code = status.path("code").asText("");
+    String code = status.path("code").asString("");
     List<String> attributes = new ArrayList<>();
     for (JsonNode attribute : span.path("attributes")) {
-      String key = attribute.path("key").asText();
+      String key = attribute.path("key").asString();
       if (ATTRIBUTES.contains(key)) {
         attributes.add(key + "=" + Rendering.flatten(value(attribute.path("value")), MAX_VALUE_CHARS));
       }
     }
-    return new Span(span.path("spanId").asText(""), span.path("parentSpanId").asText(""),
-        Rendering.flatten(span.path("name").asText("?"), MAX_VALUE_CHARS),
+    return new Span(span.path("spanId").asString(""), span.path("parentSpanId").asString(""),
+        Rendering.flatten(span.path("name").asString("?"), MAX_VALUE_CHARS),
         span.path("startTimeUnixNano").asLong(), span.path("endTimeUnixNano").asLong(),
         code.equals("STATUS_CODE_ERROR") || code.equals("2"),
-        Rendering.flatten(status.path("message").asText(""), MAX_VALUE_CHARS), service, attributes);
+        Rendering.flatten(status.path("message").asString(""), MAX_VALUE_CHARS), service, attributes);
   }
 
   private static List<JsonNode> spanSets(JsonNode trace) {
@@ -158,7 +158,7 @@ final class TempoResults {
 
   private static String attribute(JsonNode attributes, String key) {
     for (JsonNode attribute : attributes) {
-      if (attribute.path("key").asText().equals(key)) {
+      if (attribute.path("key").asString().equals(key)) {
         return value(attribute.path("value"));
       }
     }
@@ -168,7 +168,7 @@ final class TempoResults {
   private static String value(JsonNode value) {
     for (String field : List.of("stringValue", "intValue", "doubleValue", "boolValue")) {
       if (value.has(field)) {
-        return value.path(field).asText();
+        return value.path(field).asString();
       }
     }
     return "";

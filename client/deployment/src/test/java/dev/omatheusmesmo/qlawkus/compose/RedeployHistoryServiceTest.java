@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import dev.omatheusmesmo.qlawkus.dto.RedeployHistory;
 import dev.omatheusmesmo.qlawkus.dto.RedeployReport;
@@ -34,6 +36,8 @@ import org.junit.jupiter.api.io.TempDir;
  * what the restarted instance does.
  */
 class RedeployHistoryServiceTest {
+private static final ObjectMapper JSON = JsonMapper.builder().build();
+
 
     private static final Instant T0 = Instant.parse("2026-10-01T12:00:00Z");
 
@@ -211,12 +215,12 @@ class RedeployHistoryServiceTest {
 
     private RedeployHistoryService serviceIn(Path dir) {
         return new RedeployHistoryService(dir.resolve(RedeployHistoryService.HISTORY_FILE),
-                AgentMeters.disabled(), clock);
+                AgentMeters.disabled(), clock, JSON);
     }
 
     private RedeployHistoryService metered(Path dir, SimpleMeterRegistry registry) {
         RedeployHistoryService service = new RedeployHistoryService(
-                dir.resolve(RedeployHistoryService.HISTORY_FILE), new AgentMeters(registry), clock);
+                dir.resolve(RedeployHistoryService.HISTORY_FILE), new AgentMeters(registry), clock, JSON);
         service.publishMeters();
         return service;
     }

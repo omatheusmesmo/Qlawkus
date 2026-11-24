@@ -6,7 +6,7 @@ import static dev.omatheusmesmo.qlawkus.it.consolevoice.VoiceTestSupport.PASSWOR
 import static dev.omatheusmesmo.qlawkus.it.consolevoice.VoiceTestSupport.USER;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.common.http.TestHTTPResource;
@@ -65,7 +65,7 @@ class VoiceBudgetsTest {
             VoiceClient.assertCode(client.awaitType("error"), "utterance-too-long");
             client.sendFrame(new byte[64]);
             VoiceClient.assertCode(client.awaitTypeWhere("error",
-                    event -> "not-listening".equals(event.path("code").asText())), "not-listening");
+                    event -> "not-listening".equals(event.path("code").asString())), "not-listening");
         }
     }
 
@@ -107,7 +107,7 @@ class VoiceBudgetsTest {
             client.awaitTypeWhere("turn-done", event -> event.path("turn").asInt() == 1);
 
             long audio = client.snapshot().stream()
-                    .filter(event -> "audio".equals(event.path("type").asText())).count();
+                    .filter(event -> "audio".equals(event.path("type").asString())).count();
             assertTrue(audio < 5, "the queue budget stops some of the five sentences from being spoken, got " + audio);
         }
     }

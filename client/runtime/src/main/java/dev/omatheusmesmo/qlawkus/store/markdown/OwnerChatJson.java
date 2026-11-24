@@ -1,9 +1,10 @@
 package dev.omatheusmesmo.qlawkus.store.markdown;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import dev.omatheusmesmo.qlawkus.task.OwnerChat;
 import java.time.Instant;
 
@@ -14,12 +15,12 @@ import java.time.Instant;
  */
 final class OwnerChatJson {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
     private OwnerChatJson() {
     }
 
-    static String write(OwnerChat chat) throws JsonProcessingException {
+    static String write(OwnerChat chat) {
         ObjectNode node = MAPPER.createObjectNode();
         node.put("providerId", chat.providerId());
         node.put("chatId", chat.chatId());
@@ -27,7 +28,7 @@ final class OwnerChatJson {
         return MAPPER.writeValueAsString(node);
     }
 
-    static OwnerChat read(String json) throws JsonProcessingException {
+    static OwnerChat read(String json) {
         JsonNode node = MAPPER.readTree(json);
         if (node == null || !node.isObject()) {
             throw new IllegalArgumentException("not an owner chat record");

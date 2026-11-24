@@ -2,8 +2,9 @@ package dev.omatheusmesmo.qlawkus.tools.mcp;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.omatheusmesmo.qlawkus.approval.ApprovedExecution;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import java.nio.file.Path;
 import java.util.List;
@@ -17,7 +18,7 @@ class McpManagementToolTest {
     Path root;
 
     private McpManagementTool tool(McpFixture fixture) {
-        return new McpManagementTool(fixture.registry, new ObjectMapper(), fixture.config);
+        return new McpManagementTool(fixture.registry, JsonMapper.builder().build(), fixture.config);
     }
 
     private static McpConnection http(String id, FakeMcpHttpServer server, Map<String, String> headers) {

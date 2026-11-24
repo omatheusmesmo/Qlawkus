@@ -16,6 +16,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static dev.omatheusmesmo.qlawkus.tools.skillhub.ArchiveFixtures.file;
 import static dev.omatheusmesmo.qlawkus.tools.skillhub.ArchiveFixtures.zip;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
@@ -39,6 +41,8 @@ import org.junit.jupiter.api.io.TempDir;
  * Quarkus boot.
  */
 class HttpSkillHubTest {
+private static final ObjectMapper JSON = JsonMapper.builder().build();
+
 
   @TempDir
   Path publishDir;
@@ -65,26 +69,26 @@ class HttpSkillHubTest {
   private HttpSkillHub hub(Optional<List<String>> wellKnownHosts) {
     return new HttpSkillHub(
         new TestConfig(baseUrl(), ApprovalMode.HITL, wellKnownHosts, publishDir.toString()), store,
-        baseUrl(), baseUrl());
+        baseUrl(), baseUrl(), JSON);
   }
 
   private HttpSkillHub hubWithSkillCap(long maxSkillBytes) {
     return new HttpSkillHub(
         new TestConfig(baseUrl(), ApprovalMode.HITL, Optional.empty(), publishDir.toString(), maxSkillBytes),
-        store, baseUrl(), baseUrl());
+        store, baseUrl(), baseUrl(), JSON);
   }
 
   private HttpSkillHub hubWithArchiveCap(long archiveMaxBytes) {
     return new HttpSkillHub(
         new TestConfig(baseUrl(), ApprovalMode.HITL, Optional.empty(), publishDir.toString(), 262_144L,
             archiveMaxBytes),
-        store, baseUrl(), baseUrl());
+        store, baseUrl(), baseUrl(), JSON);
   }
 
   private HttpSkillHub productionPolicyHub() {
     return new HttpSkillHub(
         new TestConfig(baseUrl(), ApprovalMode.HITL, Optional.empty(), publishDir.toString()), store,
-        baseUrl(), baseUrl(), new OutboundPolicy());
+        baseUrl(), baseUrl(), new OutboundPolicy(), JSON);
   }
 
   private void stubGitHubFile(String repo, String branch, String path, String markdown) {

@@ -4,8 +4,11 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.jboss.logging.MDC;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,11 +20,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * its {@code traceId}. quarkus-opentelemetry writes the ids into the MDC and the JSON formatter emits
  * the MDC, so selecting the {@code observability} capability is all it takes.
  *
- * <p>It runs on the shipped configuration on purpose. {@code quarkus.otel.sdk.disabled=true} stops
- * the export, not the spans, so the ids reach the logs before any collector exists.
+ * <p>Quarkus 4 hands out no-op spans while {@code quarkus.otel.sdk.disabled=true}, the shipped
+ * default, so this runs with the SDK on and every exporter off: the ids reach the logs as soon as the
+ * SDK is enabled, before any collector exists.
  */
 @QuarkusTest
+@TestProfile(LogTraceCorrelationTest.SdkOnWithoutExporters.class)
 class LogTraceCorrelationTest {
+
+    public static class SdkOnWithoutExporters implements QuarkusTestProfile {
+        @Override
+        public Map<String, String> getConfigOverrides() {
+            return Map.of(
+                    "quarkus.otel.sdk.disabled", "false",
+                    "quarkus.otel.traces.exporter", "none",
+                    "quarkus.otel.logs.exporter", "none",
+                    "quarkus.otel.metrics.exporter", "none");
+        }
+    }
 
     @Inject
     Tracer tracer;

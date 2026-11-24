@@ -80,7 +80,6 @@ public class PageFetcher {
         this.maxRedirects = Math.clamp(config.maxRedirects(), 0, 10);
         this.client = vertx.createHttpClient(new HttpClientOptions()
                 .setDecompressionSupported(false)
-                .setTryUseCompression(false)
                 .setConnectTimeout((int) timeout.toMillis())
                 .setKeepAlive(false));
     }

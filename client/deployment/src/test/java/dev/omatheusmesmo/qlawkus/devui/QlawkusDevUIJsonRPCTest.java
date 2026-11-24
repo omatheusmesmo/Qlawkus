@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.devui;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.quarkus.devui.tests.DevUIJsonRPCTest;
 import io.quarkus.test.QuarkusDevModeTest;
 import java.util.Map;

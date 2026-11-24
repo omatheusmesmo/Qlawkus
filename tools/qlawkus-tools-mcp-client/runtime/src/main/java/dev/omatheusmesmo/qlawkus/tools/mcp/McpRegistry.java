@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.mcp;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.invocation.InvocationContext;
@@ -15,7 +15,6 @@ import dev.omatheusmesmo.qlawkus.tools.mcp.auth.McpOAuthGrant;
 import dev.omatheusmesmo.qlawkus.tools.mcp.auth.McpOAuthService;
 import io.quarkus.logging.Log;
 import io.quarkus.virtual.threads.VirtualThreads;
-import io.vertx.core.Vertx;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -56,13 +55,13 @@ public class McpRegistry implements AutoCloseable {
 
   @Inject
   public McpRegistry(McpConfig config, AgentConfig agentConfig, KeystoreSecretWriter secrets,
-      ObjectMapper mapper, Vertx vertx, McpOAuthService oauth, @VirtualThreads ExecutorService executor) {
-    this(config, agentConfig, secrets, mapper, vertx, oauth, executor,
+      ObjectMapper mapper, McpOAuthService oauth, @VirtualThreads ExecutorService executor) {
+    this(config, agentConfig, secrets, mapper, oauth, executor,
         new McpEndpointPolicy(config.allowPrivateEndpoints()));
   }
 
   public McpRegistry(McpConfig config, AgentConfig agentConfig, KeystoreSecretWriter secrets,
-      ObjectMapper mapper, Vertx vertx, McpOAuthService oauth, ExecutorService executor,
+      ObjectMapper mapper, McpOAuthService oauth, ExecutorService executor,
       McpEndpointPolicy endpoints) {
     this.config = config;
     this.mapper = mapper;
@@ -72,7 +71,7 @@ public class McpRegistry implements AutoCloseable {
     this.oauth = oauth;
     this.operations = executor;
     this.endpoints = endpoints;
-    this.factory = new McpClientFactory(config, secrets, vertx, executor, oauth, endpoints);
+    this.factory = new McpClientFactory(config, secrets, executor, oauth, endpoints);
   }
 
   /**

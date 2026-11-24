@@ -1,14 +1,13 @@
 package dev.omatheusmesmo.qlawkus.composition.plugin;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 
 /**
  * A {@link CapabilityCatalog} sourced from the reactor: each module self-describes its capability in
@@ -28,7 +27,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
  */
 public final class ReactorCatalog implements CapabilityCatalog {
 
-    private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
+    private static final ObjectMapper YAML = YAMLMapper.builder().build();
 
     /**
      * Reactor siblings have no BOM managing them, so they must be added with a version - the
@@ -63,9 +62,9 @@ public final class ReactorCatalog implements CapabilityCatalog {
         try {
             JsonNode capability = YAML.readTree(module.descriptor().toFile())
                     .path("metadata").path("qlawkus").path("capability");
-            return capability.isTextual() && !capability.asText().isBlank() ? capability.asText() : null;
-        } catch (IOException e) {
-            throw new UncheckedIOException(
+            return capability.isTextual() && !capability.asString().isBlank() ? capability.asString() : null;
+        } catch (JacksonException e) {
+            throw new IllegalStateException(
                     "Cannot read extension descriptor " + module.descriptor() + " for " + module.artifactId(), e);
         }
     }

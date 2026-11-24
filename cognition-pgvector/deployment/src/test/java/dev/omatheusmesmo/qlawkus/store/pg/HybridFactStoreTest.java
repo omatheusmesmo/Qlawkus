@@ -3,6 +3,8 @@ package dev.omatheusmesmo.qlawkus.store.pg;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -30,6 +32,8 @@ import org.junit.jupiter.api.io.TempDir;
  * database), so the file/mirror logic is exercised without Postgres.
  */
 class HybridFactStoreTest {
+private static final ObjectMapper JSON = JsonMapper.builder().build();
+
 
   @TempDir
   Path tempDir;
@@ -40,7 +44,7 @@ class HybridFactStoreTest {
 
   private HybridFactStore store(FakeRepo repo) {
     return new HybridFactStore(tempDir.toString(), new FakeEmbeddingModel(),
-        new InMemoryEmbeddingStore<>(), repo, new RecordingWriteProbe());
+        new InMemoryEmbeddingStore<>(), repo, new RecordingWriteProbe(), JSON);
   }
 
   private long markdownFileCount() throws IOException {
@@ -156,7 +160,7 @@ class HybridFactStoreTest {
     RecordingWriteProbe probe = new RecordingWriteProbe();
 
     new HybridFactStore(tempDir.toString(), new FakeEmbeddingModel(),
-        new InMemoryEmbeddingStore<>(), new FakeRepo(), probe).verifyWritable();
+        new InMemoryEmbeddingStore<>(), new FakeRepo(), probe, JSON).verifyWritable();
 
     assertEquals(List.of(PgWriteProbe.Table.EMBEDDINGS), probe.probed,
         "hybrid writes both sides, so readiness must ask about the table as well as the files");
@@ -166,7 +170,7 @@ class HybridFactStoreTest {
   void aRootThatCannotBeWrittenFailsTheProbe() throws IOException {
     RecordingWriteProbe probe = new RecordingWriteProbe();
     HybridFactStore store = new HybridFactStore(tempDir.toString(), new FakeEmbeddingModel(),
-        new InMemoryEmbeddingStore<>(), new FakeRepo(), probe);
+        new InMemoryEmbeddingStore<>(), new FakeRepo(), probe, JSON);
     Files.setPosixFilePermissions(tempDir, PosixFilePermissions.fromString("r-x------"));
     try {
       assumeFalse(Files.isWritable(tempDir), "running as root, which ignores directory permissions");
@@ -183,7 +187,7 @@ class HybridFactStoreTest {
 
     IllegalStateException refused = assertThrows(IllegalStateException.class,
         new HybridFactStore(tempDir.toString(), new FakeEmbeddingModel(),
-        new InMemoryEmbeddingStore<>(), new FakeRepo(), probe)::verifyWritable);
+        new InMemoryEmbeddingStore<>(), new FakeRepo(), probe, JSON)::verifyWritable);
 
     assertEquals("no INSERT privilege", refused.getMessage());
   }

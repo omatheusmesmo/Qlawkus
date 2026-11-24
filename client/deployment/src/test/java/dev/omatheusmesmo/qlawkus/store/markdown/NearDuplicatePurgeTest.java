@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The nightly purge removes a fact whose embedding sits within a cosine distance of another. That
@@ -26,6 +28,8 @@ import org.junit.jupiter.api.io.TempDir;
  */
 class NearDuplicatePurgeTest {
 
+  private static final ObjectMapper JSON = JsonMapper.builder().build();
+
   private static final String PREFERENCE = "User prefers dark theme in IDE";
   private static final String CORRECTION = "User no longer prefers dark theme in IDE";
   private static final double MAX_DISTANCE = 0.03;
@@ -34,7 +38,7 @@ class NearDuplicatePurgeTest {
   Path tempDir;
 
   private MarkdownFactStore storeWithClosePair() {
-    MarkdownFactStore store = new MarkdownFactStore(tempDir.toString(), new ScriptedEmbeddingModel());
+    MarkdownFactStore store = new MarkdownFactStore(tempDir.toString(), new ScriptedEmbeddingModel(), JSON);
     store.load();
     store.store(PREFERENCE, Map.of("source", MemorySource.SEMANTIC_EXTRACTOR.value()));
     store.store(CORRECTION, Map.of("source", MemorySource.SEMANTIC_EXTRACTOR.value()));
@@ -77,7 +81,7 @@ class NearDuplicatePurgeTest {
 
   @Test
   void aDistantPairIsNeverPutToTheJudge() {
-    MarkdownFactStore store = new MarkdownFactStore(tempDir.toString(), new ScriptedEmbeddingModel());
+    MarkdownFactStore store = new MarkdownFactStore(tempDir.toString(), new ScriptedEmbeddingModel(), JSON);
     store.load();
     store.store(PREFERENCE, Map.of("source", MemorySource.SEMANTIC_EXTRACTOR.value()));
     store.store("The owner keeps bees on the roof", Map.of("source", MemorySource.REMEMBER_TOOL.value()));

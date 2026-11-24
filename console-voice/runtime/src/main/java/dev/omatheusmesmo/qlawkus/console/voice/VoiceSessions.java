@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.console.voice;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import dev.omatheusmesmo.qlawkus.agent.AgentStream;
 import dev.omatheusmesmo.qlawkus.agent.ReplyLanguageResolver;
 import dev.omatheusmesmo.qlawkus.agent.ConversationId;

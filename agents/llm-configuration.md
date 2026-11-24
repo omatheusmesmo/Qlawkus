@@ -35,18 +35,18 @@ A distribution with tiered or committed pricing supplies its own `CostEstimator`
 
 | What | Version | Where set |
 |------|---------|-----------|
-| Quarkus platform | `3.40.1.1` | `quarkus.platform.version` in root `pom.xml` |
-| quarkus-langchain4j (Quarkiverse extension) | `1.14.2` | root `pom.xml` property `quarkus-langchain4j.version`, ahead of the platform (see below) |
-| Upstream `dev.langchain4j` core (transitive) | `1.20.2` | same BOM - do not set |
-| Upstream beta modules (`langchain4j-skills`, `langchain4j-pgvector`, `langchain4j-agentic`) | `1.20.2-beta30` | same BOM - do not set |
+| Quarkus platform | `4.0.0.CR1` | `quarkus.platform.version` in root `pom.xml` |
+| quarkus-langchain4j (Quarkiverse extension) | `2.0.0.CR1` | root `pom.xml` property `quarkus-langchain4j.version`, ahead of the platform (see below) |
+| Upstream `dev.langchain4j` core (transitive) | `1.24.0` | same BOM - do not set |
+| Upstream beta modules (`langchain4j-skills`, `langchain4j-pgvector`, `langchain4j-agentic`) | `1.24.0-beta34` | same BOM - do not set |
 
-The Quarkiverse **extension** version (`1.14.2`) and the upstream **library** version (`1.20.2`) are different namespaces: `1.14.2` is NOT a langchain4j-core version.
+The Quarkiverse **extension** version (`2.0.0.CR1`) and the upstream **library** version (`1.24.0`) are different namespaces: `2.0.0.CR1` is NOT a langchain4j-core version.
 The `quarkus-bom` manages neither.
-The root pom imports `io.quarkiverse.langchain4j:quarkus-langchain4j-bom` at `quarkus-langchain4j.version` first, so it wins over the platform's copy (the platform ships `1.13.3` with `3.40.1.1`); the platform's `quarkus-langchain4j-bom` import stays after it for everything else the platform aligns.
+The root pom imports `io.quarkiverse.langchain4j:quarkus-langchain4j-bom` at `quarkus-langchain4j.version` first, so it wins over the platform's copy (the platform ships an older one with `4.0.0.CR1`); the platform's `quarkus-langchain4j-bom` import stays after it for everything else the platform aligns.
 That Quarkiverse BOM transitively imports the `langchain4j-bom`, which pins every `dev.langchain4j:*` artifact.
 So when adding an upstream module (e.g. `langchain4j-skills`, or `dev.langchain4j:langchain4j` for `InMemoryEmbeddingStore`), add it with **no `<version>`** - the BOM resolves it.
 
-The override is temporary: drop the Quarkiverse import (and the property) once the Quarkus platform ships quarkus-langchain4j >= 1.14.2. To move ahead again, bump `quarkus-langchain4j.version`; declaration order decides which BOM wins. Re-verify any time with:
+The override is temporary: drop the Quarkiverse import (and the property) once the Quarkus platform ships quarkus-langchain4j >= 2.0.0.CR1 (dropping it on `2.0.0.Beta3` fails to compile: `McpClientFactory` imports `McpHttpClients`, which only exists from CR1). To move ahead again, bump `quarkus-langchain4j.version`; declaration order decides which BOM wins. Re-verify any time with:
 
 ```bash
 mvn dependency:tree -pl client/runtime -Dincludes='dev.langchain4j'

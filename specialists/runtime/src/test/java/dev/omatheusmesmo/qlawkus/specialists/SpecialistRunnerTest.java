@@ -4,7 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -74,7 +75,7 @@ class SpecialistRunnerTest {
     }
 
     private SpecialistCatalog catalog(SpecialistsConfig.Tier tier) {
-        var catalog = new SpecialistCatalog(directory.resolve("specialists.json"), new ObjectMapper(), config(),
+        var catalog = new SpecialistCatalog(directory.resolve("specialists.json"), JsonMapper.builder().build(), config(),
                 redactor(), VALIDATORS.getValidator());
         catalog.create(new SpecialistDefinition("reviewer", "Review the text.", tier, true));
         return catalog;

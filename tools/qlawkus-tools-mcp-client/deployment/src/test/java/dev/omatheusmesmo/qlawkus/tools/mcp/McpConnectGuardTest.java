@@ -13,8 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * The name check passes (the stub resolver reports a public address) while the HTTP client really
- * connects to loopback, which is what a DNS rebinding answer looks like to the policy.
+ * The endpoint check works on resolved names: the langchain4j HTTP client builder only takes JAX-RS
+ * providers, so there is no hook on the connection itself and a peer that differs from the name check
+ * (DNS rebinding) is not caught for MCP traffic.
  */
 @QuarkusTest
 class McpConnectGuardTest {
@@ -34,10 +35,14 @@ class McpConnectGuardTest {
     }
 
     @Test
-    void aConnectionThatLandsOnAPrivateAddressIsClosedBeforeAnyRequestIsSent() throws Exception {
-        try (var server = new FakeMcpHttpServer(); var fixture = fixture(false)) {
-            assertThrows(McpRegistryException.class, () -> fixture.registry.put(connection(server)));
-            assertTrue(server.requests.isEmpty(), "no MCP request may reach a private address");
+    void aHostThatResolvesToAPrivateAddressIsRefusedBeforeAnyRequestIsSent() throws Exception {
+        try (var server = new FakeMcpHttpServer()) {
+            McpEndpointPolicy policy = new McpEndpointPolicy(false,
+                    host -> new InetAddress[] {InetAddress.getByName("10.0.0.5")});
+            try (var fixture = new McpFixture(root, policy, "qlawkus.mcp.allow-private-endpoints", "false")) {
+                assertThrows(McpRegistryException.class, () -> fixture.registry.put(connection(server)));
+                assertTrue(server.requests.isEmpty(), "no MCP request may reach a private address");
+            }
         }
     }
 

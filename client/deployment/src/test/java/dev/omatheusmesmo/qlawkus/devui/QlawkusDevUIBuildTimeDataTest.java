@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.devui;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.quarkus.devui.tests.DevUIBuildTimeDataTest;
 import io.quarkus.test.QuarkusDevModeTest;
 import org.junit.jupiter.api.Test;
@@ -45,9 +45,9 @@ class QlawkusDevUIBuildTimeDataTest extends DevUIBuildTimeDataTest {
 
         boolean sawShellTool = false;
         for (JsonNode tool : tools) {
-            if ("ShellTool".equals(tool.get("simpleName").asText())) {
+            if ("ShellTool".equals(tool.get("simpleName").asString())) {
                 sawShellTool = true;
-                assertEquals("qlawkus-client", tool.get("capability").asText(),
+                assertEquals("qlawkus-client", tool.get("capability").asString(),
                         "a skeleton tool belongs to no optional capability");
             }
         }
@@ -69,7 +69,7 @@ class QlawkusDevUIBuildTimeDataTest extends DevUIBuildTimeDataTest {
     void reportsEveryCapabilityWithBothVerdicts() throws Exception {
         JsonNode capabilities = super.getBuildTimeData("qlawkusComposition").get("capabilities");
 
-        capabilities.fields().forEachRemaining(entry -> {
+        capabilities.properties().forEach(entry -> {
             JsonNode state = entry.getValue();
             assertTrue(state.hasNonNull("selected"),
                     entry.getKey() + " must report whether the manifest selected it");

@@ -7,9 +7,10 @@ import dev.langchain4j.mcp.client.transport.McpTransport;
 import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
 import dev.omatheusmesmo.qlawkus.secrets.KeystoreSecretWriter;
 import dev.omatheusmesmo.qlawkus.tools.mcp.auth.McpOAuthService;
-import io.quarkiverse.langchain4j.mcp.runtime.http.QuarkusStreamableHttpMcpTransport;
-import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClientOptions;
+import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
+import io.quarkiverse.langchain4j.jaxrsclient.JaxRsHttpClientBuilder;
+import io.quarkiverse.langchain4j.mcp.auth.McpClientAuthProvider;
+import io.quarkiverse.langchain4j.mcp.runtime.http.McpHttpClients;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,16 +24,14 @@ import java.util.function.Supplier;
 final class McpClientFactory {
   private final McpConfig config;
   private final KeystoreSecretWriter secrets;
-  private final Vertx vertx;
   private final ExecutorService ioExecutor;
   private final McpOAuthService oauth;
   private final McpEndpointPolicy endpoints;
 
-  McpClientFactory(McpConfig config, KeystoreSecretWriter secrets, Vertx vertx, ExecutorService ioExecutor,
+  McpClientFactory(McpConfig config, KeystoreSecretWriter secrets, ExecutorService ioExecutor,
       McpOAuthService oauth, McpEndpointPolicy endpoints) {
     this.config = config;
     this.secrets = secrets;
-    this.vertx = vertx;
     this.ioExecutor = ioExecutor;
     this.oauth = oauth;
     this.endpoints = endpoints;
@@ -44,12 +43,13 @@ final class McpClientFactory {
     try {
       endpoints.require(connection);
       if (isHttp(connection)) {
-        transport = new QuarkusStreamableHttpMcpTransport.Builder()
-            .url(connection.url()).mcpClientName(connection.id())
-            .mcpClientAuthProvider(input -> null)
-            .httpClient(endpoints.guard(vertx.createHttpClient(new HttpClientOptions()
-                .setConnectTimeout((int) config.discoveryTimeout().toMillis()))))
-            .headers((Supplier<Map<String, String>>) () -> headers(connection))
+        JaxRsHttpClientBuilder http = McpHttpClients.builder((McpClientAuthProvider) null);
+        http.connectTimeout(config.discoveryTimeout());
+        http.addClientProvider(new McpEndpointFilter(endpoints));
+        transport = StreamableHttpMcpTransport.builder()
+            .url(connection.url())
+            .httpClientBuilder(http)
+            .customHeaders((Supplier<Map<String, String>>) () -> headers(connection))
             .timeout(config.callTimeout()).logRequests(false).logResponses(false)
             .subsidiaryChannel(false).build();
       } else {

@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tool;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -110,7 +110,7 @@ class ToolSearchTest {
         JsonNode tools = mapper.readTree(requests.getFirst().getBodyAsString()).path("tools");
         assertTrue(tools.size() > 1);
         for (JsonNode tool : tools) {
-            assertNotEquals("tool_search_tool", tool.path("function").path("name").asText());
+            assertNotEquals("tool_search_tool", tool.path("function").path("name").asString());
         }
     }
 
@@ -127,22 +127,22 @@ class ToolSearchTest {
         }).toList();
         JsonNode initial = bodies.stream().filter(body -> {
             for (JsonNode message : body.path("messages")) {
-                if ("tool".equals(message.path("role").asText())) return false;
+                if ("tool".equals(message.path("role").asString())) return false;
             }
             return true;
         }).findFirst().orElseThrow();
         assertEquals(1, initial.path("tools").size(), initial.toPrettyString());
-        assertEquals("tool_search_tool", initial.path("tools").get(0).path("function").path("name").asText());
+        assertEquals("tool_search_tool", initial.path("tools").get(0).path("function").path("name").asString());
         assertTrue(bodies.stream().anyMatch(body -> {
             for (JsonNode tool : body.path("tools")) {
-                if ("runCommand".equals(tool.path("function").path("name").asText())) return true;
+                if ("runCommand".equals(tool.path("function").path("name").asString())) return true;
             }
             return false;
         }), "the discovered extension tool must become available on subsequent requests");
         assertTrue(bodies.stream().anyMatch(body -> {
             for (JsonNode message : body.path("messages")) {
-                if ("tool".equals(message.path("role").asText())
-                        && message.path("content").asText().contains("search-ok")) return true;
+                if ("tool".equals(message.path("role").asString())
+                        && message.path("content").asString().contains("search-ok")) return true;
             }
             return false;
         }), "the discovered tool must actually execute");

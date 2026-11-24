@@ -1,6 +1,8 @@
 package dev.omatheusmesmo.qlawkus.it.cognition;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -29,6 +31,8 @@ import org.junit.jupiter.api.io.TempDir;
 @QuarkusTest
 @ConnectWireMock
 class MarkdownFactBackendTest {
+private static final ObjectMapper JSON = JsonMapper.builder().build();
+
 
   WireMock wiremock;
 
@@ -45,7 +49,7 @@ class MarkdownFactBackendTest {
 
   @Test
   void storesFactAsFileAndRetrievesThroughEmbeddingPipeline() throws IOException {
-    MarkdownFactStore store = new MarkdownFactStore(factsRoot.toString(), embeddingModel);
+    MarkdownFactStore store = new MarkdownFactStore(factsRoot.toString(), embeddingModel, JSON);
     store.load();
 
     store.store("User prefers dark theme in IDE", Map.of("source", "semantic-extractor"));

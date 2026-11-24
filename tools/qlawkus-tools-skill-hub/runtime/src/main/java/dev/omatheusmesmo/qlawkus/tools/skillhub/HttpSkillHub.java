@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.skillhub;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import dev.omatheusmesmo.qlawkus.http.TransientHttpException;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillFrontmatter;
@@ -70,27 +70,29 @@ public class HttpSkillHub implements SkillHub {
   private final SkillStore skillStore;
   private final OutboundPolicy policy;
   private final SkillHubFetchClient fetchClient;
-  private final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper mapper;
   private final String githubRawBase;
   private final String githubApiBase;
 
   @Inject
   public HttpSkillHub(SkillHubConfig config, SkillStore skillStore, OutboundPolicy policy,
-      @RestClient SkillHubFetchClient fetchClient) {
-    this(config, skillStore, GITHUB_RAW, GITHUB_API, policy, fetchClient);
-  }
-
-  HttpSkillHub(SkillHubConfig config, SkillStore skillStore, String githubRawBase, String githubApiBase) {
-    this(config, skillStore, githubRawBase, githubApiBase, new OutboundPolicy(false, true));
+      @RestClient SkillHubFetchClient fetchClient, ObjectMapper mapper) {
+    this(config, skillStore, GITHUB_RAW, GITHUB_API, policy, fetchClient, mapper);
   }
 
   HttpSkillHub(SkillHubConfig config, SkillStore skillStore, String githubRawBase, String githubApiBase,
-      OutboundPolicy policy) {
-    this(config, skillStore, githubRawBase, githubApiBase, policy, SkillHubFetchClients.jdk(config));
+      ObjectMapper mapper) {
+    this(config, skillStore, githubRawBase, githubApiBase, new OutboundPolicy(false, true), mapper);
   }
 
   HttpSkillHub(SkillHubConfig config, SkillStore skillStore, String githubRawBase, String githubApiBase,
-      OutboundPolicy policy, SkillHubFetchClient fetchClient) {
+      OutboundPolicy policy, ObjectMapper mapper) {
+    this(config, skillStore, githubRawBase, githubApiBase, policy, SkillHubFetchClients.jdk(config), mapper);
+  }
+
+  HttpSkillHub(SkillHubConfig config, SkillStore skillStore, String githubRawBase, String githubApiBase,
+      OutboundPolicy policy, SkillHubFetchClient fetchClient, ObjectMapper mapper) {
+    this.mapper = mapper;
     this.config = config;
     this.skillStore = skillStore;
     this.policy = policy;
@@ -353,8 +355,8 @@ public class HttpSkillHub implements SkillHub {
       }
       List<SkillCandidate> found = new ArrayList<>();
       for (JsonNode entry : tree.path("tree")) {
-        String path = entry.path("path").asText("");
-        if (!"blob".equals(entry.path("type").asText()) || !path.startsWith(prefix)
+        String path = entry.path("path").asString("");
+        if (!"blob".equals(entry.path("type").asString()) || !path.startsWith(prefix)
             || !(path.equals(ROOT_SKILL) || path.endsWith("/" + ROOT_SKILL))) {
           continue;
         }
@@ -593,8 +595,8 @@ public class HttpSkillHub implements SkillHub {
     String suffix = "/" + skill + "/" + ROOT_SKILL;
     List<String> matches = new ArrayList<>();
     for (JsonNode entry : tree.path("tree")) {
-      String path = entry.path("path").asText("");
-      if ("blob".equals(entry.path("type").asText()) && ("/" + path).endsWith(suffix)) {
+      String path = entry.path("path").asString("");
+      if ("blob".equals(entry.path("type").asString()) && ("/" + path).endsWith(suffix)) {
         matches.add(path);
       }
     }
@@ -621,8 +623,8 @@ public class HttpSkillHub implements SkillHub {
   private String text(JsonNode node, String... fields) {
     for (String field : fields) {
       JsonNode value = node.get(field);
-      if (value != null && value.isTextual() && !value.asText().isBlank()) {
-        return value.asText().strip();
+      if (value != null && value.isTextual() && !value.asString().isBlank()) {
+        return value.asString().strip();
       }
     }
     return "";

@@ -3,8 +3,9 @@ package dev.omatheusmesmo.qlawkus.it.consolevoice;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.quarkus.websockets.next.BasicWebSocketConnector;
 import io.quarkus.websockets.next.WebSocketClientConnection;
 import java.net.URI;
@@ -26,7 +27,7 @@ import java.util.function.Predicate;
  */
 final class VoiceClient implements AutoCloseable {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final ObjectMapper JSON = JsonMapper.builder().build();
     private static final long TIMEOUT_SECONDS = 20;
     private static final int FRAME_BYTES = 2000;
 
@@ -96,7 +97,7 @@ final class VoiceClient implements AutoCloseable {
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException(e);
             }
-            if (event != null && type.equals(event.path("type").asText())) {
+            if (event != null && type.equals(event.path("type").asString())) {
                 return event;
             }
         }
@@ -107,7 +108,7 @@ final class VoiceClient implements AutoCloseable {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
         while (System.nanoTime() < deadline) {
             for (JsonNode event : snapshot()) {
-                if (type.equals(event.path("type").asText()) && matches.test(event)) {
+                if (type.equals(event.path("type").asString()) && matches.test(event)) {
                     return event;
                 }
             }
@@ -141,7 +142,7 @@ final class VoiceClient implements AutoCloseable {
 
     void assertAllOfTypeAbsent(String type, Predicate<JsonNode> matches) {
         for (JsonNode event : snapshot()) {
-            assertTrue(!(type.equals(event.path("type").asText()) && matches.test(event)),
+            assertTrue(!(type.equals(event.path("type").asString()) && matches.test(event)),
                     "unexpected '" + type + "' event: " + event);
         }
     }
@@ -154,7 +155,7 @@ final class VoiceClient implements AutoCloseable {
 
     static int indexOf(List<JsonNode> events, String type) {
         for (int i = 0; i < events.size(); i++) {
-            if (type.equals(events.get(i).path("type").asText())) {
+            if (type.equals(events.get(i).path("type").asString())) {
                 return i;
             }
         }
@@ -162,7 +163,7 @@ final class VoiceClient implements AutoCloseable {
     }
 
     static void assertCode(JsonNode event, String code) {
-        assertEquals(code, event.path("code").asText(), event.toString());
+        assertEquals(code, event.path("code").asString(), event.toString());
     }
 
     private static void sleep() {

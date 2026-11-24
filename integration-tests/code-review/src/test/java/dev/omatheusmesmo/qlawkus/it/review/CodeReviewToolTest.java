@@ -1,7 +1,8 @@
 package dev.omatheusmesmo.qlawkus.it.review;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,7 @@ class CodeReviewToolTest {
                 .build();
         HttpResponse<String> response = client().send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode(), "Expected 200, body: " + response.body());
-        return new ObjectMapper().readTree(response.body());
+        return JsonMapper.builder().build().readTree(response.body());
     }
 
     @Test
@@ -54,8 +55,8 @@ class CodeReviewToolTest {
         JsonNode result = run("mvn --version");
 
         assertEquals(0, result.get("exitCode").asInt(),
-                "mvn --version should exit 0, stderr=" + result.get("stderr").asText());
-        assertTrue(result.get("stdout").asText().contains("Apache Maven"),
+                "mvn --version should exit 0, stderr=" + result.get("stderr").asString());
+        assertTrue(result.get("stdout").asString().contains("Apache Maven"),
                 "stdout should contain Maven version info");
     }
 
@@ -65,7 +66,7 @@ class CodeReviewToolTest {
 
         assertEquals(-10, result.get("exitCode").asInt(),
                 "curl is not in the allowlist and must be rejected before execution");
-        assertTrue(result.get("stderr").asText().contains("not in the allowlist"),
+        assertTrue(result.get("stderr").asString().contains("not in the allowlist"),
                 "stderr should explain the rejection");
     }
 

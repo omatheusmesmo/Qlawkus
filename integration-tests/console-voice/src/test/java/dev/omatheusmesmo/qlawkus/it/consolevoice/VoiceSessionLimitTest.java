@@ -4,7 +4,7 @@ import static dev.omatheusmesmo.qlawkus.it.consolevoice.VoiceTestSupport.PASSWOR
 import static dev.omatheusmesmo.qlawkus.it.consolevoice.VoiceTestSupport.USER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.common.http.TestHTTPResource;
@@ -47,14 +47,14 @@ class VoiceSessionLimitTest {
             first.close();
         }
 
-        assertEquals("ready", openUntilAccepted().path("type").asText());
+        assertEquals("ready", openUntilAccepted().path("type").asString());
     }
 
     private JsonNode openUntilAccepted() throws InterruptedException {
         for (int attempt = 0; attempt < 20; attempt++) {
             VoiceClient client = open();
             JsonNode first = client.nextEvent();
-            if ("ready".equals(first.path("type").asText())) {
+            if ("ready".equals(first.path("type").asString())) {
                 client.close();
                 return first;
             }

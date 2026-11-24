@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.audit;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.agroal.api.AgroalDataSource;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
@@ -148,7 +148,7 @@ public class PgDebugJournal {
                 }
                 return List.copyOf(result);
             }
-        } catch (SQLException | com.fasterxml.jackson.core.JsonProcessingException error) {
+        } catch (SQLException | tools.jackson.core.JacksonException error) {
             throw new IllegalStateException("Could not read the debug history");
         }
     }

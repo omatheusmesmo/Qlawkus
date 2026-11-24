@@ -1,8 +1,8 @@
 package dev.omatheusmesmo.qlawkus.deployment;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 import dev.omatheusmesmo.qlawkus.composition.CompositionManifest;
 import dev.omatheusmesmo.qlawkus.composition.CompositionManifestParser;
 import dev.omatheusmesmo.qlawkus.composition.CompositionPaths;
@@ -24,7 +24,7 @@ import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.ApplicationArchivesBuildItem;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.pkg.builditem.CurateOutcomeBuildItem;
-import io.quarkus.devui.spi.JsonRPCProvidersBuildItem;
+import io.quarkus.devjsonrpc.spi.JsonRPCProvidersBuildItem;
 import io.quarkus.devui.spi.page.CardPageBuildItem;
 import io.quarkus.devui.spi.page.Page;
 import io.quarkus.maven.dependency.DependencyFlags;
@@ -71,7 +71,7 @@ class QlawkusDevUIProcessor {
             "skill-hub", "dev.omatheusmesmo.qlawkus.tools.skillhub",
             "google-workspace", "dev.omatheusmesmo.qlawkus.tools.google");
 
-    private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
+    private static final ObjectMapper YAML = YAMLMapper.builder().build();
 
     @BuildStep(onlyIf = IsLocalDevelopment.class)
     AdditionalBeanBuildItem devUiBackingBean() {
@@ -260,7 +260,7 @@ class QlawkusDevUIProcessor {
         try {
             JsonNode root = YAML.readTree(Files.readString(descriptor));
             JsonNode capability = root.path("metadata").path("qlawkus").path("capability");
-            return capability.isTextual() ? capability.asText() : null;
+            return capability.isTextual() ? capability.asString() : null;
         } catch (IOException | RuntimeException e) {
             return null;
         }

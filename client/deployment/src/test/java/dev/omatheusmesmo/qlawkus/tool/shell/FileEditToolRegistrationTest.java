@@ -2,7 +2,7 @@ package dev.omatheusmesmo.qlawkus.tool.shell;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.omatheusmesmo.qlawkus.dto.FileResult;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;

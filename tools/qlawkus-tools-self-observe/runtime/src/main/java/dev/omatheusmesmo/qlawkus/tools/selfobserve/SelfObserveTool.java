@@ -1,7 +1,8 @@
 package dev.omatheusmesmo.qlawkus.tools.selfobserve;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.http.TransientHttpException;
@@ -46,11 +47,12 @@ public class SelfObserveTool {
 
   private final SelfObserveConfig config;
   private final TelemetryHttp http;
-  private final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper mapper;
 
   @Inject
-  public SelfObserveTool(SelfObserveConfig config, TelemetryHttp http) {
+  public SelfObserveTool(SelfObserveConfig config, TelemetryHttp http, ObjectMapper mapper) {
     this.config = config;
+    this.mapper = mapper;
     this.http = http;
   }
 
@@ -191,7 +193,7 @@ public class SelfObserveTool {
     String body = http.get(backend.label, uri(backend, path, params));
     try {
       return mapper.readTree(body);
-    } catch (IOException e) {
+    } catch (JacksonException e) {
       throw new TelemetryQueryException(backend.label + " answered with something that is not JSON.");
     }
   }

@@ -2,7 +2,10 @@ package dev.omatheusmesmo.qlawkus.deployment;
 
 import dev.langchain4j.skills.FileSystemSkill;
 import dev.langchain4j.skills.FileSystemSkillLoader;
+import dev.omatheusmesmo.qlawkus.composition.BuildTime;
+import dev.omatheusmesmo.qlawkus.composition.CompositionManifest;
 import dev.omatheusmesmo.qlawkus.composition.CompositionPaths;
+import dev.omatheusmesmo.qlawkus.composition.Posture;
 import dev.omatheusmesmo.qlawkus.config.metadata.ConfigMetadataIndex;
 import dev.omatheusmesmo.qlawkus.health.CognitionReadinessCheck;
 import dev.omatheusmesmo.qlawkus.health.ModelReadinessCheck;
@@ -64,6 +67,8 @@ class ClientProcessor {
     private static final String FEATURE = "qlawkus-client";
     private static final DotName CLAW_TOOL_ANNOTATION = DotName.createSimple(QlawTool.class.getName());
     private static final DotName DTO_PACKAGE = DotName.createSimple("dev.omatheusmesmo.qlawkus.dto");
+    private static final String LANGCHAIN4J_JSON_CODEC = "io.quarkiverse.langchain4j.QuarkusJsonCodecFactory";
+    private static final String LANGCHAIN4J_JACKSON_PACKAGE = "io.quarkiverse.langchain4j.runtime.jackson.";
     private static final String BUNDLED_SKILLS_PATH = "META-INF/qlawkus-skills";
     private static final String SKILL_FILE = "SKILL.md";
 
@@ -264,6 +269,41 @@ class ClientProcessor {
         return ReflectiveClassBuildItem.builder(
                 "dev.omatheusmesmo.qlawkus.skill.Skill",
                 "dev.omatheusmesmo.qlawkus.skill.SkillSummary")
+                .methods()
+                .fields()
+                .build();
+    }
+
+    /**
+     * quarkus-langchain4j reads the polymorphic type of a chat message and of its content from annotations on
+     * private mixin classes, and registers only some of them. A native image drops the annotations of a class
+     * that is not registered, so a stored message came back with "missing type id property 'type'".
+     */
+    @BuildStep
+    ReflectiveClassBuildItem registerLangChain4jJsonMixinsForReflection(CombinedIndexBuildItem combinedIndex) {
+        List<String> classNames = new ArrayList<>();
+        for (ClassInfo classInfo : combinedIndex.getIndex().getKnownClasses()) {
+            String name = classInfo.name().toString();
+            if (name.startsWith(LANGCHAIN4J_JSON_CODEC + "$") || name.startsWith(LANGCHAIN4J_JACKSON_PACKAGE)) {
+                classNames.add(name);
+            }
+        }
+
+        return ReflectiveClassBuildItem.builder(classNames)
+                .constructors()
+                .methods()
+                .fields()
+                .build();
+    }
+
+    /**
+     * composition-model is Quarkus-free, so it cannot annotate its own types. Jackson 3 reads record components
+     * and the {@code Posture} creator reflectively, which a native image only allows for registered types.
+     */
+    @BuildStep
+    ReflectiveClassBuildItem registerCompositionModelForReflection() {
+        return ReflectiveClassBuildItem.builder(CompositionManifest.class, BuildTime.class, Posture.class)
+                .constructors()
                 .methods()
                 .fields()
                 .build();

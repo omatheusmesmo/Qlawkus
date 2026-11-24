@@ -3,7 +3,8 @@ package dev.omatheusmesmo.qlawkus.console;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLDecoder;
@@ -73,7 +74,7 @@ class ObservabilityLinksTest {
 
     @Test
     void theDashboardUidMatchesTheShippedDashboard() throws IOException {
-        String uid = new ObjectMapper().readTree(DASHBOARD.toFile()).path("uid").asText();
+        String uid = JsonMapper.builder().build().readTree(DASHBOARD.toFile()).path("uid").asString();
 
         assertEquals(uid, ObservabilityLinks.DASHBOARD_UID);
     }
@@ -85,8 +86,8 @@ class ObservabilityLinksTest {
         assertTrue(query.startsWith("schemaVersion=1&panes="), query);
         String panes = URLDecoder.decode(query.substring("schemaVersion=1&panes=".length()).split("&")[0],
                 StandardCharsets.UTF_8);
-        var pane = new ObjectMapper().readTree(panes).path("a");
-        assertEquals(datasourceUid, pane.path("datasource").asText());
-        assertEquals(datasourceUid, pane.path("queries").path(0).path("datasource").path("uid").asText());
+        var pane = JsonMapper.builder().build().readTree(panes).path("a");
+        assertEquals(datasourceUid, pane.path("datasource").asString());
+        assertEquals(datasourceUid, pane.path("queries").path(0).path("datasource").path("uid").asString());
     }
 }

@@ -1,11 +1,13 @@
 package dev.omatheusmesmo.qlawkus.it.markdown;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import io.quarkus.test.common.TestLog;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -24,11 +26,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 @QuarkusIntegrationTest
 class OpenTelemetryUsageWarningIT {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final ObjectMapper JSON = JsonMapper.builder().build();
+
+    TestLog testLog;
 
     @Test
     void thePackagedAgentBootsWithoutAnOpenTelemetryUsageWarning() throws IOException {
-        List<String> lines = Files.readAllLines(Path.of("target", "quarkus.log")).stream()
+        List<String> lines = Files.readAllLines(testLog.getLogFilePath()).stream()
                 .filter(line -> !line.isBlank())
                 .toList();
 
@@ -43,8 +47,8 @@ class OpenTelemetryUsageWarningIT {
     private static String loggerName(String line) {
         try {
             JsonNode entry = JSON.readTree(line);
-            return entry.path("loggerName").asText();
-        } catch (IOException e) {
+            return entry.path("loggerName").asString();
+        } catch (JacksonException e) {
             return "";
         }
     }

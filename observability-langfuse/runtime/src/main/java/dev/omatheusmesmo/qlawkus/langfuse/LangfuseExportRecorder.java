@@ -11,7 +11,6 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.sdk.trace.ReadWriteSpan;
 import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.quarkiverse.langfuse.config.LangfuseConfig;
-import io.quarkiverse.langfuse.runtime.otel.LangfuseSpanExporterFactoryQuarkus3;
 import io.quarkiverse.langfuse.runtime.otel.LangfuseSpanProcessor;
 import io.quarkus.arc.SyntheticCreationalContext;
 import io.quarkus.runtime.RuntimeValue;
@@ -42,7 +41,7 @@ public class LangfuseExportRecorder {
                     || !configured(config)) {
                 return LangfuseSpanProcessor.noop();
             }
-            var factory = new LangfuseSpanExporterFactoryQuarkus3();
+            var factory = new OtlpSpanExporterFactory();
             return new LangfuseSpanProcessor(config, vertx.get(), context.getInjectedReference(TlsConfigurationRegistry.class),
                     exporter -> new LangfuseMetadataExporter(factory.createExporter(exporter))) {
                 @Override

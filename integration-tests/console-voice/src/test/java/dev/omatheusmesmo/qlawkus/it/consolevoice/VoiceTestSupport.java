@@ -5,7 +5,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import java.net.URI;
 
 /**
@@ -48,7 +49,7 @@ final class VoiceTestSupport {
     }
 
     static void stubLanguageCheck(WireMock wiremock, String translated, int priority) {
-        var json = new ObjectMapper();
+        var json = JsonMapper.builder().build();
         String content = json.valueToTree(json.createObjectNode().put("text", translated).toString()).toString();
         wiremock.register(post(urlEqualTo("/api/chat")).withRequestBody(WireMock.containing("VOICE_REPLY_LANGUAGE_CHECK"))
                 .atPriority(priority).willReturn(WireMock.okJson("""
@@ -60,7 +61,7 @@ final class VoiceTestSupport {
 
     private static String textNdjson(String text) {
         String ts = "2026-04-25T00:00:01Z";
-        String encoded = new ObjectMapper().valueToTree(text).toString();
+        String encoded = JsonMapper.builder().build().valueToTree(text).toString();
         return "{\"model\":\"gemma4:e2b\",\"created_at\":\"" + ts + "\",\"message\":{\"role\":\"assistant\","
                 + "\"content\":" + encoded + "},\"done\":false}\n"
                 + "{\"model\":\"gemma4:e2b\",\"created_at\":\"" + ts

@@ -1,9 +1,9 @@
 package dev.omatheusmesmo.qlawkus.composition;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 
-import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +20,7 @@ import java.util.Map;
  */
 public final class RuntimeToggles {
 
-    private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
+    private static final ObjectMapper YAML = YAMLMapper.builder().build();
 
     private RuntimeToggles() {
     }
@@ -52,7 +52,7 @@ public final class RuntimeToggles {
             @SuppressWarnings("unchecked")
             Map<String, Object> tree = YAML.readValue(yaml, Map.class);
             return flatten(tree);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new InvalidManifestException("Invalid runtime override: " + e.getMessage(), e);
         }
     }
@@ -67,7 +67,7 @@ public final class RuntimeToggles {
     public static String renderOverride(Map<String, String> toggles) {
         try {
             return YAML.writeValueAsString(toggles == null ? Map.of() : toggles);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new InvalidManifestException("Failed to render runtime override: " + e.getMessage(), e);
         }
     }

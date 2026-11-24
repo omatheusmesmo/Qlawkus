@@ -4,7 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
@@ -58,7 +59,7 @@ class SpecialistCatalogTest {
     }
 
     private SpecialistCatalog catalog() {
-        return new SpecialistCatalog(directory.resolve("specialists.json"), new ObjectMapper(),
+        return new SpecialistCatalog(directory.resolve("specialists.json"), JsonMapper.builder().build(),
                 new SpecialistsConfig() {
                     @Override
                     public List<Tier> allowedModels() {

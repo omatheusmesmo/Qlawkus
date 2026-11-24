@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -32,6 +34,8 @@ import org.junit.jupiter.api.io.TempDir;
  * scores 1.0 - no real LLM needed.
  */
 class MarkdownFactStoreTest {
+private static final ObjectMapper JSON = JsonMapper.builder().build();
+
 
   @TempDir
   Path tempDir;
@@ -41,7 +45,7 @@ class MarkdownFactStoreTest {
   }
 
   private MarkdownFactStore freshStore(EmbeddingModel model) {
-    MarkdownFactStore store = new MarkdownFactStore(tempDir.toString(), model);
+    MarkdownFactStore store = new MarkdownFactStore(tempDir.toString(), model, JSON);
     store.load();
     return store;
   }
@@ -53,12 +57,12 @@ class MarkdownFactStoreTest {
    */
   @Test
   void aChangedEmbeddingModelReembedsRatherThanLoadingVectorsItCannotCompareWith() {
-    MarkdownFactStore before = new MarkdownFactStore(tempDir.toString(), new FakeEmbeddingModel(), "model-a");
+    MarkdownFactStore before = new MarkdownFactStore(tempDir.toString(), new FakeEmbeddingModel(), "model-a", JSON);
     before.load();
     before.store("the owner keeps bees on the roof", source(MemorySource.REMEMBER_TOOL));
 
     FakeEmbeddingModel successor = new FakeEmbeddingModel(48);
-    MarkdownFactStore after = new MarkdownFactStore(tempDir.toString(), successor, "model-b");
+    MarkdownFactStore after = new MarkdownFactStore(tempDir.toString(), successor, "model-b", JSON);
     after.load();
 
     assertEquals(1, successor.embedCalls, "the cached vector belongs to another model");
@@ -73,13 +77,13 @@ class MarkdownFactStoreTest {
    */
   @Test
   void aFactThatFailsToEmbedAtLoadIsSkippedRatherThanFailingTheStore() {
-    MarkdownFactStore before = new MarkdownFactStore(tempDir.toString(), new FakeEmbeddingModel(), "model-a");
+    MarkdownFactStore before = new MarkdownFactStore(tempDir.toString(), new FakeEmbeddingModel(), "model-a", JSON);
     before.load();
     before.store("the owner keeps bees on the roof", source(MemorySource.REMEMBER_TOOL));
     before.store("a poison fact the provider refuses", source(MemorySource.REMEMBER_TOOL));
 
     MarkdownFactStore after = new MarkdownFactStore(tempDir.toString(), new FakeEmbeddingModel(48, "poison"),
-        "model-b");
+        "model-b", JSON);
 
     assertDoesNotThrow(after::load, "one fact the provider refuses must not take down the store");
     assertFalse(after.search("bees on the roof", 5, 0.0).isEmpty(), "the other facts still load");
@@ -87,12 +91,12 @@ class MarkdownFactStoreTest {
 
   @Test
   void anUnchangedEmbeddingModelReusesItsCache() {
-    MarkdownFactStore before = new MarkdownFactStore(tempDir.toString(), new FakeEmbeddingModel(), "model-a");
+    MarkdownFactStore before = new MarkdownFactStore(tempDir.toString(), new FakeEmbeddingModel(), "model-a", JSON);
     before.load();
     before.store("the owner keeps bees on the roof", source(MemorySource.REMEMBER_TOOL));
 
     FakeEmbeddingModel same = new FakeEmbeddingModel();
-    new MarkdownFactStore(tempDir.toString(), same, "model-a").load();
+    new MarkdownFactStore(tempDir.toString(), same, "model-a", JSON).load();
 
     assertEquals(0, same.embedCalls, "a restart with the same model must not call the provider again");
   }
@@ -178,7 +182,7 @@ class MarkdownFactStoreTest {
   @Test
   void oversizedFactBecomesOneFileButManySegmentVectors() throws IOException {
     FakeEmbeddingModel writer = new FakeEmbeddingModel();
-    MarkdownFactStore store = new MarkdownFactStore(tempDir.toString(), writer, new FactChunker(100, 10));
+    MarkdownFactStore store = new MarkdownFactStore(tempDir.toString(), writer, new FactChunker(100, 10), JSON);
     store.load();
     String big = "Alpha beta gamma delta epsilon zeta eta theta iota. ".repeat(15);
 
@@ -189,7 +193,7 @@ class MarkdownFactStoreTest {
     assertFalse(store.search("alpha beta gamma", 3, 0.0).isEmpty(), "the chunked fact is retrievable");
 
     FakeEmbeddingModel reader = new FakeEmbeddingModel();
-    MarkdownFactStore reloaded = new MarkdownFactStore(tempDir.toString(), reader, new FactChunker(100, 10));
+    MarkdownFactStore reloaded = new MarkdownFactStore(tempDir.toString(), reader, new FactChunker(100, 10), JSON);
     reloaded.load();
     assertEquals(0, reader.embedCalls, "reload hits the per-segment cache, not the model");
   }
@@ -205,7 +209,7 @@ class MarkdownFactStoreTest {
     SimpleMeterRegistry registry = new SimpleMeterRegistry();
     AgentMeters meters = new AgentMeters(registry);
     MarkdownFactStore store = new MarkdownFactStore(
-        tempDir.toString(), new FailingEmbeddingModel(), new FactChunker(1200, 120), meters);
+        tempDir.toString(), new FailingEmbeddingModel(), new FactChunker(1200, 120), meters, JSON);
 
     assertThrows(RuntimeException.class,
         () -> store.store("the sky is blue", source(MemorySource.REMEMBER_TOOL)));
@@ -220,7 +224,7 @@ class MarkdownFactStoreTest {
     SimpleMeterRegistry registry = new SimpleMeterRegistry();
     AgentMeters meters = new AgentMeters(registry);
     MarkdownFactStore store = new MarkdownFactStore(
-        tempDir.toString(), new FakeEmbeddingModel(), new FactChunker(1200, 120), meters);
+        tempDir.toString(), new FakeEmbeddingModel(), new FactChunker(1200, 120), meters, JSON);
     store.load();
 
     store.store("the sky is blue", source(MemorySource.REMEMBER_TOOL));

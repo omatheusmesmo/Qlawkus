@@ -3,7 +3,8 @@ package dev.omatheusmesmo.qlawkus.agent;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import dev.omatheusmesmo.qlawkus.config.ReplyLanguageConfig;
 import dev.omatheusmesmo.qlawkus.model.ReplyLanguageModel;
 import java.util.List;
@@ -19,9 +20,9 @@ class PromptReplyLanguageDecisionTest {
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
         verify(provider.model).classify(body.capture());
         var data = provider.json.readTree(body.getValue());
-        assertEquals(1999, data.path("utterance").asText().length());
-        assertEquals("pt", data.path("recognizedLanguage").asText());
-        assertEquals("en", data.path("stableLanguage").asText());
+        assertEquals(1999, data.path("utterance").asString().length());
+        assertEquals("pt", data.path("recognizedLanguage").asString());
+        assertEquals("en", data.path("stableLanguage").asString());
         assertEquals(4, data.size());
     }
 
@@ -60,7 +61,7 @@ class PromptReplyLanguageDecisionTest {
         var provider = new PromptReplyLanguageDecision();
         provider.config = () -> enabled;
         provider.model = mock(ReplyLanguageModel.class);
-        provider.json = new ObjectMapper();
+        provider.json = JsonMapper.builder().build();
         return provider;
     }
 }

@@ -1,17 +1,16 @@
 package dev.omatheusmesmo.qlawkus.tools.mcp;
 
 import dev.omatheusmesmo.qlawkus.tools.mcp.auth.McpOAuth;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.net.SocketAddress;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 
 /**
  * Keeps server-side requests to the network the owner expects. Unless private endpoints are allowed,
- * every address the host resolves to must be public. The HTTP client resolves the name again when
- * it connects, so {@link #guard} also checks the address each connection actually reached and closes
- * a private one before any request is written, which covers a resolver that changes its answer.
+ * every address the host resolves to must be public. {@link McpEndpointFilter} repeats that check
+ * before every request, so a name that starts resolving to a private address is refused on the next
+ * call. The JAX-RS client the upstream transport uses exposes no hook on the connection itself, so
+ * the window between the check and the connect is not closed the way a connection handler closed it.
  */
 public final class McpEndpointPolicy {
   @FunctionalInterface
@@ -60,23 +59,6 @@ public final class McpEndpointPolicy {
     for (InetAddress address : addresses) {
       McpConnectionValidator.require(isPublic(address),
           "MCP endpoint resolves to a private or loopback address; the owner can allow it with qlawkus.mcp.allow-private-endpoints");
-    }
-  }
-
-  public HttpClient guard(HttpClient client) {
-    if (!allowPrivate) {
-      client.connectionHandler(connection -> {
-        if (!isPublic(connection.remoteAddress())) connection.close();
-      });
-    }
-    return client;
-  }
-
-  private static boolean isPublic(SocketAddress peer) {
-    try {
-      return peer.hostAddress() != null && isPublic(InetAddress.ofLiteral(peer.hostAddress()));
-    } catch (IllegalArgumentException notLiteral) {
-      return false;
     }
   }
 

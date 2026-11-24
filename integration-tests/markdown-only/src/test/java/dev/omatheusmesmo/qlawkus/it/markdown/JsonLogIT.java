@@ -1,11 +1,13 @@
 package dev.omatheusmesmo.qlawkus.it.markdown;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import io.quarkus.test.common.TestLog;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -28,11 +30,13 @@ import static org.junit.jupiter.api.Assertions.fail;
 @QuarkusIntegrationTest
 class JsonLogIT {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final ObjectMapper JSON = JsonMapper.builder().build();
+
+    TestLog testLog;
 
     @Test
     void everyLineThePackagedAgentLogsIsAJsonObject() throws IOException {
-        List<String> lines = Files.readAllLines(Path.of("target", "quarkus.log")).stream()
+        List<String> lines = Files.readAllLines(testLog.getLogFilePath()).stream()
                 .filter(line -> !line.isBlank())
                 .toList();
 
@@ -41,7 +45,7 @@ class JsonLogIT {
             JsonNode entry;
             try {
                 entry = JSON.readTree(line);
-            } catch (IOException e) {
+            } catch (JacksonException e) {
                 fail("a log line is not JSON, so an aggregator cannot parse it: " + line);
                 return;
             }

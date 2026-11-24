@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import dev.omatheusmesmo.qlawkus.skill.MarkdownSkillFiles;
 import java.io.IOException;
@@ -28,6 +30,8 @@ import org.junit.jupiter.api.io.TempDir;
  * probed some other root, rather than the one it writes to, would pass and be caught.
  */
 class MarkdownWritabilityTest {
+private static final ObjectMapper JSON = JsonMapper.builder().build();
+
 
   private static final String STORES = "soul owner facts episodic workingMemory skills";
 
@@ -86,7 +90,7 @@ class MarkdownWritabilityTest {
     Map<String, Runnable> probes = new LinkedHashMap<>();
     probes.put("soul", new MarkdownSoulStore(root("soul"))::verifyWritable);
     probes.put("owner", new MarkdownUserProfileStore(root("owner"))::verifyWritable);
-    probes.put("facts", new MarkdownFactStore(root("facts"), null)::verifyWritable);
+    probes.put("facts", new MarkdownFactStore(root("facts"), null, JSON)::verifyWritable);
     probes.put("episodic", new MarkdownEpisodicStore(root("episodic"))::verifyWritable);
     probes.put("workingMemory",
         new MarkdownWorkingMemoryStore(root("workingMemory"), null)::verifyWritable);

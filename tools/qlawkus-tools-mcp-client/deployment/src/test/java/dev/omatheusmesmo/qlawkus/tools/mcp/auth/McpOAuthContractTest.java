@@ -2,8 +2,9 @@ package dev.omatheusmesmo.qlawkus.tools.mcp.auth;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.sun.net.httpserver.HttpServer;
 import dev.omatheusmesmo.qlawkus.config.SecretsConfig;
 import dev.omatheusmesmo.qlawkus.secrets.KeystoreSecretWriter;
@@ -42,7 +43,7 @@ import org.junit.jupiter.api.io.TempDir;
 class McpOAuthContractTest {
     @Inject OidcClients clients;
     @TempDir Path root;
-    private final ObjectMapper json = new ObjectMapper();
+    private final ObjectMapper json = JsonMapper.builder().build();
 
     @Test
     void clientCredentialsUseTheVaultAndCacheTokensUntilExpiry() throws Exception {

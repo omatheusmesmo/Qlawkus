@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.common.http.TestHTTPResource;
@@ -59,8 +59,8 @@ class VoiceLanguageTest {
         try (VoiceClient client = open()) {
             JsonNode ready = client.awaitType("ready");
 
-            assertEquals("auto", ready.path("language").asText());
-            assertEquals("en", ready.path("defaultLanguage").asText());
+            assertEquals("auto", ready.path("language").asString());
+            assertEquals("en", ready.path("defaultLanguage").asString());
             assertEquals(List.of("en", "pt", "es"), values(ready.path("languages")));
             assertEquals(2000, ready.path("maxTextChars").asInt());
         }
@@ -76,8 +76,8 @@ class VoiceLanguageTest {
             client.speakUtterance(3200);
             JsonNode transcript = client.awaitType("transcript");
 
-            assertEquals("pt", transcript.path("language").asText());
-            assertEquals("tudo bem com você", transcript.path("text").asText());
+            assertEquals("pt", transcript.path("language").asString());
+            assertEquals("tudo bem com você", transcript.path("text").asString());
             assertNull(ScriptedTranscriber.CALLS.get(0).hint(), "auto mode leaves the recognizer to detect");
         }
     }
@@ -95,7 +95,7 @@ class VoiceLanguageTest {
 
             List<JsonNode> audio = audioEvents(client);
             assertTrue(audio.size() >= 1, "the reply is spoken");
-            audio.forEach(event -> assertEquals("pt", event.path("language").asText(), event.toString()));
+            audio.forEach(event -> assertEquals("pt", event.path("language").asString(), event.toString()));
         }
     }
 
@@ -112,7 +112,7 @@ class VoiceLanguageTest {
 
             List<JsonNode> audio = audioEvents(client);
             assertTrue(audio.size() >= 1, "the reply is spoken");
-            audio.forEach(event -> assertEquals("en", event.path("language").asText(), event.toString()));
+            audio.forEach(event -> assertEquals("en", event.path("language").asString(), event.toString()));
         }
     }
 
@@ -130,10 +130,10 @@ class VoiceLanguageTest {
             JsonNode second = client.awaitTypeWhere("transcript", event -> event.path("turn").asInt() == 2);
             client.awaitTypeWhere("turn-done", event -> event.path("turn").asInt() == 2);
 
-            assertEquals("pt", second.path("sessionLanguage").asText());
+            assertEquals("pt", second.path("sessionLanguage").asString());
             audioEvents(client).stream()
                     .filter(event -> event.path("turn").asInt() == 2)
-                    .forEach(event -> assertEquals("pt", event.path("language").asText(), event.toString()));
+                    .forEach(event -> assertEquals("pt", event.path("language").asString(), event.toString()));
         }
     }
 
@@ -146,7 +146,7 @@ class VoiceLanguageTest {
             client.awaitType("ready");
             client.sendJson("{\"type\":\"language\",\"language\":\"es\"}");
             JsonNode echoed = client.awaitType("language");
-            assertEquals("es", echoed.path("language").asText());
+            assertEquals("es", echoed.path("language").asString());
 
             client.speakUtterance(3200);
             client.awaitTypeWhere("turn-done", event -> event.path("turn").asInt() == 1);
@@ -154,7 +154,7 @@ class VoiceLanguageTest {
             assertEquals("es", ScriptedTranscriber.CALLS.get(0).hint());
             List<JsonNode> audio = audioEvents(client);
             assertTrue(audio.size() >= 1, "the reply is spoken");
-            audio.forEach(event -> assertEquals("es", event.path("language").asText(), event.toString()));
+            audio.forEach(event -> assertEquals("es", event.path("language").asString(), event.toString()));
         }
     }
 
@@ -167,7 +167,7 @@ class VoiceLanguageTest {
             client.sendJson("{\"type\":\"language\",\"language\":\"auto\"}");
             JsonNode echoed = client.awaitType("language");
 
-            assertEquals("auto", echoed.path("language").asText());
+            assertEquals("auto", echoed.path("language").asString());
         }
     }
 
@@ -191,7 +191,7 @@ class VoiceLanguageTest {
             JsonNode transcript = client.awaitType("transcript");
             client.awaitTypeWhere("turn-done", event -> event.path("turn").asInt() == 1);
 
-            assertEquals("remember the meeting is on friday", transcript.path("text").asText());
+            assertEquals("remember the meeting is on friday", transcript.path("text").asString());
             assertTrue(transcript.path("typed").asBoolean());
             assertTrue(ScriptedTranscriber.CALLS.isEmpty(), "a typed message never reaches speech-to-text");
             assertTrue(wiremock.find(postRequestedFor(urlEqualTo("/api/chat")))
@@ -209,7 +209,7 @@ class VoiceLanguageTest {
 
             client.sendJson("{\"type\":\"text\",\"text\":\"" + "x".repeat(2001) + "\"}");
             VoiceClient.assertCode(client.awaitTypeWhere("error",
-                    event -> "text-too-long".equals(event.path("code").asText())), "text-too-long");
+                    event -> "text-too-long".equals(event.path("code").asString())), "text-too-long");
         }
     }
 
@@ -220,7 +220,7 @@ class VoiceLanguageTest {
 
     private static List<JsonNode> audioEvents(VoiceClient client) {
         return client.snapshot().stream()
-                .filter(event -> "audio".equals(event.path("type").asText()))
+                .filter(event -> "audio".equals(event.path("type").asString()))
                 .toList();
     }
 

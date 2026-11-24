@@ -18,9 +18,13 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /** The nightly job hands each close pair to the judge, so a correction survives a judge's "no". */
 class MemoryReviewJobTest {
+
+  private static final ObjectMapper JSON = JsonMapper.builder().build();
 
   private static final String PREFERENCE = "User prefers dark theme in IDE";
   private static final String CORRECTION = "User no longer prefers dark theme in IDE";
@@ -48,7 +52,7 @@ class MemoryReviewJobTest {
   }
 
   private MarkdownFactStore storeWithPair() {
-    MarkdownFactStore store = new MarkdownFactStore(tempDir.toString(), new PairModel());
+    MarkdownFactStore store = new MarkdownFactStore(tempDir.toString(), new PairModel(), JSON);
     store.load();
     store.store(PREFERENCE, Map.of("source", MemorySource.SEMANTIC_EXTRACTOR.value()));
     store.store(CORRECTION, Map.of("source", MemorySource.SEMANTIC_EXTRACTOR.value()));

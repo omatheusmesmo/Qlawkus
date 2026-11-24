@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.heartbeat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -44,6 +45,6 @@ class LocalHeartbeatDecisionModelTest {
                 assertTrue(request.toolSpecifications().isEmpty());
                 return ChatResponse.builder().aiMessage(AiMessage.from(output)).tokenUsage(new TokenUsage(40, 3)).build();
             }
-        }, new ObjectMapper());
+        }, JsonMapper.builder().build());
     }
 }

@@ -14,6 +14,10 @@
 
   <dependencies>
     <dependency>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-jackson-deployment</artifactId>
+    </dependency>
+    <dependency>
       <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-client</artifactId>
       <version>${project.version}</version>
@@ -58,11 +62,20 @@
          produced under IsLocalDevelopment, so a production build carries none of it. -->
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-vertx-http-dev-ui-spi</artifactId>
+      <artifactId>quarkus-devui-deployment-spi</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-devjsonrpc-deployment-spi</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-devui</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
