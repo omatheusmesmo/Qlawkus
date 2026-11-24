@@ -5,12 +5,13 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
 import io.opentelemetry.api.baggage.Baggage;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.sdk.trace.ReadWriteSpan;
 import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.quarkiverse.langfuse.config.LangfuseConfig;
-import io.quarkiverse.langfuse.runtime.otel.LangfuseSpanExporterFactory;
+import io.quarkiverse.langfuse.runtime.otel.LangfuseSpanExporterFactoryQuarkus3;
 import io.quarkiverse.langfuse.runtime.otel.LangfuseSpanProcessor;
 import io.quarkus.arc.SyntheticCreationalContext;
 import io.quarkus.runtime.RuntimeValue;
@@ -33,7 +34,7 @@ public class LangfuseExportRecorder {
         this.langfuse = langfuse;
     }
 
-    public Function<SyntheticCreationalContext<SpanProcessor>, SpanProcessor> create(String factoryClass,
+    public Function<SyntheticCreationalContext<SpanProcessor>, SpanProcessor> create(
             Optional<RuntimeValue<Boolean>> sdkEnabled, Supplier<Vertx> vertx) {
         return context -> {
             LangfuseConfig config = langfuse.getValue();
@@ -41,7 +42,7 @@ public class LangfuseExportRecorder {
                     || !configured(config)) {
                 return LangfuseSpanProcessor.noop();
             }
-            LangfuseSpanExporterFactory factory = loadFactory(factoryClass);
+            var factory = new LangfuseSpanExporterFactoryQuarkus3();
             return new LangfuseSpanProcessor(config, vertx.get(), context.getInjectedReference(TlsConfigurationRegistry.class),
                     exporter -> new LangfuseMetadataExporter(factory.createExporter(exporter))) {
                 @Override
@@ -54,9 +55,7 @@ public class LangfuseExportRecorder {
                         span.setAttribute(LangfuseMetadataExporter.TURN_SESSION, LangfuseMetadataExporter.sessionId(conversation));
                     }
                     String workload = MDC.get("workload");
-                    if (workload != null) {
-                        span.setAttribute("qlawkus.workload", workload);
-                    }
+                    span.setAttribute(LangfuseMetadataExporter.WORKLOAD, workload != null ? workload : WorkloadContext.current());
                 }
             };
         };
@@ -80,12 +79,4 @@ public class LangfuseExportRecorder {
         return !key.isBlank() && !UNCONFIGURED_KEY.equals(key);
     }
 
-    private static LangfuseSpanExporterFactory loadFactory(String factoryClass) {
-        try {
-            return Class.forName(factoryClass, true, Thread.currentThread().getContextClassLoader())
-                    .asSubclass(LangfuseSpanExporterFactory.class).getDeclaredConstructor().newInstance();
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Cannot initialize the Langfuse OTLP exporter", e);
-        }
-    }
 }

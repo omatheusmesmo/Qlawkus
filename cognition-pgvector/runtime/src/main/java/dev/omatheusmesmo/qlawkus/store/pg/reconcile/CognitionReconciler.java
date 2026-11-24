@@ -6,7 +6,6 @@ import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageDeserializer;
-import dev.langchain4j.data.message.ChatMessageSerializer;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -18,6 +17,7 @@ import dev.omatheusmesmo.qlawkus.dto.JournalSummary;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillState;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
+import dev.omatheusmesmo.qlawkus.store.ChatMessageJson;
 import dev.omatheusmesmo.qlawkus.store.FactChunker;
 import dev.omatheusmesmo.qlawkus.store.SoulStore;
 import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
@@ -229,7 +229,7 @@ public class CognitionReconciler {
         for (String memoryId : ChatMessageEntity.distinctMemoryIds()) {
           if (!files.exists(memoryId)) {
             List<String> jsons = ChatMessageEntity.findByMemoryIdOrdered(memoryId).stream()
-                .map(entity -> ChatMessageSerializer.messageToJson(entity.toChatMessage()))
+                .map(entity -> ChatMessageJson.serialize(entity.toChatMessage()))
                 .toList();
             files.replace(memoryId, jsons);
             counts[1]++;
