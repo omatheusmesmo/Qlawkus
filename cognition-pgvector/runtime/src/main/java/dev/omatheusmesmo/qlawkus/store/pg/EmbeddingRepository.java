@@ -6,6 +6,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.Collection;
 import java.util.HexFormat;
 import java.util.List;
 
@@ -45,19 +46,38 @@ public class EmbeddingRepository {
         .executeUpdate();
   }
 
+  /** Two embeddings within the cosine distance asked for; {@code kept} is the one with the lower id. */
+  public record NearPair(Object keptId, Object candidateId, String keptText, String candidateText) {
+  }
+
   /**
-   * Removes semantically near-duplicate embeddings, keeping one per cluster. The exact-hash dedup at
-   * write time misses reworded variants ("User's name is Matheus" vs "The user is named Matheus");
-   * this catches them by cosine distance. {@code maxCosineDistance} is {@code 1 - similarity}.
+   * Every pair of embeddings closer than {@code maxCosineDistance} ({@code 1 - similarity}), ordered
+   * by candidate so a caller sees all the pairs of one fact together. The exact-hash dedup at write
+   * time misses reworded variants ("User's name is Matheus" vs "The user is named Matheus"); distance
+   * nominates them here, and the caller decides which nominee really is a rewording.
    */
   @Transactional
-  public long deleteNearDuplicates(double maxCosineDistance) {
-    return entityManager.createNativeQuery(
-        "DELETE FROM embeddings WHERE embedding_id IN ("
-            + "SELECT b.embedding_id FROM embeddings a "
+  @SuppressWarnings("unchecked")
+  public List<NearPair> nearDuplicatePairs(double maxCosineDistance) {
+    List<Object[]> rows = entityManager.createNativeQuery(
+        "SELECT a.embedding_id, b.embedding_id, a.text, b.text FROM embeddings a "
             + "JOIN embeddings b ON a.embedding_id < b.embedding_id "
-            + "WHERE (a.embedding <=> b.embedding) < ?1)")
+            + "WHERE (a.embedding <=> b.embedding) < ?1 "
+            + "ORDER BY b.embedding_id, a.embedding_id")
         .setParameter(1, maxCosineDistance)
+        .getResultList();
+    return rows.stream()
+        .map(r -> new NearPair(r[0], r[1], (String) r[2], (String) r[3]))
+        .toList();
+  }
+
+  @Transactional
+  public long deleteByIds(Collection<?> ids) {
+    if (ids.isEmpty()) {
+      return 0;
+    }
+    return entityManager.createNativeQuery("DELETE FROM embeddings WHERE embedding_id IN (:ids)")
+        .setParameter("ids", ids)
         .executeUpdate();
   }
 

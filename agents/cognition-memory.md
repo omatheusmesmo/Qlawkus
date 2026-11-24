@@ -43,6 +43,10 @@ Stores & retrieval:
 Scheduled background jobs, each with a manual `POST /api/admin/memory/*` trigger:
 
 - `MemoryReviewJob` - semantic dedup of near-duplicate facts (`/review`).
+  Distance only nominates a pair; `FactStore.purgeNearDuplicates(maxCosineDistance, sameFact)` asks `cognition.review.DuplicateJudges` whether the two texts are the same fact before removing the later one, so a correction ("no longer prefers dark theme") is never purged as a duplicate.
+  Unlike the turn gate this **fails safe**: a throw or timeout keeps both facts (a deletion cannot be undone, a surviving duplicate is retried next run), counted in `qlawkus.turn.gate{question=duplicate-fact}`.
+  The `@DefaultBean` `PassThroughDuplicateJudge` answers yes (distance alone, as before); `decision.nvidia` supplies `NvidiaDuplicateJudge` (`qlawkus.decision.nvidia.duplicate-threshold`, default 0.9).
+  The pg and hybrid stores read the pairs in one transaction, judge them outside any transaction and delete by id in a second (`NearDuplicatePurge`), so a connection never waits on a model call.
 - `MemoryCurationJob` - folds facts into the owner profile, reconciling contradictions; leaves facts untouched (`/curate`).
 - `SemanticExtractorObserver` - extracts facts from a conversation on `ChatCompletedEvent`.
   The event is emitted channel-agnostically by `ChatCompletionEmitter`, which observes the store-level `MessagesAppendedEvent` and fires once per turn (when a final assistant message - one without tool-execution requests - is appended).

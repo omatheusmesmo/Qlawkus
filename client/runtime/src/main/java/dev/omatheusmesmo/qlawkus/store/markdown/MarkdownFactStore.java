@@ -26,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiPredicate;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 
@@ -193,7 +194,7 @@ public class MarkdownFactStore implements FactStore {
   }
 
   @Override
-  public long purgeNearDuplicates(double maxCosineDistance) {
+  public long purgeNearDuplicates(double maxCosineDistance, BiPredicate<String, String> sameFact) {
     List<MarkdownFactFiles.FactRecord> facts = files.loadAll();
     Map<String, float[]> cache = files.loadCache();
     List<String> toRemove = new ArrayList<>();
@@ -212,7 +213,8 @@ public class MarkdownFactStore implements FactStore {
           continue;
         }
         float[] b = cache.get(entryId(idB, 0));
-        if (b != null && cosineDistance(a, b) < maxCosineDistance) {
+        if (b != null && cosineDistance(a, b) < maxCosineDistance
+            && sameFact.test(facts.get(i).content(), facts.get(j).content())) {
           toRemove.add(idB);
         }
       }

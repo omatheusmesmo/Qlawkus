@@ -120,5 +120,10 @@ class NvidiaTurnGateTest {
         public double achievementThreshold() {
             return 0.5;
         }
+
+        @Override
+        public double duplicateThreshold() {
+            return 0.9;
+        }
     }
 }
