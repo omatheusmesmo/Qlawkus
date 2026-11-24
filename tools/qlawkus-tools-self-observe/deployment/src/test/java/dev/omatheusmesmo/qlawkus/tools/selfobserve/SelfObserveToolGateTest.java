@@ -81,7 +81,7 @@ class SelfObserveToolGateTest {
     final List<URI> calls = new ArrayList<>();
 
     RecordingHttp() {
-      super(new TestConfig(true, null, null, null));
+      super(new TestConfig(true, null, null, null), url -> jakarta.ws.rs.core.Response.ok("{}").build());
     }
 
     @Override
