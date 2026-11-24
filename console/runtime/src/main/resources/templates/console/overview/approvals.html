@@ -1,0 +1,13 @@
+<div class="approvals-card" data-pending="{pending}" data-gated="{gated.size}">
+    {#if pending > 0}
+    <p class="approvals-waiting"><span class="memory-count">{pending}</span> {#if pending == 1}request{#else}requests{/if} waiting for you</p>
+    {#else}
+    <p>Nothing is waiting for you.</p>
+    {/if}
+    {#if gated}
+    <p class="muted">Gated tools: {#for tool in gated}{tool}{#if tool_hasNext}, {/if}{/for}</p>
+    {#else}
+    <p class="muted">No tool is gated, so every tool runs without asking.</p>
+    {/if}
+    <p><a href="/console/approvals">Open approvals</a></p>
+</div>

@@ -106,7 +106,7 @@ Every text color is checked against its background for at least 4.5:1 contrast i
 
 === Health cards
 
-The Overview answers "is the agent all right?" without opening another page. Five cards sit under the status panel, and each one polls its own endpoint, so a slow source never holds the others back. Polling pauses while the browser tab is hidden and resumes when it is shown again.
+The Overview answers "is the agent all right?" without opening another page. Six cards sit under the status panel, and each one polls its own endpoint, so a slow source never holds the others back. Polling pauses while the browser tab is hidden and resumes when it is shown again.
 
 [cols="1,3"]
 |===
@@ -115,6 +115,7 @@ The Overview answers "is the agent all right?" without opening another page. Fiv
 |*Upcoming* |The next three runs across the five background jobs and the tasks the agent scheduled, soonest first, read from the live scheduler. Linked to the Schedule page. Refreshes every 30 seconds.
 |*Last redeploy* |Outcome, the phase that failed, total time, and the last success of the most recent run the redeploy loop reported, linking to the phase timings on the Schedule page. Refreshes every minute.
 |*Memory* |How many journals the agent holds, the newest day, the number of skills in the index and the sources its facts came from, linking to the Memory and Skills pages. Refreshes every minute.
+|*Approvals* |How many tool calls wait for the owner's decision, and the names of the tools the approval gate covers (`qlawkus.approval.tools`). With no tool named it says every tool runs without asking. It shows counts and names only, never the arguments of a waiting request, and links to the Approvals page. Refreshes every 10 seconds.
 |===
 
 A card whose source cannot be read answers with its own error box (what could not be read, and a one-line reason with secrets masked) instead of keeping the last good numbers, and the other cards keep working.

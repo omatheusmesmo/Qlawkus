@@ -31,6 +31,13 @@
             <p class="muted">Loading model chain...</p>
         </div>
     </section>
+    <section class="panel card" aria-labelledby="card-approvals">
+        <h2 class="panel-title" id="card-approvals">Approvals</h2>
+        <div class="panel-body" hx-get="/console/overview/approvals"
+             hx-trigger="load, every 10s [document.visibilityState=='visible']" hx-swap="innerHTML">
+            <p class="muted">Loading approvals...</p>
+        </div>
+    </section>
     <section class="panel card" aria-labelledby="card-upcoming">
         <h2 class="panel-title" id="card-upcoming">Upcoming</h2>
         <div class="panel-body" hx-get="/console/overview/upcoming"

@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.console.management;
 
+import dev.omatheusmesmo.qlawkus.approval.ApprovalConfig;
+import dev.omatheusmesmo.qlawkus.approval.ApprovalGate;
 import dev.omatheusmesmo.qlawkus.compose.RedeployHistoryService;
 import dev.omatheusmesmo.qlawkus.dto.JournalSummary;
 import dev.omatheusmesmo.qlawkus.logging.FailureSummary;
@@ -48,6 +50,7 @@ public class OverviewConsoleResource {
     private final Template redeploy;
     private final Template memory;
     private final Template model;
+    private final Template approvals;
     private final Template failed;
     private final Instance<ReadinessSource> readiness;
     private final Scheduler scheduler;
@@ -57,6 +60,8 @@ public class OverviewConsoleResource {
     private final EpisodicStore journals;
     private final SkillStore skills;
     private final ModelChainStatus chain;
+    private final ApprovalGate gate;
+    private final ApprovalConfig approvalConfig;
     private final SecretRedactor redactor;
 
     public OverviewConsoleResource(@Location("console/overview/health.html") Template health,
@@ -64,15 +69,17 @@ public class OverviewConsoleResource {
             @Location("console/overview/redeploy.html") Template redeploy,
             @Location("console/overview/memory.html") Template memory,
             @Location("console/overview/model.html") Template model,
+            @Location("console/overview/approvals.html") Template approvals,
             @Location("console/overview/error.html") Template failed,
             Instance<ReadinessSource> readiness, Scheduler scheduler, DynamicTaskScheduler tasks,
             RedeployHistoryService redeploys, FactStore facts, EpisodicStore journals, SkillStore skills,
-            ModelChainStatus chain, SecretRedactor redactor) {
+            ModelChainStatus chain, ApprovalGate gate, ApprovalConfig approvalConfig, SecretRedactor redactor) {
         this.health = health;
         this.upcoming = upcoming;
         this.redeploy = redeploy;
         this.memory = memory;
         this.model = model;
+        this.approvals = approvals;
         this.failed = failed;
         this.readiness = readiness;
         this.scheduler = scheduler;
@@ -82,6 +89,8 @@ public class OverviewConsoleResource {
         this.journals = journals;
         this.skills = skills;
         this.chain = chain;
+        this.gate = gate;
+        this.approvalConfig = approvalConfig;
         this.redactor = redactor;
     }
 
@@ -149,6 +158,18 @@ public class OverviewConsoleResource {
     @Path("/model")
     public TemplateInstance model() {
         return card("The model chain", () -> model.data("chain", ModelChainView.of(chain.snapshot(), tasks.zone())));
+    }
+
+    @GET
+    @Path("/approvals")
+    public TemplateInstance approvals() {
+        return card("Approvals", this::approvalsCard);
+    }
+
+    /** Counts and tool names only: the arguments of a waiting request stay in the queue page. */
+    private TemplateInstance approvalsCard() {
+        List<String> gated = approvalConfig.tools().orElse(List.of());
+        return approvals.data("pending", gate.pendingCount()).data("gated", gated);
     }
 
     /**
