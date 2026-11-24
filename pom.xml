@@ -44,6 +44,7 @@
     <quarkus-wiremock.version>1.8.1</quarkus-wiremock.version>
     <skipITs>true</skipITs>
     <surefire-plugin.version>3.6.1</surefire-plugin.version>
+    <qlawkus.composition.fail-on-pom-drift>false</qlawkus.composition.fail-on-pom-drift>
   </properties>
 
   <dependencyManagement>
@@ -125,11 +126,30 @@
             </systemPropertyVariables>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>dev.omatheusmesmo</groupId>
+          <artifactId>qlawkus-maven-plugin</artifactId>
+          <version>${project.version}</version>
+          <configuration>
+            <failOnPomDrift>${qlawkus.composition.fail-on-pom-drift}</failOnPomDrift>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
 
   <profiles>
+    <profile>
+      <id>ci</id>
+      <activation>
+        <property>
+          <name>env.CI</name>
+        </property>
+      </activation>
+      <properties>
+        <qlawkus.composition.fail-on-pom-drift>true</qlawkus.composition.fail-on-pom-drift>
+      </properties>
+    </profile>
     <profile>
       <id>native</id>
       <activation>
