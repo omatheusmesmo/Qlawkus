@@ -2,19 +2,21 @@ package dev.omatheusmesmo.qlawkus.composition.plugin;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
+import java.io.StringReader;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.xml.stream.XMLStreamException;
 
 import dev.omatheusmesmo.qlawkus.composition.CompositionManifest;
 import dev.omatheusmesmo.qlawkus.composition.CompositionManifestParser;
 import dev.omatheusmesmo.qlawkus.composition.CompositionPaths;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
-import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -139,28 +141,37 @@ public class GenerateMojo extends AbstractMojo {
     }
 
     private void reconcilePom(Resolution resolution) throws MojoExecutionException {
-        Model model = readPom();
-        if (PomComposer.compose(model, resolution)) {
-            writePom(model);
+        Path path = pom.toPath();
+        try {
+            String source = Files.readString(path);
+            Model model = new MavenXpp3Reader().read(new StringReader(source));
+            var before = List.copyOf(model.getDependencies());
+            if (!PomComposer.compose(model, resolution)) {
+                getLog().info(pom + " already matches the manifest; no change.");
+                return;
+            }
+            String updated = PomDependencyEditor.edit(source, before, model.getDependencies());
+            writePom(path.toRealPath(), updated);
             getLog().info("Updated " + pom + " dependency block from the manifest.");
-        } else {
-            getLog().info(pom + " already matches the manifest; no change.");
-        }
-    }
-
-    private Model readPom() throws MojoExecutionException {
-        try (Reader reader = Files.newBufferedReader(pom.toPath())) {
-            return new MavenXpp3Reader().read(reader);
         } catch (IOException | XmlPullParserException e) {
-            throw new MojoExecutionException("Cannot read pom " + pom + ": " + e.getMessage(), e);
+            throw new MojoExecutionException("Cannot reconcile pom " + pom + ": " + e.getMessage(), e);
+        } catch (XMLStreamException e) {
+            throw new MojoExecutionException("Cannot locate dependencies in " + pom + ": " + e.getMessage(), e);
         }
     }
 
-    private void writePom(Model model) throws MojoExecutionException {
-        try (Writer writer = Files.newBufferedWriter(pom.toPath())) {
-            new MavenXpp3Writer().write(writer, model);
-        } catch (IOException e) {
-            throw new MojoExecutionException("Cannot write pom " + pom + ": " + e.getMessage(), e);
+    private void writePom(Path path, String updated) throws IOException {
+        Path temp = Files.createTempFile(path.getParent(), "qlawkus-pom-", ".xml");
+        try {
+            Files.copy(path, temp, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+            Files.writeString(temp, updated);
+            try {
+                Files.move(temp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temp, path, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(temp);
         }
     }
 
