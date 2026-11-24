@@ -8,6 +8,7 @@ import dev.omatheusmesmo.qlawkus.messaging.MessagingMessage;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingOrchestrator;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Attachment;
 import discord4j.core.object.entity.Message;
@@ -16,6 +17,8 @@ import discord4j.core.spec.MessageCreateFields;
 import discord4j.core.spec.MessageCreateSpec;
 import discord4j.discordjson.json.MessageCreateRequest;
 import discord4j.discordjson.json.MessageData;
+import discord4j.gateway.GatewayClient;
+import discord4j.gateway.GatewayClientGroup;
 import discord4j.rest.RestClient;
 import discord4j.rest.entity.RestChannel;
 import discord4j.rest.http.client.ClientException;
@@ -24,10 +27,12 @@ import discord4j.rest.json.response.ErrorResponse;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.smallrye.mutiny.Uni;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClientResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
@@ -38,27 +43,36 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.when;
 
 class DiscordProviderAdapterTest {
 
     private DiscordProviderAdapter adapter;
+    private DiscordConfig config;
+    private MediaDownloader downloader;
     private MessagingOrchestrator orchestrator;
+    private DiscordSlashCommandRegistrar registrar;
 
     @BeforeEach
     void setUp() {
-        adapter = new DiscordProviderAdapter();
+        config = Mockito.mock(DiscordConfig.class);
+        downloader = Mockito.mock(MediaDownloader.class);
         orchestrator = Mockito.mock(MessagingOrchestrator.class);
-        adapter.orchestrator = orchestrator;
+        registrar = Mockito.mock(DiscordSlashCommandRegistrar.class);
+        adapter = new DiscordProviderAdapter(config, downloader, orchestrator, registrar);
 
         when(orchestrator.process(any())).thenReturn(Uni.createFrom().voidItem());
     }
@@ -74,6 +88,70 @@ class DiscordProviderAdapterTest {
     }
 
     @Test
+    void failedLoginRetriesAndRegistersListenersAfterRecovery() {
+        var gateway = mockGateway();
+        var attempts = new AtomicInteger();
+        try {
+            adapter.connect(Mono.defer(() -> attempts.incrementAndGet() == 1
+                    ? Mono.error(new IOException("temporary network failure"))
+                    : Mono.just(gateway)));
+
+            verify(registrar, timeout(5000)).register(gateway, "", Optional.empty());
+            verify(gateway).on(MessageCreateEvent.class);
+            verify(gateway).on(ChatInputInteractionEvent.class);
+            assertSame(gateway, adapter.gateway());
+            assertEquals(2, attempts.get());
+        } finally {
+            adapter.stop();
+        }
+    }
+
+    @Test
+    void shutdownCancelsInFlightLogin() {
+        Runnable onCancel = Mockito.mock(Runnable.class);
+        adapter.connect(Mono.<GatewayDiscordClient>never().doOnCancel(onCancel));
+
+        assertNull(adapter.stop());
+        verify(onCancel).run();
+    }
+
+    @Test
+    void readinessReportsGatewayStateWithoutTakingHttpReadinessDown() {
+        var check = new DiscordReadinessCheck(config, adapter);
+        assertReadiness(check, "disabled");
+
+        when(config.botToken()).thenReturn(Optional.of("fixture-token"));
+        assertReadiness(check, "degraded");
+
+        var gateway = mockGateway();
+        var group = Mockito.mock(GatewayClientGroup.class);
+        var shard = Mockito.mock(GatewayClient.class);
+        when(gateway.getGatewayClientGroup()).thenReturn(group);
+        when(group.getShardCount()).thenReturn(1);
+        when(gateway.getGatewayClient(0)).thenReturn(Optional.of(shard));
+        when(shard.isConnected()).thenReturn(Mono.just(true), Mono.just(false));
+        adapter.connect(Mono.just(gateway));
+
+        assertReadiness(check, "connected");
+        assertReadiness(check, "degraded");
+        assertSame(gateway, adapter.stop());
+        assertReadiness(check, "degraded");
+    }
+
+    private void assertReadiness(DiscordReadinessCheck check, String status) {
+        var response = check.call().await().atMost(Duration.ofSeconds(2));
+        assertEquals(HealthCheckResponse.Status.UP, response.getStatus());
+        assertEquals(status, response.getData().orElseThrow().get("status"));
+    }
+
+    private GatewayDiscordClient mockGateway() {
+        var gateway = Mockito.mock(GatewayDiscordClient.class);
+        when(gateway.on(MessageCreateEvent.class)).thenReturn(Flux.empty());
+        when(gateway.on(ChatInputInteractionEvent.class)).thenReturn(Flux.empty());
+        return gateway;
+    }
+
+    @Test
     void receive_delegatesToOrchestrator() {
         MessagingMessage msg = MessagingMessage.text("discord", "chan-1", "user-1", "hello");
 
@@ -84,8 +162,6 @@ class DiscordProviderAdapterTest {
 
     @Test
     void mapsAttachmentsWithoutDownloadingAndRejectsUnknownHosts() {
-        var downloader = Mockito.mock(MediaDownloader.class);
-        adapter.mediaDownloader = downloader;
         var message = Mockito.mock(Message.class);
         var platform = Mockito.mock(Attachment.class);
         var unknown = Mockito.mock(Attachment.class);
@@ -114,8 +190,6 @@ class DiscordProviderAdapterTest {
 
     @Test
     void send_gatewayNotConnected_propagatesToTheCaller() {
-        adapter.gatewayClient = null;
-
         assertThrows(IllegalStateException.class, () -> adapter.send("chan-1", "hello").await().indefinitely());
     }
 
@@ -147,23 +221,25 @@ class DiscordProviderAdapterTest {
     }
 
     private RestChannel mockRestChannel() {
-        adapter.gatewayClient = Mockito.mock(GatewayDiscordClient.class);
+        var gateway = mockGateway();
         RestClient rest = Mockito.mock(RestClient.class);
         RestChannel channel = Mockito.mock(RestChannel.class);
-        when(adapter.gatewayClient.getRestClient()).thenReturn(rest);
+        when(gateway.getRestClient()).thenReturn(rest);
         when(rest.getChannelById(Snowflake.of("123"))).thenReturn(channel);
+        adapter.connect(Mono.just(gateway));
         return channel;
     }
 
     @Test
     void sendsAFileToTheSuppliedChannelAndRequiresAcknowledgement() throws IOException {
-        adapter.gatewayClient = Mockito.mock(GatewayDiscordClient.class);
+        var gateway = mockGateway();
         MessageChannel channel = Mockito.mock(MessageChannel.class);
-        when(adapter.gatewayClient.getChannelById(Snowflake.of("123"))).thenReturn(Mono.just(channel));
+        when(gateway.getChannelById(Snowflake.of("123"))).thenReturn(Mono.just(channel));
         when(channel.createMessage(any(MessageCreateSpec.class)))
                 .thenReturn(Mono.just(Mockito.mock(Message.class)), Mono.empty());
         byte[] report = "item,count\nbooks,2\n".getBytes(StandardCharsets.UTF_8);
 
+        adapter.connect(Mono.just(gateway));
         adapter.sendFile("123", "report.csv", "text/csv", report).await().indefinitely();
         var request = ArgumentCaptor.forClass(MessageCreateSpec.class);
         verify(channel).createMessage(request.capture());
@@ -178,11 +254,11 @@ class DiscordProviderAdapterTest {
 
     @Test
     void guildMessage_followsRespondToAllMessages() {
-        adapter.config = config(false, true);
+        respondToMessages(false, true);
 
         assertFalse(adapter.isEnabledForChannel(event(Snowflake.of(1L))));
 
-        adapter.config = config(true, true);
+        respondToMessages(true, true);
 
         assertTrue(adapter.isEnabledForChannel(event(Snowflake.of(1L))));
     }
@@ -190,14 +266,14 @@ class DiscordProviderAdapterTest {
     /** Quieting the bot in guild channels must not silence the owner's DM - they are separate knobs. */
     @Test
     void directMessage_survivesRespondToAllMessagesBeingOff() {
-        adapter.config = config(false, true);
+        respondToMessages(false, true);
 
         assertTrue(adapter.isEnabledForChannel(event(null)));
     }
 
     @Test
     void directMessage_isSilencedOnlyByItsOwnToggle() {
-        adapter.config = config(true, false);
+        respondToMessages(true, false);
 
         assertFalse(adapter.isEnabledForChannel(event(null)));
     }
@@ -245,11 +321,9 @@ class DiscordProviderAdapterTest {
         assertTrue(adapter.deliveryFailure(new IllegalStateException("Discord Gateway not connected")).isEmpty());
     }
 
-    private DiscordConfig config(boolean respondToAll, boolean respondToDirect) {
-        DiscordConfig config = Mockito.mock(DiscordConfig.class);
+    private void respondToMessages(boolean respondToAll, boolean respondToDirect) {
         when(config.respondToAllMessages()).thenReturn(respondToAll);
         when(config.respondToDirectMessages()).thenReturn(respondToDirect);
-        return config;
     }
 
     /** A {@code null} guild id is how Discord models a DM: no guild, just the two participants. */

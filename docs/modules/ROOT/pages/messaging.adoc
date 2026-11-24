@@ -89,6 +89,13 @@ The bot registers a `/qlawkus` command with subcommands:
 
 If you set `QLAWKUS_MESSAGING_DISCORD_GUILD_ID`, commands sync instantly to that guild. Without it, global sync can take up to 1 hour.
 
+=== 5. Gateway Status
+
+The Discord adapter connects to the Gateway in both JVM and native deployments.
+If login fails, Qlawkus logs the cause at WARN and retries in the background with exponential backoff capped at one minute.
+When SmallRye Health is installed, `/q/health/ready` includes the `discord-gateway` check with `data.status` set to `connected`, `degraded` or `disabled`.
+A disconnected Discord adapter reports `degraded` while its readiness check stays `UP`, so HTTP and other messaging channels can continue to serve requests.
+
 == Telegram Bot
 
 === 1. Create a Telegram Bot
@@ -244,7 +251,8 @@ Tool progress is shown on Discord and Telegram only. Slack and WhatsApp receive 
 |===
 |Issue |Solution
 
-|Discord bot connects but doesn't respond |Message Content Intent not enabled in Developer Portal.
+|Discord bot stays offline |Check `discord-gateway` in `/q/health/ready` and look for `Discord: Gateway login attempt` in the logs. Verify the token, the Gateway intents and network access to Discord.
+|Discord bot connects but doesn't respond |Enable Message Content Intent in the Developer Portal and verify the user's ID is on the Discord allowlist.
 |Slash commands not appearing |Wait up to 1 hour for global sync, or set `QLAWKUS_MESSAGING_DISCORD_GUILD_ID` for instant guild sync.
 |Telegram webhook not receiving updates |Verify the HTTPS URL is reachable and ends in `/api/webhook/telegram`; check logs for `setWebhook` errors.
 |Voice not working |Check STT/TTS config in xref:voice.adoc[Voice Setup].

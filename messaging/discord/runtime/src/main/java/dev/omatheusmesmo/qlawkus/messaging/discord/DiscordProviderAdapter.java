@@ -36,7 +36,7 @@ import io.quarkus.runtime.StartupEvent;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
-import jakarta.inject.Inject;
+import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
@@ -56,19 +56,26 @@ public class DiscordProviderAdapter implements MessagingProvider {
             .filter(failure -> FailureChain.first(failure, IOException.class).isPresent())
             .onRetryExhaustedThrow((spec, signal) -> signal.failure());
 
-    @Inject
-    DiscordConfig config;
+    private static final Retry LOGIN_RETRY = Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1))
+            .maxBackoff(Duration.ofMinutes(1))
+            .doBeforeRetry(signal -> Log.warnf(signal.failure(),
+                    "Discord: Gateway login attempt %d failed, retrying", signal.totalRetries() + 1));
 
-    @Inject
-    MediaDownloader mediaDownloader;
+    private final DiscordConfig config;
+    private final MediaDownloader mediaDownloader;
+    private final MessagingOrchestrator orchestrator;
+    private final DiscordSlashCommandRegistrar slashCommandRegistrar;
+    private volatile GatewayDiscordClient gatewayClient;
+    private Disposable loginSubscription;
+    private boolean stopping;
 
-    @Inject
-    MessagingOrchestrator orchestrator;
-
-    @Inject
-    DiscordSlashCommandRegistrar slashCommandRegistrar;
-
-    volatile GatewayDiscordClient gatewayClient;
+    DiscordProviderAdapter(DiscordConfig config, MediaDownloader mediaDownloader, MessagingOrchestrator orchestrator,
+            DiscordSlashCommandRegistrar slashCommandRegistrar) {
+        this.config = config;
+        this.mediaDownloader = mediaDownloader;
+        this.orchestrator = orchestrator;
+        this.slashCommandRegistrar = slashCommandRegistrar;
+    }
 
     void onStart(@Observes StartupEvent event) {
         if (config.botToken().isEmpty()) {
@@ -82,23 +89,50 @@ public class DiscordProviderAdapter implements MessagingProvider {
                 Intent.MESSAGE_CONTENT,
                 Intent.DIRECT_MESSAGES);
 
-        DiscordClientBuilder.create(config.botToken().get())
+        var login = DiscordClientBuilder.create(config.botToken().get())
                 // Discord4j's request queue already retries 429s automatically; 5xx needs this
                 // explicit opt-in.
                 .onClientResponse(ResponseFunction.retryOnceOnErrorStatus(500, 502, 503, 504))
                 .build()
                 .gateway()
                 .setEnabledIntents(intents)
-                .login()
-                .subscribe(
-                        gateway -> {
-                            gatewayClient = gateway;
-                            setupListeners(gateway);
-                            slashCommandRegistrar.register(gateway, config.applicationId().orElse(""), config.guildId());
-                            postStartupGreeting(gateway);
-                            Log.info("Discord: Gateway connected");
-                        },
-                        err -> Log.errorf(err, "Discord: Gateway login failed"));
+                .login();
+        connect(login);
+    }
+
+    synchronized void connect(Mono<GatewayDiscordClient> login) {
+        if (stopping) {
+            return;
+        }
+        loginSubscription = login.retryWhen(LOGIN_RETRY)
+                .subscribe(this::gatewayConnected, err -> Log.errorf(err, "Discord: Gateway connection handler failed"));
+    }
+
+    private synchronized void gatewayConnected(GatewayDiscordClient gateway) {
+        if (stopping) {
+            gateway.logout().subscribe(ignored -> {},
+                    error -> Log.warnf(error, "Discord: late Gateway logout failed"));
+            return;
+        }
+        gatewayClient = gateway;
+        setupListeners(gateway);
+        slashCommandRegistrar.register(gateway, config.applicationId().orElse(""), config.guildId());
+        postStartupGreeting(gateway);
+        Log.info("Discord: Gateway connected");
+    }
+
+    synchronized GatewayDiscordClient stop() {
+        stopping = true;
+        if (loginSubscription != null) {
+            loginSubscription.dispose();
+        }
+        GatewayDiscordClient gateway = gatewayClient;
+        gatewayClient = null;
+        return gateway;
+    }
+
+    GatewayDiscordClient gateway() {
+        return gatewayClient;
     }
 
     private void postStartupGreeting(GatewayDiscordClient gateway) {
@@ -396,12 +430,13 @@ public class DiscordProviderAdapter implements MessagingProvider {
 
     @Override
     public Uni<Void> sendVoice(String channelId, byte[] audio, String filename, String fallbackText) {
-        if (gatewayClient == null) {
+        GatewayDiscordClient gateway = gatewayClient;
+        if (gateway == null) {
             return Uni.createFrom().failure(new IllegalStateException("Discord Gateway not connected"));
         }
 
         return Uni.createFrom().completionStage(
-                gatewayClient.getChannelById(Snowflake.of(channelId))
+                gateway.getChannelById(Snowflake.of(channelId))
                         .ofType(MessageChannel.class)
                         .flatMap(channel -> channel.createMessage(voiceMessage(audio, filename)))
                         .toFuture())
