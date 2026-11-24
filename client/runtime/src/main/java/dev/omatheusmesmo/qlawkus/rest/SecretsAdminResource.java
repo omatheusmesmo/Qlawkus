@@ -14,7 +14,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.Map;
-import java.util.function.Supplier;
+import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
 /**
  * Admin API to onboard secrets into the encrypted keystore without {@code keytool}. Every endpoint is
@@ -33,16 +33,14 @@ public class SecretsAdminResource {
 
   @GET
   public Response list() {
-    return guarded(() -> Response.ok(Map.of("aliases", writer.aliases())).build());
+    return Response.ok(Map.of("aliases", writer.aliases())).build();
   }
 
   @PUT
   @Consumes(MediaType.APPLICATION_JSON)
   public Response set(@Valid SetSecretRequest request) {
-    return guarded(() -> {
-      writer.setSecret(request.alias(), request.value());
-      return Response.noContent().build();
-    });
+    writer.setSecret(request.alias(), request.value());
+    return Response.noContent().build();
   }
 
   @DELETE
@@ -50,19 +48,19 @@ public class SecretsAdminResource {
     if (alias == null || alias.isBlank()) {
       return error(Response.Status.BAD_REQUEST, "Specify the alias to delete");
     }
-    return guarded(() -> writer.deleteSecret(alias)
+    return writer.deleteSecret(alias)
         ? Response.noContent().build()
-        : Response.status(Response.Status.NOT_FOUND).build());
+        : Response.status(Response.Status.NOT_FOUND).build();
   }
 
-  private Response guarded(Supplier<Response> action) {
-    try {
-      return action.get();
-    } catch (IllegalStateException e) {
-      return error(Response.Status.CONFLICT, e.getMessage());
-    } catch (IllegalArgumentException e) {
-      return error(Response.Status.BAD_REQUEST, e.getMessage());
-    }
+  @ServerExceptionMapper
+  public Response keystoreLocked(IllegalStateException failure) {
+    return error(Response.Status.CONFLICT, failure.getMessage());
+  }
+
+  @ServerExceptionMapper
+  public Response invalidSecretInput(IllegalArgumentException failure) {
+    return error(Response.Status.BAD_REQUEST, failure.getMessage());
   }
 
   private static Response error(Response.Status status, String message) {

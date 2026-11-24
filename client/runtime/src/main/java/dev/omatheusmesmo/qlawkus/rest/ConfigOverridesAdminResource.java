@@ -17,9 +17,9 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-
 import java.io.IOException;
 import java.util.Map;
+import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
 /**
  * Admin control plane for the config editor's {@code BUILD_TIME}/{@code BUILD_AND_RUN_TIME_FIXED}
@@ -38,11 +38,7 @@ public class ConfigOverridesAdminResource {
   @Path("/overrides")
   @Consumes({MediaType.TEXT_PLAIN, "text/x-java-properties"})
   public Response stage(String properties) throws IOException {
-    try {
-      service.stage(properties);
-    } catch (InvalidConfigOverrideException e) {
-      return badRequest(e.getMessage());
-    }
+    service.stage(properties);
     return Response.ok(service.currentState()).build();
   }
 
@@ -76,10 +72,8 @@ public class ConfigOverridesAdminResource {
   }
 
   private Response setOne(String property, String value) throws IOException {
-    return guarded(() -> {
-      service.stageOne(property, value);
-      return Response.ok(service.currentState()).build();
-    });
+    service.stageOne(property, value);
+    return Response.ok(service.currentState()).build();
   }
 
   @DELETE
@@ -92,17 +86,9 @@ public class ConfigOverridesAdminResource {
         : Response.status(Response.Status.NOT_FOUND).build();
   }
 
-  private Response guarded(IoSupplier action) throws IOException {
-    try {
-      return action.get();
-    } catch (InvalidConfigOverrideException e) {
-      return badRequest(e.getMessage());
-    }
-  }
-
-  @FunctionalInterface
-  private interface IoSupplier {
-    Response get() throws IOException;
+  @ServerExceptionMapper
+  public Response invalidOverride(InvalidConfigOverrideException failure) {
+    return badRequest(failure.getMessage());
   }
 
   private static Response badRequest(String message) {
