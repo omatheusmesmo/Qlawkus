@@ -86,10 +86,6 @@ include::includes/qlawkus-heartbeat.adoc[]
 
 include::includes/qlawkus-cognition-decision.adoc[]
 
-== Langfuse (qlawkus-observability-langfuse)
-
-include::includes/qlawkus-observability-langfuse.adoc[]
-
 == Messaging
 
 === Core
@@ -106,6 +102,10 @@ include::includes/qlawkus-messaging-slack.adoc[]
 
 === WhatsApp
 include::includes/qlawkus-messaging-whatsapp.adoc[]
+
+== Langfuse (qlawkus-observability-langfuse)
+
+include::includes/qlawkus-observability-langfuse.adoc[]
 
 == Tools
 
