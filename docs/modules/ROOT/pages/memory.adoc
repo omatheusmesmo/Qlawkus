@@ -1,4 +1,6 @@
 = Memory
+:page-nav-group: Memory & skills
+:page-nav-order: 100
 :page-title: Memory
 :page-description: Declarative memory the agent retrieves with RAG and injects automatically, never a prompt dump
 

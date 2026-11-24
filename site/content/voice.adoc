@@ -1,4 +1,7 @@
 = Voice Setup (STT / TTS)
+:page-nav-group: Integrations
+:page-nav-order: 350
+:page-nav-title: Voice
 :page-title: Voice Setup
 :page-description: Enable Speech-to-Text transcription and Text-to-Speech replies on the messaging adapters
 

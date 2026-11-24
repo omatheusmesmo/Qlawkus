@@ -1,4 +1,6 @@
 = MCP Connections
+:page-nav-group: Integrations
+:page-nav-order: 320
 
 The optional `mcp-client` capability connects Qlawkus to MCP tool servers using the
 https://docs.quarkiverse.io/quarkus-langchain4j/dev/mcp.html[Quarkus LangChain4j MCP client].

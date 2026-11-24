@@ -1,4 +1,6 @@
 = Console
+:page-nav-group: Platform
+:page-nav-order: 210
 :page-title: Console
 :page-description: The optional server-rendered admin UI - first-run setup, chat with the agent, plus memory, skills, cognition, config and schedule management.
 

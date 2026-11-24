@@ -1,4 +1,6 @@
 = Operations
+:page-nav-group: Platform
+:page-nav-order: 250
 :page-title: Operations
 :page-description: Probes, readiness checks and cost estimation - what the agent reports about itself and what it deliberately does not.
 

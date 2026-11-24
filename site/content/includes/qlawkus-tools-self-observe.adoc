@@ -1,0 +1,198 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-tools-self-observe_qlawkus-self-observe-enabled]] [.property-path]##link:#qlawkus-tools-self-observe_qlawkus-self-observe-enabled[`+++qlawkus.self-observe.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.self-observe.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the self-observation tools (`queryMetrics`, `findTraces`, `getTrace`, `queryLogs`) are active. When `false`, every tool refuses and nothing reaches the network.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SELF_OBSERVE_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SELF_OBSERVE_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-tools-self-observe_qlawkus-self-observe-prometheus-url]] [.property-path]##link:#qlawkus-tools-self-observe_qlawkus-self-observe-prometheus-url[`+++qlawkus.self-observe.prometheus-url+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.self-observe.prometheus-url+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Base URL of the Prometheus HTTP API (for example `http://lgtm:9090`). `queryMetrics` calls `/api/v1/query` and `/api/v1/query_range` under it. When unset, the tool says metrics are not configured instead of failing.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SELF_OBSERVE_PROMETHEUS_URL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SELF_OBSERVE_PROMETHEUS_URL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-self-observe_qlawkus-self-observe-tempo-url]] [.property-path]##link:#qlawkus-tools-self-observe_qlawkus-self-observe-tempo-url[`+++qlawkus.self-observe.tempo-url+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.self-observe.tempo-url+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Base URL of the Tempo HTTP API (for example `http://lgtm:3200`). `findTraces` calls `/api/search` and `getTrace` calls `/api/traces/<id>` under it. When unset, the trace tools say traces are not configured instead of failing.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SELF_OBSERVE_TEMPO_URL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SELF_OBSERVE_TEMPO_URL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-self-observe_qlawkus-self-observe-loki-url]] [.property-path]##link:#qlawkus-tools-self-observe_qlawkus-self-observe-loki-url[`+++qlawkus.self-observe.loki-url+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.self-observe.loki-url+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Base URL of the Loki HTTP API (for example `http://lgtm:3100`). `queryLogs` calls `/loki/api/v1/query_range` under it. When unset, the tool says logs are not configured instead of failing.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SELF_OBSERVE_LOKI_URL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SELF_OBSERVE_LOKI_URL+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-tools-self-observe_qlawkus-self-observe-max-window]] [.property-path]##link:#qlawkus-tools-self-observe_qlawkus-self-observe-max-window[`+++qlawkus.self-observe.max-window+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.self-observe.max-window+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The largest look-back any query may use. A requested look-back above it is clamped to it, and a PromQL or LogQL range selector or `offset` longer than it is refused before any request.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SELF_OBSERVE_MAX_WINDOW+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SELF_OBSERVE_MAX_WINDOW+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-tools-self-observe_qlawkus-self-observe[icon:question-circle[title=More information about the Duration format]]
+|`+++6H+++`
+
+a| [[qlawkus-tools-self-observe_qlawkus-self-observe-max-results]] [.property-path]##link:#qlawkus-tools-self-observe_qlawkus-self-observe-max-results[`+++qlawkus.self-observe.max-results+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.self-observe.max-results+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The most series, traces, spans or log lines one call returns. Anything beyond it is dropped and the result says how much was left out.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SELF_OBSERVE_MAX_RESULTS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SELF_OBSERVE_MAX_RESULTS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++50+++`
+
+a| [[qlawkus-tools-self-observe_qlawkus-self-observe-max-chars]] [.property-path]##link:#qlawkus-tools-self-observe_qlawkus-self-observe-max-chars[`+++qlawkus.self-observe.max-chars+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.self-observe.max-chars+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The most characters one call returns, framing included. Longer output is cut and marked as truncated.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SELF_OBSERVE_MAX_CHARS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SELF_OBSERVE_MAX_CHARS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++8000+++`
+
+a| [[qlawkus-tools-self-observe_qlawkus-self-observe-timeout]] [.property-path]##link:#qlawkus-tools-self-observe_qlawkus-self-observe-timeout[`+++qlawkus.self-observe.timeout+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.self-observe.timeout+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Timeout for one HTTP request to a backend. A query that exceeds it is reported to the model as too expensive and is not retried.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SELF_OBSERVE_TIMEOUT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SELF_OBSERVE_TIMEOUT+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-tools-self-observe_qlawkus-self-observe[icon:question-circle[title=More information about the Duration format]]
+|`+++10S+++`
+
+|===
+
+ifndef::no-duration-note[]
+[NOTE]
+[id=duration-note-anchor-qlawkus-tools-self-observe_qlawkus-self-observe]
+.About the Duration format
+====
+To write duration values, use the standard `java.time.Duration` format.
+See the link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html#parse(java.lang.CharSequence)[Duration#parse() Java API documentation] for more information.
+
+You can also use a simplified format, starting with a number:
+
+* If the value is only a number, it represents time in seconds.
+* If the value is a number followed by `ms`, it represents time in milliseconds.
+
+In other cases, the simplified format is translated to the `java.time.Duration` format for parsing:
+
+* If the value is a number followed by `h`, `m`, or `s`, it is prefixed with `PT`.
+* If the value is a number followed by `d`, it is prefixed with `P`.
+====
+endif::no-duration-note[]

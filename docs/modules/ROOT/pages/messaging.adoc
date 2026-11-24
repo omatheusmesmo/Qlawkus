@@ -1,4 +1,7 @@
 = Messaging Setup (Discord & Telegram)
+:page-nav-group: Integrations
+:page-nav-order: 340
+:page-nav-title: Messaging
 :page-title: Messaging Setup
 :page-description: Configure the Discord and Telegram adapters, with voice, shared context, and message chunking
 

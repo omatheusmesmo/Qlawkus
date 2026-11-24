@@ -1,4 +1,6 @@
 = Owner Approvals
+:page-nav-group: Platform
+:page-nav-order: 230
 :page-title: Owner Approvals
 :page-description: Hold selected tool calls for the owner's decision, and resume the task once it is made
 

@@ -36,7 +36,7 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-Base URL of the Telegram Bot API. Used for multipart uploads (sendAudio) that bypass the REST client.
+Base URL of the Telegram Bot API. Used when building file download URLs for `dev.omatheusmesmo.qlawkus.messaging.MediaDownloader`.
 
 
 ifdef::add-copy-button-to-env-var[]
@@ -113,3 +113,4 @@ endif::add-copy-button-to-env-var[]
 |
 
 |===
+

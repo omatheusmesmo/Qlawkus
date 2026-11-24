@@ -1,4 +1,6 @@
 = Quick Start
+:page-nav-group: Getting started
+:page-nav-order: 20
 :page-title: Quick Start
 :page-description: Get Qlawkus running in minutes
 

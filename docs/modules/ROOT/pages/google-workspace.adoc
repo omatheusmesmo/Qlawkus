@@ -1,4 +1,7 @@
 = Google Workspace Tools Setup
+:page-nav-group: Integrations
+:page-nav-order: 330
+:page-nav-title: Google Workspace
 
 The Google Workspace tools (Gmail, Calendar, Drive, Sheets, Storage) require OAuth 2.0 credentials. This page walks through creating the credentials in Google Cloud Console and configuring Qlawkus.
 

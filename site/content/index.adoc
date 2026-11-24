@@ -1,4 +1,7 @@
 = Qlawkus
+:page-nav-group: Getting started
+:page-nav-order: 10
+:page-nav-title: Overview
 :page-title: Qlawkus
 :page-description: Build personal AI agents on Quarkus
 

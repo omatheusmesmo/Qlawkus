@@ -26,7 +26,7 @@ Environment variable: `+++QLAWKUS_SPECIALISTS_ALLOWED_MODELS+++`
 endif::add-copy-button-to-env-var[]
 --
 a|list of `default`, `fallback`, `primary`, `secondary`
-|`+++default,fallback+++`
+|`+++default+++`, `+++fallback+++`
 
 a| [[qlawkus-specialists_qlawkus-specialists-timeout-seconds]] [.property-path]##link:#qlawkus-specialists_qlawkus-specialists-timeout-seconds[`+++qlawkus.specialists.timeout-seconds+++`]##
 ifdef::add-copy-button-to-config-props[]
@@ -71,3 +71,4 @@ endif::add-copy-button-to-env-var[]
 |`+++256+++`
 
 |===
+
