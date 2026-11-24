@@ -561,6 +561,7 @@
       headers['X-Qlawkus-Attachments'] = '1';
       body = new FormData();
       body.append('message', message);
+      body.append('toolProgress', mode);
       files.forEach(function (file) { body.append('attachments', file); });
     } else {
       headers['Content-Type'] = 'application/json';

@@ -56,4 +56,13 @@ class ChatConsoleTest {
     assertTrue(script.contains("textContent"));
     assertFalse(script.contains("innerHTML"));
   }
+
+  @Test
+  void script_sendsTheToolProgressModeOnBothRequestShapes() {
+    String script = given().when().get("/console/chat.js")
+        .then().statusCode(200)
+        .extract().asString();
+    assertTrue(script.contains("toolProgress: mode"), "the JSON body carries the mode");
+    assertTrue(script.contains("body.append('toolProgress', mode)"), "the multipart body carries the mode");
+  }
 }

@@ -77,6 +77,28 @@ class ChatAttachmentTest {
     }
 
     @Test
+    void anUploadAcceptsEveryToolProgressModeAndRejectsAnUnknownOne() {
+        byte[] bytes = Base64.getDecoder().decode(PNG);
+        for (String mode : new String[] {"off", "STATUS", "preview", "verbose"}) {
+            given().auth().preemptive().basic("qlawkus", "qlawkus-test")
+                    .header("X-Qlawkus-Attachments", "1")
+                    .multiPart("toolProgress", mode)
+                    .multiPart("attachments", "pixel.png", bytes, "image/png")
+                    .when().post("/api/chat")
+                    .then().statusCode(200).body(containsString("event:done"));
+        }
+        wiremock.resetRequests();
+
+        given().auth().preemptive().basic("qlawkus", "qlawkus-test")
+                .header("X-Qlawkus-Attachments", "1")
+                .multiPart("toolProgress", "loud")
+                .multiPart("attachments", "pixel.png", bytes, "image/png")
+                .when().post("/api/chat")
+                .then().statusCode(400);
+        wiremock.verifyThat(0, postRequestedFor(urlEqualTo(MODEL_ENDPOINT)));
+    }
+
+    @Test
     void requiresAnAuthenticatedExplicitUpload() {
         byte[] bytes = Base64.getDecoder().decode(PNG);
         given().header("X-Qlawkus-Attachments", "1")

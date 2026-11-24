@@ -110,6 +110,7 @@ public class ApiResource {
     public Multi<OutboundSseEvent> chatWithAttachments(
             @HeaderParam("X-Qlawkus-Attachments") String attachmentRequest,
             @RestForm("message") String message,
+            @RestForm("toolProgress") String toolProgress,
             @RestForm("attachments") List<FileUpload> uploads,
             @Context Sse sse) {
         // Multipart is a browser-simple content type. Require an explicit, non-simple header
@@ -117,6 +118,7 @@ public class ApiResource {
         if (!"1".equals(attachmentRequest)) {
             throw attachmentError(Response.Status.BAD_REQUEST, "Set X-Qlawkus-Attachments to 1.");
         }
+        requestedToolProgress(toolProgress);
         if (!attachmentChat.isResolvable()) {
             throw attachmentError(Response.Status.SERVICE_UNAVAILABLE, "Attachment analysis is unavailable in this distribution.");
         }
@@ -142,6 +144,21 @@ public class ApiResource {
                 .type(MediaType.TEXT_PLAIN)
                 .entity(failure.getMessage())
                 .build();
+    }
+
+    /**
+     * Reads the optional {@code toolProgress} form field with the vocabulary the JSON body uses, so an
+     * unknown name is refused the same way. The analysis runs outside the tool loop and emits no tool
+     * events yet, so the mode has nothing to hide today; reading it keeps both request shapes one
+     * contract for the day this path streams tool activity.
+     */
+    private static ToolProgress requestedToolProgress(String name) {
+        try {
+            return ToolProgress.parse(name);
+        } catch (IllegalArgumentException unknown) {
+            throw attachmentError(Response.Status.BAD_REQUEST,
+                    "toolProgress must be one of off, status, preview or verbose.");
+        }
     }
 
     private static byte[] readUpload(FileUpload upload) {
