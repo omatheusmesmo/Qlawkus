@@ -111,7 +111,7 @@ Metadata expires after 14 days by default. Set `qlawkus.debug-history.retention-
 
 == NVIDIA post-turn decisions
 
-Add the `decision.nvidia` capability in `agent.yml`, rebuild and set `qlawkus.decision.nvidia.enabled=true` at runtime.
+The reference app includes the `decision.nvidia` capability. The gate runs by default when an NVIDIA key is available. Set `qlawkus.decision.nvidia.enabled=false` to disable it at runtime.
 The gate sends the completed turn's user and assistant text to NVIDIA.
 System messages, tool outputs and binary attachments stay out of the request. Request and response bodies stay out of the gate's logs and spans.
 

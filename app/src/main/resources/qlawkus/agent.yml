@@ -21,6 +21,7 @@ build-time:
     - attachments
     - console.skill-hub
     - heartbeat
+    - decision.nvidia
     - observability
     - self-observe
     - web-search

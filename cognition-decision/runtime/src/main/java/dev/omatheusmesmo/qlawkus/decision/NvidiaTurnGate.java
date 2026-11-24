@@ -6,7 +6,6 @@ import java.util.List;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.decision.DecisionModel;
 import dev.langchain4j.model.decision.request.DecisionRequest;
 import dev.langchain4j.model.decision.request.YesNoQuestion;
 import dev.omatheusmesmo.qlawkus.cognition.ConversationFormatter;
@@ -31,17 +30,17 @@ public class NvidiaTurnGate implements TurnGate {
     private static final int MAX_INPUT_CHARS = 12_000;
 
     private final NvidiaDecisionConfig config;
-    private final DecisionModel model;
+    private final NvidiaDecisionModel model;
     private final AgentMeters meters;
     private final Tracer tracer;
 
     @Inject
-    NvidiaTurnGate(NvidiaDecisionConfig config, @Identifier("nvidia-turn-gate") DecisionModel model,
+    NvidiaTurnGate(NvidiaDecisionConfig config, @Identifier("nvidia-turn-gate") NvidiaDecisionModel model,
             AgentMeters meters, Instance<Tracer> tracer) {
         this(config, model, meters, tracer.isResolvable() ? tracer.get() : OpenTelemetry.noop().getTracer("qlawkus.decision"));
     }
 
-    NvidiaTurnGate(NvidiaDecisionConfig config, DecisionModel model, AgentMeters meters, Tracer tracer) {
+    NvidiaTurnGate(NvidiaDecisionConfig config, NvidiaDecisionModel model, AgentMeters meters, Tracer tracer) {
         this.config = config;
         this.model = model;
         this.meters = meters;
@@ -53,7 +52,7 @@ public class NvidiaTurnGate implements TurnGate {
     @Bulkhead(2)
     @CircuitBreaker(requestVolumeThreshold = 4, failureRatio = 0.5, delay = 60000)
     public boolean worthIt(TurnQuestion question, List<ChatMessage> messages) {
-        if (!config.enabled()) {
+        if (!config.enabled() || !model.configured()) {
             return true;
         }
         var exchange = ConversationFormatter.format(messages.stream()
