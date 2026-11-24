@@ -22,9 +22,10 @@ import java.util.Optional;
  * with no throttling. {@code minimaxai/minimax-m3.1-flash} was faster but throttled after about 10 a
  * minute, too few for a tier that takes every turn while the primary is failing. Embedding
  * model/dimension/input-type are stable per provider, but not forever: NVIDIA retired {@code nv-embedqa-e5-v5} on 2026-08-25, and its successor
- * {@code nemotron-3-embed-1b} only produces 2048 dimensions. A dimension change re-sizes the pgvector
- * column at the next boot ({@code R__embedding_dimension}) and re-embeds what was stored
- * ({@code EmbeddingBackfill}).
+ * {@code nemotron-3-embed-1b} only produced 2048 dimensions and was itself retired on 2026-11-23 (#527),
+ * replaced here by {@code nemotron-3.5-embed-1b}, also 2048. A dimension or model change re-embeds what
+ * was stored: the pgvector column is re-sized and cleared at the next boot ({@code R__embedding_dimension})
+ * and {@code EmbeddingBackfill} rebuilds the vectors.
  */
 public enum ProviderKind {
 
@@ -34,7 +35,7 @@ public enum ProviderKind {
     OPENAI("https://api.openai.com/v1/", "gpt-5-mini", null, "text-embedding-3-large", 1024, null, true),
     NVIDIA("https://integrate.api.nvidia.com/v1", "nvidia/nemotron-3-ultra-550b-a55b",
             "nvidia/nemotron-3.5-lightning-30b-a3b",
-            "nvidia/nemotron-3-embed-1b", 2048, "passage", false),
+            "nvidia/nemotron-3.5-embed-1b", 2048, "passage", false),
     DEEPSEEK("https://api.deepseek.com", "deepseek-v4-flash", null, "deepseek-embed", 1024, null, false),
     MISTRAL("https://api.mistral.ai/v1", "mistral-large-latest", null, "mistral-embed", 1024, null, false),
     GROQ("https://api.groq.com/openai/v1", "qwen/qwen3.6-27b", null, null, 0, null, false),

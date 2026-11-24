@@ -119,7 +119,7 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 | `LLM_CHAT_MODEL` | provider default | Override the primary chat model (NVIDIA default `nvidia/nemotron-3-ultra-550b-a55b`) |
 | `LLM_SECONDARY_CHAT_MODEL` | provider default | Override the secondary chat model (NVIDIA default `nvidia/nemotron-3.5-lightning-30b-a3b`, on the primary endpoint and key). Setting it enables the secondary tier for any kind |
 | `LLM_SECONDARY_BASE_URL` / `LLM_SECONDARY_API_KEY` | primary endpoint / primary key | Point the secondary at another endpoint or key |
-| `LLM_EMBEDDING_MODEL` | provider default | Override the embedding model (NVIDIA default `nvidia/nemotron-3-embed-1b`, 2048 dimensions) |
+| `LLM_EMBEDDING_MODEL` | provider default | Override the embedding model (NVIDIA default `nvidia/nemotron-3.5-embed-1b`, 2048 dimensions) |
 | `LLM_TIMEOUT` | `180s` | Primary model request timeout |
 | `GRAFANA_ADMIN_PASSWORD` | none | Grafana admin password for the bundled `lgtm` service. Required: Grafana will not start without it |
 | `EMBEDDING_DIMENSION` | provider default (NVIDIA `2048`, others `1024`) | Must match embedding model output; a change re-embeds stored vectors at the next boot |

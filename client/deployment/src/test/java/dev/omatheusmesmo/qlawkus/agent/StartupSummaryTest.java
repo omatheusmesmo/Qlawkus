@@ -11,7 +11,7 @@ class StartupSummaryTest {
 
     private static final StartupSummary.Settings SETTINGS = new StartupSummary.Settings(
             "NVIDIA", "nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3.5-lightning-30b-a3b", "qwen3:8b",
-            "nvidia/nemotron-3-embed-1b", "2048", "pgvector", false, true, List.of("discord", "telegram"));
+            "nvidia/nemotron-3.5-embed-1b", "2048", "pgvector", false, true, List.of("discord", "telegram"));
 
     @Test
     void theSummaryNamesTheModelsTheProviderAndTheEmbeddingDimension() {
@@ -23,7 +23,7 @@ class StartupSummaryTest {
         assertTrue(models.contains("secondary=nvidia/nemotron-3.5-lightning-30b-a3b"), models);
         assertTrue(models.contains("fallback=qwen3:8b"), models);
         String embeddings = lines.get(1);
-        assertTrue(embeddings.contains("model=nvidia/nemotron-3-embed-1b"), embeddings);
+        assertTrue(embeddings.contains("model=nvidia/nemotron-3.5-embed-1b"), embeddings);
         assertTrue(embeddings.contains("dimension=2048"), embeddings);
     }
 
