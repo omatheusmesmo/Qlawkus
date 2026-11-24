@@ -14,7 +14,7 @@ import jakarta.validation.constraints.DecimalMin;
 public interface NvidiaDecisionConfig {
 
     /** Whether to send completed-turn text to NVIDIA to decide which extractors to run. */
-    @WithDefault("false")
+    @WithDefault("true")
     boolean enabled();
 
     /** NVIDIA API key. Defaults to the primary model's key when it already uses NVIDIA's hosted endpoint. */

@@ -48,6 +48,10 @@ public class NvidiaDecisionModel implements DecisionModel {
         this.chat = Optional.of(chat);
     }
 
+    public boolean configured() {
+        return chat.isPresent();
+    }
+
     @Override
     public DecisionResponse doDecide(DecisionRequest request) {
         if (!(request.input() instanceof TextInput input)

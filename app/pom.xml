@@ -43,6 +43,11 @@
     </dependency>
     <dependency>
       <groupId>dev.omatheusmesmo</groupId>
+      <artifactId>qlawkus-cognition-decision</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.omatheusmesmo</groupId>
       <artifactId>qlawkus-console</artifactId>
       <version>${project.version}</version>
     </dependency>

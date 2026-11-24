@@ -44,9 +44,8 @@ class NvidiaTurnGateTest {
 
     @Test
     void disabledGatePassesWithoutAClient() {
-        var gate = new NvidiaTurnGate(new Settings(false, 0.5), decision -> {
-            throw new AssertionError("The disabled gate called the model");
-        }, new AgentMeters(registry),
+        var gate = new NvidiaTurnGate(new Settings(false, 0.5), new NvidiaDecisionModel(new ChatModel() {}),
+                new AgentMeters(registry),
                 OpenTelemetry.noop().getTracer("test"));
         assertTrue(gate.worthIt(DURABLE, List.of(UserMessage.from("hello"))));
     }
