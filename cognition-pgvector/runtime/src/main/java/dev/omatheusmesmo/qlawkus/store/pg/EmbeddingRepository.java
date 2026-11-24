@@ -13,6 +13,8 @@ import java.util.List;
 @ApplicationScoped
 public class EmbeddingRepository {
 
+  private static final String FACT_KEY = "COALESCE(metadata->>'factHash', CAST(embedding_id AS text))";
+
   @Inject
   EntityManager entityManager;
 
@@ -46,38 +48,50 @@ public class EmbeddingRepository {
         .executeUpdate();
   }
 
-  /** Two embeddings within the cosine distance asked for; {@code kept} is the one with the lower id. */
-  public record NearPair(Object keptId, Object candidateId, String keptText, String candidateText) {
+  /**
+   * Two facts with a segment pair within the cosine distance asked for. A fact is the rows sharing a
+   * {@code factHash} (a row without one is a fact of its own); {@code keptText} is the whole fact of
+   * the fact holding the lower row id, and {@code candidateText} the whole fact of the other.
+   */
+  public record NearPair(String keptFact, String candidateFact, String keptText, String candidateText) {
   }
 
   /**
-   * Every pair of embeddings closer than {@code maxCosineDistance} ({@code 1 - similarity}), ordered
-   * by candidate so a caller sees all the pairs of one fact together. The exact-hash dedup at write
-   * time misses reworded variants ("User's name is Matheus" vs "The user is named Matheus"); distance
-   * nominates them here, and the caller decides which nominee really is a rewording.
+   * Every pair of facts with a segment closer than {@code maxCosineDistance} ({@code 1 - similarity}),
+   * ordered by candidate so a caller sees all the pairs of one fact together. Segments of the same
+   * fact are never paired: overlapping segments are close by construction. The exact-hash dedup at
+   * write time misses reworded variants ("User's name is Matheus" vs "The user is named Matheus");
+   * distance nominates them here, and the caller decides which nominee really is a rewording.
    */
   @Transactional
   @SuppressWarnings("unchecked")
   public List<NearPair> nearDuplicatePairs(double maxCosineDistance) {
     List<Object[]> rows = entityManager.createNativeQuery(
-        "SELECT a.embedding_id, b.embedding_id, a.text, b.text FROM embeddings a "
-            + "JOIN embeddings b ON a.embedding_id < b.embedding_id "
-            + "WHERE (a.embedding <=> b.embedding) < ?1 "
-            + "ORDER BY b.embedding_id, a.embedding_id")
+        "WITH segments AS (SELECT embedding_id, embedding, text, metadata, " + FACT_KEY + " AS fact_key "
+            + "FROM embeddings), "
+            + "facts AS (SELECT DISTINCT ON (fact_key) fact_key, COALESCE(metadata->>'factText', text) AS fact_text "
+            + "FROM segments ORDER BY fact_key, COALESCE(metadata->>'chunkIndex', '0')) "
+            + "SELECT DISTINCT a.fact_key, b.fact_key, fa.fact_text, fb.fact_text FROM segments a "
+            + "JOIN segments b ON a.embedding_id < b.embedding_id "
+            + "JOIN facts fa ON fa.fact_key = a.fact_key "
+            + "JOIN facts fb ON fb.fact_key = b.fact_key "
+            + "WHERE a.fact_key <> b.fact_key AND (a.embedding <=> b.embedding) < ?1 "
+            + "ORDER BY b.fact_key, a.fact_key")
         .setParameter(1, maxCosineDistance)
         .getResultList();
     return rows.stream()
-        .map(r -> new NearPair(r[0], r[1], (String) r[2], (String) r[3]))
+        .map(r -> new NearPair((String) r[0], (String) r[1], (String) r[2], (String) r[3]))
         .toList();
   }
 
+  /** Deletes every row of the given facts, so a fact never survives as a fragment of its segments. */
   @Transactional
-  public long deleteByIds(Collection<?> ids) {
-    if (ids.isEmpty()) {
+  public long deleteFacts(Collection<String> factKeys) {
+    if (factKeys.isEmpty()) {
       return 0;
     }
-    return entityManager.createNativeQuery("DELETE FROM embeddings WHERE embedding_id IN (:ids)")
-        .setParameter("ids", ids)
+    return entityManager.createNativeQuery("DELETE FROM embeddings WHERE " + FACT_KEY + " IN (:keys)")
+        .setParameter("keys", factKeys)
         .executeUpdate();
   }
 
