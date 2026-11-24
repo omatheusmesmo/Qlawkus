@@ -28,10 +28,10 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -51,7 +51,7 @@ public class McpRegistry implements AutoCloseable {
   private final McpClientFactory factory;
   private final McpOAuthService oauth;
   private final McpEndpointPolicy endpoints;
-  private final Map<String, Entry> entries = new LinkedHashMap<>();
+  private final Map<String, Entry> entries = new ConcurrentHashMap<>();
   private boolean closed;
 
   @Inject
@@ -115,6 +115,27 @@ public class McpRegistry implements AutoCloseable {
   public synchronized List<McpConnection> list() {
     return entries.values().stream().map(entry -> entry.connection)
         .sorted(Comparator.comparing(McpConnection::id)).toList();
+  }
+
+  /**
+   * Each connection's condition from what the registry already holds. It opens no connection and takes
+   * no lock, because {@link #put} keeps the registry locked while it waits for discovery and a
+   * readiness probe must not queue behind an owner's edit.
+   */
+  public List<McpConnectionHealth> health() {
+    return entries.values().stream().map(this::healthOf)
+        .sorted(Comparator.comparing(McpConnectionHealth::id)).toList();
+  }
+
+  private McpConnectionHealth healthOf(Entry entry) {
+    String id = entry.connection.id();
+    if (!entry.connection.enabled()) return new McpConnectionHealth(id, McpConnectionHealth.Condition.DISABLED);
+    if (requiresAuthorization(entry.connection))
+      return new McpConnectionHealth(id, McpConnectionHealth.Condition.NEEDS_SIGN_IN);
+    if (entry.ready != null && entry.active.get())
+      return new McpConnectionHealth(id, McpConnectionHealth.Condition.CONNECTED);
+    return new McpConnectionHealth(id, entry.retryAfter != 0 ? McpConnectionHealth.Condition.UNREACHABLE
+        : McpConnectionHealth.Condition.NOT_CONTACTED_YET);
   }
 
   public synchronized McpConnectionStatus put(McpConnection connection) {

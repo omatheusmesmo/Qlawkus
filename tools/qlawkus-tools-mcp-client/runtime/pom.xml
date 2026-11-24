@@ -45,6 +45,13 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-hibernate-validator</artifactId>
         </dependency>
+        <!-- Optional, as in client: the readiness check compiles against the API and is registered as a
+             bean only when McpClientProcessor sees the health capability on the classpath. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-health</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
     <build>

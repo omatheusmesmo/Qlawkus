@@ -41,6 +41,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-health</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-vertx-http-dev-ui-spi</artifactId>
     </dependency>
