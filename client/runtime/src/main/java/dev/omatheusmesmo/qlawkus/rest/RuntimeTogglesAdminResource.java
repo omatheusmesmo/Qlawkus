@@ -15,9 +15,8 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-
 import java.util.Map;
-import java.util.function.Supplier;
+import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
 /**
  * Admin API for the config editor's {@code RUN_TIME} tier: write a single property into the
@@ -51,14 +50,12 @@ public class RuntimeTogglesAdminResource {
   }
 
   private Response set(String property, String value) {
-    return guarded(() -> {
-      if (SecretPropertyCatalog.isSecret(property)) {
-        return error(Response.Status.BAD_REQUEST,
-            "%s is a secret; store it via PUT /api/admin/secrets instead".formatted(property));
-      }
-      writer.setToggle(property, value);
-      return Response.noContent().build();
-    });
+    if (SecretPropertyCatalog.isSecret(property)) {
+      return error(Response.Status.BAD_REQUEST,
+          "%s is a secret; store it via PUT /api/admin/secrets instead".formatted(property));
+    }
+    writer.setToggle(property, value);
+    return Response.noContent().build();
   }
 
   @DELETE
@@ -66,17 +63,14 @@ public class RuntimeTogglesAdminResource {
     if (property == null || property.isBlank()) {
       return error(Response.Status.BAD_REQUEST, "Specify the property to delete");
     }
-    return guarded(() -> writer.deleteToggle(property)
+    return writer.deleteToggle(property)
         ? Response.noContent().build()
-        : Response.status(Response.Status.NOT_FOUND).build());
+        : Response.status(Response.Status.NOT_FOUND).build();
   }
 
-  private Response guarded(Supplier<Response> action) {
-    try {
-      return action.get();
-    } catch (IllegalArgumentException e) {
-      return error(Response.Status.BAD_REQUEST, e.getMessage());
-    }
+  @ServerExceptionMapper
+  public Response invalidToggle(IllegalArgumentException failure) {
+    return error(Response.Status.BAD_REQUEST, failure.getMessage());
   }
 
   private static Response error(Response.Status status, String message) {

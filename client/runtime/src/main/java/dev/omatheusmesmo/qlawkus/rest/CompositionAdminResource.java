@@ -18,6 +18,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.Map;
+import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
 /**
  * Admin control plane for the composition manifest: stage a new {@code agent.yml} for the next
@@ -45,11 +46,7 @@ public class CompositionAdminResource {
     if (yaml == null || yaml.isBlank()) {
       return badRequest("request body must be an agent.yml document");
     }
-    try {
-      service.stage(yaml);
-    } catch (InvalidManifestException e) {
-      return badRequest(e.getMessage());
-    }
+    service.stage(yaml);
     return Response.ok(service.currentState()).build();
   }
 
@@ -84,6 +81,11 @@ public class CompositionAdminResource {
   @Path("/redeploys")
   public RedeployHistory redeploys() {
     return redeploys.history();
+  }
+
+  @ServerExceptionMapper
+  public Response invalidManifest(InvalidManifestException failure) {
+    return badRequest(failure.getMessage());
   }
 
   private static Response badRequest(String message) {

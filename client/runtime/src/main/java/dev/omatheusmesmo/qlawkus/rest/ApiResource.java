@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
+import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
 /**
  * Chat endpoints. {@code POST /api/chat} streams server-sent events: the reply text as plain unnamed
@@ -122,21 +123,25 @@ public class ApiResource {
         if (message != null && message.length() > ChatAttachment.MAX_QUESTION_CHARS) {
             throw attachmentError(Response.Status.BAD_REQUEST, "The attachment question can contain up to 16,000 characters.");
         }
-        try {
-            if (uploads == null || uploads.isEmpty() || uploads.size() > ChatAttachment.MAX_COUNT) {
-                throw new AttachmentRejected("Send between one and three attachments per message.");
-            }
-            List<ChatAttachment> attachments = uploads.stream()
-                    .map(upload -> new ChatAttachment(upload.contentType(), upload.size(), () -> readUpload(upload)))
-                    .toList();
-            long start = System.nanoTime();
-            String reply = attachmentChat.get().answer(message, attachments);
-            long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-            return Multi.createFrom().items(plain(sse, reply), named(sse, DONE,
-                    doneNode(new AgentEvent.Done(null, null, 0, duration))));
-        } catch (AttachmentRejected rejected) {
-            throw attachmentError(Response.Status.BAD_REQUEST, rejected.getMessage());
+        if (uploads == null || uploads.isEmpty() || uploads.size() > ChatAttachment.MAX_COUNT) {
+            throw new AttachmentRejected("Send between one and three attachments per message.");
         }
+        List<ChatAttachment> attachments = uploads.stream()
+                .map(upload -> new ChatAttachment(upload.contentType(), upload.size(), () -> readUpload(upload)))
+                .toList();
+        long start = System.nanoTime();
+        String reply = attachmentChat.get().answer(message, attachments);
+        long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+        return Multi.createFrom().items(plain(sse, reply), named(sse, DONE,
+                doneNode(new AgentEvent.Done(null, null, 0, duration))));
+    }
+
+    @ServerExceptionMapper
+    public Response attachmentRejected(AttachmentRejected failure) {
+        return Response.status(Response.Status.BAD_REQUEST)
+                .type(MediaType.TEXT_PLAIN)
+                .entity(failure.getMessage())
+                .build();
     }
 
     private static byte[] readUpload(FileUpload upload) {
