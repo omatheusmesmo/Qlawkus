@@ -1,0 +1,50 @@
+---
+description: Neutral voice for commits and PRs (no agent self-attribution)
+alwaysApply: true
+---
+
+# Commits, PRs, and changelog voice
+
+Write **product/engineering text**, never as the agent narrating its work.
+
+**Do not** use first person, assistant identity, or meta attribution anywhere in commit messages or PR text:
+
+- No "I", "we" (meaning the agent), "the assistant", "the agent", "Copilot", "Claude", "Cursor", etc.
+- No "In this commit I…", "Co-authored-by" lines for the bot, or signed-off-by the agent.
+
+**Do** use neutral phrasing: imperative or present tense describing **what** changed and **why**.
+
+## Commit messages
+
+Conventional-commit **prefix** is fine when the repo already uses it (`fix(composition):`, `feat(tools):`). The **subject and body** must follow neutral voice (no self-attribution).
+
+- Bad: `fix: I fixed the mapper as requested`
+- Bad: `chore: assistant refactors REST`
+- Good: `fix(rest): map admin failures with ServerExceptionMapper`
+- Good body (HEREDOC): explain the change for future `git log` readers, same tone as below.
+
+## PR titles
+
+Match `.github/workflows/pr-title.yml`: **release-notes line**, not a conventional-commit title.
+
+- Bad: `feat: add pom drift guard`
+- Good: `Fail CI when the composition generator would drift from agent.yml`
+
+## PR bodies (Summary, Test plan)
+
+Same neutral rules as commits.
+
+### Examples (body)
+
+```markdown
+## Summary
+- Add `qlawkus.composition.fail-on-pom-drift` so CI fails when `agent.yml` and `app/pom.xml` disagree.
+- Document the two-place rule in `site/content/composition.adoc`.
+
+## Test plan
+- [x] `mvn test -pl composition-maven-plugin -am`
+```
+
+## `git commit` and `gh pr create`
+
+Apply this rule to every commit message and PR title/body before committing or opening a PR.
