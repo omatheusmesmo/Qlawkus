@@ -15,23 +15,15 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.mutiny.subscription.Cancellable;
 import io.vertx.core.buffer.Buffer;
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.resteasy.reactive.client.api.ClientMultipartForm;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @ApplicationScoped
 public class TelegramProviderAdapter implements MessagingProvider {
@@ -48,15 +40,6 @@ public class TelegramProviderAdapter implements MessagingProvider {
 
     @Inject
     MediaDownloader mediaDownloader;
-
-    private HttpClient httpClient;
-
-    @PostConstruct
-    void init() {
-        this.httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(15))
-            .build();
-    }
 
     @Override
     public String providerId() {
@@ -132,59 +115,20 @@ public class TelegramProviderAdapter implements MessagingProvider {
 
     @Override
     public Uni<Void> sendVoice(String chatId, byte[] audio, String filename, String fallbackText) {
-        if (botToken().isEmpty()) {
+        Optional<String> token = botToken();
+        if (token.isEmpty()) {
             return send(chatId, fallbackText);
         }
-        return Uni.createFrom()
-                .item(() -> {
-                    sendAudioMultipart(chatId, audio, filename);
-                    return (Void) null;
+        var form = ClientMultipartForm.create()
+                .attribute("chat_id", chatId, null)
+                .binaryFileUpload("audio", filename, Buffer.buffer(audio), "audio/mpeg");
+        return botClient.sendAudio(token.get(), form)
+                .onItem().invoke(response -> {
+                    if (response == null || !response.ok() || response.result() == null) {
+                        throw new IllegalStateException("Telegram did not acknowledge the audio message");
+                    }
                 })
-                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
                 .replaceWithVoid();
-    }
-
-    private void sendAudioMultipart(String chatId, byte[] audio, String filename) {
-        String boundary = "----TelegramBoundary" + UUID.randomUUID().toString().replace("-", "");
-        byte[] body = buildAudioMultipart(boundary, chatId, audio, filename);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(config.apiBaseUrl() + "/bot" + botToken().orElseThrow() + "/sendAudio"))
-                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(body))
-                .timeout(Duration.ofSeconds(60))
-                .build();
-
-        try {
-            HttpResponse<String> response = httpClient
-                .send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                throw new RuntimeException(
-                        "Telegram sendAudio error %d: %s".formatted(response.statusCode(), response.body()));
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Telegram sendAudio interrupted", e);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to call Telegram sendAudio", e);
-        }
-    }
-
-    private byte[] buildAudioMultipart(String boundary, String chatId, byte[] audio, String filename) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            out.write(("--" + boundary + "\r\n"
-                    + "Content-Disposition: form-data; name=\"chat_id\"\r\n\r\n"
-                    + chatId + "\r\n").getBytes(StandardCharsets.UTF_8));
-            out.write(("--" + boundary + "\r\n"
-                    + "Content-Disposition: form-data; name=\"audio\"; filename=\"" + filename + "\"\r\n"
-                    + "Content-Type: audio/mpeg\r\n\r\n").getBytes(StandardCharsets.UTF_8));
-            out.write(audio);
-            out.write(("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to build Telegram audio multipart body", e);
-        }
-        return out.toByteArray();
     }
 
     @Override

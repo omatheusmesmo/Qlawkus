@@ -18,8 +18,8 @@ public interface TelegramConfig {
     Optional<String> botToken();
 
     /**
-     * Base URL of the Telegram Bot API. Used for multipart uploads (sendAudio)
-     * that bypass the REST client.
+     * Base URL of the Telegram Bot API. Used when building file download URLs for
+     * {@link dev.omatheusmesmo.qlawkus.messaging.MediaDownloader}.
      */
     @WithDefault("https://api.telegram.org")
     String apiBaseUrl();
