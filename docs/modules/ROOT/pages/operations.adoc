@@ -140,6 +140,14 @@ Use the Turn gate dashboard row to compare passed and skipped generations and se
 Calculate the share saved as skips divided by passes, skips and errors combined.
 Decisions run on the batch workload after the owner's turn.
 
+=== Duplicate facts in the nightly review
+
+The memory review job nominates two facts as duplicates by embedding distance alone, and a correction such as "no longer prefers the dark theme" sits very close to the fact it corrects. With `decision.nvidia` present, each nominated pair is put to the same model as one more yes/no question: do the two statements state exactly the same fact, only worded differently? Answer No when one negates, corrects, updates or narrows the other. A fact is removed only when the answer is Yes with a probability of at least `qlawkus.decision.nvidia.duplicate-threshold` (default `0.9`, high on purpose because a deletion cannot be undone). Contradictions are left for the curation job.
+
+This question fails safe, unlike the post-turn gate: a timeout, an unavailable provider or missing probability data keeps both facts, and the next night's run asks again. The text of both facts is sent to NVIDIA while the capability is enabled. Without the capability, or with it disabled, the review trusts the distance alone, as before. The pairs are judged outside any database transaction, so the same code runs on the markdown, pgvector and hybrid backends.
+
+The decisions appear in the Turn gate row under the question `duplicate-fact`: a pass is a removed duplicate, a skip is a pair kept as distinct, and an error is a pair kept because the judge failed.
+
 == Telemetry
 
 Metrics and tracing arrive as a composable capability rather than a hand-edited dependency. Select it in `agent.yml`:

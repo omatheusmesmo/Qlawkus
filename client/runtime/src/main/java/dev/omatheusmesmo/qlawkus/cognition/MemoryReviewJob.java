@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.cognition;
 
+import dev.omatheusmesmo.qlawkus.cognition.review.DuplicateJudges;
 import dev.omatheusmesmo.qlawkus.config.MemoryReviewConfig;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.model.WorkloadContext;
@@ -13,7 +14,9 @@ import jakarta.inject.Inject;
  * Background self-review of long-term memory (inspired by Hermes' self-improvement loop). The
  * write-time MD5 dedup only catches byte-identical facts, so reworded variants of the same fact
  * accumulate over time. This job periodically removes semantic near-duplicates from the fact store,
- * keeping memory compact and reducing noise injected by active memory.
+ * keeping memory compact and reducing noise injected by active memory. Distance only nominates a
+ * pair: a {@link DuplicateJudges judge} must confirm the fact restates the other before it goes,
+ * because a correction ("no longer prefers X") is as close to the fact it corrects as a rewording.
  */
 @ApplicationScoped
 public class MemoryReviewJob {
@@ -23,6 +26,9 @@ public class MemoryReviewJob {
 
   @Inject
   FactStore factStore;
+
+  @Inject
+  DuplicateJudges judges;
 
   @Inject
   MemoryReviewConfig config;
@@ -38,7 +44,7 @@ public class MemoryReviewJob {
     double maxCosineDistance = 1.0 - similarityThreshold;
     JobLog.Run run = JobLog.start("memory-review");
     try {
-      long removed = factStore.purgeNearDuplicates(maxCosineDistance);
+      long removed = factStore.purgeNearDuplicates(maxCosineDistance, judges::sameFact);
       run.count("removed", removed).count("threshold", similarityThreshold);
       run.finish();
       return removed;

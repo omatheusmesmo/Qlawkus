@@ -133,5 +133,26 @@ endif::add-copy-button-to-env-var[]
 |double
 |`+++0.5+++`
 
+a| [[qlawkus-cognition-decision_qlawkus-decision-nvidia-duplicate-threshold]] [.property-path]##link:#qlawkus-cognition-decision_qlawkus-decision-nvidia-duplicate-threshold[`+++qlawkus.decision.nvidia.duplicate-threshold+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.decision.nvidia.duplicate-threshold+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Minimum normalized yes score for the memory review to delete a fact as a rewording of another. Deleting cannot be undone, so the default is high: a pair scoring below it, a correction included, is kept.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_DECISION_NVIDIA_DUPLICATE_THRESHOLD+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_DECISION_NVIDIA_DUPLICATE_THRESHOLD+++`
+endif::add-copy-button-to-env-var[]
+--
+|double
+|`+++0.9+++`
+
 |===
 

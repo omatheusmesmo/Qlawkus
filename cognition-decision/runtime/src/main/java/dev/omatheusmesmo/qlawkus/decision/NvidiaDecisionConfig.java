@@ -41,4 +41,14 @@ public interface NvidiaDecisionConfig {
     @DecimalMin("0")
     @DecimalMax("1")
     double achievementThreshold();
+
+    /**
+     * Minimum normalized yes score for the memory review to delete a fact as a rewording of another.
+     * Deleting cannot be undone, so the default is high: a pair scoring below it, a correction
+     * included, is kept.
+     */
+    @WithDefault("0.9")
+    @DecimalMin("0")
+    @DecimalMax("1")
+    double duplicateThreshold();
 }

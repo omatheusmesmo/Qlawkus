@@ -20,6 +20,7 @@ import jakarta.inject.Inject;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiPredicate;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 
 /**
@@ -131,8 +132,8 @@ public class PgFactStore implements FactStore {
   }
 
   @Override
-  public long purgeNearDuplicates(double maxCosineDistance) {
-    return embeddingRepository.deleteNearDuplicates(maxCosineDistance);
+  public long purgeNearDuplicates(double maxCosineDistance, BiPredicate<String, String> sameFact) {
+    return NearDuplicatePurge.run(embeddingRepository, maxCosineDistance, sameFact);
   }
 
   @Override

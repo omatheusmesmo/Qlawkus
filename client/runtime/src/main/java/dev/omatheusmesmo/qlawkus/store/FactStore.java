@@ -3,6 +3,7 @@ package dev.omatheusmesmo.qlawkus.store;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import java.util.List;
+import java.util.function.BiPredicate;
 import java.util.Map;
 
 public interface FactStore {
@@ -39,7 +40,19 @@ public interface FactStore {
    * only catches byte-identical facts; this catches reworded variants by cosine distance
    * ({@code maxCosineDistance = 1 - similarity}). Returns how many were removed.
    */
-  long purgeNearDuplicates(double maxCosineDistance);
+  default long purgeNearDuplicates(double maxCosineDistance) {
+    return purgeNearDuplicates(maxCosineDistance, (kept, candidate) -> true);
+  }
+
+  /**
+   * Like {@link #purgeNearDuplicates(double)}, but a close pair is removed only when
+   * {@code sameFact} confirms the candidate restates the kept fact, since two facts can be close
+   * because one corrects the other. A pair the judge declines stays; a judge that throws aborts the
+   * purge, so callers wrap it in a fail-safe policy.
+   *
+   * @param sameFact called with the fact that stays, then the fact that would be removed
+   */
+  long purgeNearDuplicates(double maxCosineDistance, BiPredicate<String, String> sameFact);
 
   long purgeBySource(String source);
 
