@@ -18,8 +18,6 @@ public final class SecretPropertyCatalog {
             "quarkus.langchain4j.openai.\"primary\".api-key",
             "qlawkus.embedding.api-key",
             "qlawkus.decision.nvidia.api-key",
-            "quarkus.langfuse.public-key",
-            "quarkus.langfuse.secret-key",
             "qlawkus.admin.password-hash",
             "qlawkus.google.auth.client-secret",
             "qlawkus.google.vault.encryption-passphrase",
@@ -27,6 +25,8 @@ public final class SecretPropertyCatalog {
             "qlawkus.messaging.telegram.bot-token",
             "qlawkus.messaging.telegram.webhook-secret-token",
             "qlawkus.messaging.transcription.api-key",
+            "quarkus.langfuse.public-key",
+            "quarkus.langfuse.secret-key",
             "quarkus.datasource.password",
             "quarkus.datasource.\"google-auth\".password",
             "quarkus.datasource.\"brag\".password"
