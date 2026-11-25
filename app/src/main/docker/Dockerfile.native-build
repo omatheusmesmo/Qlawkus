@@ -15,7 +15,7 @@
 # The Mandrel builder ships no Maven but has curl+unzip, so the mvnw wrapper works.
 # Full reactor (matches CI): a partial -pl app -am build skips the *-deployment
 # modules the extension-descriptor check needs from a fresh local repo.
-FROM quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-26.0.0_0 AS build
+FROM quay.io/quarkus/ubi10-quarkus-mandrel-builder-image:jdk-25.0.5.1 AS build
 USER root
 WORKDIR /code
 COPY . .

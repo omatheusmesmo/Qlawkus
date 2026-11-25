@@ -32,6 +32,10 @@ updates:
   open-pull-requests-limit: 5
   labels:
   - dependencies
+  ignore:
+  - dependency-name: quarkus/ubi10-quarkus-mandrel-builder-image
+    update-types:
+    - version-update:semver-major
 
 - package-ecosystem: maven
   directory: /
