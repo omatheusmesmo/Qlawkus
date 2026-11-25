@@ -194,7 +194,7 @@ scripts/check-docs-drift.sh              # nothing generated may differ from wha
 - **`pre-release.yml`** - On PR that changes `.github/project.yml`: validates version is not SNAPSHOT, blocks forks
 - **`release-prepare.yml`** - On PR merge that changes `.github/project.yml`: sets POM version, tags (no `v` prefix), pushes tag, bumps to next SNAPSHOT
 - **`release-perform.yml`** - On tag push: builds artifacts, creates draft GitHub Release with PR-based changelog, then calls `publish-images.yml`
-- **`publish-images.yml`** - Reusable (`workflow_call` from release, `workflow_dispatch` for a dry run, `push` defaults to false): builds the JVM, `-devtools` and `-native` images in-container and pushes them to `ghcr.io/<owner>/qlawkus` with the version tag, plus `latest` variants on a release
+- **`publish-images.yml`** - Reusable (`workflow_call` from release, `workflow_dispatch` for a dry run, `push` defaults to false): builds the JVM and `-native` images in-container (the `image` composition, `QLAWKUS_COMPOSITION=image`; the devtools variant is build-from-source only) and pushes them to `ghcr.io/<owner>/qlawkus` with the version tag, plus `latest` variants on a release
 
 Release flow: edit `current-version` in `.github/project.yml` → open PR (triggers `pre-release` validation) → merge triggers `release-prepare` → tag push triggers `release-perform` → edit/publish draft release.
 

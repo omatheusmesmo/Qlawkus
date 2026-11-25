@@ -46,7 +46,7 @@ while IFS= read -r ref; do
 done < <(grep -rhoE 'xref:[^[]+' "$content"/*.adoc | sed 's/^xref://' | sort -u)
 
 for guide in quickstart; do
-  grep -q "^== .*[Ff]irst agent in ten minutes" "$content/$guide.adoc" || fail "$guide.adoc has no 'first agent in ten minutes' guide"
+  grep -q "^== .*[Ff]irst agent in " "$content/$guide.adoc" || fail "$guide.adoc has no 'first agent' guide"
 done
 grep -q "^== Connect a channel" "$content/messaging.adoc" || fail "messaging.adoc has no 'Connect a channel' guide"
 grep -q "^== Add a capability and rebuild" "$content/composition.adoc" || fail "composition.adoc has no 'Add a capability and rebuild' guide"

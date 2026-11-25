@@ -4,9 +4,77 @@
 :page-title: Quick Start
 :page-description: Get Qlawkus running in minutes
 
-== Guide: first agent in ten minutes
+== Guide: first agent in two minutes
 
-This guide takes a clean clone to a chat reply with nothing but Docker and an LLM key. It uses the containerized run, so no JDK or Maven is needed. Allow a few extra minutes the first time: the image compiles the whole project in the container.
+This guide takes you from nothing to a chat reply with Docker and an LLM key. There is no repository to clone, no `.env` file and no database: the published image keeps the agent's data in files on a volume, and you finish the setup in the browser.
+
+*1. Start the agent.*
+
+[source,bash]
+----
+docker run -d --name qlawkus -p 8742:8080 \
+  -v qlawkus-data:/home/default \
+  ghcr.io/omatheusmesmo/qlawkus:latest-native
+----
+
+The image is the GraalVM native build, which starts in a fraction of a second. The agent listens on 8080 inside the container, so `-p 8742:8080` publishes it on 8742, the port the Google OAuth redirect URI expects. The `qlawkus-data` volume holds the memory files and the encrypted secret store, so a restart or an upgrade keeps them. Use `latest` instead of `latest-native` for the JVM image, or a version tag such as `0.10.0` to pin a release.
+
+*2. Choose the admin password.* A fresh agent has no password, so nothing authenticates until you set one. It prints a one-time setup token to its log:
+
+[source,bash]
+----
+docker logs qlawkus 2>&1 | sed -n 's/.*setup token \([A-Za-z0-9_-]*\).*/\1/p'
+----
+
+Open `http://localhost:8742/console`. It sends you to the first-run page: paste the token, choose a password and confirm it. You then sign in as `qlawkus` with that password.
+
+*3. Connect your LLM.* The Overview shows a setup banner; follow it to the setup wizard. Pick your provider, paste its API key and save. The provider decides the chat model and the memory embeddings, so choose the one the key belongs to. The key goes into the encrypted keystore on the volume, never into an image or a file you have to manage.
+
+*4. Choose where memory lives.* The wizard's Storage step defaults to files, which needs nothing else. Leave it on files for now: you can move to Postgres later without a new image (see <<_switching_to_postgres_later,Switching to Postgres later>>).
+
+*5. Restart once.* The provider and storage choices apply on the next start:
+
+[source,bash]
+----
+docker restart qlawkus
+----
+
+*6. Say hello.* Open *Chat* in the sidebar and send a message. The reply streams in as it is written, and any tool the agent calls shows as a small card in the reply. Both Health cards on the Overview read `UP` once the agent can reach your provider. The same call works from a terminal:
+
+[source,bash]
+----
+curl -X POST http://localhost:8742/api/chat/sync -u qlawkus:<your password> \
+  -H 'Content-Type: application/json' -d '{"message":"Hello, who are you?"}'
+----
+
+*7. Check it is learning.* Tell the agent something about yourself, then open *Memory*: the fact appears after the turn, and the agent will use it next time without being asked.
+
+If a step fails, `docker logs qlawkus` shows the agent's output. The same container works as one service in a Compose file:
+
+[source,yaml]
+----
+services:
+  qlawkus:
+    image: ghcr.io/omatheusmesmo/qlawkus:latest-native
+    ports:
+      - "8742:8080"
+    volumes:
+      - qlawkus-data:/home/default
+    restart: unless-stopped
+volumes:
+  qlawkus-data:
+----
+
+[#_switching_to_postgres_later]
+=== Switching to Postgres later
+
+The same image can keep its memory in PostgreSQL with pgvector instead of files, or in both (`hybrid`: files stay the source of truth, mirrored into Postgres). Nothing is rebuilt: open the wizard's Storage step, choose `pgvector` or `hybrid`, enter the JDBC URL of a database you run (for example `jdbc:postgresql://db:5432/qlawkus`) with its user and password, save, and run `docker restart qlawkus`. Flyway creates the schema on that start. See xref:storage.adoc[Storage] for what each backend keeps, and to move existing data between files and Postgres.
+
+The image has no Google Workspace or Brag tools, because each owns a database of its own, and it ships no `git` or `gh`. Everything the wizard's capability step stages applies on a rebuild, which is the next guide.
+
+== Guide: the full stack with Postgres and telemetry
+
+This guide runs the reference composition from a clone: the agent, PostgreSQL with pgvector, and the telemetry stack, built in the container, so no JDK or Maven is needed. Allow a few extra minutes the first time: the image compiles the whole project. Choose it when you want Google Workspace, Brag, the code-review tools or Grafana.
 
 *1. Get the code.*
 
@@ -16,7 +84,7 @@ git clone https://github.com/omatheusmesmo/qlawkus.git
 cd qlawkus
 ----
 
-*2. Create your settings.* Create a `.env` file in the repository root with three values: your provider key (`LLM_API_KEY`), a password for Grafana (`GRAFANA_ADMIN_PASSWORD`, since the bundled Grafana refuses to start without one) and an Argon2id hash of the password you will log in with (`QLAWKUS_ADMIN_PASSWORD_HASH`). The production profile refuses to boot without a credential, so the hash is not optional. See <<_authentication,Authentication>> and xref:secrets.adoc[Secrets] for generating the hash. Add `LLM_KIND` too when your provider is not NVIDIA.
+*2. Create your settings.* Create a `.env` file in the repository root with your provider key (`LLM_API_KEY`) and a password for Grafana (`GRAFANA_ADMIN_PASSWORD`, since the bundled Grafana refuses to start without one). Add `LLM_KIND` when your provider is not NVIDIA. The admin password is chosen in the browser on first run, as above; to set it up front instead, add `QLAWKUS_ADMIN_PASSWORD_HASH`, an Argon2id hash (see <<_authentication,Authentication>> and xref:secrets.adoc[Secrets]).
 
 *3. Start the stack.*
 
@@ -27,25 +95,15 @@ cd qlawkus
 
 `up` checks that ports 8742, 5432 and 3000 are free, builds the image, starts the agent with PostgreSQL and the telemetry stack, and waits for `/q/health/ready` before it prints the URL. It exits non-zero with the last log lines if the agent does not come up.
 
-*4. Open the console.* Browse to `http://localhost:8742/console` and sign in as `qlawkus` with the password you chose. The Overview shows the Health and Model cards; both read `UP` once the agent can reach your provider. A setup banner at the top means a key is still missing: follow it to the setup wizard (see xref:console.adoc#_first_run_setup_wizard[the console guide]).
-
-*5. Say hello.* Open *Chat* in the sidebar and send a message. The reply streams in as it is written, and any tool the agent calls shows as a small card in the reply. The same call works from a terminal:
-
-[source,bash]
-----
-curl -X POST http://localhost:8742/api/chat/sync -u qlawkus:<your password> \
-  -H 'Content-Type: application/json' -d '{"message":"Hello, who are you?"}'
-----
-
-*6. Check it is learning.* Tell the agent something about yourself, then open *Memory*: the fact appears after the turn, and the agent will use it next time without being asked.
+*4. Open the console.* Browse to `http://localhost:8742/console`. On a first run it asks for the setup token from `./run.sh prod logs`, then the password. A setup banner means a key is still missing: follow it to the setup wizard (see xref:console.adoc#_first_run_setup_wizard[the console guide]). Send a message from *Chat* as in the first guide.
 
 If a step fails, `./run.sh prod logs` shows the agent's output and `./run.sh prod status` lists each service and its state. For the development setup (hot reload, no `.env`), use the sections below instead.
 
 == Prerequisites
 
-* Docker -- the only requirement for the containerized run modes below; their images compile the whole project in-container
+* Docker -- the only requirement for the published image and for the containerized run modes below, whose images compile the whole project in-container
 * JDK 25 and Maven -- only for dev mode (`quarkus:dev`) and building from source directly
-* An `LLM_API_KEY` for your chosen provider (e.g. NVIDIA from https://build.nvidia.com/) -- only needed for the production profile, not for dev mode
+* An API key for your chosen provider (e.g. NVIDIA from https://build.nvidia.com/) -- entered in the setup wizard, or as `LLM_API_KEY` in `.env` for the Compose stacks; not needed for dev mode
 
 == Clone and run
 
@@ -87,18 +145,10 @@ a few minutes. A cached Maven repo (a BuildKit cache mount) makes later builds f
 
 === Prebuilt images
 
-Each release publishes two images to GitHub Container Registry:
+Each release publishes two images to GitHub Container Registry, and `docker run` pulls the one you name (the first guide above shows the full command):
 
-[source,bash]
-----
-docker pull ghcr.io/omatheusmesmo/qlawkus:latest-native    # GraalVM native
-docker pull ghcr.io/omatheusmesmo/qlawkus:latest           # JVM
-----
-
-`latest-native` is the one to start with: a GraalVM binary on UBI Minimal, smaller and
-faster to start. It includes util-linux for interactive PTY sessions. The JVM image
-(`latest`) runs the same agent on a regular JVM, which suits anyone who wants to
-attach a debugger or a Java agent.
+* `ghcr.io/omatheusmesmo/qlawkus:latest-native` is the GraalVM binary on UBI Minimal, smaller and faster to start. It includes util-linux for interactive PTY sessions. Start with this one.
+* `ghcr.io/omatheusmesmo/qlawkus:latest` runs the same agent on a regular JVM, which suits anyone who wants to attach a debugger or a Java agent.
 
 `latest` follows the newest release. A version tag (for example `0.10.0`, with the
 same suffix, such as `0.10.0-native`) pins a release, which is what a reproducible
