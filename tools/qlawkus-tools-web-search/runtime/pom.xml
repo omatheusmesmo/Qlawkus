@@ -30,7 +30,7 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-community-web-search-engine-searxng</artifactId>
             <!-- Community releases are independent; match the LangChain4j 1.23.0 line from the BOM. -->
-            <version>1.23.0-beta33</version>
+            <version>1.24.0-beta34</version>
             <!-- Use Quarkiverse's existing JAX-RS transport; two HTTP SPI factories conflict. -->
             <exclusions>
                 <exclusion>
