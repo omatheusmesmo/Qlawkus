@@ -41,10 +41,10 @@ spec:
       containers:
         - name: qlawkus
           # Replaced per redeploy by `kubectl set image` (see rollout.sh). Published by each release
-          # from the next one on (publish-images.yml); no image exists for 0.9.4, so `latest` is the tag
-          # that resolves. The -devtools (adds git and
-          # gh for the code-review tools) and -native (GraalVM binary) variants use the same tag with
-          # the suffix, e.g. ghcr.io/omatheusmesmo/qlawkus:latest-native.
+          # (publish-images.yml): `latest` is the JVM image and `latest-native` the GraalVM binary
+          # (ghcr.io/omatheusmesmo/qlawkus:latest-native). Both keep the agent's data in files on the
+          # state volume below and need no database. For the Postgres composition or the git and gh
+          # tools, build your own image from source (see the quickstart) and put its tag here.
           image: ghcr.io/omatheusmesmo/qlawkus:latest
           ports:
             - containerPort: 8080
