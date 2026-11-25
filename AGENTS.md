@@ -198,6 +198,8 @@ scripts/check-docs-drift.sh              # nothing generated may differ from wha
 
 Release flow: edit `current-version` in `.github/project.yml` → open PR (triggers `pre-release` validation) → merge triggers `release-prepare` → tag push triggers `release-perform` → edit/publish draft release.
 
+The review bot reads `.github/thrillhousebot.yml` (files it never reviews, per-path rules) and `.github/thrillhousebot.md` (prose gotchas). Keep both in step with what is generated and how the stores are wired.
+
 Tags have no `v` prefix (e.g. `0.7.2`, not `v0.7.2`). Dependabot enabled for GitHub Actions + Maven dependencies (daily, ignores `io.quarkus:*`).
 
 ## Gotchas

@@ -1,0 +1,14 @@
+review:
+  # Generated from site/content by the docs build (see AGENTS.md "Documentation");
+  # scripts/check-docs-drift.sh already fails a PR when they differ from the build.
+  ignored-files:
+    - "docs/modules/ROOT/**"
+    - "site/content/includes/**"
+    - "site/data/nav.yml"
+
+  path-instructions:
+    - path: "site/content/**"
+      instructions: |
+        These pages are the source of truth for behavior and configuration. A list of allowed
+        values or a default is documented once, on the page that owns it and in the generated
+        config reference. Do not ask for it to be repeated on every page that mentions the key.
