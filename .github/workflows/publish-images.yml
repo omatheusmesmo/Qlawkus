@@ -14,7 +14,7 @@ on:
   workflow_call:
     inputs:
       version:
-        description: 'Version to tag the images with (a release tag such as 0.9.5, or dev)'
+        description: 'Version to tag the images with (a release tag such as 0.10.0, or dev)'
         required: true
         type: string
       ref:
