@@ -8,9 +8,7 @@ import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
 import dev.omatheusmesmo.qlawkus.secrets.KeystoreSecretWriter;
 import dev.omatheusmesmo.qlawkus.tools.mcp.auth.McpOAuthService;
 import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
-import io.quarkiverse.langchain4j.jaxrsclient.JaxRsHttpClientBuilder;
-import io.quarkiverse.langchain4j.mcp.auth.McpClientAuthProvider;
-import io.quarkiverse.langchain4j.mcp.runtime.http.McpHttpClients;
+import io.vertx.core.Vertx;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,14 +22,16 @@ import java.util.function.Supplier;
 final class McpClientFactory {
   private final McpConfig config;
   private final KeystoreSecretWriter secrets;
+  private final Vertx vertx;
   private final ExecutorService ioExecutor;
   private final McpOAuthService oauth;
   private final McpEndpointPolicy endpoints;
 
-  McpClientFactory(McpConfig config, KeystoreSecretWriter secrets, ExecutorService ioExecutor,
+  McpClientFactory(McpConfig config, KeystoreSecretWriter secrets, Vertx vertx, ExecutorService ioExecutor,
       McpOAuthService oauth, McpEndpointPolicy endpoints) {
     this.config = config;
     this.secrets = secrets;
+    this.vertx = vertx;
     this.ioExecutor = ioExecutor;
     this.oauth = oauth;
     this.endpoints = endpoints;
@@ -43,14 +43,14 @@ final class McpClientFactory {
     try {
       endpoints.require(connection);
       if (isHttp(connection)) {
-        JaxRsHttpClientBuilder http = McpHttpClients.builder((McpClientAuthProvider) null);
-        http.connectTimeout(config.discoveryTimeout());
-        http.addClientProvider(new McpEndpointFilter(endpoints));
+        McpHttpClientBuilder http = new McpHttpClientBuilder(vertx, endpoints)
+            .connectTimeout(config.discoveryTimeout());
         transport = StreamableHttpMcpTransport.builder()
             .url(connection.url())
             .httpClientBuilder(http)
+            .executor(ioExecutor)
             .customHeaders((Supplier<Map<String, String>>) () -> headers(connection))
-            .timeout(config.callTimeout()).logRequests(false).logResponses(false)
+            .logRequests(false).logResponses(false)
             .subsidiaryChannel(false).build();
       } else {
         transport = StdioMcpTransport.builder().command(connection.command())

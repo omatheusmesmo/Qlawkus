@@ -79,8 +79,10 @@ cloud metadata addresses), carrier-grade NAT, unique-local IPv6 and multicast ra
 as is a host that does not resolve. The check runs when a connection is saved or enabled and again
 before each connection attempt, so a bootstrap or stored connection that the policy forbids stays
 `UNAVAILABLE` and is never contacted. The HTTP client resolves the name again when it connects, so
-the MCP HTTP client also carries a Vert.x connection handler that inspects the address the socket
-actually reached and closes it before any request is written when it is not public. A DNS answer
+each MCP connection hands the upstream transport its own Vert.x HTTP client (no other HTTP client in
+the agent is affected), which carries a connection handler that inspects the address the socket
+actually reached and closes it before any request is written when it is not public. This holds for
+servers that answer with JSON and for servers that answer with a server-sent event stream. A DNS answer
 that changes between check and call therefore cannot deliver an MCP request to a private address
 (the TCP or TLS handshake itself still happens). The OAuth token and revocation calls go through
 Quarkus-managed clients with no such hook, so for them only the name check applies; use an
