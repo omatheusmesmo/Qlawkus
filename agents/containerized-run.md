@@ -34,6 +34,7 @@ A new capability that needs a datasource must be added to both the manifest and 
 Both compose files pass it through, so `QLAWKUS_IMAGE_VARIANT=devtools ./run.sh prod` builds it.
 It is a distribution choice, kept out of the base so the base stays lean (measured with `docker image ls`: base 791 MB on disk / 242 MB content, devtools 966 MB / 286 MB, so +175 MB / +44 MB).
 The `devtools` variant is defined for the JVM Dockerfile, and `./run.sh native` refuses the variant.
+The native build stage uses the Mandrel builder that Quarkus itself names as its default (`ubi10-quarkus-mandrel-builder-image:jdk-25` for 4.0.0.CR1, pinned here to an exact `jdk-25.x`): the generated `io.quarkus.runner.Feature` calls GraalVM `Feature` API methods, and a builder from another JDK line fails the image step with `NoSuchMethodError ... registerBuildTimeBootstrapIndy` (Dependabot had moved it to `jdk-26.0.0_0`, which also broke the nightly native build). Dependabot ignores major moves of that image; follow the builder Quarkus documents when bumping Quarkus.
 The native Dockerfiles use UBI minimal with `freetype` and `fontconfig` for headless PDF processing and package the shared libraries emitted beside the native runner.
 The native image runs as uid 185 with `HOME=/home/default`, like the JVM image, because both services mount the same `workspace` volume at `/home/default`: another uid cannot write what the JVM image created, and `~/.qlawkus` would resolve outside the volume.
 `scripts/check-image-runtime-user.sh` pins that in the PR build.
