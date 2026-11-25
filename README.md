@@ -10,6 +10,18 @@ A single-user, production-ready autonomous agent with dynamic cognition, triple 
 
 ## Quick Start
 
+### Try it with Docker (no clone, no `.env`)
+
+```bash
+docker run -d --name qlawkus -p 8742:8080 -v qlawkus-data:/home/default \
+  ghcr.io/omatheusmesmo/qlawkus:latest-native
+docker logs qlawkus 2>&1 | sed -n 's/.*setup token \([A-Za-z0-9_-]*\).*/\1/p'
+```
+
+Open `http://localhost:8742/console`, paste the setup token, choose a password, then follow the setup banner to pick your LLM provider and paste its key. Restart once (`docker restart qlawkus`) and chat. Memory lives in files on the volume; the wizard's Storage step can move it to Postgres later without a new image. The [quick start guide](site/content/quickstart.adoc) has the details.
+
+The rest of this section is for working on Qlawkus itself.
+
 ### Prerequisites
 
 - **Java 25** (LTS)
