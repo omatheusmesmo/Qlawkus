@@ -17,16 +17,35 @@
 # QLAWKUS_IMAGE_VARIANT picks the runtime stage: 'base' (default, lean) or
 # 'devtools', which adds git and gh for the code-review tools. Select it with
 # QLAWKUS_IMAGE_VARIANT=devtools ./run.sh prod, or --build-arg on docker build.
+#
+# QLAWKUS_STORE picks the composition: 'pgvector' (default, what ./run.sh prod runs
+# against Postgres) or 'markdown', which builds app/src/main/docker/agent-markdown.yml
+# in place of agent.yml: no cognition-pgvector, google-workspace or brag, so the image
+# needs no database. The published images are markdown, except the -pgvector one.
 ####
 
 ARG QLAWKUS_IMAGE_VARIANT=base
+ARG QLAWKUS_STORE=pgvector
 
 # --- Build stage: reactor build (app + its upstream modules) -----------------
 # Runs as root in this throwaway stage; the runtime image below still runs as 185.
 FROM registry.access.redhat.com/ubi10/openjdk-25:1.24 AS build
 USER root
 WORKDIR /code
+ARG QLAWKUS_STORE
 COPY . .
+# The markdown composition swaps the manifest and reconciles the app pom in a Maven run of its own:
+# the generator rewrites app/pom.xml on disk, which the run that is already building has read, so
+# only a later invocation sees the dependencies it dropped. The first step installs the plugin (and
+# its model) so that the later steps can run it.
+RUN --mount=type=cache,target=/root/.m2 \
+    if [ "${QLAWKUS_STORE}" = "markdown" ]; then \
+      cp app/src/main/docker/agent-markdown.yml app/src/main/resources/qlawkus/agent.yml \
+      && mvn -B -e -DskipTests -DskipITs -pl composition-maven-plugin -am install \
+      && mvn -B -e qlawkus:generate -pl app -am; \
+    elif [ "${QLAWKUS_STORE}" != "pgvector" ]; then \
+      echo "QLAWKUS_STORE must be markdown or pgvector, got ${QLAWKUS_STORE}" >&2; exit 1; \
+    fi
 # Full reactor install (matches CI). A partial `-pl app -am` build would skip the
 # *-deployment modules, so the extension-descriptor check on qlawkus-client cannot
 # resolve qlawkus-client-deployment from a fresh local repo. The dockerignore drops
@@ -55,6 +74,9 @@ RUN curl -fsSL -o /etc/yum.repos.d/gh-cli.repo https://cli.github.com/packages/r
 FROM runtime-${QLAWKUS_IMAGE_VARIANT}
 
 ENV LANGUAGE='en_US:en'
+# Where the agent's file and shell tools work: under the home volume, because the default (the working
+# directory, /deployments) is not writable by uid 185 and every agent turn would fail on the shell tool.
+ENV QLAWKUS_WORKSPACE_ROOT=/home/default/workspace
 
 COPY --from=build --chown=185 /code/app/target/quarkus-app/lib/ /deployments/lib/
 COPY --from=build --chown=185 /code/app/target/quarkus-app/*.jar /deployments/

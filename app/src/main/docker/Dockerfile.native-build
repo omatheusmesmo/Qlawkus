@@ -9,7 +9,11 @@
 #
 # Heavy: the native compile takes several minutes and a few GB of RAM.
 # Build + run via: ./run.sh native
+#
+# QLAWKUS_STORE is 'pgvector' (default) or 'markdown': see Dockerfile.jvm-build.
 ####
+
+ARG QLAWKUS_STORE=pgvector
 
 # --- Build stage: Mandrel builder, native reactor build ----------------------
 # The Mandrel builder ships no Maven but has curl+unzip, so the mvnw wrapper works.
@@ -18,7 +22,16 @@
 FROM quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-26.0.0_0 AS build
 USER root
 WORKDIR /code
+ARG QLAWKUS_STORE
 COPY . .
+RUN --mount=type=cache,target=/root/.m2 \
+    if [ "${QLAWKUS_STORE}" = "markdown" ]; then \
+      cp app/src/main/docker/agent-markdown.yml app/src/main/resources/qlawkus/agent.yml \
+      && ./mvnw -B -e -DskipTests -DskipITs -pl composition-maven-plugin -am install \
+      && ./mvnw -B -e qlawkus:generate -pl app -am; \
+    elif [ "${QLAWKUS_STORE}" != "pgvector" ]; then \
+      echo "QLAWKUS_STORE must be markdown or pgvector, got ${QLAWKUS_STORE}" >&2; exit 1; \
+    fi
 RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw -B -e -DskipTests -DskipITs -Pnative install
 
@@ -37,6 +50,7 @@ FROM registry.access.redhat.com/ubi10/ubi-minimal:10.3
 RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 freetype fontconfig util-linux && microdnf clean all
 WORKDIR /work/
 ENV HOME=/home/default
+ENV QLAWKUS_WORKSPACE_ROOT=/home/default/workspace
 RUN mkdir -p /home/default \
     && chown 185:0 /home/default /work \
     && chmod g+rwX /home/default /work

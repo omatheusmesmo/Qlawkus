@@ -2,8 +2,10 @@ name: Publish images
 
 run-name: Publish images ${{ inputs.version }}
 
-# Builds the JVM, devtools and native container images in-container (the Dockerfiles compile the
-# reactor themselves, so no host Maven step is needed) and pushes them to GHCR. Called by
+# Builds the JVM and native container images in-container (the Dockerfiles compile the reactor
+# themselves, so no host Maven step is needed) and pushes them to GHCR. Both are the markdown
+# composition and need no database; the Postgres composition and the devtools variant (git and gh) are
+# built from source (./run.sh prod, QLAWKUS_IMAGE_VARIANT=devtools). Called by
 # release-perform.yml with the release tag; dispatch it by hand on a branch to rehearse the build
 # (push defaults to false, so nothing leaves the runner).
 
@@ -93,15 +95,13 @@ jobs:
         include:
           - name: jvm
             dockerfile: app/src/main/docker/Dockerfile.jvm-build
-            build-args: QLAWKUS_IMAGE_VARIANT=base
+            build-args: |
+              QLAWKUS_IMAGE_VARIANT=base
+              QLAWKUS_STORE=markdown
             suffix: ''
-          - name: jvm-devtools
-            dockerfile: app/src/main/docker/Dockerfile.jvm-build
-            build-args: QLAWKUS_IMAGE_VARIANT=devtools
-            suffix: -devtools
           - name: native
             dockerfile: app/src/main/docker/Dockerfile.native-build
-            build-args: ''
+            build-args: QLAWKUS_STORE=markdown
             suffix: -native
     steps:
       - uses: actions/checkout@v7
@@ -147,7 +147,37 @@ jobs:
           file: ${{ matrix.dockerfile }}
           build-args: ${{ matrix.build-args }}
           push: ${{ inputs.push }}
+          load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,scope=${{ matrix.name }}
+
+      - name: Smoke boot without a database or a .env
+        env:
+          IMAGE: ${{ steps.meta.outputs.tags }}
+        run: |
+          IMAGE="$(head -n1 <<< "${IMAGE}")"
+          docker run -d --name qlawkus-smoke -p 8742:8080 "${IMAGE}"
+          for _ in $(seq 1 60); do
+            if curl -fsS http://localhost:8742/q/health/live > /dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS http://localhost:8742/q/health/live
+          docker logs qlawkus-smoke 2>&1 | grep -q "setup token" \
+            || { docker logs qlawkus-smoke; echo "no setup token in the log" >&2; exit 1; }
+          status="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8742/console/first-run)"
+          [ "${status}" = "200" ] || { echo "first-run page answered ${status}" >&2; exit 1; }
+          token="$(docker logs qlawkus-smoke 2>&1 | grep -o 'setup token [A-Za-z0-9_-]*' | head -n1 | awk '{print $3}')"
+          password="smoke-test-password-1"
+          status="$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:8742/console/first-run \
+            -d "token=${token}" --data-urlencode "password=${password}" --data-urlencode "confirm=${password}")"
+          [ "${status}" = "200" ] || { echo "setting the password answered ${status}" >&2; exit 1; }
+          curl -s -o /dev/null -m 60 -u "qlawkus:${password}" -X POST http://localhost:8742/api/chat/sync \
+            -H 'Content-Type: application/json' -d '{"message":"ping"}' || true
+          if docker logs qlawkus-smoke 2>&1 | grep -q -E "is not writable|Error injecting"; then
+            docker logs qlawkus-smoke 2>&1 | grep -E "is not writable|Error injecting" | head -n3 >&2
+            echo "an agent turn failed before reaching the model" >&2
+            exit 1
+          fi
+          docker rm -f qlawkus-smoke
