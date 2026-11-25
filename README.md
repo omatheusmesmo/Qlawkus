@@ -53,7 +53,7 @@ First run pulls Ollama models (~7 GB), subsequent starts are instant.
 
 ### 4. Production Docker (bring your own LLM + PostgreSQL)
 
-Set `LLM_API_KEY` and a real admin credential in `.env` (see [Authentication](#authentication) below — the bundled distribution refuses to boot without one).
+Set `LLM_API_KEY` and a real admin credential in `.env` (see [Authentication](#authentication) below). Without one the app boots in setup mode and the console asks for the password once, with a token printed in the log.
 
 ```bash
 echo "LLM_KIND=nvidia"        >> .env   # or openai, deepseek, mistral, groq, xai, openrouter
@@ -95,7 +95,7 @@ A build without the `cognition-pgvector` capability is **database-free**: memory
 
 ### Authentication
 
-Admin endpoints (`/api/admin/*`) and the console (`/console/*`) are `@Authenticated` (Basic auth, Argon2id-hashed credential). There is no insecure default in the bundled distribution — it refuses to boot without a real credential:
+Admin endpoints (`/api/admin/*`) and the console (`/console/*`) are `@Authenticated` (Basic auth, Argon2id-hashed credential). There is no insecure default in the bundled distribution: with no credential configured it boots in setup mode, where nothing authenticates and the console takes the password once, with a one-time token printed in the agent log (`docker logs <container>`). To set it by hand instead:
 
 ```bash
 # Generate a PHC hash and put it in .env (or the encrypted keystore, see below)
@@ -125,7 +125,7 @@ All runtime config is via `.env` (gitignored) or shell exports. See [`.env.examp
 | `EMBEDDING_DIMENSION` | provider default (NVIDIA `2048`, others `1024`) | Must match embedding model output; a change re-embeds stored vectors at the next boot |
 | `OLLAMA_FALLBACK_MODEL` | `qwen3.5:4b` | Ollama fallback chat model |
 | `OLLAMA_FALLBACK_EMBEDDING_MODEL` | `mxbai-embed-large` | Ollama fallback embedding model |
-| `QLAWKUS_ADMIN_PASSWORD_HASH` | — (required in prod) | Argon2id hash for the admin user — see [Authentication](#authentication) |
+| `QLAWKUS_ADMIN_PASSWORD_HASH` | — (optional: first-run setup in the console when unset) | Argon2id hash for the admin user — see [Authentication](#authentication) |
 | `POSTGRES_DB` | `qlawkus` | Database name (Docker Compose) |
 | `POSTGRES_USER` | `qlawkus` | Database user (Docker Compose) |
 | `POSTGRES_PASSWORD` | `qlawkus` | Database password (Docker Compose) |

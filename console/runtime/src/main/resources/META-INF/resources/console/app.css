@@ -979,3 +979,6 @@ body {
   .voice-state, .voice-mic, .voice-icon, .voice-timer-fill, .voice-quiet, .voice-log, .voice-text { transition: none; scroll-behavior: auto; }
   .voice-agent.is-typing::after { animation: none; }
 }
+
+.first-run { max-width: 480px; margin: 0 auto; padding: 48px 16px; }
+.first-run .brand { margin-bottom: 24px; }

@@ -190,7 +190,7 @@ The old volume is only read and is kept as the rollback (start the previous Comp
 
 == Authentication
 
-All HTTP endpoints require authentication. The bundled `app` verifies HTTP Basic against an *Argon2id* password hash, database-free (see xref:secrets.adoc[Secrets]). In dev mode (`quarkus:dev`) the credentials are **`qlawkus` / `dev`**, from a hash baked into the `%dev` profile. Any non-dev run is fail-closed: the app refuses to boot until you provide an Argon2id hash of your own password, under the keystore alias `qlawkus.admin.password-hash` or the environment variable `QLAWKUS_ADMIN_PASSWORD_HASH`. The username defaults to `qlawkus` (`qlawkus.admin.username`).
+All HTTP endpoints require authentication. The bundled `app` verifies HTTP Basic against an *Argon2id* password hash, database-free (see xref:secrets.adoc[Secrets]). In dev mode (`quarkus:dev`) the credentials are **`qlawkus` / `dev`**, from a hash baked into the `%dev` profile. Any non-dev run is fail-closed and has no default password: until one exists nothing authenticates, and the console sends you to a first-run page that takes the password once, with a setup token printed in the agent log (`docker logs <container>`). To set it up front instead, provide an Argon2id hash of your own password, under the keystore alias `qlawkus.admin.password-hash` or the environment variable `QLAWKUS_ADMIN_PASSWORD_HASH`. The username defaults to `qlawkus` (`qlawkus.admin.username`).
 
 == What's next?
 

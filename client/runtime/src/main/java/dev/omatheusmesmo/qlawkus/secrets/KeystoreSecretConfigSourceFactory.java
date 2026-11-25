@@ -44,13 +44,27 @@ public final class KeystoreSecretConfigSourceFactory implements ConfigSourceFact
         if (location == null) {
             return List.of();
         }
-        String password = value(context, PASSWORD);
-        char[] secret = password == null ? new char[0] : password.toCharArray();
-        Map<String, String> secrets = KeystoreSecrets.readAll(location, secret);
+        Map<String, String> secrets = readFor(path, value(context, PASSWORD), location);
         if (secrets.isEmpty()) {
             return List.of();
         }
         return List.of(new PropertiesConfigSource(secrets, NAME, ordinal(context)));
+    }
+
+    /**
+     * Reads the keystore at {@code path}, unlocked by {@code configuredPassword} or, when that is blank,
+     * by the generated password file beside it. An absent keystore reads as empty.
+     */
+    static Map<String, String> readFor(String path, String configuredPassword) {
+        URL location = resolve(path);
+        return location == null ? Map.of() : readFor(path, configuredPassword, location);
+    }
+
+    private static Map<String, String> readFor(String path, String configuredPassword, URL location) {
+        char[] secret = configuredPassword != null && !configuredPassword.isBlank()
+                ? configuredPassword.toCharArray()
+                : KeystorePasswordFile.read(KeystoreSecrets.resolve(path)).orElse(new char[0]);
+        return KeystoreSecrets.readAll(location, secret);
     }
 
     private static URL resolve(String path) {

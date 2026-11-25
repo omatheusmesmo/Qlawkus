@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Qlawkus Console - First-run setup</title>
+    <link rel="stylesheet" href="/console/app.css">
+    <script src="/console/theme.js" defer></script>
+</head>
+<body>
+<main class="first-run">
+    <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" width="27" height="27">
+                <circle cx="16" cy="18.5" r="11" fill="#f5821f"/>
+                <ellipse cx="12" cy="14.5" rx="3.2" ry="2.1" fill="#ffffff" opacity="0.22"/>
+                <path d="M15.6 8.2 l-0.3 -3.5" stroke="#6b4a2b" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M16 7.4 c 0.5 -3 3.4 -4 5.4 -3.2 c -0.4 2.8 -2.9 3.9 -5.4 3.2 z" fill="#43a35f"/>
+            </svg>
+        </span>
+        <span class="brand-text">
+            <span class="brand-name">Qlawkus</span>
+            <span class="brand-sub">first-run setup</span>
+        </span>
+    </div>
+    {#if done}
+    <section class="step">
+        <h1>Password set</h1>
+        <p class="muted">Sign in as <strong>{username}</strong> with the password you just chose. The next step is the language model: the console opens its setup wizard for it.</p>
+        <p><a class="btn btn-primary" href="/console">Open the console</a></p>
+    </section>
+    {#else}
+    <section class="step">
+        <h1>Choose the admin password</h1>
+        <p class="muted">This agent has no admin password yet. Find the setup token in the agent log, for example with <code>docker logs &lt;container&gt;</code>, and enter it with the password you want. The token proves you can read the log, not just reach this page. It works once, until the password is set.</p>
+        {#if error}<div class="result-msg result-err" role="alert"><strong>{error}</strong></div>{/if}
+        <form class="form" method="post" action="/console/first-run">
+            <label class="field"><span class="field-label">Setup token</span><input class="input" name="token" autocomplete="off" required></label>
+            <label class="field"><span class="field-label">Password</span><input class="input" name="password" type="password" autocomplete="new-password" minlength="{minLength}" required><span class="field-hint">At least {minLength} characters.</span></label>
+            <label class="field"><span class="field-label">Confirm password</span><input class="input" name="confirm" type="password" autocomplete="new-password" required></label>
+            <div class="actions"><button type="submit" class="btn btn-primary">Set password</button></div>
+        </form>
+    </section>
+    {/if}
+</main>
+</body>
+</html>

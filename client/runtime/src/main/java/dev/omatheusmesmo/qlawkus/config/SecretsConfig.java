@@ -28,8 +28,10 @@ public interface SecretsConfig {
 
     /**
      * Password that unlocks the secret keystore. Provide it through the environment (for example
-     * {@code QLAWKUS_SECRETS_KEYSTORE_PASSWORD}) and never commit it. Empty by default so a fresh
-     * install with no keystore boots without requiring it.
+     * {@code QLAWKUS_SECRETS_KEYSTORE_PASSWORD}) and never commit it. When unset, the first secret
+     * written generates a random password into an owner-only file beside the keystore
+     * ({@code <keystore>.password}) and later runs read it from there; a configured password always
+     * wins. That file shares the keystore's volume, so set this property to keep the password off it.
      */
     Optional<String> keystorePassword();
 

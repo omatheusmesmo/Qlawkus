@@ -20,6 +20,10 @@ The sidebar groups the pages: *Agent* (Overview, Chat, Approvals, Voice), *Knowl
 
 On a narrow screen (900 px or less) the sidebar becomes a slim top bar with a menu button. The menu opens as a drawer: focus moves into it, Tab stays inside it, and Escape or a tap outside closes it and returns focus to the button. The first Tab stop on every page is a link that skips straight to the content.
 
+== First-run admin password
+
+A deployment with no admin password configured cannot show a login, because there is no credential to log in with. It boots in setup mode instead, and any visit to a console page is redirected to `/console/first-run`. There you enter the setup token printed in the agent log (`docker logs <container>`) and choose the password; the console then asks for it like any other deployment. The token proves access to the log and not merely to the port, and the page closes for good once the password is set. See xref:secrets.adoc#_first_run_admin_password[First-run admin password] for the details and the API.
+
 == First-run setup wizard
 
 On first boot the agent cannot yet talk to an LLM, so the Overview shows a setup banner linking to the wizard at `/console/setup`. The wizard writes nothing itself: it orchestrates the same primitives documented elsewhere - the keystore writer (secrets, applied on restart) and the composition admin service (a staged manifest, applied on the next rebuild).

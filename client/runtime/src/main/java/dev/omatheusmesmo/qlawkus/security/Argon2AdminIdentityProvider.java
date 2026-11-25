@@ -23,8 +23,9 @@ import jakarta.inject.Inject;
  *
  * <p>Gated by the build flag {@code qlawkus.admin.argon2.enabled}: off by default, so a consumer using
  * a different realm (for example the embedded properties realm in the integration tests) is untouched.
- * When on, the PHC hash is mandatory and read eagerly at {@link Startup}, so a missing credential fails
- * the boot rather than silently rejecting every request.
+ * With no hash configured the app boots in setup mode, where every request is rejected until the first-run
+ * setup ({@link AdminSetupService}) stores a password: it stays fail-closed, but starts so the owner can
+ * finish the setup from a browser instead of editing environment files.
  */
 @Startup
 @ApplicationScoped
@@ -34,19 +35,13 @@ public class Argon2AdminIdentityProvider
 
   private final String username;
   private final String role;
-  private final String passwordHash;
-  private final Argon2idPasswordHasher hasher = new Argon2idPasswordHasher();
+  private final AdminCredential credential;
 
   @Inject
-  public Argon2AdminIdentityProvider(AdminAuthConfig config) {
+  public Argon2AdminIdentityProvider(AdminAuthConfig config, AdminCredential credential) {
     this.username = config.username();
     this.role = config.role();
-    this.passwordHash = config.passwordHash()
-        .filter(hash -> !hash.isBlank())
-        .orElseThrow(() -> new IllegalStateException(
-            "qlawkus.admin.argon2.enabled is true but qlawkus.admin.password-hash is not set; provide the "
-                + "Argon2id hash via the keystore alias qlawkus.admin.password-hash or the environment "
-                + "variable QLAWKUS_ADMIN_PASSWORD_HASH"));
+    this.credential = credential;
   }
 
   @Override
@@ -73,6 +68,6 @@ public class Argon2AdminIdentityProvider
     if (!username.equals(suppliedUsername)) {
       return false;
     }
-    return hasher.matches(suppliedPassword, passwordHash);
+    return credential.matches(suppliedPassword);
   }
 }
