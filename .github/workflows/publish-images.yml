@@ -160,8 +160,8 @@ jobs:
         run: |
           IMAGE="$(head -n1 <<< "${IMAGE}")"
           docker run -d --name qlawkus-smoke -p 8742:8080 "${IMAGE}"
-          for _ in $(seq 1 60); do
-            if curl -fsS http://localhost:8742/q/health/live > /dev/null; then break; fi
+          for _ in $(seq 1 90); do
+            if docker logs qlawkus-smoke 2>&1 | grep -q "setup token"; then break; fi
             sleep 2
           done
           curl -fsS http://localhost:8742/q/health/live
