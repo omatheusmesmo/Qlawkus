@@ -46,7 +46,7 @@ The root pom imports `io.quarkiverse.langchain4j:quarkus-langchain4j-bom` at `qu
 That Quarkiverse BOM transitively imports the `langchain4j-bom`, which pins every `dev.langchain4j:*` artifact.
 So when adding an upstream module (e.g. `langchain4j-skills`, or `dev.langchain4j:langchain4j` for `InMemoryEmbeddingStore`), add it with **no `<version>`** - the BOM resolves it.
 
-The override is temporary: drop the Quarkiverse import (and the property) once the Quarkus platform ships quarkus-langchain4j >= 2.0.0.CR1 (dropping it on `2.0.0.Beta3` fails to compile: `McpClientFactory` imports `McpHttpClients`, which only exists from CR1). To move ahead again, bump `quarkus-langchain4j.version`; declaration order decides which BOM wins. Re-verify any time with:
+The override is temporary: drop the Quarkiverse import (and the property) once the Quarkus platform ships quarkus-langchain4j >= 2.0.0.CR1. To move ahead again, bump `quarkus-langchain4j.version`; declaration order decides which BOM wins. Re-verify any time with:
 
 ```bash
 mvn dependency:tree -pl client/runtime -Dincludes='dev.langchain4j'

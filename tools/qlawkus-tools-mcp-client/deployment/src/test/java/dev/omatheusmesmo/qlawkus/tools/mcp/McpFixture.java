@@ -41,7 +41,7 @@ final class McpFixture implements AutoCloseable {
         secrets = new KeystoreSecretWriter(smallRye.getConfigMapping(SecretsConfig.class));
         config = smallRye.getConfigMapping(McpConfig.class);
         var agent = smallRye.getConfigMapping(AgentConfig.class);
-        registry = new McpRegistry(config, agent, secrets, JsonMapper.builder().build(), null, executor,
+        registry = new McpRegistry(config, agent, secrets, JsonMapper.builder().build(), vertx, null, executor,
                 policy == null ? new McpEndpointPolicy(config.allowPrivateEndpoints()) : policy);
         var initialize = McpRegistry.class.getDeclaredMethod("initialize");
         initialize.setAccessible(true);

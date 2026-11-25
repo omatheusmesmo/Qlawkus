@@ -21,6 +21,7 @@ final class FakeMcpHttpServer implements AutoCloseable {
     volatile JsonNode lastArguments;
     volatile boolean failDiscovery;
     volatile boolean failCalls;
+    volatile boolean eventStreamReplies;
     volatile String redirectTo;
     volatile Duration toolDelay = Duration.ZERO;
 
@@ -67,6 +68,9 @@ final class FakeMcpHttpServer implements AutoCloseable {
                     Runnable send = () -> {
                         if (response == null) {
                             request.response().setStatusCode(202).end();
+                        } else if (eventStreamReplies) {
+                            request.response().putHeader("Content-Type", "text/event-stream")
+                                    .end("event: message\ndata: " + response + "\n\n");
                         } else {
                             request.response().putHeader("Content-Type", "application/json").end(response.toString());
                         }
