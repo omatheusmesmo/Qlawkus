@@ -19,9 +19,9 @@
 # QLAWKUS_IMAGE_VARIANT=devtools ./run.sh prod, or --build-arg on docker build.
 #
 # QLAWKUS_COMPOSITION picks the composition: 'full' (default, what ./run.sh prod runs)
-# or 'image', which builds app/src/main/docker/agent-image.yml in place of agent.yml:
-# no google-workspace or brag, which each need a database of their own. The image runs
-# on files and switches to Postgres when a datasource is configured.
+# or 'image', which builds app/src/main/docker/agent-image.yml in place of agent.yml, the
+# same composition as the full one. The image runs on files and switches to Postgres when a
+# datasource is configured; the Google and Brag databases stay off until their JDBC URL is given.
 ####
 
 ARG QLAWKUS_IMAGE_VARIANT=base

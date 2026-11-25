@@ -18,6 +18,7 @@
     <module>console-voice</module>
     <module>console-skill-hub</module>
     <module>markdown-only</module>
+    <module>image-no-database</module>
     <module>mcp-client</module>
     <module>skill-hub</module>
     <module>google</module>

@@ -70,7 +70,7 @@ volumes:
 
 The same image can keep its memory in PostgreSQL with pgvector instead of files, or in both (`hybrid`: files stay the source of truth, mirrored into Postgres). Nothing is rebuilt: open the wizard's Storage step, choose `pgvector` or `hybrid`, enter the JDBC URL of a database you run (for example `jdbc:postgresql://db:5432/qlawkus`) with its user and password, save, and run `docker restart qlawkus`. Flyway creates the schema on that start. See xref:storage.adoc[Storage] for what each backend keeps, and to move existing data between files and Postgres.
 
-The image has no Google Workspace or Brag tools, because each owns a database of its own, and it ships no `git` or `gh`. Everything the wizard's capability step stages applies on a rebuild, which is the next guide.
+The image carries the Google Workspace and Brag tools too. Each keeps its own database, which stays off until you give it a JDBC URL: set `QUARKUS_DATASOURCE_BRAG_JDBC_URL` for Brag and `QUARKUS_DATASOURCE_GOOGLE_AUTH_JDBC_URL` for Google (with `_USERNAME` and `_PASSWORD` beside each) and restart. Without them the Brag tools tell the agent they need a database and the Google sign-in works with its state in memory, so a refresh token is lost on restart unless the vault has a database. The image ships no `git` or `gh`. Everything the wizard's capability step stages applies on a rebuild, which is the next guide.
 
 == Guide: the full stack with Postgres and telemetry
 
@@ -155,13 +155,10 @@ same suffix, such as `0.10.0-native`) pins a release, which is what a reproducib
 deployment should use.
 
 Both images keep everything in files under the volume mounted at `/home/default` and
-need no database to start. They carry the Postgres backend too, switched off until you
-configure a datasource, and they are built without the `google-workspace` and `brag`
-capabilities, which each own a database of their own. The Google Workspace and Brag
-tools, and the `git` and `gh` binaries the code-review tools call, are part of the
-build-from-source path above: `./run.sh prod` builds the full composition against the
-Postgres databases the Compose file sets up, and the devtools section below adds the
-two binaries to the JVM image.
+need no database to start. They carry the Postgres backend and the Google Workspace and
+Brag tools too, each database switched off until you give it a JDBC URL. The `git` and
+`gh` binaries the code-review tools call are not in them: the devtools section below
+adds the two binaries to the JVM image built from source with `./run.sh prod`.
 
 When running the native executable directly on Linux, install util-linux
 (`/usr/bin/script`) and coreutils (`/usr/bin/stty` and `/usr/bin/tty`) for PTY sessions.

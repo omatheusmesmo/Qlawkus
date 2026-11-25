@@ -29,13 +29,16 @@ public class CredentialVaultService {
     @Inject
     Scheduler scheduler;
 
+    @Inject
+    GoogleAuthDatabase database;
+
     private volatile AesEncryptor encryptor;
     private volatile MemoryCredential memoryStore;
     private volatile boolean renewalScheduled;
     private final AtomicBoolean undecryptableReported = new AtomicBoolean();
 
     private boolean useVault() {
-        return vaultConfig.enabled() && vaultConfig.encryptionPassphrase().isPresent()
+        return database.isActive() && vaultConfig.enabled() && vaultConfig.encryptionPassphrase().isPresent()
             && !vaultConfig.encryptionPassphrase().get().isBlank();
     }
 

@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.brag.deployment;
 
 import dev.omatheusmesmo.qlawkus.tools.brag.AchievementProcessor;
+import dev.omatheusmesmo.qlawkus.tools.brag.BragDatabase;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragCleanupJob;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragConfig;
 import dev.omatheusmesmo.qlawkus.tools.brag.BragEntry;
@@ -27,6 +28,7 @@ class BragProcessor {
     AdditionalBeanBuildItem registerBragBeans() {
         return AdditionalBeanBuildItem.builder()
                 .addBeanClass(AchievementProcessor.class)
+                .addBeanClass(BragDatabase.class)
                 .addBeanClass(BragCleanupJob.class)
                 .addBeanClass(BragConfig.class)
                 .addBeanClass(BragEntry.class)

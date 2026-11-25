@@ -1,10 +1,11 @@
-# Composition manifest of the published image. Same as src/main/resources/qlawkus/agent.yml minus
-# google-workspace and brag, which each own a named datasource and so need a database of their own.
-# cognition.pgvector stays in: the image runs on files until a datasource is configured, and on
-# Postgres once one is (see StoreBackendConfigSourceFactory). Dockerfile.jvm-build and
-# Dockerfile.native-build copy this file over agent.yml when built with QLAWKUS_COMPOSITION=image, and
-# the pom generator then reconciles the app pom before Quarkus resolves dependencies. Keep it in sync
-# with agent.yml: ImageManifestTest fails when the two drift apart.
+# Composition manifest of the published image. It is the same as src/main/resources/qlawkus/agent.yml
+# (ImageManifestTest fails when the two drift apart): the image carries every capability, including the
+# Google Workspace and Brag tools, whose own databases stay switched off until a JDBC URL is given
+# (NamedDatasourceConfigSource). cognition.pgvector is in for the same reason: the image runs on files
+# until a datasource is configured, and on Postgres once one is (see StoreBackendConfigSourceFactory).
+# Dockerfile.jvm-build and Dockerfile.native-build copy this file over agent.yml when built with
+# QLAWKUS_COMPOSITION=image, and the pom generator then reconciles the app pom before Quarkus resolves
+# dependencies.
 # Composition manifest for the reference distribution. Declares which capabilities are
 # compiled into this app. default: disabled + an explicit opt-in list, so a capability
 # added to the reactor later is never pulled in by surprise - you name what you want.
@@ -19,6 +20,8 @@ build-time:
     - cognition.pgvector
     - messaging.discord
     - messaging.telegram
+    - google-workspace
+    - brag
     - skill-hub
     - console
     - console.voice

@@ -9,6 +9,7 @@ import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleCredential;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleOAuthCallbackResource;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleOAuthStartResource;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleOAuthState;
+import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleAuthDatabase;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleOAuthStateStore;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleVaultConfig;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.TokenResponse;
@@ -40,9 +41,10 @@ class GoogleAuthProcessor {
             .addBeanClass(GoogleAuthorizationUrls.class)
             .addBeanClass(GoogleOAuthCallbackResource.class)
             .addBeanClass(GoogleOAuthStartResource.class)
-        .addBeanClass(GoogleOAuthStateStore.class)
-        .addBeanClass(GoogleOAuthState.class)
-        .addBeanClass(GoogleCredential.class)
+            .addBeanClass(GoogleAuthDatabase.class)
+            .addBeanClass(GoogleOAuthStateStore.class)
+            .addBeanClass(GoogleOAuthState.class)
+            .addBeanClass(GoogleCredential.class)
             .setUnremovable()
             .build();
     }

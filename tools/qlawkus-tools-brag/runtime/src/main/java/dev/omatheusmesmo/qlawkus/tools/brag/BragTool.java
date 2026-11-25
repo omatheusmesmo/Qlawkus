@@ -7,7 +7,6 @@ import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.stream.Collectors;
@@ -23,12 +22,21 @@ public class BragTool {
     @Inject
     ImpactTranslator impactTranslator;
 
+    @Inject
+    BragDatabase database;
+
     @Tool("Record a career achievement or accomplishment. Provide a description of what was done, optionally the date and the repository it relates to.")
-    @Transactional
     public String addAchievement(
             @P("Description of the achievement or accomplishment") String achievement,
             @P(value = "Date of the achievement in ISO-8601 format, e.g. 2026-05-07. Defaults to today.", required = false) String date,
             @P(value = "Repository name this achievement relates to, e.g. my-project", required = false) String repo) {
+        if (!database.isActive()) {
+            return BragDatabase.UNAVAILABLE;
+        }
+        return database.inTransaction(() -> recordAchievement(achievement, date, repo));
+    }
+
+    private String recordAchievement(String achievement, String date, String repo) {
         LocalDate entryDate = (date != null && !date.isBlank()) ? LocalDate.parse(date) : LocalDate.now(ZoneOffset.UTC);
 
         BragEntry existing = BragEntry.findDuplicate(entryDate, achievement, repo);
@@ -63,6 +71,9 @@ public class BragTool {
     public String generateMarkdownReport(
             @P(value = "Start date in ISO-8601 format, e.g. 2026-01-01. Defaults to 30 days ago.", required = false) String startDate,
             @P(value = "End date in ISO-8601 format, e.g. 2026-05-07. Defaults to today.", required = false) String endDate) {
+        if (!database.isActive()) {
+            return BragDatabase.UNAVAILABLE;
+        }
         LocalDate from = (startDate != null && !startDate.isBlank())
                 ? LocalDate.parse(startDate)
                 : LocalDate.now(ZoneOffset.UTC).minusDays(30);
@@ -97,8 +108,14 @@ public class BragTool {
     }
 
     @Tool("Soft-delete a recorded achievement by its ID. The entry will be marked as deleted and excluded from reports.")
-    @Transactional
     public String deleteAchievement(@P("ID of the achievement to delete") long id) {
+        if (!database.isActive()) {
+            return BragDatabase.UNAVAILABLE;
+        }
+        return database.inTransaction(() -> softDelete(id));
+    }
+
+    private String softDelete(long id) {
         BragEntry entry = BragEntry.find("id = ?1", id).firstResult();
         if (entry == null) {
             return "Achievement with ID " + id + " not found.";

@@ -29,8 +29,11 @@ public class AchievementProcessor {
     @Inject
     TurnGates turnGates;
 
+    @Inject
+    BragDatabase database;
+
     void onChatCompleted(@ObservesAsync ChatCompletedEvent event) {
-        if (!config.enabled() || !config.impactTranslationEnabled()) return;
+        if (!config.enabled() || !config.impactTranslationEnabled() || !database.isActive()) return;
         if (event.messages().isEmpty()) return;
         if (!turnGates.worthIt(QUESTION, event.messages())) return;
 
