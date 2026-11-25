@@ -91,6 +91,39 @@ class OnboardingWizardTest {
   }
 
   @Test
+  void llmStep_storesTheChosenProviderSoTheEmbeddingModelFollowsIt() {
+    given().auth().preemptive().basic(USER, PASS)
+        .contentType("application/x-www-form-urlencoded")
+        .formParam("provider", "nvidia")
+        .formParam("apiKey", "real-secret-key")
+        .when().post("/console/setup/llm")
+        .then().statusCode(200)
+        .body(containsString("saved"));
+
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get("/api/admin/secrets")
+        .then().statusCode(200)
+        .body(containsString("qlawkus.openai.kind"));
+  }
+
+  @Test
+  void llmStep_rejectsAProviderItDoesNotKnowAndStoresNothing() {
+    given().auth().preemptive().basic(USER, PASS)
+        .contentType("application/x-www-form-urlencoded")
+        .formParam("provider", "not-a-provider")
+        .formParam("apiKey", "real-secret-key")
+        .when().post("/console/setup/llm")
+        .then().statusCode(200)
+        .body(containsString("Unknown provider"));
+
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get("/api/admin/secrets")
+        .then().statusCode(200)
+        .body(not(containsString("qlawkus.openai.kind")))
+        .body(not(containsString("langchain4j.openai")));
+  }
+
+  @Test
   void capabilitiesStep_stagesManifestAlwaysKeepingConsole() {
     given().auth().preemptive().basic(USER, PASS)
         .contentType("application/x-www-form-urlencoded")

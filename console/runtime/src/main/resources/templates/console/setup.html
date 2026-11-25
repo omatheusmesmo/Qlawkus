@@ -39,10 +39,18 @@
 
         <section class="step">
             <h2 class="step-title">1. Language model {#if llmConfigured}<span class="pill pill-ok">configured</span>{/if}</h2>
-            <p class="muted">The provider and key the agent talks to. Saved to the keystore; applies on the next restart.</p>
+            <p class="muted">The provider and key the agent talks to, for chat and for memory embeddings. Saved to the keystore; applies on the next restart.</p>
             <form class="form" hx-post="/console/setup/llm" hx-target="#llm-result" hx-swap="innerHTML">
-                <label class="field"><span class="field-label">Base URL</span><input class="input" name="baseUrl" placeholder="https://integrate.api.nvidia.com/v1"></label>
-                <label class="field"><span class="field-label">Chat model</span><input class="input" name="chatModel" placeholder="e.g. meta/llama-3.1-70b-instruct"></label>
+                <label class="field"><span class="field-label">Provider</span>
+                    <select class="select" name="provider">
+                        <option value="">OpenAI (default)</option>
+                        {#for p in providers}
+                        <option value="{p}">{p}</option>
+                        {/for}
+                    </select>
+                </label>
+                <label class="field"><span class="field-label">Base URL (optional)</span><input class="input" name="baseUrl" placeholder="the provider's own endpoint when blank"></label>
+                <label class="field"><span class="field-label">Chat model (optional)</span><input class="input" name="chatModel" placeholder="the provider's current default when blank"></label>
                 <label class="field"><span class="field-label">API key</span><input class="input" name="apiKey" type="password" placeholder="paste the provider API key"></label>
                 <button type="submit" class="btn btn-primary">Save LLM settings</button>
             </form>
