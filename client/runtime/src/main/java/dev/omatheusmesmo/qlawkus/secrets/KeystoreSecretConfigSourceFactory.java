@@ -3,8 +3,10 @@ package dev.omatheusmesmo.qlawkus.secrets;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
@@ -36,19 +38,73 @@ public final class KeystoreSecretConfigSourceFactory implements ConfigSourceFact
 
     @Override
     public Iterable<ConfigSource> getConfigSources(ConfigSourceContext context) {
+        Map<String, String> secrets = storedSecrets(context);
+        if (secrets.isEmpty()) {
+            return List.of();
+        }
+        return List.of(new PropertiesConfigSource(secrets, NAME, ordinal(context)));
+    }
+
+    /**
+     * Wraps {@code context} so a factory that derives configuration from other values sees what the
+     * keystore holds, at the keystore's ordinal. SmallRye hands a factory only the sources that exist
+     * before any factory runs, never another factory's output, so without this a value stored through
+     * the console (the provider kind, the model key) is invisible to the factory that builds the
+     * embedding model from it.
+     */
+    public static ConfigSourceContext withStoredSecrets(ConfigSourceContext context) {
+        Map<String, String> secrets = storedSecrets(context);
+        if (secrets.isEmpty()) {
+            return context;
+        }
+        return new StoredSecretsContext(context, secrets, ordinal(context));
+    }
+
+    private static Map<String, String> storedSecrets(ConfigSourceContext context) {
         String path = value(context, PATH);
         if (path == null || path.isBlank()) {
             path = defaultKeystorePath();
         }
         URL location = resolve(path);
         if (location == null) {
-            return List.of();
+            return Map.of();
         }
-        Map<String, String> secrets = readFor(path, value(context, PASSWORD), location);
-        if (secrets.isEmpty()) {
-            return List.of();
+        return readFor(path, value(context, PASSWORD), location);
+    }
+
+    private record StoredSecretsContext(ConfigSourceContext delegate, Map<String, String> secrets, int ordinal)
+            implements ConfigSourceContext {
+
+        @Override
+        public ConfigValue getValue(String name) {
+            String stored = secrets.get(name);
+            if (stored == null) {
+                return delegate.getValue(name);
+            }
+            return ConfigValue.builder()
+                    .withName(name)
+                    .withValue(stored)
+                    .withConfigSourceName(NAME)
+                    .withConfigSourceOrdinal(ordinal)
+                    .build();
         }
-        return List.of(new PropertiesConfigSource(secrets, NAME, ordinal(context)));
+
+        @Override
+        public Iterator<String> iterateNames() {
+            TreeSet<String> names = new TreeSet<>(secrets.keySet());
+            delegate.iterateNames().forEachRemaining(names::add);
+            return names.iterator();
+        }
+
+        @Override
+        public List<String> getProfiles() {
+            return delegate.getProfiles();
+        }
+
+        @Override
+        public List<ConfigSource> getConfigSources() {
+            return delegate.getConfigSources();
+        }
     }
 
     /**

@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.model;
 
+import dev.omatheusmesmo.qlawkus.secrets.KeystoreSecretConfigSourceFactory;
 import io.smallrye.config.ConfigSourceContext;
 import io.smallrye.config.ConfigSourceFactory;
 import io.smallrye.config.ConfigValue;
@@ -54,7 +55,8 @@ public class LlmKindConfigSourceFactory implements ConfigSourceFactory {
     }
 
     @Override
-    public Iterable<ConfigSource> getConfigSources(ConfigSourceContext context) {
+    public Iterable<ConfigSource> getConfigSources(ConfigSourceContext plainContext) {
+        ConfigSourceContext context = KeystoreSecretConfigSourceFactory.withStoredSecrets(plainContext);
         ProviderKind kind = ProviderKind.of(value(context, "openai", "qlawkus.openai.kind", "LLM_KIND"));
 
         // Overrides use the friendly LLM_* env alias or an explicitly-set native quarkus-langchain4j

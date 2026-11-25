@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.console.onboarding;
 
 import dev.omatheusmesmo.qlawkus.compose.CompositionAdminService;
+import dev.omatheusmesmo.qlawkus.model.ProviderKind;
 import dev.omatheusmesmo.qlawkus.secrets.KeystoreSecretWriter;
 import io.quarkus.qute.Location;
 import io.quarkus.qute.Template;
@@ -15,7 +16,9 @@ import jakarta.ws.rs.core.MediaType;
 import org.jboss.resteasy.reactive.RestForm;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * The first-run onboarding wizard, served inside the console at {@code /console/setup}. It never
@@ -33,6 +36,7 @@ import java.util.List;
 @Produces(MediaType.TEXT_HTML)
 public class OnboardingResource {
 
+    private static final String LLM_KIND = "qlawkus.openai.kind";
     private static final String LLM_API_KEY = "quarkus.langchain4j.openai.\"primary\".api-key";
     private static final String LLM_BASE_URL = "quarkus.langchain4j.openai.\"primary\".base-url";
     private static final String LLM_CHAT_MODEL = "quarkus.langchain4j.openai.\"primary\".chat-model.model-name";
@@ -72,6 +76,7 @@ public class OnboardingResource {
         }
         return setup
                 .data("llmConfigured", state.llmConfigured())
+                .data("providers", providerNames())
                 .data("capabilities", caps)
                 .data("phaseB", phaseB)
                 .data("staged", isStaged());
@@ -79,11 +84,19 @@ public class OnboardingResource {
 
     @POST
     @Path("/llm")
-    public TemplateInstance saveLlm(@RestForm String baseUrl, @RestForm String chatModel, @RestForm String apiKey) {
+    public TemplateInstance saveLlm(@RestForm String provider, @RestForm String baseUrl,
+                                    @RestForm String chatModel, @RestForm String apiKey) {
         if (apiKey == null || apiKey.isBlank()) {
             return err("An API key is required.");
         }
+        boolean providerChosen = provider != null && !provider.isBlank();
+        if (providerChosen && !providerNames().contains(provider.trim().toLowerCase(Locale.ROOT))) {
+            return err("Unknown provider: " + provider.trim());
+        }
         try {
+            if (providerChosen) {
+                secrets.setSecret(LLM_KIND, provider.trim().toLowerCase(Locale.ROOT));
+            }
             secrets.setSecret(LLM_API_KEY, apiKey.trim());
             if (baseUrl != null && !baseUrl.isBlank()) {
                 secrets.setSecret(LLM_BASE_URL, baseUrl.trim());
@@ -142,6 +155,10 @@ public class OnboardingResource {
             case GOOGLE_OAUTH -> state.propertiesConfigured(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
             case NONE -> false;
         };
+    }
+
+    private static List<String> providerNames() {
+        return Arrays.stream(ProviderKind.values()).map(kind -> kind.name().toLowerCase(Locale.ROOT)).toList();
     }
 
     private boolean isStaged() {
