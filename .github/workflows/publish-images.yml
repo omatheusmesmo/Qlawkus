@@ -5,8 +5,8 @@ run-name: Publish images ${{ inputs.version }}
 # Builds the JVM and native container images in-container (the Dockerfiles compile the reactor
 # themselves, so no host Maven step is needed) and pushes them to GHCR. Both are the image
 # composition: they run on files with no database and switch to Postgres when a datasource is
-# configured. The full composition (Google Workspace, Brag) and the devtools variant (git and gh) are
-# built from source (./run.sh prod, QLAWKUS_IMAGE_VARIANT=devtools). Called by
+# configured, and carry the Google Workspace and Brag tools, whose databases stay off until their URL
+# is given. The devtools variant (git and gh) is built from source (QLAWKUS_IMAGE_VARIANT=devtools). Called by
 # release-perform.yml with the release tag; dispatch it by hand on a branch to rehearse the build
 # (push defaults to false, so nothing leaves the runner).
 

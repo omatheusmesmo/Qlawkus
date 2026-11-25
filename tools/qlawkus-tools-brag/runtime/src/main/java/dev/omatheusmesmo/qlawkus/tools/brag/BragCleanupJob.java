@@ -5,9 +5,9 @@ import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.function.LongSupplier;
 
 @ApplicationScoped
 public class BragCleanupJob {
@@ -18,10 +18,16 @@ public class BragCleanupJob {
     @Inject
     AgentMeters meters;
 
+    @Inject
+    BragDatabase database;
+
     @Scheduled(identity = "brag-cleanup", cron = "{qlawkus.brag.cleanup-cron}")
-    @Transactional
     public void purgeExpiredEntries() {
-        meters.timeJob("brag-cleanup", this::purgeNow);
+        if (!database.isActive()) {
+            return;
+        }
+        LongSupplier purge = () -> database.inTransaction(this::purgeNow);
+        meters.timeJob("brag-cleanup", purge);
     }
 
     /** Returns how many entries were removed, so the job reports items like the cognition jobs. */

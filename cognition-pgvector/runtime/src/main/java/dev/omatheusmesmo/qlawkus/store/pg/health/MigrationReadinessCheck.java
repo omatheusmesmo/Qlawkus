@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.store.pg.health;
 
+import dev.omatheusmesmo.qlawkus.store.pg.CognitionBackendState;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.health.HealthCheck;
@@ -29,6 +30,9 @@ import org.flywaydb.core.api.MigrationInfo;
  * this re-queries while migrations are pending, and once the schema is current it stops asking Flyway.
  * Each Flyway call logs its {@code Database:} line at INFO, so polling a settled schema every few
  * seconds would bury the log; a settled schema cannot become pending without a new deployment.
+ *
+ * <p>On a markdown boot the datasource and Flyway are switched off, so there is no schema to be behind and
+ * the check reports UP without asking Flyway, whose inactive bean would otherwise throw.
  */
 @Readiness
 public class MigrationReadinessCheck implements HealthCheck {
@@ -38,10 +42,16 @@ public class MigrationReadinessCheck implements HealthCheck {
     @Inject
     Instance<Flyway> flyway;
 
+    @Inject
+    CognitionBackendState backend;
+
     private volatile boolean settled;
 
     @Override
     public HealthCheckResponse call() {
+        if (!backend.usesPostgres()) {
+            return HealthCheckResponse.named(NAME).up().withData("backend", "markdown").build();
+        }
         if (!flyway.isResolvable()) {
             return HealthCheckResponse.named(NAME).up().withData("flyway", "unavailable").build();
         }
