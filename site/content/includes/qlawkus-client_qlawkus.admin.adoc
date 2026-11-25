@@ -57,7 +57,7 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-PHC Argon2id hash of the admin password, e.g. `$argon2id$v=19$m=19456,t=2,p=1$<salt>$<hash>`. Required when `qlawkus.admin.argon2.enabled` is true; the app refuses to boot without it. Generate one as described in the Secrets guide, then store it under the keystore alias `qlawkus.admin.password-hash` or the environment variable `QLAWKUS_ADMIN_PASSWORD_HASH`.
+PHC Argon2id hash of the admin password, e.g. `$argon2id$v=19$m=19456,t=2,p=1$<salt>$<hash>`. Optional: when `qlawkus.admin.argon2.enabled` is true and none is set, nothing authenticates and the first-run setup (a one-time token printed in the agent log) takes the password and stores its hash. To set it by hand instead, generate one as described in the Secrets guide and store it under the keystore alias `qlawkus.admin.password-hash` or the environment variable `QLAWKUS_ADMIN_PASSWORD_HASH`.
 
 
 ifdef::add-copy-button-to-env-var[]

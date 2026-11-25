@@ -1,18 +1,21 @@
 package dev.omatheusmesmo.qlawkus.it.markdown;
 
 import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * Pins the DX guard: writing a secret with no {@code qlawkus.secrets.keystore-password} configured
- * returns {@code 409 Conflict} with a clear message instead of a 500, since the store cannot be
- * unlocked. The read side stays lenient (an absent/locked keystore contributes nothing at boot), so
- * the app still starts; only the write attempt is refused.
+ * Pins the zero-configuration write: with no {@code qlawkus.secrets.keystore-password} configured, the
+ * first secret written generates the store password into an owner-only file beside the keystore, so the
+ * write succeeds instead of failing and the store is still encrypted. The read side stays lenient (an
+ * absent keystore contributes nothing at boot).
  */
 @QuarkusTest
 @TestProfile(SecretWriteNoPasswordTest.NoPassword.class)
@@ -32,11 +35,13 @@ class SecretWriteNoPasswordTest {
   }
 
   @Test
-  void writeWithoutPassword_returnsConflict() {
+  void writeWithoutPassword_generatesOneBesideTheKeystore() {
     given().auth().preemptive().basic(USER, PASS)
         .contentType("application/json")
         .body(Map.of("alias", "qlawkus.test.nopass", "value", "irrelevant"))
         .when().put(BASE)
-        .then().statusCode(409);
+        .then().statusCode(204);
+
+    assertTrue(Files.isRegularFile(Path.of("target/markdown-only/secrets-nopass.p12.password")));
   }
 }

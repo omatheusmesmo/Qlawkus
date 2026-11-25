@@ -14,7 +14,9 @@ import java.util.Optional;
  * the way {@code keytool -importpass} stores it (see {@link KeystoreSecrets}), so the read side picks
  * it up unchanged on the next boot.
  *
- * <p>Writing requires {@code qlawkus.secrets.keystore-password} to be set: it is both the store
+ * <p>The store password is {@code qlawkus.secrets.keystore-password} when set. Otherwise the first write
+ * generates one into an owner-only file beside the keystore ({@link KeystorePasswordFile}) and later reads
+ * and writes reuse it, so a deployment with one volume needs no environment file. It is both the store
  * password and the per-entry protection password, matching how the read side unlocks entries. The
  * keystore file is created on first write if absent. The secret value is never logged.
  */
@@ -37,7 +39,8 @@ public class KeystoreSecretWriter {
         if (value == null || value.isEmpty()) {
             throw new IllegalArgumentException("Secret value must not be empty");
         }
-        KeystoreSecrets.put(keystorePath(), password(), alias, value);
+        Path file = keystorePath();
+        KeystoreSecrets.put(file, writePassword(file), alias, value);
     }
 
     /**
@@ -77,12 +80,21 @@ public class KeystoreSecretWriter {
     }
 
     private char[] password() {
-        return config.keystorePassword()
-                .filter(p -> !p.isBlank())
-                .map(String::toCharArray)
+        return configuredPassword()
+                .or(() -> KeystorePasswordFile.read(keystorePath()))
                 .orElseThrow(() -> new IllegalStateException(
                         "Set qlawkus.secrets.keystore-password (for example via "
-                                + "QLAWKUS_SECRETS_KEYSTORE_PASSWORD) before writing secrets"));
+                                + "QLAWKUS_SECRETS_KEYSTORE_PASSWORD) to unlock the existing keystore"));
+    }
+
+    private char[] writePassword(Path file) {
+        return configuredPassword().orElseGet(() -> KeystorePasswordFile.readOrCreate(file));
+    }
+
+    private Optional<char[]> configuredPassword() {
+        return config.keystorePassword()
+                .filter(p -> !p.isBlank())
+                .map(String::toCharArray);
     }
 
     private Path keystorePath() {

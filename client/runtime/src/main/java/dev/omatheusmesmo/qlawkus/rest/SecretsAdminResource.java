@@ -21,8 +21,9 @@ import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
  * basic-auth gated ({@code @Authenticated}, admin role) and the secret value is never echoed back or
  * logged. A written secret takes effect on the next boot, since config sources are read at startup.
  *
- * <p>A missing {@code qlawkus.secrets.keystore-password} maps to {@code 409 Conflict} (the store
- * cannot be unlocked), and invalid input to {@code 400 Bad Request}.
+ * <p>A keystore that exists but cannot be unlocked (no configured {@code qlawkus.secrets.keystore-password}
+ * and no generated password file beside it) maps to {@code 409 Conflict}, and invalid input to
+ * {@code 400 Bad Request}. With no keystore yet, the first write creates one and its password file.
  */
 @Path("/api/admin/secrets")
 @Authenticated
