@@ -37,14 +37,14 @@ A distribution with tiered or committed pricing supplies its own `CostEstimator`
 
 | What | Version | Where set |
 |------|---------|-----------|
-| Quarkus platform | `4.0.0.CR1` | `quarkus.platform.version` in root `pom.xml` |
+| Quarkus platform | `4.0.1` | `quarkus.platform.version` in root `pom.xml` |
 | quarkus-langchain4j (Quarkiverse extension) | `2.0.0.CR1` | root `pom.xml` property `quarkus-langchain4j.version`, ahead of the platform (see below) |
 | Upstream `dev.langchain4j` core (transitive) | `1.24.0` | same BOM - do not set |
 | Upstream beta modules (`langchain4j-skills`, `langchain4j-pgvector`, `langchain4j-agentic`) | `1.24.0-beta34` | same BOM - do not set |
 
 The Quarkiverse **extension** version (`2.0.0.CR1`) and the upstream **library** version (`1.24.0`) are different namespaces: `2.0.0.CR1` is NOT a langchain4j-core version.
 The `quarkus-bom` manages neither.
-The root pom imports `io.quarkiverse.langchain4j:quarkus-langchain4j-bom` at `quarkus-langchain4j.version` first, so it wins over the platform's copy (the platform ships an older one with `4.0.0.CR1`); the platform's `quarkus-langchain4j-bom` import stays after it for everything else the platform aligns.
+The root pom imports `io.quarkiverse.langchain4j:quarkus-langchain4j-bom` at `quarkus-langchain4j.version` first, so it wins over the platform's copy (the platform ships an older one with `4.0.1`); the platform's `quarkus-langchain4j-bom` import stays after it for everything else the platform aligns.
 That Quarkiverse BOM transitively imports the `langchain4j-bom`, which pins every `dev.langchain4j:*` artifact.
 So when adding an upstream module (e.g. `langchain4j-skills`, or `dev.langchain4j:langchain4j` for `InMemoryEmbeddingStore`), add it with **no `<version>`** - the BOM resolves it.
 
