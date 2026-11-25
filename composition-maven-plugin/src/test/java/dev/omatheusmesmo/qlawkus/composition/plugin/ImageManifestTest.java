@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.composition.plugin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.omatheusmesmo.qlawkus.composition.BuildTime;
 import dev.omatheusmesmo.qlawkus.composition.CompositionManifestParser;
@@ -16,23 +17,24 @@ import org.junit.jupiter.api.condition.EnabledIf;
  * Pins the manifest of the markdown image variant to the reference one: the same composition minus
  * the capabilities that need a datasource, so the two never drift apart.
  */
-class MarkdownImageManifestTest {
+class ImageManifestTest {
 
-  private static final List<String> NEEDS_A_DATASOURCE = List.of("cognition.pgvector", "google-workspace", "brag");
+  private static final List<String> OWNS_A_DATASOURCE = List.of("google-workspace", "brag");
 
   @Test
   @EnabledIf("reactorCheckoutPresent")
-  void markdownManifestIsTheReferenceOneWithoutTheDatasourceCapabilities() {
+  void imageManifestIsTheReferenceOneWithoutTheCapabilitiesThatOwnADatabase() {
     BuildTime reference = CompositionManifestParser.parse(referenceManifest()).buildTime();
-    BuildTime markdown = CompositionManifestParser.parse(markdownManifest()).buildTime();
+    BuildTime image = CompositionManifestParser.parse(imageManifest()).buildTime();
 
     List<String> expected = new ArrayList<>(reference.except());
-    expected.removeAll(NEEDS_A_DATASOURCE);
+    expected.removeAll(OWNS_A_DATASOURCE);
 
-    assertEquals(reference.defaultPosture(), markdown.defaultPosture());
-    assertEquals(expected, markdown.except());
-    for (String capability : NEEDS_A_DATASOURCE) {
-      assertFalse(markdown.isEnabled(capability), capability + " needs a datasource");
+    assertEquals(reference.defaultPosture(), image.defaultPosture());
+    assertEquals(expected, image.except());
+    assertTrue(image.isEnabled("cognition.pgvector"), "the image switches to Postgres at boot, so it carries the backend");
+    for (String capability : OWNS_A_DATASOURCE) {
+      assertFalse(image.isEnabled(capability), capability + " owns a named datasource");
     }
   }
 
@@ -40,8 +42,8 @@ class MarkdownImageManifestTest {
     return Files.isRegularFile(referenceManifest());
   }
 
-  private static Path markdownManifest() {
-    return reactorRoot().resolve("app/src/main/docker/agent-markdown.yml");
+  private static Path imageManifest() {
+    return reactorRoot().resolve("app/src/main/docker/agent-image.yml");
   }
 
   private static Path referenceManifest() {

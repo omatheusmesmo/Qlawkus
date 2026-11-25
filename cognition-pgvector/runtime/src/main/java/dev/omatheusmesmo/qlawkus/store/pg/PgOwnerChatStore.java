@@ -4,14 +4,14 @@ import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.OwnerChatStore;
 import dev.omatheusmesmo.qlawkus.store.markdown.MarkdownOwnerChatStore;
 import dev.omatheusmesmo.qlawkus.task.OwnerChat;
-import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import java.nio.file.Path;
 import java.util.List;
 
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "pgvector", enableIfMissing = true)
+@Typed(PgOwnerChatStore.class)
 public class PgOwnerChatStore implements OwnerChatStore {
 
   private final MarkdownOwnerChatStore files;

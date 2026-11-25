@@ -252,7 +252,7 @@ image::{image-root}diagrams/memory-layers.svg["Persona, owner and recalled facts
 * *Transcripts (session search)* - every message is archived and semantically searchable via the `searchTranscripts` tool, distinct from curated facts.
 * *Episodic journals* - a nightly job summarizes each day; the summary is embedded through the fact store (so it is surfaced by active memory) and the journal record is kept by an `EpisodicStore` whose backend follows the same `qlawkus.cognition.backend` switch: `markdown` (dated `<date>.md` files, no database), `pgvector` (the `Journal` table), or `hybrid` (files mirrored into pgvector).
 
-All Postgres backends live in the optional `qlawkus-cognition-pgvector` extension; a build without it is database-free and runs entirely on the markdown stores.
+All Postgres backends live in the optional `qlawkus-cognition-pgvector` extension; a build without it is database-free and runs entirely on the markdown stores. With it present, the backend is chosen when the application boots, and the markdown boot switches the datasource off.
 
 === Background jobs
 
@@ -314,7 +314,7 @@ graph LR
 </div>
 ++++
 
-The agent authors, auto-distills, curates, and ages skills on its own, and the store is pluggable across three build-time backends (`markdown`, `pgvector`, `hybrid`). Everything above is *local* and offline; the optional `qlawkus-tools-skill-hub` extension adds the outward-facing registry client (`searchSkillHub` / `installSkill` / `publishSkill`) so the agent can pull skills from skills.sh or any well-known host and stage its own for publishing. See xref:skills.adoc[Skills] for the full treatment: authoring a `SKILL.md`, the directory model, storage backends, lifecycle, bundled skills, the remote Skill Hub, and administration.
+The agent authors, auto-distills, curates, and ages skills on its own, and the store is pluggable across three backends chosen at boot (`markdown`, `pgvector`, `hybrid`). Everything above is *local* and offline; the optional `qlawkus-tools-skill-hub` extension adds the outward-facing registry client (`searchSkillHub` / `installSkill` / `publishSkill`) so the agent can pull skills from skills.sh or any well-known host and stage its own for publishing. See xref:skills.adoc[Skills] for the full treatment: authoring a `SKILL.md`, the directory model, storage backends, lifecycle, bundled skills, the remote Skill Hub, and administration.
 
 == Databases
 

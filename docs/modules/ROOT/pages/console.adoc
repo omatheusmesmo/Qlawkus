@@ -36,7 +36,7 @@ It is split into two phases by the closed-world boundary, because some steps onl
 |===
 |Phase |Steps
 
-|*A - before a rebuild* |The LLM provider and API key (saved to the keystore), with an optional base URL and chat model, and the capability selection (staged as an `agent.yml` manifest). These are all you need to get the agent talking and to choose what to build next.
+|*A - before a rebuild* |The LLM provider and API key (with an optional base URL and chat model), where memory lives (files, or Postgres with its connection), both saved to the keystore, and the capability selection (staged as an `agent.yml` manifest). These are all you need to get the agent talking and to choose what to build next.
 |*B - after a rebuild* |The interactive steps a capability unlocks once it is baked in: a bot token for each messaging adapter that is present, and Google authorization for the Google Workspace tools. Each Phase B step is shown only for a capability the running app already carries.
 |===
 

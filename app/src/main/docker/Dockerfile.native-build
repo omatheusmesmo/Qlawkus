@@ -10,10 +10,10 @@
 # Heavy: the native compile takes several minutes and a few GB of RAM.
 # Build + run via: ./run.sh native
 #
-# QLAWKUS_STORE is 'pgvector' (default) or 'markdown': see Dockerfile.jvm-build.
+# QLAWKUS_COMPOSITION is 'full' (default) or 'image': see Dockerfile.jvm-build.
 ####
 
-ARG QLAWKUS_STORE=pgvector
+ARG QLAWKUS_COMPOSITION=full
 
 # --- Build stage: Mandrel builder, native reactor build ----------------------
 # The Mandrel builder ships no Maven but has curl+unzip, so the mvnw wrapper works.
@@ -22,15 +22,15 @@ ARG QLAWKUS_STORE=pgvector
 FROM quay.io/quarkus/ubi10-quarkus-mandrel-builder-image:jdk-25.0.5.1 AS build
 USER root
 WORKDIR /code
-ARG QLAWKUS_STORE
+ARG QLAWKUS_COMPOSITION
 COPY . .
 RUN --mount=type=cache,target=/root/.m2 \
-    if [ "${QLAWKUS_STORE}" = "markdown" ]; then \
-      cp app/src/main/docker/agent-markdown.yml app/src/main/resources/qlawkus/agent.yml \
+    if [ "${QLAWKUS_COMPOSITION}" = "image" ]; then \
+      cp app/src/main/docker/agent-image.yml app/src/main/resources/qlawkus/agent.yml \
       && ./mvnw -B -e -DskipTests -DskipITs -pl composition-maven-plugin -am install \
       && ./mvnw -B -e qlawkus:generate -pl app -am; \
-    elif [ "${QLAWKUS_STORE}" != "pgvector" ]; then \
-      echo "QLAWKUS_STORE must be markdown or pgvector, got ${QLAWKUS_STORE}" >&2; exit 1; \
+    elif [ "${QLAWKUS_COMPOSITION}" != "full" ]; then \
+      echo "QLAWKUS_COMPOSITION must be image or full, got ${QLAWKUS_COMPOSITION}" >&2; exit 1; \
     fi
 RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw -B -e -DskipTests -DskipITs -Pnative install

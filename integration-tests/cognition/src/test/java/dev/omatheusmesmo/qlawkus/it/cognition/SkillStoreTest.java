@@ -1,10 +1,13 @@
 package dev.omatheusmesmo.qlawkus.it.cognition;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
+import dev.omatheusmesmo.qlawkus.store.pg.PgSkillStore;
+import io.quarkus.arc.ClientProxy;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -21,9 +24,9 @@ class SkillStoreTest {
   SkillStore skillStore;
 
   @Test
-  void defaultBackend_isPgvector() {
-    assertTrue(skillStore.getClass().getName().contains("PgSkillStore"),
-        "default backend should resolve to PgSkillStore, was " + skillStore.getClass().getName());
+  void configuredBackend_isPgvector() {
+    assertInstanceOf(PgSkillStore.class, ClientProxy.unwrap(skillStore),
+        "the module sets qlawkus.cognition.backend=pgvector, so the skill store must be PgSkillStore");
   }
 
   @Test

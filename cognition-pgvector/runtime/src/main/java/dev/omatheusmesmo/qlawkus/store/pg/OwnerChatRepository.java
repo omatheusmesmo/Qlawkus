@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.store.pg;
 
+import jakarta.enterprise.inject.Instance;
 import dev.omatheusmesmo.qlawkus.task.OwnerChat;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -24,15 +25,15 @@ public class OwnerChatRepository {
          OR (owner_chat.last_seen = EXCLUDED.last_seen AND ?)
       """;
 
-  private final DataSource dataSource;
+  private final Instance<DataSource> dataSources;
 
   @Inject
-  public OwnerChatRepository(DataSource dataSource) {
-    this.dataSource = dataSource;
+  public OwnerChatRepository(Instance<DataSource> dataSources) {
+    this.dataSources = dataSources;
   }
 
   void save(OwnerChat chat, boolean replaceAtSameTime) {
-    try (var connection = dataSource.getConnection();
+    try (var connection = dataSources.get().getConnection();
         var statement = connection.prepareStatement(UPSERT)) {
       statement.setString(1, chat.providerId());
       statement.setString(2, chat.chatId());
@@ -45,7 +46,7 @@ public class OwnerChatRepository {
   }
 
   List<OwnerChat> listAll() {
-    try (var connection = dataSource.getConnection();
+    try (var connection = dataSources.get().getConnection();
         var statement = connection.prepareStatement(
             "SELECT provider_id, chat_id, last_seen FROM owner_chat ORDER BY provider_id");
         var rows = statement.executeQuery()) {

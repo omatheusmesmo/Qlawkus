@@ -7,7 +7,7 @@ h|[.header-title]##Configuration property##
 h|Type
 h|Default
 
-a|icon:lock[title=Fixed at build time] [[qlawkus-client_qlawkus-cognition-backend]] [.property-path]##link:#qlawkus-client_qlawkus-cognition-backend[`+++qlawkus.cognition.backend+++`]##
+a| [[qlawkus-client_qlawkus-cognition-backend]] [.property-path]##link:#qlawkus-client_qlawkus-cognition-backend[`+++qlawkus.cognition.backend+++`]##
 ifdef::add-copy-button-to-config-props[]
 config_property_copy_button:+++qlawkus.cognition.backend+++[]
 endif::add-copy-button-to-config-props[]
@@ -17,7 +17,9 @@ endif::add-copy-button-to-config-props[]
 --
 The cognition persistence backend. `markdown` keeps curated content in files and needs no database; `pgvector` puts embeddings in Postgres; `hybrid` uses files as the source of truth mirrored into pgvector.
 
-The value only selects among backends that are actually on the classpath. The markdown stores are the `@DefaultBean`, so a build without the `cognition-pgvector` extension runs on files whatever this says; with the extension present, this picks between the three. The reference `app` sets `hybrid`.
+The value only selects among backends that are actually on the classpath. The markdown stores are the `@DefaultBean`, so a build without the `cognition-pgvector` extension runs on files whatever this says. With the extension present and nothing set, a configured `quarkus.datasource.jdbc.url` means `pgvector` and its absence means `markdown`, which also switches the datasource, Hibernate ORM and Flyway off. A value set here wins over both. The declared default is therefore `markdown` only when no datasource URL is configured.
+
+Allowed values, case-insensitive: `markdown`, `pgvector`, `hybrid`. Any other value fails the boot with a configuration error.
 
 
 ifdef::add-copy-button-to-env-var[]
@@ -28,7 +30,7 @@ Environment variable: `+++QLAWKUS_COGNITION_BACKEND+++`
 endif::add-copy-button-to-env-var[]
 --
 a|`markdown`, `pgvector`, `hybrid`
-|`+++pgvector+++`
+|`+++markdown+++`
 
 |===
 

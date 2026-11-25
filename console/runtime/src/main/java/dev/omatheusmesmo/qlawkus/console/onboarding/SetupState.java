@@ -30,6 +30,13 @@ public class SetupState {
         this.secrets = secrets;
     }
 
+    /** The cognition backend this boot runs on, {@code markdown} when nothing chose another. */
+    public String currentBackend() {
+        return ConfigProvider.getConfig()
+                .getOptionalValue("qlawkus.cognition.backend", String.class)
+                .orElse("markdown");
+    }
+
     /**
      * Whether a usable LLM API key is configured: present and not one of the known placeholders that
      * a fresh install or a test fixture leaves in place.

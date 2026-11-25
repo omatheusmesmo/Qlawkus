@@ -58,7 +58,24 @@
         </section>
 
         <section class="step">
-            <h2 class="step-title">2. Capabilities</h2>
+            <h2 class="step-title">2. Storage <span class="pill pill-ok">{currentBackend}</span></h2>
+            <p class="muted">Where memory lives. Files need nothing; Postgres (with pgvector) scales and survives a rebuild. Saved to the keystore; applies on the next restart.</p>
+            <form class="form" hx-post="/console/setup/storage" hx-target="#storage-result" hx-swap="innerHTML">
+                <label class="field"><span class="field-label">Backend</span>
+                    <select class="select" name="backend">
+                        {#for b in backends}<option value="{b}"{#if b == currentBackend} selected{/if}>{b}</option>{/for}
+                    </select>
+                </label>
+                <label class="field"><span class="field-label">JDBC URL (Postgres only)</span><input class="input" name="jdbcUrl" placeholder="jdbc:postgresql://host:5432/qlawkus"></label>
+                <label class="field"><span class="field-label">Username</span><input class="input" name="username" placeholder="qlawkus"></label>
+                <label class="field"><span class="field-label">Password</span><input class="input" name="password" type="password" placeholder="database password"></label>
+                <button type="submit" class="btn btn-primary">Save storage</button>
+            </form>
+            <div id="storage-result" class="result"></div>
+        </section>
+
+        <section class="step">
+            <h2 class="step-title">3. Capabilities</h2>
             <p class="muted">What gets compiled into the agent. Staged as a manifest; applies on rebuild + redeploy.</p>
             <form class="form" hx-post="/console/setup/capabilities" hx-target="#caps-result" hx-swap="innerHTML">
                 {#for c in capabilities}
@@ -83,7 +100,7 @@
 
         {#if phaseB}
         <section class="step">
-            <h2 class="step-title">3. After the rebuild</h2>
+            <h2 class="step-title">4. After the rebuild</h2>
             <p class="muted">Steps unlocked by capabilities that are now compiled in.</p>
             {#for step in phaseB}
                 {#if step.kind == 'GOOGLE_OAUTH'}

@@ -3,8 +3,9 @@ name: Publish images
 run-name: Publish images ${{ inputs.version }}
 
 # Builds the JVM and native container images in-container (the Dockerfiles compile the reactor
-# themselves, so no host Maven step is needed) and pushes them to GHCR. Both are the markdown
-# composition and need no database; the Postgres composition and the devtools variant (git and gh) are
+# themselves, so no host Maven step is needed) and pushes them to GHCR. Both are the image
+# composition: they run on files with no database and switch to Postgres when a datasource is
+# configured. The full composition (Google Workspace, Brag) and the devtools variant (git and gh) are
 # built from source (./run.sh prod, QLAWKUS_IMAGE_VARIANT=devtools). Called by
 # release-perform.yml with the release tag; dispatch it by hand on a branch to rehearse the build
 # (push defaults to false, so nothing leaves the runner).
@@ -97,11 +98,11 @@ jobs:
             dockerfile: app/src/main/docker/Dockerfile.jvm-build
             build-args: |
               QLAWKUS_IMAGE_VARIANT=base
-              QLAWKUS_STORE=markdown
+              QLAWKUS_COMPOSITION=image
             suffix: ''
           - name: native
             dockerfile: app/src/main/docker/Dockerfile.native-build
-            build-args: QLAWKUS_STORE=markdown
+            build-args: QLAWKUS_COMPOSITION=image
             suffix: -native
     steps:
       - uses: actions/checkout@v7

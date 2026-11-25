@@ -4,8 +4,8 @@ import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
 import dev.omatheusmesmo.qlawkus.store.markdown.MarkdownScheduledTaskStore;
 import dev.omatheusmesmo.qlawkus.task.ScheduledTask;
-import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import java.nio.file.Path;
 import java.util.List;
@@ -13,11 +13,10 @@ import java.util.List;
 /**
  * Hybrid {@link ScheduledTaskStore}, active when {@code qlawkus.cognition.backend=hybrid}. Each task is
  * written to its file (the source of truth, editable and versionable) and mirrored into the
- * {@code scheduled_task} table; reads come from the files. Selected at build time via
- * {@link IfBuildProperty}.
+ * {@code scheduled_task} table; reads come from the files. Chosen at boot by {@link CognitionStoreSelector}.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "hybrid")
+@Typed(HybridScheduledTaskStore.class)
 public class HybridScheduledTaskStore implements ScheduledTaskStore {
 
   private final MarkdownScheduledTaskStore files;

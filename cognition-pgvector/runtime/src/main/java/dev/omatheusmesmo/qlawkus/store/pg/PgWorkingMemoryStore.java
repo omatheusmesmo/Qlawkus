@@ -5,8 +5,8 @@ import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.omatheusmesmo.qlawkus.store.ChatMessageJson;
 import dev.omatheusmesmo.qlawkus.store.MessagesAppendedEvent;
 import dev.omatheusmesmo.qlawkus.store.WorkingMemoryStore;
-import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "pgvector", enableIfMissing = true)
+@Typed(PgWorkingMemoryStore.class)
 public class PgWorkingMemoryStore implements WorkingMemoryStore, ChatMemoryStore {
 
   @Inject

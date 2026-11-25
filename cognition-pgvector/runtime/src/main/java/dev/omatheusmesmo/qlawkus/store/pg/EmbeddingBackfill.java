@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.store.pg;
 
+import jakarta.enterprise.inject.Instance;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -40,7 +41,7 @@ public class EmbeddingBackfill {
   private static final int BATCH = 32;
 
   @Inject
-  DataSource dataSource;
+  Instance<DataSource> dataSources;
 
   @Inject
   EmbeddingModel embeddingModel;
@@ -48,7 +49,13 @@ public class EmbeddingBackfill {
   @Inject
   AgentMeters meters;
 
+  @Inject
+  CognitionBackendState backend;
+
   void onStart(@Observes StartupEvent event) {
+    if (!backend.usesPostgres()) {
+      return;
+    }
     Thread.ofVirtual().name(JOB).start(() -> {
       try {
         WorkloadContext.runAs(WorkloadContext.BATCH, () -> meters.timeJob(JOB, this::reembedMissing));
@@ -74,7 +81,7 @@ public class EmbeddingBackfill {
   }
 
   private List<Row> missing() {
-    try (Connection connection = dataSource.getConnection();
+    try (Connection connection = dataSources.get().getConnection();
         PreparedStatement statement = connection.prepareStatement(
             "SELECT embedding_id, text FROM embeddings WHERE embedding IS NULL LIMIT " + BATCH);
         ResultSet result = statement.executeQuery()) {
@@ -89,7 +96,7 @@ public class EmbeddingBackfill {
   }
 
   private void write(List<Row> rows, List<Embedding> vectors) {
-    try (Connection connection = dataSource.getConnection();
+    try (Connection connection = dataSources.get().getConnection();
         PreparedStatement statement = connection.prepareStatement(
             "UPDATE embeddings SET embedding = ?::vector WHERE embedding_id = ?")) {
       for (int i = 0; i < rows.size(); i++) {

@@ -2,18 +2,16 @@ package dev.omatheusmesmo.qlawkus.store.pg;
 
 import dev.omatheusmesmo.qlawkus.store.ScheduledTaskStore;
 import dev.omatheusmesmo.qlawkus.task.ScheduledTask;
-import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import java.util.List;
 
 /**
- * Postgres-backed {@link ScheduledTaskStore}, active when {@code qlawkus.cognition.backend=pgvector} (the
- * default). Tasks are rows in the {@code scheduled_task} table. Selected at build time via
- * {@link IfBuildProperty}, so other backends do not wire it at all.
+ * Postgres-backed {@link ScheduledTaskStore}, active when {@code qlawkus.cognition.backend=pgvector}. Tasks are rows in the {@code scheduled_task} table. Chosen at boot by {@link CognitionStoreSelector}.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "pgvector", enableIfMissing = true)
+@Typed(PgScheduledTaskStore.class)
 public class PgScheduledTaskStore implements ScheduledTaskStore {
 
   private final ScheduledTaskRepository tasks;

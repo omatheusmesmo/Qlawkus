@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.audit;
 
+import dev.omatheusmesmo.qlawkus.store.pg.CognitionBackendState;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 import dev.langchain4j.invocation.InvocationContext;
@@ -38,12 +39,13 @@ public class DebugHistoryRecorder {
     private static final int EXCERPT_LIMIT = 2048;
 
     @Inject DebugHistoryConfig config;
+    @Inject CognitionBackendState backend;
     @Inject PgDebugJournal journal;
     @Inject ObjectMapper json;
     @Inject SecretRedactor redactor;
 
     void task(@Observes TaskAuditEvent event) {
-        if (!config.enabled()) return;
+        if (!config.enabled() || !backend.usesPostgres()) return;
         var detail = json.createObjectNode();
         if (event.nextFire() != null) detail.put("nextFire", event.nextFire().toString());
         if (event.errorType() != null) detail.put("errorType", event.errorType());
@@ -55,7 +57,7 @@ public class DebugHistoryRecorder {
     }
 
     void service(@Observes AiServiceEvent event) {
-        if (!config.enabled()) return;
+        if (!config.enabled() || !backend.usesPostgres()) return;
         InvocationContext context = event.invocationContext();
         if (context == null || context.interfaceName() == null || !AGENTS.contains(context.interfaceName())) return;
         try {

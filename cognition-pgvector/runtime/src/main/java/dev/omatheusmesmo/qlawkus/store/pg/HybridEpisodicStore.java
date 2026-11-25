@@ -4,9 +4,9 @@ import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.dto.JournalSummary;
 import dev.omatheusmesmo.qlawkus.store.EpisodicStore;
 import dev.omatheusmesmo.qlawkus.store.markdown.MarkdownEpisodicFiles;
-import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -16,10 +16,10 @@ import java.util.List;
  * Hybrid {@link EpisodicStore}, active when {@code qlawkus.cognition.backend=hybrid}. Journals are
  * written to dated {@code <date>.md} files (the editable, git-versionable source of truth) and
  * mirrored into the {@code Journal} table; reads run against the table so summaries carry real
- * database ids. Selected at build time via {@link IfBuildProperty}.
+ * database ids. Chosen at boot by {@link CognitionStoreSelector}.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "hybrid")
+@Typed(HybridEpisodicStore.class)
 public class HybridEpisodicStore implements EpisodicStore {
 
   private final MarkdownEpisodicFiles files;

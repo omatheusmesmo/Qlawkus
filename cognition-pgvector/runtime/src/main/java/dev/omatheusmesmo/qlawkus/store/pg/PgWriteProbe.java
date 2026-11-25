@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.store.pg;
 
+import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.sql.Connection;
@@ -52,10 +53,10 @@ public class PgWriteProbe {
   }
 
   @Inject
-  DataSource dataSource;
+  Instance<DataSource> dataSources;
 
   public void verify(Table table) {
-    try (Connection connection = dataSource.getConnection()) {
+    try (Connection connection = dataSources.get().getConnection()) {
       verify(connection, table);
     } catch (SQLException e) {
       throw new IllegalStateException("Cannot reach the database to probe table " + table.name, e);

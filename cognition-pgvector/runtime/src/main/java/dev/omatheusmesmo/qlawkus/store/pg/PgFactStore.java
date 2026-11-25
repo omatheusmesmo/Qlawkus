@@ -12,10 +12,10 @@ import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.store.FactChunker;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
-import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.logging.Log;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,12 +24,10 @@ import java.util.function.BiPredicate;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 
 /**
- * Postgres/pgvector-backed {@link FactStore}, active when {@code qlawkus.cognition.backend=pgvector}
- * (the default). Selected at build time via {@link IfBuildProperty}, so other backends do not wire
- * it at all.
+ * Postgres/pgvector-backed {@link FactStore}, active when {@code qlawkus.cognition.backend=pgvector}. Chosen at boot by {@link CognitionStoreSelector}.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "pgvector", enableIfMissing = true)
+@Typed(PgFactStore.class)
 public class PgFactStore implements FactStore {
 
   @Inject

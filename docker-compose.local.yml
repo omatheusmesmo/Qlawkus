@@ -11,6 +11,7 @@ services:
         required: false
     environment:
       - QUARKUS_PROFILE=prod
+      - QLAWKUS_COGNITION_BACKEND=hybrid
       - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-qlawkus}
       - QUARKUS_DATASOURCE_USERNAME=${POSTGRES_USER:-qlawkus}
       - QUARKUS_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-qlawkus}

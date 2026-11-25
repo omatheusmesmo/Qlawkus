@@ -63,7 +63,7 @@ In the xref:console.adoc[Console] admin UI, `/console/memory` runs review, curat
 
 == Storage backends
 
-Memory persistence is selected at build time with `qlawkus.cognition.backend` (`markdown`, `pgvector` or `hybrid`), the same switch that governs every cognition store. Whichever backend is active, fact retrieval is the same query-relevant top-K RAG path described above - the choice is about how embeddings are persisted (rebuilt in-process each boot versus stored durably in Postgres), never the recall model.
+Memory persistence is selected when the application boots, with `qlawkus.cognition.backend` (`markdown`, `pgvector` or `hybrid`), the same switch that governs every cognition store. Whichever backend is active, fact retrieval is the same query-relevant top-K RAG path described above - the choice is about how embeddings are persisted (rebuilt in-process each boot versus stored durably in Postgres), never the recall model.
 
 The full treatment - the backend table, the optional `qlawkus-cognition-pgvector` extension and the database-free distribution, file locations, and how to reconcile or migrate data between markdown and pgvector - lives in xref:storage.adoc[Storage].
 

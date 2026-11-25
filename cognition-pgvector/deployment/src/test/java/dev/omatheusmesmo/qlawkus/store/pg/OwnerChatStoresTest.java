@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.store.pg;
 
+import io.quarkus.arc.ClientProxy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -57,7 +58,7 @@ class OwnerChatStoresTest {
 
   @Test
   void pgvectorKeepsTheLatestObservationAndChecksItsTable() {
-    assertInstanceOf(PgOwnerChatStore.class, store);
+    assertInstanceOf(PgOwnerChatStore.class, ClientProxy.unwrap(store));
     store.save(NEW_DISCORD);
     store.save(OLD_DISCORD);
     store.verifyWritable();

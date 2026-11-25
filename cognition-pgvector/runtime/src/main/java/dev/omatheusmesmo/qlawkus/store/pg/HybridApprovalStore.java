@@ -5,9 +5,9 @@ import dev.omatheusmesmo.qlawkus.approval.ApprovalStatus;
 import dev.omatheusmesmo.qlawkus.approval.ApprovalStore;
 import dev.omatheusmesmo.qlawkus.approval.FileApprovalStore;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
-import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import java.nio.file.Path;
 import java.util.List;
@@ -21,7 +21,7 @@ import java.util.function.UnaryOperator;
  * or blocks a decision the files already recorded, because the decision gates an external effect.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "hybrid")
+@Typed(HybridApprovalStore.class)
 public class HybridApprovalStore implements ApprovalStore {
 
   private final FileApprovalStore files;
