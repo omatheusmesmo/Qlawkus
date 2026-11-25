@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.store.pg;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -16,18 +17,18 @@ public class EmbeddingRepository {
   private static final String FACT_KEY = "COALESCE(metadata->>'factHash', CAST(embedding_id AS text))";
 
   @Inject
-  EntityManager entityManager;
+  Instance<EntityManager> entityManagers;
 
   @Transactional
   public List<String> listSources() {
-    return entityManager.createNativeQuery(
+    return entityManagers.get().createNativeQuery(
         "SELECT DISTINCT metadata->>'source' FROM embeddings WHERE metadata IS NOT NULL")
         .getResultList();
   }
 
   @Transactional
   public long countBySource(String source) {
-    Object result = entityManager.createNativeQuery(
+    Object result = entityManagers.get().createNativeQuery(
         "SELECT COUNT(*) FROM embeddings WHERE metadata->>'source' = ?1")
         .setParameter(1, source)
         .getSingleResult();
@@ -36,7 +37,7 @@ public class EmbeddingRepository {
 
   @Transactional
   public long deleteBySource(String source) {
-    return entityManager.createNativeQuery(
+    return entityManagers.get().createNativeQuery(
         "DELETE FROM embeddings WHERE metadata->>'source' = ?1")
         .setParameter(1, source)
         .executeUpdate();
@@ -44,7 +45,7 @@ public class EmbeddingRepository {
 
   @Transactional
   public long deleteAll() {
-    return entityManager.createNativeQuery("DELETE FROM embeddings")
+    return entityManagers.get().createNativeQuery("DELETE FROM embeddings")
         .executeUpdate();
   }
 
@@ -66,7 +67,7 @@ public class EmbeddingRepository {
   @Transactional
   @SuppressWarnings("unchecked")
   public List<NearPair> nearDuplicatePairs(double maxCosineDistance) {
-    List<Object[]> rows = entityManager.createNativeQuery(
+    List<Object[]> rows = entityManagers.get().createNativeQuery(
         "WITH segments AS (SELECT embedding_id, embedding, text, metadata, " + FACT_KEY + " AS fact_key "
             + "FROM embeddings), "
             + "facts AS (SELECT DISTINCT ON (fact_key) fact_key, COALESCE(metadata->>'factText', text) AS fact_text "
@@ -90,7 +91,7 @@ public class EmbeddingRepository {
     if (factKeys.isEmpty()) {
       return 0;
     }
-    return entityManager.createNativeQuery("DELETE FROM embeddings WHERE " + FACT_KEY + " IN (:keys)")
+    return entityManagers.get().createNativeQuery("DELETE FROM embeddings WHERE " + FACT_KEY + " IN (:keys)")
         .setParameter("keys", factKeys)
         .executeUpdate();
   }
@@ -103,7 +104,7 @@ public class EmbeddingRepository {
   @Transactional
   @SuppressWarnings("unchecked")
   public List<String> listFactTexts(int limit) {
-    return entityManager.createNativeQuery(
+    return entityManagers.get().createNativeQuery(
         "SELECT COALESCE(metadata->>'factText', text) FROM embeddings "
             + "WHERE metadata->>'source' IN ('remember-tool','semantic-extractor') "
             + "AND COALESCE(metadata->>'chunkIndex', '0') = '0' "
@@ -124,7 +125,7 @@ public class EmbeddingRepository {
   @Transactional
   @SuppressWarnings("unchecked")
   public List<FactRow> loadAllFacts() {
-    List<Object[]> rows = entityManager.createNativeQuery(
+    List<Object[]> rows = entityManagers.get().createNativeQuery(
         "SELECT COALESCE(metadata->>'factText', text), metadata::text FROM embeddings "
             + "WHERE COALESCE(metadata->>'chunkIndex', '0') = '0' ORDER BY embedding_id")
         .getResultList();
@@ -135,7 +136,7 @@ public class EmbeddingRepository {
 
   @Transactional
   public boolean existsByContentHash(String hash) {
-    Object result = entityManager.createNativeQuery(
+    Object result = entityManagers.get().createNativeQuery(
         "SELECT EXISTS(SELECT 1 FROM embeddings WHERE content_hash = ?1)")
         .setParameter(1, hash)
         .getSingleResult();

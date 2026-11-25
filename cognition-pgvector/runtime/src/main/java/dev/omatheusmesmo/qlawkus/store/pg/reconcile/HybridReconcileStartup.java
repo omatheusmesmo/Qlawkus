@@ -1,9 +1,10 @@
 package dev.omatheusmesmo.qlawkus.store.pg.reconcile;
 
-import io.quarkus.arc.properties.IfBuildProperty;
+import dev.omatheusmesmo.qlawkus.store.pg.CognitionBackendState;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -16,16 +17,22 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * Failures are logged, never fatal to boot.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "hybrid")
+@Typed(HybridReconcileStartup.class)
 public class HybridReconcileStartup {
 
   @Inject
   CognitionReconciler reconciler;
 
+  @Inject
+  CognitionBackendState backend;
+
   @ConfigProperty(name = "qlawkus.cognition.reconcile-at-start", defaultValue = "true")
   boolean reconcileAtStart;
 
   void onStart(@Observes StartupEvent event) {
+    if (!backend.isHybrid()) {
+      return;
+    }
     if (!reconcileAtStart) {
       Log.debug("Hybrid reconcile-at-start disabled; skipping");
       return;

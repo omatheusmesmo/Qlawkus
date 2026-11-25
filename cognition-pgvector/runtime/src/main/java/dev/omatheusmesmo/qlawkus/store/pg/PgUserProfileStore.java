@@ -2,17 +2,16 @@ package dev.omatheusmesmo.qlawkus.store.pg;
 
 import dev.omatheusmesmo.qlawkus.cognition.UserProfile;
 import dev.omatheusmesmo.qlawkus.store.UserProfileStore;
-import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 /**
- * Postgres-backed {@link UserProfileStore}, active when {@code qlawkus.cognition.backend=pgvector}
- * (the default). The owner is the singleton {@code user_profile} row seeded by Flyway.
+ * Postgres-backed {@link UserProfileStore}, active when {@code qlawkus.cognition.backend=pgvector}. The owner is the singleton {@code user_profile} row seeded by Flyway.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "pgvector", enableIfMissing = true)
+@Typed(PgUserProfileStore.class)
 public class PgUserProfileStore implements UserProfileStore {
 
   @Inject

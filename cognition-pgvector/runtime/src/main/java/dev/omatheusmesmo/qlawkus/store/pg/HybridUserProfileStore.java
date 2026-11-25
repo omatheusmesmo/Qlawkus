@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.store.pg;
 
-import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 
 /**
  * Owner-profile store for {@code qlawkus.cognition.backend=hybrid}: a straight reuse of
@@ -9,6 +9,6 @@ import jakarta.enterprise.context.ApplicationScoped;
  * mode.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "hybrid")
+@Typed(HybridUserProfileStore.class)
 public class HybridUserProfileStore extends PgUserProfileStore {
 }

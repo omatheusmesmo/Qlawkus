@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.console.onboarding;
 
 import dev.omatheusmesmo.qlawkus.compose.CompositionAdminService;
+import dev.omatheusmesmo.qlawkus.config.CognitionConfig;
 import dev.omatheusmesmo.qlawkus.model.ProviderKind;
 import dev.omatheusmesmo.qlawkus.secrets.KeystoreSecretWriter;
 import io.quarkus.qute.Location;
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * The first-run onboarding wizard, served inside the console at {@code /console/setup}. It never
@@ -40,6 +42,11 @@ public class OnboardingResource {
     private static final String LLM_API_KEY = "quarkus.langchain4j.openai.\"primary\".api-key";
     private static final String LLM_BASE_URL = "quarkus.langchain4j.openai.\"primary\".base-url";
     private static final String LLM_CHAT_MODEL = "quarkus.langchain4j.openai.\"primary\".chat-model.model-name";
+    private static final String COGNITION_BACKEND = "qlawkus.cognition.backend";
+    private static final String DATASOURCE_URL = "quarkus.datasource.jdbc.url";
+    private static final Pattern POSTGRES_URL = Pattern.compile("jdbc:postgresql://[^/?\\s]+(/\\S*)?");
+    private static final String DATASOURCE_USERNAME = "quarkus.datasource.username";
+    private static final String DATASOURCE_PASSWORD = "quarkus.datasource.password";
     private static final String CONSOLE_CAPABILITY = "console";
     private static final String GOOGLE_CLIENT_ID = "qlawkus.google.auth.client-id";
     private static final String GOOGLE_CLIENT_SECRET = "qlawkus.google.auth.client-secret";
@@ -76,6 +83,8 @@ public class OnboardingResource {
         }
         return setup
                 .data("llmConfigured", state.llmConfigured())
+                .data("backends", backendNames())
+                .data("currentBackend", state.currentBackend())
                 .data("providers", providerNames())
                 .data("capabilities", caps)
                 .data("phaseB", phaseB)
@@ -107,6 +116,41 @@ public class OnboardingResource {
             return ok("LLM settings saved to the keystore.", "Restart the app to apply them.");
         } catch (RuntimeException e) {
             return err("Could not save LLM settings: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Stores where the agent keeps its memory. {@code markdown} needs nothing else; {@code pgvector}
+     * and {@code hybrid} need the PostgreSQL connection, which lands in the keystore under the
+     * datasource keys so it applies on the next restart without a rebuild (the image carries the
+     * Postgres extension either way). Nothing is stored unless the whole choice is valid.
+     */
+    @POST
+    @Path("/storage")
+    public TemplateInstance saveStorage(@RestForm String backend, @RestForm String jdbcUrl,
+                                        @RestForm String username, @RestForm String password) {
+        String chosen = backend == null ? "" : backend.trim().toLowerCase(Locale.ROOT);
+        if (!backendNames().contains(chosen)) {
+            return err("Unknown storage: " + (backend == null ? "" : backend.trim()));
+        }
+        boolean postgres = !"markdown".equals(chosen);
+        if (postgres && (jdbcUrl == null || !POSTGRES_URL.matcher(jdbcUrl.trim()).matches())) {
+            return err("A JDBC URL like jdbc:postgresql://host:5432/database is required for " + chosen + ".");
+        }
+        try {
+            secrets.setSecret(COGNITION_BACKEND, chosen);
+            if (postgres) {
+                secrets.setSecret(DATASOURCE_URL, jdbcUrl.trim());
+                if (username != null && !username.isBlank()) {
+                    secrets.setSecret(DATASOURCE_USERNAME, username.trim());
+                }
+                if (password != null && !password.isBlank()) {
+                    secrets.setSecret(DATASOURCE_PASSWORD, password);
+                }
+            }
+            return ok("Storage saved to the keystore.", "Restart the app to apply it.");
+        } catch (RuntimeException e) {
+            return err("Could not save the storage settings: " + e.getMessage());
         }
     }
 
@@ -155,6 +199,12 @@ public class OnboardingResource {
             case GOOGLE_OAUTH -> state.propertiesConfigured(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
             case NONE -> false;
         };
+    }
+
+    private static List<String> backendNames() {
+        return Arrays.stream(CognitionConfig.Backend.values())
+                .map(backend -> backend.name().toLowerCase(Locale.ROOT))
+                .toList();
     }
 
     private static List<String> providerNames() {

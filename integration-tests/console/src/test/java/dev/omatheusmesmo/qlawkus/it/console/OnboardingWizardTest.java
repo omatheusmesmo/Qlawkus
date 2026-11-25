@@ -28,8 +28,9 @@ class OnboardingWizardTest {
   private static final Path KEYSTORE = Path.of("target/console/secrets.p12");
 
   @BeforeEach
-  void clearStaged() throws IOException {
+  void clearStagedAndStored() throws IOException {
     Files.deleteIfExists(STAGED);
+    Files.deleteIfExists(KEYSTORE);
   }
 
   /**
@@ -55,6 +56,7 @@ class OnboardingWizardTest {
         .then().statusCode(200)
         .body(containsString("First-run setup"))
         .body(containsString("/console/setup/llm"))
+        .body(containsString("/console/setup/storage"))
         .body(containsString("name=\"capability\""))
         .body(containsString("Google is built in"))
         .body(containsString("/console/setup/messaging"));
@@ -121,6 +123,92 @@ class OnboardingWizardTest {
         .then().statusCode(200)
         .body(not(containsString("qlawkus.openai.kind")))
         .body(not(containsString("langchain4j.openai")));
+  }
+
+  @Test
+  void storageStep_postgresStoresTheBackendAndTheDatasource() {
+    given().auth().preemptive().basic(USER, PASS)
+        .contentType("application/x-www-form-urlencoded")
+        .formParam("backend", "hybrid")
+        .formParam("jdbcUrl", "jdbc:postgresql://db:5432/qlawkus")
+        .formParam("username", "qlawkus")
+        .formParam("password", "secret")
+        .when().post("/console/setup/storage")
+        .then().statusCode(200)
+        .body(containsString("saved"));
+
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get("/api/admin/secrets")
+        .then().statusCode(200)
+        .body(containsString("qlawkus.cognition.backend"))
+        .body(containsString("quarkus.datasource.jdbc.url"))
+        .body(containsString("quarkus.datasource.username"))
+        .body(containsString("quarkus.datasource.password"));
+  }
+
+  @Test
+  void storageStep_markdownStoresOnlyTheChoice() {
+    given().auth().preemptive().basic(USER, PASS)
+        .contentType("application/x-www-form-urlencoded")
+        .formParam("backend", "markdown")
+        .when().post("/console/setup/storage")
+        .then().statusCode(200)
+        .body(containsString("saved"));
+
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get("/api/admin/secrets")
+        .then().statusCode(200)
+        .body(containsString("qlawkus.cognition.backend"))
+        .body(not(containsString("quarkus.datasource.jdbc.url")));
+  }
+
+  @Test
+  void storageStep_postgresNeedsAJdbcUrlAndStoresNothingWithout() {
+    given().auth().preemptive().basic(USER, PASS)
+        .contentType("application/x-www-form-urlencoded")
+        .formParam("backend", "pgvector")
+        .when().post("/console/setup/storage")
+        .then().statusCode(200)
+        .body(containsString("JDBC URL"));
+
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get("/api/admin/secrets")
+        .then().statusCode(200)
+        .body(not(containsString("qlawkus.cognition.backend")));
+  }
+
+  @Test
+  void storageStep_postgresRejectsAJdbcUrlWithoutAHostAndStoresNothing() {
+    for (String malformed : new String[] {"jdbc:postgresql:", "jdbc:postgresql://", "jdbc:postgresql:///db"}) {
+      given().auth().preemptive().basic(USER, PASS)
+          .contentType("application/x-www-form-urlencoded")
+          .formParam("backend", "pgvector")
+          .formParam("jdbcUrl", malformed)
+          .when().post("/console/setup/storage")
+          .then().statusCode(200)
+          .body(containsString("JDBC URL"));
+    }
+
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get("/api/admin/secrets")
+        .then().statusCode(200)
+        .body(not(containsString("qlawkus.cognition.backend")))
+        .body(not(containsString("quarkus.datasource.jdbc.url")));
+  }
+
+  @Test
+  void storageStep_rejectsAStoreItDoesNotKnow() {
+    given().auth().preemptive().basic(USER, PASS)
+        .contentType("application/x-www-form-urlencoded")
+        .formParam("backend", "mongo")
+        .when().post("/console/setup/storage")
+        .then().statusCode(200)
+        .body(containsString("Unknown storage"));
+
+    given().auth().preemptive().basic(USER, PASS)
+        .when().get("/api/admin/secrets")
+        .then().statusCode(200)
+        .body(not(containsString("qlawkus.cognition.backend")));
   }
 
   @Test

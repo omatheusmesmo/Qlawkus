@@ -7,8 +7,8 @@ import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillOrigin;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
-import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.nio.file.Path;
@@ -20,10 +20,10 @@ import java.util.Set;
  * Hybrid {@link SkillStore}, active when {@code qlawkus.cognition.backend=hybrid}. SKILL.md files
  * are the source of truth (reads and the canonical write); every write is also mirrored into the
  * {@code skill} table so the content is available to pgvector-backed ranking and search later.
- * Selected at build time via {@link IfBuildProperty}.
+ * Chosen at boot by {@link CognitionStoreSelector}.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "hybrid")
+@Typed(HybridSkillStore.class)
 public class HybridSkillStore implements SkillStore {
 
   private final MarkdownSkillFiles files;

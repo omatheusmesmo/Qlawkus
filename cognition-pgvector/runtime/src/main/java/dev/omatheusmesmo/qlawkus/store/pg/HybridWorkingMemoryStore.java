@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.store.pg;
 
-import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 
 /**
  * Working-memory store for {@code qlawkus.cognition.backend=hybrid}. The rolling chat log is
@@ -11,6 +11,6 @@ import jakarta.enterprise.context.ApplicationScoped;
  * source-of-truth + pg mirror in hybrid mode.)
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "hybrid")
+@Typed(HybridWorkingMemoryStore.class)
 public class HybridWorkingMemoryStore extends PgWorkingMemoryStore {
 }

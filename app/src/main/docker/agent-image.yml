@@ -1,9 +1,10 @@
-# Composition manifest of the markdown image variant (the default published image). Same as
-# src/main/resources/qlawkus/agent.yml minus the three capabilities that need a datasource:
-# cognition.pgvector (the Postgres backend), google-workspace and brag. Dockerfile.jvm-build and
-# Dockerfile.native-build copy this file over agent.yml when built with QLAWKUS_STORE=markdown, and
+# Composition manifest of the published image. Same as src/main/resources/qlawkus/agent.yml minus
+# google-workspace and brag, which each own a named datasource and so need a database of their own.
+# cognition.pgvector stays in: the image runs on files until a datasource is configured, and on
+# Postgres once one is (see StoreBackendConfigSourceFactory). Dockerfile.jvm-build and
+# Dockerfile.native-build copy this file over agent.yml when built with QLAWKUS_COMPOSITION=image, and
 # the pom generator then reconciles the app pom before Quarkus resolves dependencies. Keep it in sync
-# with agent.yml: AppImageManifestTest fails when the two drift apart.
+# with agent.yml: ImageManifestTest fails when the two drift apart.
 # Composition manifest for the reference distribution. Declares which capabilities are
 # compiled into this app. default: disabled + an explicit opt-in list, so a capability
 # added to the reactor later is never pulled in by surprise - you name what you want.
@@ -15,6 +16,7 @@ version: 1
 build-time:
   default: disabled
   except:
+    - cognition.pgvector
     - messaging.discord
     - messaging.telegram
     - skill-hub

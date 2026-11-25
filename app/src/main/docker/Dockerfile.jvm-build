@@ -18,33 +18,33 @@
 # 'devtools', which adds git and gh for the code-review tools. Select it with
 # QLAWKUS_IMAGE_VARIANT=devtools ./run.sh prod, or --build-arg on docker build.
 #
-# QLAWKUS_STORE picks the composition: 'pgvector' (default, what ./run.sh prod runs
-# against Postgres) or 'markdown', which builds app/src/main/docker/agent-markdown.yml
-# in place of agent.yml: no cognition-pgvector, google-workspace or brag, so the image
-# needs no database. The published images are markdown, except the -pgvector one.
+# QLAWKUS_COMPOSITION picks the composition: 'full' (default, what ./run.sh prod runs)
+# or 'image', which builds app/src/main/docker/agent-image.yml in place of agent.yml:
+# no google-workspace or brag, which each need a database of their own. The image runs
+# on files and switches to Postgres when a datasource is configured.
 ####
 
 ARG QLAWKUS_IMAGE_VARIANT=base
-ARG QLAWKUS_STORE=pgvector
+ARG QLAWKUS_COMPOSITION=full
 
 # --- Build stage: reactor build (app + its upstream modules) -----------------
 # Runs as root in this throwaway stage; the runtime image below still runs as 185.
 FROM registry.access.redhat.com/ubi10/openjdk-25:1.24 AS build
 USER root
 WORKDIR /code
-ARG QLAWKUS_STORE
+ARG QLAWKUS_COMPOSITION
 COPY . .
-# The markdown composition swaps the manifest and reconciles the app pom in a Maven run of its own:
+# The image composition swaps the manifest and reconciles the app pom in a Maven run of its own:
 # the generator rewrites app/pom.xml on disk, which the run that is already building has read, so
 # only a later invocation sees the dependencies it dropped. The first step installs the plugin (and
 # its model) so that the later steps can run it.
 RUN --mount=type=cache,target=/root/.m2 \
-    if [ "${QLAWKUS_STORE}" = "markdown" ]; then \
-      cp app/src/main/docker/agent-markdown.yml app/src/main/resources/qlawkus/agent.yml \
+    if [ "${QLAWKUS_COMPOSITION}" = "image" ]; then \
+      cp app/src/main/docker/agent-image.yml app/src/main/resources/qlawkus/agent.yml \
       && mvn -B -e -DskipTests -DskipITs -pl composition-maven-plugin -am install \
       && mvn -B -e qlawkus:generate -pl app -am; \
-    elif [ "${QLAWKUS_STORE}" != "pgvector" ]; then \
-      echo "QLAWKUS_STORE must be markdown or pgvector, got ${QLAWKUS_STORE}" >&2; exit 1; \
+    elif [ "${QLAWKUS_COMPOSITION}" != "full" ]; then \
+      echo "QLAWKUS_COMPOSITION must be image or full, got ${QLAWKUS_COMPOSITION}" >&2; exit 1; \
     fi
 # Full reactor install (matches CI). A partial `-pl app -am` build would skip the
 # *-deployment modules, so the extension-descriptor check on qlawkus-client cannot

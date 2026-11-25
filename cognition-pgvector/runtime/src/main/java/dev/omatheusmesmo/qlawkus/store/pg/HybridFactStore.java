@@ -14,9 +14,9 @@ import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.store.FactChunker;
 import dev.omatheusmesmo.qlawkus.store.FactStore;
 import dev.omatheusmesmo.qlawkus.store.markdown.MarkdownFactFiles;
-import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -28,11 +28,10 @@ import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metad
 /**
  * Hybrid {@link FactStore}, active when {@code qlawkus.cognition.backend=hybrid}. Facts are written
  * to {@code .md} files (the editable, git-versionable source of truth) and mirrored into pgvector;
- * retrieval runs against pgvector so it scales and persists. Selected at build time via
- * {@link IfBuildProperty}.
+ * retrieval runs against pgvector so it scales and persists. Chosen at boot by {@link CognitionStoreSelector}.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "hybrid")
+@Typed(HybridFactStore.class)
 public class HybridFactStore implements FactStore {
 
   private final MarkdownFactFiles files;

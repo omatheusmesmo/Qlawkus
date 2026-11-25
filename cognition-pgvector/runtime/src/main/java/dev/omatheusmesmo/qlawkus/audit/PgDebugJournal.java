@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.audit;
 
+import dev.omatheusmesmo.qlawkus.store.pg.CognitionBackendState;
+import jakarta.enterprise.inject.Instance;
 import tools.jackson.databind.ObjectMapper;
 import io.agroal.api.AgroalDataSource;
 import io.quarkus.logging.Log;
@@ -29,15 +31,16 @@ public class PgDebugJournal {
     private static final String INSERT = "INSERT INTO debug_event (" + COLUMNS
             + ") VALUES (?,?,?,?,?,?,?,?,?,?,CAST(? AS jsonb),?)";
 
-    @Inject AgroalDataSource dataSource;
+    @Inject Instance<AgroalDataSource> dataSources;
     @Inject ObjectMapper json;
     @Inject DebugHistoryConfig config;
+    @Inject CognitionBackendState backend;
 
     private final ArrayBlockingQueue<DebugEntry> pending = new ArrayBlockingQueue<>(QUEUE_SIZE);
     private final AtomicLong dropped = new AtomicLong();
 
     void enqueue(DebugEntry entry) {
-        if (config.enabled() && !pending.offer(entry)) {
+        if (config.enabled() && backend.usesPostgres() && !pending.offer(entry)) {
             dropped.incrementAndGet();
         }
     }
@@ -58,7 +61,7 @@ public class PgDebugJournal {
     }
 
     private void append(List<DebugEntry> batch) throws SQLException {
-        try (Connection connection = dataSource.getConnection()) {
+        try (Connection connection = dataSources.get().getConnection()) {
             connection.setAutoCommit(false);
             try (var stmt = connection.prepareStatement(INSERT)) {
                 for (DebugEntry e : batch) {
@@ -88,12 +91,14 @@ public class PgDebugJournal {
     @Scheduled(every = "1h", delayed = "60s",
             concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     void expire() {
-        pruneAt(Instant.now());
+        if (backend.usesPostgres()) {
+            pruneAt(Instant.now());
+        }
     }
 
     void pruneAt(Instant now) {
         int days = Math.clamp(config.retentionDays(), 1, 90);
-        try (var connection = dataSource.getConnection();
+        try (var connection = dataSources.get().getConnection();
              var excerpts = connection.prepareStatement(
                      "UPDATE debug_event SET excerpt=NULL WHERE excerpt IS NOT NULL AND occurred_at < ?");
              var events = connection.prepareStatement("DELETE FROM debug_event WHERE occurred_at < ?")) {
@@ -130,7 +135,7 @@ public class PgDebugJournal {
         sql += " ORDER BY occurred_at DESC, id DESC LIMIT ?";
         parameters.add(Math.clamp(limit, 1, 250));
 
-        try (var connection = dataSource.getConnection(); var stmt = connection.prepareStatement(sql)) {
+        try (var connection = dataSources.get().getConnection(); var stmt = connection.prepareStatement(sql)) {
             for (int i = 0; i < parameters.size(); i++) {
                 stmt.setObject(i + 1, parameters.get(i));
             }

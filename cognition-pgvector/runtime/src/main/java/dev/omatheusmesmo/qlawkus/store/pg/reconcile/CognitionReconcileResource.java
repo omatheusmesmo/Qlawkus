@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.store.pg.reconcile;
 
+import dev.omatheusmesmo.qlawkus.store.pg.CognitionBackendState;
 import dev.omatheusmesmo.qlawkus.store.pg.reconcile.CognitionReconciler.Direction;
-import dev.omatheusmesmo.qlawkus.store.pg.reconcile.CognitionReconciler.Stats;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.POST;
@@ -24,11 +24,17 @@ public class CognitionReconcileResource {
   @Inject
   CognitionMigrator migrator;
 
+  @Inject
+  CognitionBackendState backend;
+
   /** Bidirectional, non-destructive union of files and pgvector. Idempotent. */
   @POST
   @Path("/reconcile")
-  public Stats reconcile() {
-    return reconciler.reconcileAll();
+  public Response reconcile() {
+    if (!backend.usesPostgres()) {
+      return noDatabase();
+    }
+    return Response.ok(reconciler.reconcileAll()).build();
   }
 
   /**
@@ -38,6 +44,9 @@ public class CognitionReconcileResource {
   @POST
   @Path("/migrate")
   public Response migrate(@QueryParam("direction") String direction) {
+    if (!backend.usesPostgres()) {
+      return noDatabase();
+    }
     Direction parsed = parse(direction);
     if (parsed == null) {
       return Response.status(Response.Status.BAD_REQUEST)
@@ -45,6 +54,12 @@ public class CognitionReconcileResource {
           .build();
     }
     return Response.ok(migrator.migrate(parsed)).build();
+  }
+
+  private static Response noDatabase() {
+    return Response.status(Response.Status.CONFLICT)
+        .entity(Map.of("error", "this boot runs on markdown; set qlawkus.cognition.backend to hybrid or pgvector and configure a datasource"))
+        .build();
   }
 
   private static Direction parse(String direction) {

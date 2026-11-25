@@ -4,20 +4,19 @@ import dev.omatheusmesmo.qlawkus.approval.ApprovalRequest;
 import dev.omatheusmesmo.qlawkus.approval.ApprovalStatus;
 import dev.omatheusmesmo.qlawkus.approval.ApprovalStore;
 import dev.omatheusmesmo.qlawkus.approval.FileApprovalStore;
-import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
 /**
- * Postgres-backed {@link ApprovalStore}, active when {@code qlawkus.cognition.backend=pgvector} (the
- * default). Requests are rows in the {@code approval_request} table and a decision is a compare-and-set
- * under a row lock. Selected at build time via {@link IfBuildProperty}, so other backends do not wire it.
+ * Postgres-backed {@link ApprovalStore}, active when {@code qlawkus.cognition.backend=pgvector}. Requests are rows in the {@code approval_request} table and a decision is a compare-and-set
+ * under a row lock. Chosen at boot by {@link CognitionStoreSelector}.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "pgvector", enableIfMissing = true)
+@Typed(PgApprovalStore.class)
 public class PgApprovalStore implements ApprovalStore {
 
   private final ApprovalRequestRepository requests;

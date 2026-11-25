@@ -40,7 +40,7 @@ It also reports a provider that keeps giving a permanent answer: a retired model
 
 `qlawkus-migrations`:: Present only when the `cognition-pgvector` extension is on the classpath. Answers whether the schema is at the version this build expects, which the built-in datasource check does not: a pod pointed at a database behind on migrations connects fine, passes readiness, and then fails at query time. Under the shipped default (`quarkus.flyway.migrate-at-start=true`) the agent applies its own migrations before serving, so this reports UP on every poll. It earns its place where that is turned off - the application has no DDL rights and a DBA applies migrations out of band, or a rolling deploy puts a pod carrying newer migrations in front of a database that has not been upgraded. There the pod stays out of rotation and flips to ready on its own once the schema catches up.
 
-A database-free distribution has no `qlawkus-migrations` check at all rather than one that passes vacuously. Checks that are meaningful on only one backend ship with that backend.
+A database-free distribution has no `qlawkus-migrations` check at all rather than one that passes vacuously. Checks that are meaningful on only one backend ship with that backend. On a `markdown` boot of a build that carries the Postgres extension, Flyway is switched off and the check reports `UP` with `flyway: unavailable`.
 
 == What is not checked
 
@@ -114,7 +114,7 @@ The reference stack sets `quarkus.shutdown.delay=3s` (so load balancers can stop
 
 == PostgreSQL debug history
 
-The reference app keeps an execution history in the existing Postgres database. Distributions that include `cognition.pgvector` can enable it with `qlawkus.debug-history.enabled=true`. Read it using the same credentials as the other admin endpoints.
+The reference app keeps an execution history in the existing Postgres database. Distributions that include `cognition.pgvector` can enable it with `qlawkus.debug-history.enabled=true`. Read it using the same credentials as the other admin endpoints. On a `markdown` boot there is no Postgres side, so the endpoint answers `409` instead of rows.
 
 * Start with `GET /api/admin/debug-history?taskId=<task-id>` to see when a task was scheduled, restored or missed and whether it started, produced a reply or reached a messaging provider.
 * Copy the `runId` of a firing into `GET /api/admin/debug-history?runId=<run-id>` to see its turn, model requests and responses, tool calls and final delivery. Delivery events show how many message parts the provider accepted and, when available, the HTTP status on failure.

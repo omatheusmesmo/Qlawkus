@@ -5,20 +5,18 @@ import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillState;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
-import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Postgres-backed {@link SkillStore}, active when {@code qlawkus.cognition.backend=pgvector} (the
- * default). Skills live in the {@code skill} table. Selected at build time via
- * {@link IfBuildProperty}, so when another backend is chosen this bean is not wired at all.
+ * Postgres-backed {@link SkillStore}, active when {@code qlawkus.cognition.backend=pgvector}. Skills live in the {@code skill} table. Chosen at boot by {@link CognitionStoreSelector}.
  */
 @ApplicationScoped
-@IfBuildProperty(name = "qlawkus.cognition.backend", stringValue = "pgvector", enableIfMissing = true)
+@Typed(PgSkillStore.class)
 public class PgSkillStore implements SkillStore {
 
   @Inject
