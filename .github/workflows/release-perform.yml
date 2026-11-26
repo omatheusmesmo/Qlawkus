@@ -108,6 +108,10 @@ jobs:
           path: app/target/quarkus-app/
           retention-days: 30
 
+      - name: Package the JVM zip
+        run: |
+          (cd app/target/quarkus-app && zip -qr "${GITHUB_WORKSPACE}/qlawkus-app-${{ steps.version.outputs.version }}.zip" .)
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -125,6 +129,7 @@ jobs:
             - **Docker (native)**: `docker pull ghcr.io/${{ github.repository_owner }}/qlawkus:${{ steps.version.outputs.version }}-native`
 
             > _Draft release - edit and publish when ready._
+          files: qlawkus-app-${{ steps.version.outputs.version }}.zip
           draft: true
           prerelease: false
         env:
