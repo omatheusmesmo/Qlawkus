@@ -6,6 +6,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -29,6 +30,14 @@ class ObservabilityCapabilityTest {
                 "upstream enables the SDK with the traces exporter defaulting to OTLP on localhost:4317, "
                         + "so selecting this capability with no collector listening would log export "
                         + "failures in a loop for someone who only wanted metrics");
+    }
+
+    @Test
+    void theExporterSpeaksGrpcToTheDocumentedPort() {
+        assertEquals("grpc", config.getValue("quarkus.otel.exporter.otlp.protocol", String.class),
+                "the documented endpoint is a collector on 4317, the gRPC port, while Quarkus 3 defaults "
+                        + "to http/protobuf, which that port answers with a stream of "
+                        + "InvalidLineSeparatorException warnings");
     }
 
     @Test
