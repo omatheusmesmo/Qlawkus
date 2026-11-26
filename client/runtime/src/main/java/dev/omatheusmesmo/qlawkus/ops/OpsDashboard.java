@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.ops;
 
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
+import dev.omatheusmesmo.qlawkus.tool.quarantine.ToolQuarantine;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.vertx.ext.web.RoutingContext;
@@ -19,11 +20,13 @@ import java.util.stream.Collectors;
 public class OpsDashboard {
 
     private final ToolCatalog catalog;
+    private final ToolQuarantine quarantine;
     private final Instance<MeterRegistry> registry;
 
     @Inject
-    OpsDashboard(ToolCatalog catalog, Instance<MeterRegistry> registry) {
+    OpsDashboard(ToolCatalog catalog, ToolQuarantine quarantine, Instance<MeterRegistry> registry) {
         this.catalog = catalog;
+        this.quarantine = quarantine;
         this.registry = registry;
     }
 
@@ -44,6 +47,8 @@ public class OpsDashboard {
         }
         html.append("</ul>");
 
+        html.append(quarantineSection());
+
         html.append("<h2>Metrics</h2>");
         if (registry.isResolvable()) {
             html.append(toolInvocationTable(registry.get()));
@@ -53,6 +58,18 @@ public class OpsDashboard {
 
         html.append("</body></html>");
         return html.toString();
+    }
+
+    private String quarantineSection() {
+        var tools = quarantine.quarantined();
+        if (tools.isEmpty()) {
+            return "";
+        }
+        StringBuilder section = new StringBuilder("<h2>Quarantined tools (").append(tools.size())
+                .append(")</h2><table><thead><tr><th>Tool</th><th>Back on probation</th></tr></thead><tbody>");
+        tools.forEach(entry -> section.append("<tr><td>").append(escape(entry.tool())).append("</td><td>")
+                .append(entry.until()).append("</td></tr>"));
+        return section.append("</tbody></table>").toString();
     }
 
     public void serve(RoutingContext ctx) {

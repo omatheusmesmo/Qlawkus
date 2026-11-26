@@ -99,6 +99,24 @@ That decides the rollout strategy. The reference Deployment uses `replicas: 1` w
 The lock is per host, which matches a ReadWriteOnce volume. It does not stop two instances on different hosts that share only a database (a `pgvector` backend with no shared state volume); keep those to one instance by deployment.
 ====
 
+== Tools that keep failing
+
+A tool that fails over and over costs a failed call on every turn the model reaches for it, and the model keeps choosing it because it is still on the list. The agent counts failures per tool and, after `qlawkus.tool.quarantine.failure-threshold` in a row (default 5) with no success between them, takes the tool out of the catalog the model sees. The model stops being offered it, so it falls back to another route or says it cannot do the thing.
+
+Only a failure of the tool or of what it depends on counts: an exception, or an error result. A call the model got wrong, such as a bad argument, a path that does not exist or arguments that are not valid JSON, never counts, because the tool is fine and the next call can succeed. A call waiting for your approval, or one you refused, is not a failure either.
+
+When a tool is quarantined the agent tells you in the chat you wrote from last, logs a WARN line and increments `qlawkus.tool.quarantined{tool}`. After `qlawkus.tool.quarantine.cooldown` (default `15m`, written like `30s`, `15m`, `1h` or as ISO-8601 `PT15M`) the tool comes back on probation: the next failure quarantines it again straight away, the next success clears it. The state lives in memory, so a restart starts clean.
+
+You can hand a tool back sooner, and see what is out right now, through the authenticated admin API. The ops dashboard lists the quarantined tools too.
+
+[source,bash]
+----
+curl -u qlawkus:PASSWORD localhost:8742/api/admin/tool-quarantine
+curl -u qlawkus:PASSWORD -X DELETE localhost:8742/api/admin/tool-quarantine/fetchPage
+----
+
+Set `qlawkus.tool.quarantine.enabled=false` to keep every tool available however often it fails.
+
 == Shutdown and rollouts
 
 On SIGTERM the agent drains before it exits, and the drain is waited on, not fired and forgotten. Each part that holds something registers a listener with the platform, which runs them in two ordered phases under one budget:
@@ -352,6 +370,10 @@ The meters above arrive from upstream. These are the ones Qlawkus emits itself, 
 `qlawkus.job.items`
 |Whether a scheduled job is getting slower or quietly processing nothing. The console already shows cron and last run; this is the series behind it.
 |`job`, `outcome`
+
+|`qlawkus.tool.quarantined`
+|How often a tool was taken out of the catalog for failing in a row. Any count above zero means a dependency of that tool is broken, whatever the chat said.
+|`tool`
 
 |`qlawkus.model.fallback` +
 `qlawkus.model.circuit.state`

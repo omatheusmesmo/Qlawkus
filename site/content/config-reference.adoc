@@ -43,6 +43,9 @@ include::includes/qlawkus-client_qlawkus.skills.adoc[]
 === Approval
 include::includes/qlawkus-client_qlawkus.approval.adoc[]
 
+=== Tool quarantine
+include::includes/qlawkus-client_qlawkus.tool.adoc[]
+
 === Memory review
 include::includes/qlawkus-client_qlawkus.memory-review.adoc[]
 

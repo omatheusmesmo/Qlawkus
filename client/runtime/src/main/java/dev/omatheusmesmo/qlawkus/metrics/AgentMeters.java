@@ -71,6 +71,7 @@ public class AgentMeters {
 
     public static final String TOOL_INVOCATIONS = "qlawkus.tool.invocations";
     public static final String TOOL_DURATION = "qlawkus.tool.duration";
+    public static final String TOOL_QUARANTINED = "qlawkus.tool.quarantined";
 
     public static final String STORE_OPERATIONS = "qlawkus.store.operations";
     public static final String STORE_DURATION = "qlawkus.store.duration";
@@ -369,6 +370,13 @@ public class AgentMeters {
         Tags tags = Tags.of(TAG_TOOL, tool, TAG_OUTCOME, succeeded ? SUCCESS : FAILURE);
         registry.counter(TOOL_INVOCATIONS, tags).increment();
         registry.timer(TOOL_DURATION, Tags.of(TAG_TOOL, tool)).record(took);
+    }
+
+    /** Counts each time a tool is taken out of the catalog for failing in a row. */
+    public void toolQuarantined(String tool) {
+        if (registry != null) {
+            registry.counter(TOOL_QUARANTINED, Tags.of(TAG_TOOL, tool)).increment();
+        }
     }
 
     /**
