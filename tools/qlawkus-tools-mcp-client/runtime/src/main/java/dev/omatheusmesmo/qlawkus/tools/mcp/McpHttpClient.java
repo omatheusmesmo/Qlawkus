@@ -147,7 +147,6 @@ final class McpHttpClient implements HttpClient, AutoCloseable {
     }
 
     private void opened(HttpClientResponse received) {
-      received.exceptionHandler(this::fail);
       synchronized (this) {
         if (cancelled) {
           received.request().reset();
@@ -158,16 +157,22 @@ final class McpHttpClient implements HttpClient, AutoCloseable {
       }
       int status = received.statusCode();
       boolean success = status >= 200 && status < 300;
-      if (success) {
-        received.handler(chunk -> body(chunk.getBytes()));
-        received.endHandler(done -> finish(null));
-      } else {
-        received.handler(chunk -> {
-          int room = ERROR_BODY_LIMIT - errorBody.size();
-          if (room > 0) errorBody.write(chunk.getBytes(), 0, Math.min(room, chunk.length()));
-        });
-        received.endHandler(done -> finish(new HttpException(status,
-            errorBody.toString(StandardCharsets.UTF_8))));
+      try {
+        received.exceptionHandler(this::fail);
+        if (success) {
+          received.handler(chunk -> body(chunk.getBytes()));
+          received.endHandler(done -> finish(null));
+        } else {
+          received.handler(chunk -> {
+            int room = ERROR_BODY_LIMIT - errorBody.size();
+            if (room > 0) errorBody.write(chunk.getBytes(), 0, Math.min(room, chunk.length()));
+          });
+          received.endHandler(done -> finish(new HttpException(status,
+              errorBody.toString(StandardCharsets.UTF_8))));
+        }
+      } catch (IllegalStateException ended) {
+        fail(new IOException("The MCP server response ended before it could be read", ended));
+        return;
       }
       Map<String, List<String>> headers = headers(received);
       enqueue(success ? new HttpResponseReceived(SuccessfulHttpResponse.builder().statusCode(status)
