@@ -141,6 +141,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # No GHA layer cache: both Dockerfiles COPY the whole repository before compiling, so every commit
+      # invalidates every layer that matters (a native build reuses 2 of them), while the blobs written
+      # under a tag or a branch ref are unreadable from any other ref and filled the 10 GB repository quota.
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
@@ -151,8 +154,6 @@ jobs:
           load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.name }}
-          cache-to: type=gha,scope=${{ matrix.name }}
 
       - name: Smoke boot without a database or a .env
         env:

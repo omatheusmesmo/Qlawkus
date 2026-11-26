@@ -37,7 +37,16 @@ jobs:
         with:
           distribution: temurin
           java-version: 25
-          cache: maven
+
+      - id: m2
+        name: Restore the Maven repository
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.m2
+          key: m2-${{ runner.os }}-build-${{ hashFiles('**/pom.xml', '.mvn/wrapper/maven-wrapper.properties') }}
+          restore-keys: |
+            m2-${{ runner.os }}-build-
+            m2-${{ runner.os }}-
 
       - name: Build with Maven
         run: ./mvnw -B clean install -Dci=true -Dno-format -ntp
@@ -47,6 +56,13 @@ jobs:
           LLM_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
           LLM_KIND: nvidia
         run: ./mvnw -B test -pl integration-tests/live-provider -Dci=true -Dno-format -ntp
+
+      - name: Save the Maven repository
+        if: success() && github.ref_name == github.event.repository.default_branch && steps.m2.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.m2
+          key: ${{ steps.m2.outputs.cache-primary-key }}
 
       - name: Upload test reports
         uses: actions/upload-artifact@v6

@@ -26,7 +26,17 @@ jobs:
         with:
           distribution: temurin
           java-version: 25
-          cache: maven
+
+      - id: m2
+        name: Restore the Maven repository
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.m2
+          key: m2-${{ runner.os }}-nightly-${{ hashFiles('**/pom.xml', '.mvn/wrapper/maven-wrapper.properties') }}
+          restore-keys: |
+            m2-${{ runner.os }}-nightly-
+            m2-${{ runner.os }}-build-
+            m2-${{ runner.os }}-
 
       - name: Build with Maven (JVM)
         run: ./mvnw -B clean install -Dci=true -Dno-format -ntp
@@ -43,6 +53,13 @@ jobs:
           SECONDS=0
           ./mvnw -B install -Pnative -Dquarkus.native.container-build -Dnative.surefire.skip -Dno-format -ntp 2>&1 | tee native-build.log
           echo "BUILD_SECONDS=${SECONDS}" > native-build.env
+
+      - name: Save the Maven repository
+        if: success() && github.ref_name == github.event.repository.default_branch && steps.m2.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.m2
+          key: ${{ steps.m2.outputs.cache-primary-key }}
 
       - name: Upload test reports
         uses: actions/upload-artifact@v6

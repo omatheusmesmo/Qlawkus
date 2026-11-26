@@ -196,6 +196,8 @@ scripts/check-docs-drift.sh              # nothing generated may differ from wha
 - **`release-perform.yml`** - On tag push: builds artifacts, creates draft GitHub Release with PR-based changelog, then calls `publish-images.yml`
 - **`publish-images.yml`** - Reusable (`workflow_call` from release, `workflow_dispatch` for a dry run, `push` defaults to false): builds the JVM and `-native` images in-container (the `image` composition, `QLAWKUS_COMPOSITION=image`; the devtools variant is build-from-source only) and pushes them to `ghcr.io/<owner>/qlawkus` with the version tag, plus `latest` variants on a release
 
+Maven cache: only `build-push` (key `build`) and `build-nightly` (key `nightly`) save `~/.m2`, and only on the default branch. Every other job (pull requests, releases, docs) restores with `actions/cache/restore` and falls back to the newest entry, because a copy saved under a PR or tag ref is unreadable by any other ref and the repository quota is 10 GB. `publish-images` writes no GHA layer cache: the Dockerfiles `COPY` the repository first, so almost nothing is reused. Check usage with `gh api repos/omatheusmesmo/Qlawkus/actions/cache/usage`.
+
 Release flow: edit `current-version` in `.github/project.yml` → open PR (triggers `pre-release` validation) → merge triggers `release-prepare` → tag push triggers `release-perform` → edit/publish draft release.
 
 The review bot reads `.github/thrillhousebot.yml` (files it never reviews, per-path rules) and `.github/thrillhousebot.md` (prose gotchas). Keep both in step with what is generated and how the stores are wired.
