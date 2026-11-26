@@ -27,7 +27,16 @@ jobs:
         with:
           java-version: '25'
           distribution: 'temurin'
-          cache: 'maven'
+
+      - id: m2
+        name: Restore the Maven repository
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.m2
+          key: m2-${{ runner.os }}-build-${{ hashFiles('**/pom.xml', '.mvn/wrapper/maven-wrapper.properties') }}
+          restore-keys: |
+            m2-${{ runner.os }}-build-
+            m2-${{ runner.os }}-
 
       # Install the extension modules so the config-doc metadata (from @ConfigMapping JavaDoc)
       # and the deployment artifacts are available in the local repository.
