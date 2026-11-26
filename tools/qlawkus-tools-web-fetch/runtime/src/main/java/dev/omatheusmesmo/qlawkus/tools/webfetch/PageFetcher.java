@@ -198,9 +198,13 @@ public class PageFetcher {
         response.exceptionHandler(result::completeExceptionally);
     }
 
-    private static void discard(HttpClientResponse response) {
-        response.exceptionHandler(ignored -> {
-        });
+    static void discard(HttpClientResponse response) {
+        try {
+            response.exceptionHandler(ignored -> {
+            });
+        } catch (IllegalStateException ended) {
+            return;
+        }
         response.request().reset();
     }
 
