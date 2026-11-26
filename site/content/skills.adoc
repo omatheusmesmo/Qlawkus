@@ -29,7 +29,7 @@ description: Open a GitHub pull request from the current branch with a clean sum
 4. Never force-push to `main`; only to the feature branch, and only when asked.
 ----
 
-The frontmatter is the *index*: `name` and `description` are what get injected each turn. The body is the *procedure*: it is loaded only when the agent calls `viewSkill` on that name.
+The frontmatter is the *index*: `name` and `description` are what get injected each turn. The body is the *procedure*: it is loaded only when the agent calls `viewSkill` on that name. A skill folder may also hold a `scripts/` folder the procedure runs, described in <<_skills_with_scripts>>.
 
 == Where skills live
 
@@ -165,7 +165,7 @@ Whatever the owner pastes is normalized to one of these forms before anything is
 |Pasted text |A SKILL.md the owner pastes in chat (`installSkillFromText`) |That skill, after the same validation and approval.
 |===
 
-Only the `SKILL.md` text is ever read or saved. Scripts, reference files and other assets beside it are never fetched, extracted or run.
+Besides the `SKILL.md`, an install takes the files of the skill's `scripts/` folder (see <<_skills_with_scripts>>). Reference files and every other asset beside it are never fetched, extracted or run. A repository folder, a `owner/repo/skill` reference and an archive carry their scripts; a single file link, a gist and pasted text hold only the one file.
 
 A selection is capped by `qlawkus.skill-hub.max-installs-per-call` (default 10). A larger selection is refused before anything is written, so the owner can split it. A partial failure installs what it can, then reports both the installed names and the failures.
 
@@ -180,7 +180,8 @@ A selection is capped by `qlawkus.skill-hub.max-installs-per-call` (default 10).
 |No credentials in URLs |A link carrying `user:password` is refused, and the password is never echoed back.
 |Size caps |A SKILL.md is capped at `max-skill-bytes` (default 256 KiB), an archive download at `archive.max-bytes` (10 MiB). Responses are read under the cap and the download stops at it.
 |Archive limits |`archive.max-entries` (500) and `archive.max-expanded-bytes` (20 MiB, declared and decompressed). Entries with absolute paths, backslashes, `..` segments, symlinks, hard links or encryption are refused before any skill is read.
-|In memory only |An archive is read from memory. Nothing is extracted to disk.
+|In memory only |An archive is read from memory. Nothing is extracted to disk; a script is written only after the whole skill has been fetched and checked.
+|Script caps |A script file is capped at `scripts.max-bytes` (a number of bytes, default 1048576, which is 1 MiB) and a skill may hold at most `archive.max-entries` of them. A script over the cap refuses the whole skill instead of installing it without that script.
 |Name validation |A skill name from frontmatter must use letters, digits, `.`, `_` and `-`, start with a letter or digit, and contain no `..`.
 |Per-call timeouts |Each HTTP request uses `request-timeout`. A transient failure (429, 5xx, a network error) is retried up to three times per request, with backoff; permanent statuses are not retried.
 |===
@@ -229,11 +230,39 @@ Chat attachments on Discord and Telegram are not part of this release. The conso
 The extension defaults to `hitl`, but the reference `app` ships `yolo` - so a stock build installs a skill the moment the agent asks for one. Set `SKILL_HUB_APPROVAL_MODE=hitl` (or `qlawkus.skill-hub.approval-mode=hitl`) to be asked first, through the owner approvals queue (chat commands, Telegram and Discord buttons, the admin API and the console).
 ====
 
-All settings live under `qlawkus.skill-hub.*`: `enabled`, `base-url`, `well-known-hosts`, `approval-mode`, `max-results`, `request-timeout`, `max-installs-per-call`, `max-skill-bytes`, `archive.max-bytes`, `archive.max-entries`, `archive.max-expanded-bytes`, `publish.enabled` and `publish.dir`. Publishing is opt-in (`publish.enabled=false` by default). The install panel adds no settings of its own.
+All settings live under `qlawkus.skill-hub.*`: `enabled`, `base-url`, `well-known-hosts`, `approval-mode`, `max-results`, `request-timeout`, `max-installs-per-call`, `max-skill-bytes`, `archive.max-bytes`, `archive.max-entries`, `archive.max-expanded-bytes`, `scripts.enabled`, `scripts.max-bytes`, `publish.enabled` and `publish.dir`. Publishing is opt-in (`publish.enabled=false` by default). The install panel adds no settings of its own.
 
-== Roadmap
+== Skills with scripts
 
-A skill is procedural *text* today. Because it already lives in its own directory (`<root>/<name>/SKILL.md`), a planned extension is *executable* skills that carry sibling scripts the agent runs as part of the procedure (the Anthropic `SKILL.md`-plus-assets model). It is not wired up yet, since skills and the workspace file/shell tools live behind separate confinement boundaries.
+A skill can carry scripts beside its `SKILL.md`, in a `scripts/` folder, for steps that are better done by a program than described in prose: a checker, a report generator, a converter.
+
+----
+~/.qlawkus/skills/triage/
+  SKILL.md
+  scripts/
+    summarize.sh
+    lib/format.sh
+----
+
+When the agent loads such a skill with `viewSkill`, the body ends with the list of its scripts and the tool that runs them. Two tools exist, and which one applies depends on where the scripts came from:
+
+[cols="2,3",options="header"]
+|===
+|Tool |Runs
+
+|`runSkillScript` |Scripts of the agent's own skills, and ones you placed in the skills folder by hand. It runs at once.
+|`runInstalledSkillScript` |Scripts a Skill Hub install wrote. Every call waits for your approval, in `hitl` and in `yolo` alike (see xref:approvals.adoc[Owner Approvals]), because the install approval covers writing the files, not running code somebody else wrote.
+|===
+
+Each tool refuses the other kind of skill, so the approval cannot be skipped by picking the other name. The Skill Hub marks the scripts it writes with a `.qlawkus-installed` file inside `scripts/`; the marker stays when the agent later rewrites the `SKILL.md`, so editing a skill does not turn its scripts into trusted ones.
+
+A script runs through the same shell the `runCommand` tool uses, so everything that governs shell commands governs it too: the command filter (deny or allow list), the workspace directory as the working directory, the child environment that withholds the agent's secrets, secret redaction of the output, the output caps and the process limit. A script has to be executable and start with a shebang line (`#!/bin/sh`); the Skill Hub marks the files it installs executable. The call names the skill, the script path inside `scripts/` and optional arguments, which are passed as separate quoted arguments, never through shell interpolation. A path that leaves `scripts/` (`..`, an absolute path, a symlink that resolves outside it) is refused before anything runs. Skill scripts are not supported on Windows.
+
+If you gate `runCommand` with `qlawkus.approval.tools`, both script tools are gated as well, since they run through it.
+
+NOTE: Approving a call approves that command line, not a snapshot of the script. Read a script before you approve its first run, and use `updateSkill` knowing that it replaces the scripts with the version at the source.
+
+The settings live under `qlawkus.skill-scripts.*`: `enabled`, `timeout` (a duration such as `60s` or `2m`: the longest a script may run, 60 seconds by default, which also caps what the model asks for) and `installed-require-approval` (`true` by default). Turning the last one off lets installed scripts run without asking, which is only sensible on an instance where nothing the agent installs can be untrusted. Installing scripts is on by default (`qlawkus.skill-hub.scripts.enabled=true`) and can be turned off with `qlawkus.skill-hub.scripts.enabled=false`, which returns the hub to installing only the `SKILL.md`. The `pgvector` backend keeps no files, so an install there stores the skill text only; use `markdown` or `hybrid` for skills with scripts.
 
 == What's next?
 

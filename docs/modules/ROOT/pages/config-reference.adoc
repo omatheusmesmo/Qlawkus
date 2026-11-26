@@ -40,6 +40,9 @@ include::includes/qlawkus-specialists_qlawkus.specialists.adoc[]
 === Skills
 include::includes/qlawkus-client_qlawkus.skills.adoc[]
 
+=== Skill scripts
+include::includes/qlawkus-client_qlawkus.skill-scripts.adoc[]
+
 === Approval
 include::includes/qlawkus-client_qlawkus.approval.adoc[]
 

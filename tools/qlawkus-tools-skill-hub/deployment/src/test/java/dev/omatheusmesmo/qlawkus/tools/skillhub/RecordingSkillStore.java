@@ -14,6 +14,9 @@ class RecordingSkillStore implements SkillStore {
 
   final Map<String, Skill> saved = new LinkedHashMap<>();
   final Map<String, SkillOrigin> origins = new LinkedHashMap<>();
+  final Map<String, Map<String, byte[]>> scripts = new LinkedHashMap<>();
+  final Map<String, String> scriptSources = new LinkedHashMap<>();
+  boolean failScripts;
 
   @Override
   public List<SkillSummary> index() {
@@ -54,6 +57,16 @@ class RecordingSkillStore implements SkillStore {
 
   @Override
   public void verifyWritable() {
+  }
+
+  @Override
+  public boolean saveScripts(String name, Map<String, byte[]> files, String source) {
+    if (failScripts) {
+      throw new IllegalStateException("disk full");
+    }
+    scripts.put(name, files);
+    scriptSources.put(name, source);
+    return true;
   }
 
   @Override

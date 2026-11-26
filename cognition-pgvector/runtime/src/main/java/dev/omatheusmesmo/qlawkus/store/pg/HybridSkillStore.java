@@ -5,6 +5,7 @@ import dev.omatheusmesmo.qlawkus.skill.BundledSkills;
 import dev.omatheusmesmo.qlawkus.skill.MarkdownSkillFiles;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillOrigin;
+import dev.omatheusmesmo.qlawkus.skill.SkillScripts;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -13,6 +14,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -96,6 +98,16 @@ public class HybridSkillStore implements SkillStore {
   @Override
   public Optional<SkillOrigin> originOf(String name) {
     return files.originOf(name);
+  }
+
+  @Override
+  public Optional<SkillScripts> scriptsOf(String name) {
+    return files.scriptsOf(name);
+  }
+
+  @Override
+  public boolean saveScripts(String name, Map<String, byte[]> scripts, String source) {
+    return files.saveScripts(name, scripts, source);
   }
 
   @Override

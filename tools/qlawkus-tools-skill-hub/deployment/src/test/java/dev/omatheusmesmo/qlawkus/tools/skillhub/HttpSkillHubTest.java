@@ -85,6 +85,13 @@ private static final ObjectMapper JSON = JsonMapper.builder().build();
         store, baseUrl(), baseUrl(), JSON);
   }
 
+  private HttpSkillHub hubWithScripts(boolean enabled, long maxBytes) {
+    return new HttpSkillHub(
+        new TestConfig(baseUrl(), ApprovalMode.HITL, Optional.empty(), publishDir.toString(), 262_144L,
+            10_485_760L, enabled, maxBytes),
+        store, baseUrl(), baseUrl(), JSON);
+  }
+
   private HttpSkillHub productionPolicyHub() {
     return new HttpSkillHub(
         new TestConfig(baseUrl(), ApprovalMode.HITL, Optional.empty(), publishDir.toString()), store,
@@ -579,18 +586,179 @@ private static final ObjectMapper JSON = JsonMapper.builder().build();
     assertTrue(failure.getMessage().contains("nothing/SKILL.md"), failure.getMessage());
   }
 
+  private static String text(byte[] bytes) {
+    return new String(bytes, StandardCharsets.UTF_8);
+  }
+
+  @Test
+  void install_ofAnArchiveWritesItsScriptsNextToTheSkillAndMarksTheSource() throws Exception {
+    server.stubFor(get(urlPathEqualTo("/one.zip")).willReturn(aResponse().withStatus(200)
+        .withBody(zip(file("triage/SKILL.md", skillMarkdown("triage", "Triage")),
+            file("triage/scripts/run.sh", "#!/bin/sh"), file("triage/scripts/lib/util.sh", "util")))));
+
+    Skill saved = hub(Optional.empty()).install(baseUrl() + "/one.zip");
+
+    assertEquals("triage", saved.name());
+    assertEquals(List.of("run.sh", "lib/util.sh"), List.copyOf(store.scripts.get("triage").keySet()));
+    assertEquals("#!/bin/sh", text(store.scripts.get("triage").get("run.sh")));
+    assertEquals(baseUrl() + "/one.zip", store.scriptSources.get("triage"));
+  }
+
+  @Test
+  void installCandidate_savesTheScriptsOfADiscoveredArchiveSkill() throws Exception {
+    List<SkillCandidate> found = hub(Optional.empty()).discoverUpload("bundle.zip", zip(
+        file("bundle/triage/SKILL.md", skillMarkdown("triage", "Triage")),
+        file("bundle/triage/scripts/run.sh", "run"),
+        file("bundle/tdd/SKILL.md", skillMarkdown("tdd", "Test first"))));
+
+    assertEquals(1, found.get(0).scripts().size());
+    assertTrue(found.get(1).scripts().isEmpty());
+    hub(Optional.empty()).installCandidate(found.get(0));
+    hub(Optional.empty()).installCandidate(found.get(1));
+
+    assertEquals(List.of("run.sh"), List.copyOf(store.scripts.get("triage").keySet()));
+    assertFalse(store.scripts.containsKey("tdd"));
+  }
+
+  @Test
+  void install_saysSoWhenTheScriptsCouldNotBeWritten() throws Exception {
+    server.stubFor(get(urlPathEqualTo("/one.zip")).willReturn(aResponse().withStatus(200)
+        .withBody(zip(file("triage/SKILL.md", skillMarkdown("triage", "Triage")),
+            file("triage/scripts/run.sh", "#!/bin/sh")))));
+    store.failScripts = true;
+
+    IllegalStateException failure = assertThrows(IllegalStateException.class,
+        () -> hub(Optional.empty()).install(baseUrl() + "/one.zip"));
+
+    assertTrue(failure.getMessage().contains("scripts could not be written"));
+    assertTrue(store.saved.isEmpty(), "a fresh install that cannot write its scripts must not stay installed");
+  }
+
+  @Test
+  void install_keepsAnExistingSkillWhenItsNewScriptsCannotBeWritten() throws Exception {
+    store.save(new Skill("triage", "Old", "old body"));
+    server.stubFor(get(urlPathEqualTo("/one.zip")).willReturn(aResponse().withStatus(200)
+        .withBody(zip(file("triage/SKILL.md", skillMarkdown("triage", "Triage")),
+            file("triage/scripts/run.sh", "#!/bin/sh")))));
+    store.failScripts = true;
+
+    assertThrows(IllegalStateException.class, () -> hub(Optional.empty()).install(baseUrl() + "/one.zip"));
+
+    assertTrue(store.saved.containsKey("triage"));
+  }
+
+  @Test
+  void install_withScriptsTurnedOffInstallsOnlyTheSkillMd() throws Exception {
+    server.stubFor(get(urlPathEqualTo("/one.zip")).willReturn(aResponse().withStatus(200)
+        .withBody(zip(file("triage/SKILL.md", skillMarkdown("triage", "Triage")),
+            file("triage/scripts/run.sh", "#!/bin/sh")))));
+
+    hubWithScripts(false, 1_048_576L).install(baseUrl() + "/one.zip");
+
+    assertTrue(store.saved.containsKey("triage"));
+    assertTrue(store.scripts.isEmpty());
+  }
+
+  @Test
+  void install_refusesAScriptOverTheCapAndInstallsNothing() throws Exception {
+    server.stubFor(get(urlPathEqualTo("/one.zip")).willReturn(aResponse().withStatus(200)
+        .withBody(zip(file("triage/SKILL.md", skillMarkdown("triage", "Triage")),
+            file("triage/scripts/run.sh", "x".repeat(200))))));
+
+    assertThrows(SkillLimitException.class, () -> hubWithScripts(true, 100).install(baseUrl() + "/one.zip"));
+
+    assertTrue(store.saved.isEmpty());
+    assertTrue(store.scripts.isEmpty());
+  }
+
+  @Test
+  void discover_aRepositoryFolderListsEachSkillsScriptsFromTheTree() {
+    stubGitHubTree("acme/skills", "main", """
+        {"truncated":false,"tree":[
+          {"path":"skills/triage/SKILL.md","type":"blob","size":10},
+          {"path":"skills/triage/scripts/run.sh","type":"blob","size":9},
+          {"path":"skills/triage/scripts/lib/util.sh","type":"blob","size":4},
+          {"path":"skills/text/SKILL.md","type":"blob","size":10},
+          {"path":"skills/text/assets/x.png","type":"blob","size":3}]}""");
+
+    List<SkillCandidate> found = hub(Optional.empty()).discover("https://github.com/acme/skills/tree/main/skills");
+
+    assertEquals(List.of("run.sh", "lib/util.sh"), found.get(0).scripts().stream().map(SkillScript::path).toList());
+    assertTrue(found.get(0).scripts().get(0).location().endsWith("/acme/skills/main/skills/triage/scripts/run.sh"));
+    assertTrue(found.get(1).scripts().isEmpty());
+  }
+
+  @Test
+  void installCandidate_downloadsTheRepositoryScriptsBeforeSavingAnything() {
+    stubGitHubTree("acme/skills", "main", """
+        {"truncated":false,"tree":[
+          {"path":"skills/triage/SKILL.md","type":"blob","size":10},
+          {"path":"skills/triage/scripts/run.sh","type":"blob","size":9}]}""");
+    stubGitHubFile("acme/skills", "main", "skills/triage/SKILL.md", skillMarkdown("triage", "Triage"));
+    List<SkillCandidate> found = hub(Optional.empty()).discover("https://github.com/acme/skills/tree/main/skills");
+
+    assertThrows(IllegalStateException.class, () -> hub(Optional.empty()).installCandidate(found.get(0)));
+    assertTrue(store.saved.isEmpty(), "a script that cannot be fetched must not leave a half-installed skill");
+
+    stubGitHubFile("acme/skills", "main", "skills/triage/scripts/run.sh", "#!/bin/sh");
+    hub(Optional.empty()).installCandidate(found.get(0));
+
+    assertEquals("#!/bin/sh", text(store.scripts.get("triage").get("run.sh")));
+  }
+
+  @Test
+  void install_ofARepositoryFolderTakesItsScriptsAndSurvivesAMissingTree() {
+    stubGitHubFile("acme/skills", "main", "skills/triage/SKILL.md", skillMarkdown("triage", "Triage"));
+
+    hub(Optional.empty()).install("https://github.com/acme/skills/tree/main/skills/triage");
+
+    assertTrue(store.saved.containsKey("triage"));
+    assertTrue(store.scripts.isEmpty());
+
+    store.saved.clear();
+    stubGitHubTree("acme/skills", "main", """
+        {"truncated":false,"tree":[
+          {"path":"skills/triage/SKILL.md","type":"blob","size":10},
+          {"path":"skills/triage/scripts/run.sh","type":"blob","size":9}]}""");
+    stubGitHubFile("acme/skills", "main", "skills/triage/scripts/run.sh", "#!/bin/sh");
+
+    hub(Optional.empty()).install("https://github.com/acme/skills/tree/main/skills/triage");
+
+    assertEquals(List.of("run.sh"), List.copyOf(store.scripts.get("triage").keySet()));
+  }
+
   private record TestConfig(String baseUrl, ApprovalMode approvalMode,
-      Optional<List<String>> wellKnownHosts, String publishDir, long maxSkillBytes, long archiveMaxBytes)
-      implements SkillHubConfig {
+      Optional<List<String>> wellKnownHosts, String publishDir, long maxSkillBytes, long archiveMaxBytes,
+      boolean scriptsEnabled, long scriptMaxBytes) implements SkillHubConfig {
 
     TestConfig(String baseUrl, ApprovalMode approvalMode, Optional<List<String>> wellKnownHosts,
         String publishDir) {
-      this(baseUrl, approvalMode, wellKnownHosts, publishDir, 262_144L, 10_485_760L);
+      this(baseUrl, approvalMode, wellKnownHosts, publishDir, 262_144L, 10_485_760L, true, 1_048_576L);
     }
 
     TestConfig(String baseUrl, ApprovalMode approvalMode, Optional<List<String>> wellKnownHosts,
         String publishDir, long maxSkillBytes) {
-      this(baseUrl, approvalMode, wellKnownHosts, publishDir, maxSkillBytes, 10_485_760L);
+      this(baseUrl, approvalMode, wellKnownHosts, publishDir, maxSkillBytes, 10_485_760L, true, 1_048_576L);
+    }
+
+    TestConfig(String baseUrl, ApprovalMode approvalMode, Optional<List<String>> wellKnownHosts,
+        String publishDir, long maxSkillBytes, long archiveMaxBytes) {
+      this(baseUrl, approvalMode, wellKnownHosts, publishDir, maxSkillBytes, archiveMaxBytes, true, 1_048_576L);
+    }
+
+    @Override
+    public Scripts scripts() {
+      return new Scripts() {
+        @Override
+        public boolean enabled() {
+          return scriptsEnabled;
+        }
+
+        @Override
+        public long maxBytes() {
+          return scriptMaxBytes;
+        }
+      };
     }
 
     @Override

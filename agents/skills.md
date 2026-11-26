@@ -33,10 +33,10 @@ Same discipline as memory: the index is **injected, not searched** - `SoulEngine
   - **Install**: resolves an `owner/repo` slug to the raw GitHub SKILL.md (tries `main`/`master`), an `owner/repo/skill` reference (skills.sh hits carry the skill folder name as `skillId`; tries `skills/<skill>/SKILL.md`, `<skill>/SKILL.md`, then one GitHub tree lookup per branch for a nested `<skill>/SKILL.md`, and the root SKILL.md last, only when it declares the named skill) or takes a direct URL (well-known hits are direct URLs), validates the name against path traversal, saves via `SkillStore` into the owned root - so it enters the injected index next turn.
 Search drops hits with no installable source (a bare host).
 A failed install throws, so the tool returns an error result and `MeteredToolExecutor` counts `outcome=error`; `HttpSkillHub` logs the source and the paths tried at WARN.
-Only the SKILL.md text is fetched; executable assets are never pulled or run (inert by omission).
+The SKILL.md and, when `qlawkus.skill-hub.scripts.enabled`, the files of the skill's `scripts/` folder are fetched (see **Scripts** below); every other asset is never pulled.
   - **Sources**: `SkillSourceParser` normalizes whatever was pasted into a `SkillSource` (a name, a slug, a GitHub blob/tree/raw/repo link, a GitLab or Bitbucket file or folder link, a skills.sh page, a gist, a `.zip`/`.tar.gz` archive, or any https SKILL.md).
 `discover` lists the skills a folder, repository, archive or gist holds; `installCandidate` saves one; `install` is the single-skill path and refuses a source that holds several.
-`ArchiveSkillReader` reads zip (central directory, symlinks refused) and tar.gz entirely in memory and returns only SKILL.md text; caps come from `qlawkus.skill-hub.archive.*`, `max-skill-bytes` and `max-installs-per-call`.
+`ArchiveSkillReader` reads zip (central directory, symlinks refused) and tar.gz entirely in memory and returns the SKILL.md text plus, when `Limits.maxScriptBytes` is above zero, the files under each skill's `scripts/` folder (a tar can list a script before its SKILL.md, so scripts are collected first and assigned to skills by folder prefix afterwards); caps come from `qlawkus.skill-hub.archive.*`, `max-skill-bytes`, `scripts.max-bytes` and `max-installs-per-call`.
 Pasted text goes through `SkillMarkdown.parsePasted`.
 Every network path passes `OutboundPolicy` (https only, no credentials, every resolved address public, checked again on each of up to three redirect hops); a `@DefaultBean` with a protected lenient constructor that test profiles swap in with a `@Alternative` (WireMock is plain http on loopback).
 The response is read under a size cap through one `@Retry`-annotated `exchange` call.
@@ -63,3 +63,16 @@ It runs once at hybrid boot via `HybridReconcileStartup` (gate `qlawkus.cognitio
 `CognitionMigrator` (`POST /api/admin/cognition/migrate?direction=files-to-pg|pg-to-files`) is the explicit one-directional copy that **does** overwrite the destination singletons.
 This is a Qlawkus capability, not an upstream langchain4j one - it's only possible because every store keeps a parallel markdown representation as the bridge.
 Covered by `CognitionReconcileTest`.
+
+## Scripts
+
+A skill folder may hold `scripts/`; `SkillStore.scriptsOf` / `saveScripts` are the SPI (`MarkdownSkillFiles` and the hybrid store implement it, `PgSkillStore` keeps no files and installs text only).
+`SkillScriptTool` (`tool/shell`) runs a script by building one quoted command line and handing it to `ShellTool.runCommand`, so the filter, child environment, redaction, caps and process limit are inherited, not copied.
+It resolves the script through `toRealPath` and compares the real path with the real `scripts/` path, so a symlink in an owner-placed folder cannot point a run outside it.
+
+**The approval line is the `.qlawkus-installed` marker, not `SkillOrigin`.** `MarkdownSkillFiles.save` clears the origin (so an agent rewrite drops the source), which would let the agent turn hub scripts into "own" scripts by editing the SKILL.md; the marker lives inside `scripts/` and survives it.
+Two tools exist because `ApprovalPolicy` decides per tool name: `runInstalledSkillScript` is gated by `SkillScriptApprovalRequirement` (config `qlawkus.skill-scripts.installed-require-approval`, independent of the hub's `approval-mode`), and each tool refuses the other kind of skill.
+Gating `runCommand` in `qlawkus.approval.tools` gates both, because they run through it.
+The hub fetches every script before saving the skill, so a script that cannot be fetched leaves no half-installed skill, and `HttpSkillHub.saveWithScripts` deletes a skill that was not there before when its scripts cannot be written (an existing one keeps the replaced version, which cannot be undone); `saveScripts` replaces the folder (never merges) and writes the marker first, so a write that fails halfway still leaves a folder that needs approval, never one that looks owner-placed.
+Tree-based installs (repository folder) take `scriptsInTree` from the same recursive tree call a listing makes; the single `install` of a folder does that call best effort and installs the text alone, with a WARN, when the tree is unavailable.
+Pinned by `MarkdownSkillFilesScriptsTest`, `SkillScriptToolTest`, `SkillScriptApprovalRequirementTest`, `ArchiveSkillReaderTest` and `HttpSkillHubTest`.

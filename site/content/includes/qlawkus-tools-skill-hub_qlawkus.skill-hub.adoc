@@ -280,6 +280,48 @@ endif::add-copy-button-to-env-var[]
 |long
 |`+++20971520+++`
 
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-scripts-enabled]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-scripts-enabled[`+++qlawkus.skill-hub.scripts.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.scripts.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether an install also writes the files of the skill's `scripts/` folder, from an archive or a repository folder. When `false` only the SKILL.md is installed, as before. Installing a script does not run it: every run goes through the owner's approval unless `qlawkus.skill-scripts.installed-require-approval` is turned off.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_SCRIPTS_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_SCRIPTS_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-tools-skill-hub_qlawkus-skill-hub-scripts-max-bytes]] [.property-path]##link:#qlawkus-tools-skill-hub_qlawkus-skill-hub-scripts-max-bytes[`+++qlawkus.skill-hub.scripts.max-bytes+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-hub.scripts.max-bytes+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Largest single script file installed, in bytes. A larger file refuses the whole skill rather than installing it without that script.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_HUB_SCRIPTS_MAX_BYTES+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_HUB_SCRIPTS_MAX_BYTES+++`
+endif::add-copy-button-to-env-var[]
+--
+|long
+|`+++1048576+++`
+
 |===
 
 ifndef::no-duration-note[]

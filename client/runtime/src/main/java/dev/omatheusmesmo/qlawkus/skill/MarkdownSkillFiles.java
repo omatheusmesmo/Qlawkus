@@ -7,8 +7,13 @@ import io.quarkus.logging.Log;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,6 +32,7 @@ import java.util.stream.Stream;
 public class MarkdownSkillFiles {
 
   private static final String SKILL_FILE = "SKILL.md";
+  private static final String SCRIPTS_DIR = "scripts";
   private static final String USAGE_FILE = ".qlawkus-usage.json";
 
   private final List<Path> roots;
@@ -91,10 +97,91 @@ public class MarkdownSkillFiles {
     return Optional.ofNullable(readUsage().get(name)).map(SkillUsage::origin);
   }
 
+  public Optional<SkillScripts> scriptsOf(String name) {
+    Loaded loaded = loadAll().get(name);
+    if (loaded == null) {
+      return Optional.empty();
+    }
+    Path dir = loaded.file().getParent().resolve(SCRIPTS_DIR);
+    if (!Files.isDirectory(dir, LinkOption.NOFOLLOW_LINKS)) {
+      return Optional.empty();
+    }
+    boolean installed = Files.isRegularFile(dir.resolve(SkillScripts.INSTALLED_MARKER), LinkOption.NOFOLLOW_LINKS);
+    return Optional.of(new SkillScripts(dir, installed));
+  }
+
+  public boolean saveScripts(String name, Map<String, byte[]> scripts, String source) {
+    Path scriptsDir = ownedRoot().resolve(sanitize(name)).resolve(SCRIPTS_DIR);
+    Map<Path, byte[]> targets = new LinkedHashMap<>();
+    for (Map.Entry<String, byte[]> script : scripts.entrySet()) {
+      targets.put(scriptTarget(scriptsDir, script.getKey()), script.getValue());
+    }
+    try {
+      deleteTree(scriptsDir);
+      if (targets.isEmpty()) {
+        return true;
+      }
+      Files.createDirectories(scriptsDir);
+      Files.writeString(scriptsDir.resolve(SkillScripts.INSTALLED_MARKER), source + "\n", StandardCharsets.UTF_8);
+      for (Map.Entry<Path, byte[]> target : targets.entrySet()) {
+        Files.createDirectories(target.getKey().getParent());
+        Files.write(target.getKey(), target.getValue());
+        makeExecutable(target.getKey());
+      }
+      Log.infof("Skill scripts saved: %s (%d files)", name, targets.size());
+      return true;
+    } catch (IOException e) {
+      throw new UncheckedIOException("Failed to save scripts of skill " + name, e);
+    }
+  }
+
+  private static Path scriptTarget(Path scriptsDir, String relative) {
+    if (relative == null || relative.isBlank() || relative.startsWith("/") || relative.contains("\\")
+        || relative.indexOf('\0') >= 0) {
+      throw new IllegalArgumentException("Invalid script path: " + relative);
+    }
+    Path target = scriptsDir.resolve(relative).normalize();
+    if (!target.startsWith(scriptsDir) || target.equals(scriptsDir)
+        || scriptsDir.relativize(target).toString().equals(SkillScripts.INSTALLED_MARKER)) {
+      throw new IllegalArgumentException("Invalid script path: " + relative);
+    }
+    return target;
+  }
+
+  private static void makeExecutable(Path file) throws IOException {
+    try {
+      Files.setPosixFilePermissions(file, PosixFilePermissions.fromString("rwxr-x---"));
+    } catch (UnsupportedOperationException e) {
+      Log.debugf("No POSIX permissions on %s", file);
+    }
+  }
+
+  private static void deleteTree(Path dir) throws IOException {
+    if (!Files.exists(dir, LinkOption.NOFOLLOW_LINKS)) {
+      return;
+    }
+    Files.walkFileTree(dir, new SimpleFileVisitor<>() {
+      @Override
+      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+        Files.delete(file);
+        return FileVisitResult.CONTINUE;
+      }
+
+      @Override
+      public FileVisitResult postVisitDirectory(Path directory, IOException error) throws IOException {
+        Files.delete(directory);
+        return FileVisitResult.CONTINUE;
+      }
+    });
+  }
+
   public boolean delete(String name) {
     Path dir = ownedRoot().resolve(sanitize(name));
     try {
       boolean removed = Files.deleteIfExists(dir.resolve(SKILL_FILE));
+      if (removed) {
+        deleteTree(dir.resolve(SCRIPTS_DIR));
+      }
       if (removed && Files.isDirectory(dir)) {
         try (Stream<Path> remaining = Files.list(dir)) {
           if (remaining.findAny().isEmpty()) {

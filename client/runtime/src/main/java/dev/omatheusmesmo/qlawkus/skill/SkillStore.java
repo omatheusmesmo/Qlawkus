@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.skill;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -62,6 +63,23 @@ public interface SkillStore {
   /** The recorded install source of a skill, or empty when none was recorded. */
   default Optional<SkillOrigin> originOf(String name) {
     return Optional.empty();
+  }
+
+  /**
+   * The scripts folder of a skill, or empty when the skill has none, is not on disk (a bundled skill, or a
+   * backend that keeps no files), or the folder is a symbolic link.
+   */
+  default Optional<SkillScripts> scriptsOf(String name) {
+    return Optional.empty();
+  }
+
+  /**
+   * Replaces the scripts of an existing skill with {@code files} (relative path to content) and marks them
+   * as installed from {@code source}. Returns {@code false} when the backend keeps no files, so nothing was
+   * written. Throws {@link IllegalArgumentException} for a path that would leave the scripts folder.
+   */
+  default boolean saveScripts(String name, Map<String, byte[]> files, String source) {
+    return false;
   }
 
   /**

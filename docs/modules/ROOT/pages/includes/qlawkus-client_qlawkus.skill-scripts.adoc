@@ -1,0 +1,93 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-skill-scripts-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-skill-scripts-enabled[`+++qlawkus.skill-scripts.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-scripts.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the agent may run the scripts of its skills (`runSkillScript` and `runInstalledSkillScript`). When `false` both tools refuse.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_SCRIPTS_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_SCRIPTS_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[qlawkus-client_qlawkus-skill-scripts-timeout]] [.property-path]##link:#qlawkus-client_qlawkus-skill-scripts-timeout[`+++qlawkus.skill-scripts.timeout+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-scripts.timeout+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Longest a skill script may run. A longer timeout asked for by the model is lowered to this, and a call that names none gets this one.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_SCRIPTS_TIMEOUT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_SCRIPTS_TIMEOUT+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-qlawkus-client_qlawkus-skill-scripts[icon:question-circle[title=More information about the Duration format]]
+|`+++60S+++`
+
+a| [[qlawkus-client_qlawkus-skill-scripts-installed-require-approval]] [.property-path]##link:#qlawkus-client_qlawkus-skill-scripts-installed-require-approval[`+++qlawkus.skill-scripts.installed-require-approval+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.skill-scripts.installed-require-approval+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether every run of a script from a skill installed by the Skill Hub waits for the owner's approval, whatever `qlawkus.skill-hub.approval-mode` says: the install approval covers writing the files, not running code someone else wrote. Scripts of the agent's own skills, or ones the owner placed by hand, never wait.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_SKILL_SCRIPTS_INSTALLED_REQUIRE_APPROVAL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_SKILL_SCRIPTS_INSTALLED_REQUIRE_APPROVAL+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+|===
+
+ifndef::no-duration-note[]
+[NOTE]
+[id=duration-note-anchor-qlawkus-client_qlawkus-skill-scripts]
+.About the Duration format
+====
+To write duration values, use the standard `java.time.Duration` format.
+See the link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html#parse(java.lang.CharSequence)[Duration#parse() Java API documentation] for more information.
+
+You can also use a simplified format, starting with a number:
+
+* If the value is only a number, it represents time in seconds.
+* If the value is a number followed by `ms`, it represents time in milliseconds.
+
+In other cases, the simplified format is translated to the `java.time.Duration` format for parsing:
+
+* If the value is a number followed by `h`, `m`, or `s`, it is prefixed with `PT`.
+* If the value is a number followed by `d`, it is prefixed with `P`.
+====
+endif::no-duration-note[]
