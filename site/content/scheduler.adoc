@@ -22,6 +22,34 @@ The default decision goes through the same model chain as the agent, so it uses 
 
 The Schedule page shows the next run, last result and remaining daily budget. Grafana's Scheduled tasks section charts `qlawkus.heartbeat.runs` by outcome. Prompts and notification destinations are omitted from heartbeat metrics and logs.
 
+== Weekly report and Monday briefing
+
+Two routines run on a fixed rhythm and write to the chat you wrote from last. Both are off until you turn them on.
+
+* *Weekly report*, Fridays at 16:00. The agent collects what you did since Monday: the pull requests you merged and the commits you pushed (through the shell tool and the `gh` CLI) and the achievements already in your brag document. It sends a short report grouped by project and offers to record the items worth keeping. It never records anything until you answer.
+* *Monday briefing*, Mondays at 08:00. The agent lists this week's meetings from Google Calendar, day by day, and the open pull requests that look abandoned, with how long each has been quiet. A pull request counts as abandoned after `qlawkus.routines.morning.abandoned-after-days` days without activity (default 14).
+
+[source,properties]
+----
+qlawkus.routines.weekly.enabled=true
+qlawkus.routines.morning.enabled=true
+qlawkus.routines.morning.abandoned-after-days=10
+----
+
+A routine uses the tools you have installed. With no `gh` login, no Google authorization or no brag extension it still sends what it could read, and says plainly what it could not. A run that fails, or one with nothing to say, tells you so in the chat instead of staying silent, and a failed run is not retried until the next time it is due. The notice names the kind of error, never its message. If no chat is known yet, nothing is sent: write to the agent once from the chat that should receive the reports.
+
+The cron (`qlawkus.routines.weekly.cron`, default `0 0 16 ? * FRI`, and `qlawkus.routines.morning.cron`, default `0 0 8 ? * MON`, both Quartz-style with the seconds field first) and the time zone (`time-zone` on each, an IANA name such as `America/Sao_Paulo`, defaulting to `qlawkus.agent.timezone`) are read at startup. `enabled` is read on every firing, so it can be switched through the runtime toggles without a restart. `qlawkus.routines.weekly.prompt` and `qlawkus.routines.morning.prompt` are optional, and a blank value keeps the built-in instruction. A prompt replaces it; the date, the rule that the agent says what it could not read, and the abandoned-after threshold still apply. Keep credentials out of the prompt.
+
+To see what a routine says without waiting for its day, run it now. It goes to the same chat and works even while the routine is off.
+
+[source,bash]
+----
+curl -u qlawkus:PASSWORD -X POST localhost:8742/api/admin/routines/weekly/run
+curl -u qlawkus:PASSWORD -X POST localhost:8742/api/admin/routines/morning/run
+----
+
+The reply is `{"routine":"weekly","outcome":"SENT"}`. The outcome is `SENT`, `NO_REPORT` (the agent had nothing to report, and you were told), `FAILED` (you were told) or `NO_DESTINATION` (no chat is known). Each run is logged as the job `routine-weekly` or `routine-morning` and appears in the job duration metric under that name.
+
 == What the agent can do
 
 Four tools, all available to the model in every conversation:
@@ -243,7 +271,7 @@ The run itself also writes an `Agent turn` line, with `channel` set to the provi
 |100
 |===
 
-These limits are fixed in code. The only configuration is `qlawkus.agent.timezone` (default `America/Sao_Paulo`), plus the state root and cognition backend described above.
+These limits are fixed in code. The only configuration for agent-created tasks is `qlawkus.agent.timezone` (default `America/Sao_Paulo`), plus the state root and cognition backend described above. The routines above have their own `qlawkus.routines.*` settings.
 
 == Troubleshooting
 

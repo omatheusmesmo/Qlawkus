@@ -19,6 +19,18 @@ Accepted Discord `/qlawkus verbose` commands record the chat too).
 REST and console callers with no provider deliver to the most recent chat on any provider, and get a plain-words refusal when there is none.
 The user-facing page is `site/content/scheduler.adoc`.
 
+## Routines
+
+`routine/` in `client` holds the weekly report and the Monday briefing (`qlawkus.routines.*`, user page section "Weekly report and Monday briefing" in `scheduler.adoc`).
+They are two `@Scheduled` methods in `RoutineJobs`, not `DynamicTaskScheduler` tasks: a routine is configuration, not an agent-created record, so it needs no store, restore or cancel, and the fixed `routine-*` identities keep it apart from the `qlawkus-task-` jobs.
+Both methods are always registered and `RoutineRunner.runScheduled` checks `enabled` on each firing, so the switch is a runtime toggle while the cron and zone (property expressions in the annotation) are fixed at startup.
+The run mirrors a task firing: request context activated, `AgentDeliveryContext` bound to the owner's most recent chat, then `AgentRunner.chat` on the **batch** workload (nobody waits on it, and a routine must not open the breaker the owner's next message goes through).
+The memory id is the one messaging uses (`ConversationId.SHARED` when shared context is on, else `provider:chatId`), so the owner's "yes, record those" lands in the conversation that holds the report.
+The reply contract in `RoutinePrompts` is not replaceable by an owner prompt: a routine must say what it could not read, and a run that is blank or throws sends a notice (exception class only, never the message) rather than failing silently.
+A failed run is not retried, since the scheduler does not retry and a retry could repeat tool calls that already ran.
+`POST /api/admin/routines/{weekly|morning}/run` runs one now regardless of `enabled`.
+Pinned by `RoutineRunnerTest`, `RoutinePromptsTest` and `RoutinesDisabledByDefaultTest`.
+
 ## heartbeat/
 
 **`heartbeat/`** - Optional extension (runtime and deployment, capability `heartbeat`) that runs an owner-configured, bounded health check.
