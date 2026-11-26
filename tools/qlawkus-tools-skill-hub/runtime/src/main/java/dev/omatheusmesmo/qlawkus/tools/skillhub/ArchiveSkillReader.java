@@ -7,14 +7,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
 /**
- * Reads the SKILL.md files out of a {@code .zip} or {@code .tar.gz} archive held in memory. Nothing is
- * extracted to disk, and only SKILL.md entries are read; every other entry is checked and skipped.
+ * Reads the SKILL.md files, and the files of their {@code scripts/} folders when the limits ask for them, out
+ * of a {@code .zip} or {@code .tar.gz} archive held in memory. Nothing is extracted to disk; every other
+ * entry is checked and skipped.
  *
  * <p>The zip reader walks the central directory itself rather than streaming local headers: that is
  * where the unix mode (to refuse symlinks) and the declared sizes live, and it lets a SKILL.md be
@@ -23,18 +26,27 @@ import java.util.zip.InflaterInputStream;
  */
 final class ArchiveSkillReader {
 
-  /** A SKILL.md found in an archive: the folder that holds it ({@code ""} at the archive root) and its text. */
-  record ArchivedSkill(String folder, String content) {
+  /**
+   * A SKILL.md found in an archive: the folder that holds it ({@code ""} at the archive root), its text,
+   * and the files under that folder's {@code scripts/} directory by their path inside it.
+   */
+  record ArchivedSkill(String folder, String content, Map<String, byte[]> scripts) {
   }
 
   /**
-   * The caps a read is held to: entries, total expanded bytes declared or decompressed, and the largest
-   * single SKILL.md accepted.
+   * The caps a read is held to: entries, total expanded bytes declared or decompressed, the largest
+   * single SKILL.md accepted, and the largest single script file. A {@code maxScriptBytes} of zero reads
+   * no scripts at all.
    */
-  record Limits(int maxEntries, long maxExpandedBytes, long maxSkillBytes) {
+  record Limits(int maxEntries, long maxExpandedBytes, long maxSkillBytes, long maxScriptBytes) {
+
+    Limits(int maxEntries, long maxExpandedBytes, long maxSkillBytes) {
+      this(maxEntries, maxExpandedBytes, maxSkillBytes, 0);
+    }
   }
 
   private static final String SKILL_FILE = "SKILL.md";
+  private static final String SCRIPTS_SEGMENT = "scripts/";
   private static final int ZIP_EOCD_SIG = 0x06054b50;
   private static final int ZIP_CENTRAL_SIG = 0x02014b50;
   private static final int ZIP_LOCAL_SIG = 0x04034b50;
@@ -97,6 +109,7 @@ final class ArchiveSkillReader {
       throw corrupt("the central directory runs past the end of the file");
     }
     List<ZipSkillEntry> skills = new ArrayList<>();
+    List<ZipSkillEntry> scriptEntries = new ArrayList<>();
     long declaredExpansion = 0;
     int position = (int) directoryOffset;
     for (int i = 0; i < entryCount; i++) {
@@ -135,11 +148,22 @@ final class ArchiveSkillReader {
       }
       if (basename(name).equals(SKILL_FILE)) {
         skills.add(new ZipSkillEntry(name, method, compressedSize, localOffset));
+      } else if (limits.maxScriptBytes() > 0 && isScriptCandidate(name)) {
+        scriptEntries.add(new ZipSkillEntry(name, method, compressedSize, localOffset));
       }
     }
     List<ArchivedSkill> found = new ArrayList<>();
     for (ZipSkillEntry skill : skills) {
-      found.add(new ArchivedSkill(folderOf(skill.name()), readZipSkill(data, skill, limits)));
+      String folder = folderOf(skill.name());
+      String text = new String(readZipEntry(data, skill, limits.maxSkillBytes(), "SKILL.md"), StandardCharsets.UTF_8);
+      Map<String, byte[]> scripts = new LinkedHashMap<>();
+      for (ZipSkillEntry script : scriptEntries) {
+        String relative = scriptPath(folder, script.name());
+        if (relative != null) {
+          scripts.put(relative, readZipEntry(data, script, limits.maxScriptBytes(), "script"));
+        }
+      }
+      found.add(new ArchivedSkill(folder, text, scripts));
     }
     return found;
   }
@@ -147,7 +171,7 @@ final class ArchiveSkillReader {
   private record ZipSkillEntry(String name, int method, long compressedSize, long localOffset) {
   }
 
-  private static String readZipSkill(byte[] data, ZipSkillEntry skill, Limits limits) {
+  private static byte[] readZipEntry(byte[] data, ZipSkillEntry skill, long limit, String what) {
     requireBytes(data, (int) skill.localOffset(), ZIP_LOCAL_FIXED, "local header of " + skill.name());
     if (u32(data, (int) skill.localOffset()) != ZIP_LOCAL_SIG) {
       throw corrupt("the local header of '" + skill.name() + "' has a bad signature");
@@ -162,11 +186,11 @@ final class ArchiveSkillReader {
     InputStream raw = new ByteArrayInputStream(data, (int) start, (int) skill.compressedSize());
     byte[] bytes;
     if (skill.method() == ZIP_METHOD_STORED) {
-      bytes = readBounded(raw, limits.maxSkillBytes(), skill.name());
+      bytes = readBounded(raw, limit, skill.name(), what);
     } else if (skill.method() == ZIP_METHOD_DEFLATED) {
       try (Inflater inflater = new Inflater(true);
           InflaterInputStream inflated = new InflaterInputStream(raw, inflater)) {
-        bytes = readBounded(inflated, limits.maxSkillBytes(), skill.name());
+        bytes = readBounded(inflated, limit, skill.name(), what);
       } catch (IOException e) {
         throw new IllegalArgumentException("Could not inflate '" + skill.name() + "': " + e.getMessage(), e);
       }
@@ -174,7 +198,7 @@ final class ArchiveSkillReader {
       throw new IllegalArgumentException("Refused '" + skill.name() + "': unsupported zip compression method "
           + skill.method() + ".");
     }
-    return new String(bytes, StandardCharsets.UTF_8);
+    return bytes;
   }
 
   private static int findEndOfCentralDirectory(byte[] data) {
@@ -191,7 +215,8 @@ final class ArchiveSkillReader {
   }
 
   private static List<ArchivedSkill> readTarGz(byte[] archive, Limits limits) {
-    List<ArchivedSkill> found = new ArrayList<>();
+    List<Map.Entry<String, String>> skills = new ArrayList<>();
+    Map<String, byte[]> scriptFiles = new LinkedHashMap<>();
     int entries = 0;
     String pendingName = null;
     try (InputStream tar = new ExpansionLimitedStream(
@@ -245,7 +270,12 @@ final class ArchiveSkillReader {
             throw skillTooLarge(name, limits.maxSkillBytes());
           }
           byte[] content = readAll(tar, size, limits.maxSkillBytes());
-          found.add(new ArchivedSkill(folderOf(name), new String(content, StandardCharsets.UTF_8)));
+          skills.add(Map.entry(folderOf(name), new String(content, StandardCharsets.UTF_8)));
+        } else if (limits.maxScriptBytes() > 0 && isScriptCandidate(name)) {
+          if (size > limits.maxScriptBytes()) {
+            throw fileTooLarge(name, limits.maxScriptBytes(), "script");
+          }
+          scriptFiles.put(name, readAll(tar, size, limits.maxScriptBytes()));
         } else {
           skipFully(tar, size);
         }
@@ -253,6 +283,17 @@ final class ArchiveSkillReader {
       }
     } catch (IOException e) {
       throw new IllegalArgumentException("The .tar.gz archive is corrupt or truncated: " + e.getMessage(), e);
+    }
+    List<ArchivedSkill> found = new ArrayList<>();
+    for (Map.Entry<String, String> skill : skills) {
+      Map<String, byte[]> scripts = new LinkedHashMap<>();
+      scriptFiles.forEach((path, content) -> {
+        String relative = scriptPath(skill.getKey(), path);
+        if (relative != null) {
+          scripts.put(relative, content);
+        }
+      });
+      found.add(new ArchivedSkill(skill.getKey(), skill.getValue(), scripts));
     }
     return found;
   }
@@ -344,7 +385,7 @@ final class ArchiveSkillReader {
     return buffer;
   }
 
-  private static byte[] readBounded(InputStream in, long limit, String name) {
+  private static byte[] readBounded(InputStream in, long limit, String name, String what) {
     try {
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       byte[] chunk = new byte[8192];
@@ -353,7 +394,7 @@ final class ArchiveSkillReader {
       while ((read = in.read(chunk)) >= 0) {
         total += read;
         if (total > limit) {
-          throw skillTooLarge(name, limit);
+          throw fileTooLarge(name, limit, what);
         }
         out.write(chunk, 0, read);
       }
@@ -394,6 +435,16 @@ final class ArchiveSkillReader {
     }
   }
 
+  private static boolean isScriptCandidate(String name) {
+    return name.startsWith(SCRIPTS_SEGMENT) || name.contains("/" + SCRIPTS_SEGMENT);
+  }
+
+  /** The path of {@code entry} inside {@code folder}'s scripts directory, or null when it is not in it. */
+  private static String scriptPath(String folder, String entry) {
+    String prefix = folder.isEmpty() ? SCRIPTS_SEGMENT : folder + "/" + SCRIPTS_SEGMENT;
+    return entry.startsWith(prefix) && entry.length() > prefix.length() ? entry.substring(prefix.length()) : null;
+  }
+
   private static String basename(String name) {
     String trimmed = name.endsWith("/") ? name.substring(0, name.length() - 1) : name;
     int slash = trimmed.lastIndexOf('/');
@@ -416,8 +467,12 @@ final class ArchiveSkillReader {
   }
 
   private static SkillLimitException skillTooLarge(String name, long limit) {
+    return fileTooLarge(name, limit, "SKILL.md");
+  }
+
+  private static SkillLimitException fileTooLarge(String name, long limit, String what) {
     return new SkillLimitException("'" + name + "' is larger than the " + limit
-        + "-byte limit for a SKILL.md.");
+        + "-byte limit for a " + what + ".");
   }
 
   private static IllegalArgumentException corrupt(String detail) {

@@ -81,6 +81,11 @@ public interface SkillHubConfig {
   Archive archive();
 
   /**
+   * The {@code scripts/} folder a skill may carry beside its SKILL.md.
+   */
+  Scripts scripts();
+
+  /**
    * How {@code installSkill} obtains the owner's go-ahead before writing a fetched skill.
    */
   enum ApprovalMode {
@@ -110,6 +115,25 @@ public interface SkillHubConfig {
      */
     @WithDefault("20971520")
     long maxExpandedBytes();
+  }
+
+  interface Scripts {
+
+    /**
+     * Whether an install also writes the files of the skill's {@code scripts/} folder, from an archive or a
+     * repository folder. When {@code false} only the SKILL.md is installed, as before. Installing a script
+     * does not run it: every run goes through the owner's approval unless
+     * {@code qlawkus.skill-scripts.installed-require-approval} is turned off.
+     */
+    @WithDefault("true")
+    boolean enabled();
+
+    /**
+     * Largest single script file installed, in bytes. A larger file refuses the whole skill rather than
+     * installing it without that script.
+     */
+    @WithDefault("1048576")
+    long maxBytes();
   }
 
   interface Publish {

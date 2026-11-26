@@ -6,6 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -70,6 +71,16 @@ public class MarkdownSkillStore implements SkillStore {
   @Override
   public Optional<SkillOrigin> originOf(String name) {
     return files.originOf(name);
+  }
+
+  @Override
+  public Optional<SkillScripts> scriptsOf(String name) {
+    return files.scriptsOf(name);
+  }
+
+  @Override
+  public boolean saveScripts(String name, Map<String, byte[]> scripts, String source) {
+    return files.saveScripts(name, scripts, source);
   }
 
   @Override

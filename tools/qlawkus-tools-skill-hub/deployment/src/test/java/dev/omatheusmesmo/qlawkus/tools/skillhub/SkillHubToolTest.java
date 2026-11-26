@@ -468,6 +468,21 @@ class SkillHubToolTest {
     }
 
     @Override
+    public Scripts scripts() {
+      return new Scripts() {
+        @Override
+        public boolean enabled() {
+          return true;
+        }
+
+        @Override
+        public long maxBytes() {
+          return 1_048_576L;
+        }
+      };
+    }
+
+    @Override
     public Archive archive() {
       return new Archive() {
         @Override

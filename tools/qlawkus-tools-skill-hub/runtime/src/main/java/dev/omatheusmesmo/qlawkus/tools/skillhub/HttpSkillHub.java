@@ -34,8 +34,10 @@ import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.eclipse.microprofile.faulttolerance.Retry;
@@ -216,10 +218,10 @@ public class HttpSkillHub implements SkillHub {
   public Skill install(String source) {
     try {
       SkillSource parsed = SkillSourceParser.parse(source);
-      String content = singleContent(parsed, source.strip());
-      Skill saved = skillStore.save(SkillMarkdown.parse(content, deriveName(parsed, source.strip())));
-      skillStore.recordOrigin(saved.name(), new SkillOrigin(source.strip(), null, System.currentTimeMillis()));
-      return saved;
+      Fetched fetched = singleContent(parsed, source.strip());
+      Map<String, byte[]> scripts = fetchScripts(fetched.scripts());
+      return saveWithScripts(SkillMarkdown.parse(fetched.content(), deriveName(parsed, source.strip())),
+          new SkillOrigin(source.strip(), null, System.currentTimeMillis()), scripts);
     } catch (RuntimeException e) {
       Log.warnf("Skill install failed for source '%s': %s", source, e.getMessage());
       throw e;
@@ -255,10 +257,9 @@ public class HttpSkillHub implements SkillHub {
       String content = candidate.content() != null
           ? candidate.content()
           : downloadText(candidate.location(), config.maxSkillBytes());
-      Skill saved = skillStore.save(SkillMarkdown.parse(content, candidate.name()));
-      skillStore.recordOrigin(saved.name(),
-          new SkillOrigin(candidate.source(), candidate.name(), System.currentTimeMillis()));
-      return saved;
+      Map<String, byte[]> scripts = fetchScripts(candidate.scripts());
+      return saveWithScripts(SkillMarkdown.parse(content, candidate.name()),
+          new SkillOrigin(candidate.source(), candidate.name(), System.currentTimeMillis()), scripts);
     } catch (RuntimeException e) {
       Log.warnf("Skill install failed for candidate '%s' from '%s': %s", candidate.name(), candidate.source(),
           e.getMessage());
@@ -282,18 +283,125 @@ public class HttpSkillHub implements SkillHub {
     }
   }
 
-  private String singleContent(SkillSource parsed, String source) {
+  /** The text of a single skill and, when the source holds them and scripts are on, its script files. */
+  private record Fetched(String content, List<SkillScript> scripts) {
+
+    Fetched(String content) {
+      this(content, List.of());
+    }
+  }
+
+  private Fetched singleContent(SkillSource parsed, String source) {
     return switch (parsed) {
-      case FileSource file -> downloadText(file.url(), config.maxSkillBytes());
-      case GitHubFileSource file -> downloadText(rawUrl(file.repo(), file.ref(), file.path()),
-          config.maxSkillBytes());
-      case GitHubSkillSource named -> fetchNamedSkill(named.repo(), named.skill());
-      case GitHubFolderSource folder -> fetchFolderSkill(folder, source);
-      case ArchiveSource archive -> onlyCandidate(archiveCandidates(archive.url(), source), source)
-          .content();
-      case GistSource gist -> downloadText(gistCandidate(gist.id(), source).location(), config.maxSkillBytes());
+      case FileSource file -> new Fetched(downloadText(file.url(), config.maxSkillBytes()));
+      case GitHubFileSource file -> new Fetched(downloadText(rawUrl(file.repo(), file.ref(), file.path()),
+          config.maxSkillBytes()));
+      case GitHubSkillSource named -> new Fetched(fetchNamedSkill(named.repo(), named.skill()));
+      case GitHubFolderSource folder -> new Fetched(fetchFolderSkill(folder, source), repositoryScripts(folder));
+      case ArchiveSource archive -> {
+        SkillCandidate only = onlyCandidate(archiveCandidates(archive.url(), source), source);
+        yield new Fetched(only.content(), only.scripts());
+      }
+      case GistSource gist -> new Fetched(downloadText(gistCandidate(gist.id(), source).location(),
+          config.maxSkillBytes()));
       case NameSource name -> throw notALocation(name.name());
     };
+  }
+
+  /**
+   * Reads the script files bytes the candidate carries, downloading the ones a repository tree only
+   * named. Done before the skill is saved so a script that cannot be fetched installs nothing.
+   */
+  private Map<String, byte[]> fetchScripts(List<SkillScript> scripts) {
+    Map<String, byte[]> files = new LinkedHashMap<>();
+    if (!config.scripts().enabled()) {
+      return files;
+    }
+    for (SkillScript script : scripts) {
+      files.put(script.path(), script.content() != null
+          ? script.content()
+          : download(script.location(), config.scripts().maxBytes()));
+    }
+    return files;
+  }
+
+  /**
+   * Saves the skill, records where it came from and writes its scripts. A skill that was not there before
+   * is removed again when its scripts cannot be written, so a fresh install is all or nothing; an existing
+   * skill keeps the version it had, since the save already replaced it and cannot be undone.
+   */
+  private Skill saveWithScripts(Skill parsed, SkillOrigin origin, Map<String, byte[]> scripts) {
+    boolean existed = !scripts.isEmpty() && skillStore.get(parsed.name()).isPresent();
+    Skill saved = skillStore.save(parsed);
+    skillStore.recordOrigin(saved.name(), origin);
+    if (scripts.isEmpty()) {
+      return saved;
+    }
+    boolean written;
+    try {
+      written = skillStore.saveScripts(saved.name(), scripts, origin.source());
+    } catch (RuntimeException e) {
+      if (!existed) {
+        skillStore.delete(saved.name());
+      }
+      throw new IllegalStateException("Skill " + saved.name() + " was " + (existed ? "updated" : "not installed")
+          + " because its scripts could not be written (" + e.getMessage() + "). Any script files left are held "
+          + "for owner approval.", e);
+    }
+    if (!written) {
+      Log.warnf("Skill %s has %d script files but this skill store keeps no files, so they were not installed",
+          saved.name(), scripts.size());
+    }
+    return saved;
+  }
+
+  /**
+   * The script files of a skill folder in a repository, from the same recursive tree call a listing makes.
+   * Best effort: a rate-limited or missing tree installs the skill without scripts rather than failing the
+   * install of its text, and says so in the log.
+   */
+  private List<SkillScript> repositoryScripts(GitHubFolderSource folder) {
+    if (!config.scripts().enabled()) {
+      return List.of();
+    }
+    List<String> branches = folder.ref() == null ? DEFAULT_BRANCHES : List.of(folder.ref());
+    for (String branch : branches) {
+      try {
+        String url = githubApiBase + "/repos/" + folder.repo() + "/git/trees/" + branch + "?recursive=1";
+        JsonNode tree = readTree(downloadText(url, API_RESPONSE_LIMIT), url);
+        if (tree.path("truncated").asBoolean(false)) {
+          Log.warnf("The file tree of %s on %s is truncated, so some scripts may be missing", folder.repo(), branch);
+        }
+        return scriptsInTree(tree, folder.repo(), branch, folder.folder());
+      } catch (SkillLimitException e) {
+        throw e;
+      } catch (RuntimeException e) {
+        Log.debugf(e, "No file tree of %s on %s", folder.repo(), branch);
+      }
+    }
+    Log.warnf("Could not list the files of %s, so any scripts it carries were not installed", folder.repo());
+    return List.of();
+  }
+
+  private List<SkillScript> scriptsInTree(JsonNode tree, String repo, String branch, String skillFolder) {
+    String prefix = (skillFolder.isEmpty() ? "" : skillFolder + "/") + "scripts/";
+    List<SkillScript> scripts = new ArrayList<>();
+    for (JsonNode entry : tree.path("tree")) {
+      String path = entry.path("path").asString("");
+      if (!"blob".equals(entry.path("type").asString()) || !path.startsWith(prefix)) {
+        continue;
+      }
+      if (entry.path("size").asLong(0) > config.scripts().maxBytes()) {
+        throw new SkillLimitException("'" + path + "' is larger than the " + config.scripts().maxBytes()
+            + "-byte limit for a script.");
+      }
+      scripts.add(new SkillScript(path.substring(prefix.length()), rawUrl(repo, branch, path), null));
+      if (scripts.size() > config.archive().maxEntries()) {
+        throw new SkillLimitException("The scripts folder of '" + path + "' holds more than "
+            + config.archive().maxEntries() + " files.");
+      }
+    }
+    return scripts;
   }
 
   private IllegalArgumentException notALocation(String name) {
@@ -361,7 +469,10 @@ public class HttpSkillHub implements SkillHub {
           continue;
         }
         String name = path.equals(ROOT_SKILL) ? repoName(folder.repo()) : folderName(path, repoName(folder.repo()));
-        found.add(new SkillCandidate(name, source, rawUrl(folder.repo(), branch, path), null));
+        List<SkillScript> scripts = config.scripts().enabled()
+            ? scriptsInTree(tree, folder.repo(), branch, parentFolder(path))
+            : List.of();
+        found.add(new SkillCandidate(name, source, rawUrl(folder.repo(), branch, path), null, scripts));
         if (found.size() > MAX_LISTED) {
           throw new IllegalStateException("'" + source + "' holds more than " + MAX_LISTED
               + " skills; point at a deeper folder with a tree link.");
@@ -405,16 +516,26 @@ public class HttpSkillHub implements SkillHub {
   private List<SkillCandidate> candidatesFromArchive(byte[] archive, String archiveName, String source) {
     List<ArchivedSkill> skills = ArchiveSkillReader.read(archive,
         new ArchiveSkillReader.Limits(config.archive().maxEntries(), config.archive().maxExpandedBytes(),
-            config.maxSkillBytes()));
+            config.maxSkillBytes(), config.scripts().enabled() ? config.scripts().maxBytes() : 0));
     if (skills.isEmpty()) {
       throw new IllegalStateException("The archive at '" + source + "' holds no SKILL.md file.");
     }
     List<SkillCandidate> candidates = new ArrayList<>();
     for (ArchivedSkill skill : skills) {
       candidates.add(new SkillCandidate(skill.folder().isEmpty() ? archiveName : folderName(skill.folder(), archiveName),
-          source, null, skill.content()));
+          source, null, skill.content(), archivedScripts(skill)));
     }
     return candidates;
+  }
+
+  private static String parentFolder(String skillPath) {
+    int slash = skillPath.lastIndexOf('/');
+    return slash < 0 ? "" : skillPath.substring(0, slash);
+  }
+
+  private static List<SkillScript> archivedScripts(ArchivedSkill skill) {
+    return skill.scripts().entrySet().stream()
+        .map(script -> new SkillScript(script.getKey(), null, script.getValue())).toList();
   }
 
   private SkillCandidate gistCandidate(String id, String source) {

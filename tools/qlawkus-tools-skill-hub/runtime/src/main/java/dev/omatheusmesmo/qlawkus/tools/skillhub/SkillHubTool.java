@@ -5,6 +5,7 @@ import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.approval.ApprovedExecution;
 import dev.omatheusmesmo.qlawkus.skill.Skill;
 import dev.omatheusmesmo.qlawkus.skill.SkillOrigin;
+import dev.omatheusmesmo.qlawkus.skill.SkillScripts;
 import dev.omatheusmesmo.qlawkus.skill.SkillStore;
 import dev.omatheusmesmo.qlawkus.skill.SkillSummary;
 import dev.omatheusmesmo.qlawkus.tools.skillhub.SkillHubConfig.ApprovalMode;
@@ -118,7 +119,8 @@ public class SkillHubTool {
     List<SkillCandidate> found = skillHub.discover(source.strip());
     return "Found " + found.size() + " skill(s) in " + source.strip() + ":\n"
         + found.stream()
-            .map(c -> "- " + c.name() + (c.location() == null ? "" : " (" + c.location() + ")"))
+            .map(c -> "- " + c.name() + (c.location() == null ? "" : " (" + c.location() + ")")
+                + (c.scripts().isEmpty() ? "" : " [" + c.scripts().size() + " script file(s)]"))
             .collect(Collectors.joining("\n"))
         + "\nInstall some or all with installSkillsFromSource.";
   }
@@ -151,7 +153,12 @@ public class SkillHubTool {
           + ". " + NOT_APPROVED;
     }
     List<String> installed = SkillSelection.installAll(skillHub, selected);
-    return "Installed " + installed.size() + " skill(s): " + String.join(", ", installed);
+    String withScripts = installed.stream()
+        .filter(name -> skillStore.scriptsOf(name).map(SkillScripts::installed).orElse(false))
+        .collect(Collectors.joining(", "));
+    return "Installed " + installed.size() + " skill(s): " + String.join(", ", installed)
+        + (withScripts.isEmpty() ? "" : ". Carrying scripts: " + withScripts + ". Nothing ran, and each run goes "
+            + "through runInstalledSkillScript, which waits for the owner's approval.");
   }
 
   @Tool("""
@@ -279,11 +286,23 @@ public class SkillHubTool {
 
   private String installLocation(String source, boolean confirm) {
     if (awaitsApproval()) {
-      return "Installing '" + source + "' will download a SKILL.md from the internet and add it to "
-          + "your skills. " + NOT_APPROVED;
+      return "Installing '" + source + "' will download a SKILL.md, and any scripts it carries, from the "
+          + "internet and add them to your skills. " + NOT_APPROVED;
     }
     Skill saved = skillHub.install(source);
-    return "Installed skill: " + saved.name();
+    return "Installed skill: " + saved.name() + scriptNote(saved.name());
+  }
+
+  /**
+   * Says that an installed skill carries scripts and how they run, so the owner and the model both know
+   * the install did not run anything and that running one waits for the owner.
+   */
+  private String scriptNote(String skill) {
+    boolean installedScripts = skillStore.scriptsOf(skill).map(SkillScripts::installed).orElse(false);
+    return installedScripts
+        ? ". It carries scripts: nothing ran, and each run goes through runInstalledSkillScript, which waits "
+            + "for the owner's approval."
+        : "";
   }
 
   private static String formatHits(List<SkillRef> hits) {

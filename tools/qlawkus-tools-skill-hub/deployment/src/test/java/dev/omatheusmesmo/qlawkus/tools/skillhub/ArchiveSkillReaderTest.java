@@ -143,4 +143,62 @@ class ArchiveSkillReaderTest {
     assertThrows(IllegalArgumentException.class,
         () -> ArchiveSkillReader.read(zip, new Limits(100, 1024 * 1024, 1024)));
   }
+
+  private static final Limits WITH_SCRIPTS = new Limits(100, 1024 * 1024, 64 * 1024, 1024);
+
+  @Test
+  void scriptsAreOnlyReadWhenTheLimitsAskForThem() throws IOException {
+    byte[] zip = zip(file("bundle/triage/SKILL.md", TRIAGE), file("bundle/triage/scripts/run.sh", "#!/bin/sh"));
+
+    assertTrue(ArchiveSkillReader.read(zip, LIMITS).get(0).scripts().isEmpty());
+    assertEquals(List.of("run.sh"), List.copyOf(ArchiveSkillReader.read(zip, WITH_SCRIPTS).get(0).scripts().keySet()));
+  }
+
+  @Test
+  void aZipGivesEachSkillOnlyTheScriptsUnderItsOwnFolder() throws IOException {
+    byte[] zip = zip(file("skills/triage/SKILL.md", TRIAGE), file("skills/triage/scripts/run.sh", "triage-run"),
+        file("skills/triage/scripts/lib/util.sh", "util"), file("skills/text/SKILL.md", TEXT),
+        file("skills/text/scripts/fmt.sh", "fmt"), file("skills/triage/assets/logo.png", "png"),
+        file("skills/scripts/orphan.sh", "orphan"));
+
+    List<ArchivedSkill> skills = ArchiveSkillReader.read(zip, WITH_SCRIPTS);
+
+    assertEquals(List.of("run.sh", "lib/util.sh"), List.copyOf(skills.get(0).scripts().keySet()));
+    assertEquals("triage-run", new String(skills.get(0).scripts().get("run.sh"), StandardCharsets.UTF_8));
+    assertEquals(List.of("fmt.sh"), List.copyOf(skills.get(1).scripts().keySet()));
+  }
+
+  @Test
+  void aRootSkillTakesTheScriptsFolderAtTheArchiveRoot() throws IOException {
+    byte[] zip = zip(file("SKILL.md", TRIAGE), file("scripts/run.sh", "run"), file("other/scripts/x.sh", "x"));
+
+    assertEquals(List.of("run.sh"), List.copyOf(ArchiveSkillReader.read(zip, WITH_SCRIPTS).get(0).scripts().keySet()));
+  }
+
+  @Test
+  void aTarGzYieldsScriptsEvenWhenTheyComeBeforeTheSkillMd() throws IOException {
+    byte[] tgz = tarGz(tarFile("bundle/triage/scripts/run.sh", "#!/bin/sh"), tarFile("bundle/triage/SKILL.md", TRIAGE));
+
+    ArchivedSkill skill = ArchiveSkillReader.read(tgz, WITH_SCRIPTS).get(0);
+
+    assertEquals(List.of("run.sh"), List.copyOf(skill.scripts().keySet()));
+  }
+
+  @Test
+  void aScriptOverTheScriptCapIsRefusedAsALimit() throws IOException {
+    String big = "x".repeat(2048);
+
+    assertThrows(SkillLimitException.class, () -> ArchiveSkillReader.read(
+        zip(file("a/SKILL.md", TRIAGE), file("a/scripts/big.sh", big)), WITH_SCRIPTS));
+    assertThrows(SkillLimitException.class, () -> ArchiveSkillReader.read(
+        tarGz(tarFile("a/SKILL.md", TRIAGE), tarFile("a/scripts/big.sh", big)), WITH_SCRIPTS));
+  }
+
+  @Test
+  void aScriptNamedToTraverseOrAnArchiveSymlinkIsStillRefusedWhileReadingScripts() throws IOException {
+    assertThrows(IllegalArgumentException.class, () -> ArchiveSkillReader.read(
+        zip(file("a/SKILL.md", TRIAGE), file("a/scripts/../../evil.sh", "x")), WITH_SCRIPTS));
+    assertThrows(IllegalArgumentException.class, () -> ArchiveSkillReader.read(
+        tarGz(tarFile("a/SKILL.md", TRIAGE), tarEntry("a/scripts/link.sh", '2', "")), WITH_SCRIPTS));
+  }
 }
