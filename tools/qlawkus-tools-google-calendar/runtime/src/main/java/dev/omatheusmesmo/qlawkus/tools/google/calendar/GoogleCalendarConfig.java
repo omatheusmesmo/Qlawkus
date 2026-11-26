@@ -49,4 +49,12 @@ public interface GoogleCalendarConfig {
     /** User timezone for displaying times and converting input. Defaults to America/Sao_Paulo. */
     @WithDefault("America/Sao_Paulo")
     String timezone();
+
+    /**
+     * Whether {@code updateEvent} and {@code deleteEvent} wait for the owner's approval before they run.
+     * Both notify the event's guests, so this is on by default; turn it off only for an agent whose
+     * calendar changes need no second look.
+     */
+    @WithDefault("true")
+    boolean requireApproval();
 }

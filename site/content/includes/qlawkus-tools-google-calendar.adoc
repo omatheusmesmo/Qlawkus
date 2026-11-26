@@ -175,5 +175,26 @@ endif::add-copy-button-to-env-var[]
 |string
 |`+++America/Sao_Paulo+++`
 
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-calendar_qlawkus-google-calendar-require-approval]] [.property-path]##link:#qlawkus-tools-google-calendar_qlawkus-google-calendar-require-approval[`+++qlawkus.google.calendar.require-approval+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.calendar.require-approval+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether `updateEvent` and `deleteEvent` wait for the owner's approval before they run. Both notify the event's guests, so this is on by default; turn it off only for an agent whose calendar changes need no second look.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_CALENDAR_REQUIRE_APPROVAL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_CALENDAR_REQUIRE_APPROVAL+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
 |===
 
