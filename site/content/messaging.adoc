@@ -9,7 +9,7 @@ Qlawkus includes messaging adapters for Discord and Telegram with voice support.
 
 == Connect a channel
 
-This is the shortest path to talking to the agent from your phone. It uses Telegram in polling mode, which needs no public URL; Discord follows the same four steps with its own variables (see <<_discord_bot,Discord Bot>>). It assumes the agent already runs (see xref:quickstart.adoc#_guide_first_agent_in_ten_minutes[the first-agent guide]).
+This is the shortest path to talking to the agent from your phone. It uses Telegram in polling mode, which needs no public URL; Discord follows the same four steps with its own variables (see <<_discord_bot,Discord Bot>>). It assumes the agent already runs (see xref:quickstart.adoc#_guide_first_agent_in_two_minutes[the first-agent guide]).
 
 *1. Create the bot.* In Telegram, message @BotFather, send `/newbot`, follow the prompts and copy the token it gives you.
 
