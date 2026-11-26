@@ -120,6 +120,7 @@ class DashboardMetricsTest {
         meters.fallback(AgentMeters.SURFACE_CHAT, AgentMeters.TIER_SECONDARY);
         meters.fallback(AgentMeters.SURFACE_CHAT, AgentMeters.TIER_FALLBACK);
         meters.tool("dashboard-probe", took, true);
+        meters.toolQuarantined("dashboard-probe");
         meters.turnGate("dashboard-probe", AgentMeters.GATE_PASS);
         meters.turnGateDuration("dashboard-probe", Duration.ofMillis(20));
         meters.store("FactStore", "markdown", "store", took, true);

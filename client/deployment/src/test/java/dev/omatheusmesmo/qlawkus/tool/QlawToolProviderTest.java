@@ -4,6 +4,7 @@ import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.ToolProviderRequest;
 import dev.langchain4j.service.tool.ToolProviderResult;
 import dev.omatheusmesmo.qlawkus.metrics.MeteredToolExecutor;
+import dev.omatheusmesmo.qlawkus.tool.quarantine.ToolQuarantine;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -19,6 +20,9 @@ class QlawToolProviderTest {
 
     @Inject
     QlawToolProvider provider;
+
+    @Inject
+    ToolQuarantine quarantine;
 
     @Test
     void provideTools_returnsEmptyWhenNoExtensionTools() {
@@ -54,5 +58,29 @@ class QlawToolProviderTest {
         assertFalse(result.tools().isEmpty(), "the client ships its own tools, so there is one to check");
         result.tools().values().forEach(executor -> assertInstanceOf(MeteredToolExecutor.class, executor,
                 "with no tracing extension present there is nothing to export a span to"));
+    }
+
+    @Test
+    void aQuarantinedToolLeavesTheCatalogUntilItIsReleased() {
+        String name = provider.provideTools(null).tools().keySet().stream().map(spec -> spec.name()).sorted()
+                .findFirst().orElseThrow();
+        try {
+            for (int i = 0; i < 5; i++) {
+                quarantine.recordFailure(name);
+            }
+
+            assertFalse(names().contains(name), "the model must not be offered a tool that keeps failing");
+
+            quarantine.release(name);
+
+            assertTrue(names().contains(name));
+        } finally {
+            quarantine.release(name);
+        }
+    }
+
+    private java.util.Set<String> names() {
+        return provider.provideTools(null).tools().keySet().stream().map(spec -> spec.name())
+                .collect(java.util.stream.Collectors.toSet());
     }
 }

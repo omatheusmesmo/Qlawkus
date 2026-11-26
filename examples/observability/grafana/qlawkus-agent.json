@@ -551,6 +551,48 @@
       ]
     },
     {
+      "type": "timeseries",
+      "title": "Tools taken out of the catalog",
+      "description": "Tools quarantined for failing in a row, per tool. Any bar means a dependency of that tool is broken; the owner was told in chat.",
+      "id": 41,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 43
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (tool) (increase(qlawkus_tool_quarantined_total[$__rate_interval]))",
+          "legendFormat": "{{tool}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
       "type": "row",
       "title": "Stores",
       "id": 14,
@@ -559,7 +601,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 43
+        "y": 51
       },
       "panels": []
     },
@@ -576,7 +618,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 44
+        "y": 52
       },
       "fieldConfig": {
         "defaults": {
@@ -618,7 +660,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 44
+        "y": 52
       },
       "fieldConfig": {
         "defaults": {
@@ -665,7 +707,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 52
+        "y": 60
       },
       "panels": []
     },
@@ -682,7 +724,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 53
+        "y": 61
       },
       "fieldConfig": {
         "defaults": {
@@ -724,7 +766,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 53
+        "y": 61
       },
       "fieldConfig": {
         "defaults": {
@@ -771,7 +813,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 61
+        "y": 69
       },
       "panels": []
     },
@@ -788,7 +830,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 62
+        "y": 70
       },
       "fieldConfig": {
         "defaults": {
@@ -839,7 +881,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 62
+        "y": 70
       },
       "fieldConfig": {
         "defaults": {
@@ -877,7 +919,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 70
+        "y": 78
       },
       "panels": []
     },
@@ -894,7 +936,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 71
+        "y": 79
       },
       "fieldConfig": {
         "defaults": {
@@ -957,7 +999,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 71
+        "y": 79
       },
       "fieldConfig": {
         "defaults": {
@@ -995,7 +1037,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 79
+        "y": 87
       },
       "panels": []
     },
@@ -1012,7 +1054,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 80
+        "y": 88
       },
       "fieldConfig": {
         "defaults": {
@@ -1055,7 +1097,7 @@
         "h": 8,
         "w": 8,
         "x": 12,
-        "y": 80
+        "y": 88
       },
       "fieldConfig": {
         "defaults": {
@@ -1101,7 +1143,7 @@
         "h": 8,
         "w": 4,
         "x": 20,
-        "y": 80
+        "y": 88
       },
       "fieldConfig": {
         "defaults": {
@@ -1140,7 +1182,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 88
+        "y": 96
       },
       "panels": []
     },
@@ -1157,7 +1199,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 89
+        "y": 97
       },
       "fieldConfig": {
         "defaults": {
@@ -1199,7 +1241,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 89
+        "y": 97
       },
       "fieldConfig": {
         "defaults": {
@@ -1237,7 +1279,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 97
+        "y": 105
       },
       "panels": []
     },
@@ -1254,7 +1296,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 98
+        "y": 106
       },
       "fieldConfig": {
         "defaults": {
@@ -1296,7 +1338,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 98
+        "y": 106
       },
       "fieldConfig": {
         "defaults": {
@@ -1347,7 +1389,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 106
+        "y": 114
       },
       "fieldConfig": {
         "defaults": {
@@ -1385,7 +1427,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 114
+        "y": 122
       },
       "panels": []
     },
@@ -1402,7 +1444,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 115
+        "y": 123
       },
       "fieldConfig": {
         "defaults": {
@@ -1444,7 +1486,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 115
+        "y": 123
       },
       "fieldConfig": {
         "defaults": {
@@ -1486,7 +1528,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 123
+        "y": 131
       },
       "fieldConfig": {
         "defaults": {
@@ -1528,7 +1570,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 123
+        "y": 131
       },
       "fieldConfig": {
         "defaults": {

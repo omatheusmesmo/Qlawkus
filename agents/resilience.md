@@ -64,6 +64,15 @@ Pinned by `ModelReadinessPermanentFailureTest`, `PermanentFailureWindowTest`, `F
 **Readiness and liveness answer different questions.** Liveness deliberately does not consult the model: killing the pod because the provider is down would turn their incident into an outage here, and the restarted pod would meet the same provider.
 `examples/redeploy/k8s/deployment.yaml` carries the probe trio (the startup probe absorbs the order-of-magnitude gap between JVM and native boot), and the Compose stacks poll the same `/q/health/ready`, so both deploy paths agree on what "serving" means.
 
+## Tool quarantine
+
+`tool.quarantine.ToolQuarantine` counts consecutive failures per tool and `QlawToolProvider` leaves a quarantined tool out of the catalog on every turn.
+It is not a SmallRye breaker on purpose: a breaker rejects the call, but the model would still be offered the tool and keep choosing it, and hiding it from the catalog is the point.
+`QuarantineToolExecutor` sits under the approval gate so a refused or pending call never counts, and it ignores a call the model got wrong (`IllegalArgumentException`, `ToolArgumentsException`, `ConstraintViolationException`, anywhere in the cause chain), or a model that misuses `readFile` five times would lose the tool for the cooldown.
+After the cooldown the streak resumes one failure short of the threshold, which is the probation.
+State is in memory: a restart is a fresh start for the dependencies as well.
+Pinned by `ToolQuarantineTest`, `QuarantineToolExecutorTest`, `QlawToolProviderTest` and `ToolQuarantineAdminResourceTest`; the owner-facing page is `site/content/operations.adoc`.
+
 ## Model workloads
 
 `ReplyLanguageResolver` is the single language policy for text and voice. `AgentStream`,

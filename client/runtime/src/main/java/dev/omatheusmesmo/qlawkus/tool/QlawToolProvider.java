@@ -16,6 +16,8 @@ import dev.omatheusmesmo.qlawkus.approval.ApprovalToolExecutor;
 import dev.omatheusmesmo.qlawkus.approval.ApprovedToolExecutors;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.metrics.MeteredToolExecutor;
+import dev.omatheusmesmo.qlawkus.tool.quarantine.QuarantineToolExecutor;
+import dev.omatheusmesmo.qlawkus.tool.quarantine.ToolQuarantine;
 import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
 import dev.omatheusmesmo.qlawkus.tracing.TracedToolExecutor;
 import io.opentelemetry.api.trace.Tracer;
@@ -52,6 +54,9 @@ public class QlawToolProvider implements ToolProvider, ApprovedToolExecutors {
     SecretRedactor redactor;
 
     @Inject
+    ToolQuarantine quarantine;
+
+    @Inject
     ApprovalGate approvals;
 
     @Inject
@@ -71,11 +76,13 @@ public class QlawToolProvider implements ToolProvider, ApprovedToolExecutors {
 
     /**
      * The chain for each {@code @QlawTool} tool is
-     * {@code Traced(Metered(ContextBridging(ApprovalGate(Default))))}. The gate sits under the bridge
+     * {@code Traced(Metered(ContextBridging(ApprovalGate(Quarantine(Default)))))}. The gate sits under the bridge
      * because it reads the delivery values the bridge restores on the streaming path, and under the
      * meters so a gated call is still counted and traced as the call the model made, even though it does
      * not run. Tools an external contributor supplies are not gated: the resume path can only rebuild a
-     * {@code @QlawTool} executor by name.
+     * {@code @QlawTool} executor by name. The quarantine sits under the gate so that a call the owner
+     * refused, or that is still waiting, never counts as the tool failing, and a quarantined tool is
+     * left out of the catalog here, on every turn, rather than rejected when the model calls it.
      */
     @Override
     public ToolProviderResult provideTools(ToolProviderRequest request) {
@@ -87,11 +94,17 @@ public class QlawToolProvider implements ToolProvider, ApprovedToolExecutors {
                 Class<?> beanClass = resolveBeanClass(tool);
                 List<ToolSpecification> specs = ToolSpecifications.toolSpecificationsFrom(beanClass);
                 for (ToolSpecification spec : specs) {
+                    if (quarantine != null && quarantine.isQuarantined(spec.name())) {
+                        continue;
+                    }
                     Method toolMethod = findToolMethod(beanClass, spec);
                     QlawTool declaration = beanClass.getAnnotation(QlawTool.class);
                     boolean capture = declaration == null || declaration.capturePayload();
-                    ToolExecutor gated = new ApprovalToolExecutor(spec.name(),
-                            new DefaultToolExecutor(tool, toolMethod), approvalPolicy::requires, approvals, delivery);
+                    ToolExecutor invoker = new DefaultToolExecutor(tool, toolMethod);
+                    ToolExecutor watched = quarantine == null ? invoker
+                            : new QuarantineToolExecutor(spec.name(), invoker, quarantine);
+                    ToolExecutor gated = new ApprovalToolExecutor(spec.name(), watched,
+                            approvalPolicy::requires, approvals, delivery);
                     add(builder, names, spec, gated, capture);
                     Log.debugf("Registered extension tool: %s from %s", spec.name(), beanClass.getSimpleName());
                 }
@@ -106,7 +119,14 @@ public class QlawToolProvider implements ToolProvider, ApprovedToolExecutors {
                     Log.warnf("Tool contribution unavailable (%s)", e.getClass().getSimpleName());
                     continue;
                 }
-                contribution.tools().forEach((spec, executor) -> add(builder, names, spec, executor, false));
+                contribution.tools().forEach((spec, executor) -> {
+                    if (quarantine == null) {
+                        add(builder, names, spec, executor, false);
+                    } else if (!quarantine.isQuarantined(spec.name())) {
+                        add(builder, names, spec, new QuarantineToolExecutor(spec.name(), executor, quarantine),
+                                false);
+                    }
+                });
             }
         }
         return builder.build();
