@@ -19,7 +19,7 @@
 
   <properties>
     <quarkus-roq.version>2.2.1</quarkus-roq.version>
-    <quarkus.platform.version>3.36.2</quarkus.platform.version>
+    <quarkus.platform.version>3.40.1.2</quarkus.platform.version>
     <maven.install.skip>true</maven.install.skip>
     <maven.deploy.skip>true</maven.deploy.skip>
   </properties>

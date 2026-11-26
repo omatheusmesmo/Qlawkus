@@ -12,10 +12,8 @@ Multi-module Maven monorepo using the Quarkus extension pattern (each extension 
 <div class="mermaid">
 graph TB
     subgraph app["app (deployable)"]
-        style app fill:#f9f9f9,stroke:#333
     end
     subgraph extensions["Quarkus Extensions"]
-        style extensions fill:#fff,stroke:#ccc,stroke-dasharray: 5 5
         client["client - Core: Agent, Cognition, Skills, REST (database-free)"]
         cognitionpg["cognition-pgvector - optional Postgres/pgvector backend"]
         messaging["messaging - Discord / Telegram adapters"]
@@ -23,7 +21,6 @@ graph TB
         console["console - optional admin UI (Qute + HTMX)"]
     end
     subgraph infra["Infrastructure"]
-        style infra fill:#fff,stroke:#ccc,stroke-dasharray: 5 5
         pg["PostgreSQL + pgvector (optional)"]
         llm["LLM - NVIDIA NIM / Ollama"]
     end

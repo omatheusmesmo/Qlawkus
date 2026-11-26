@@ -90,7 +90,70 @@
       }
     })();
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <script>mermaid.initialize({ startOnLoad: true, theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default' });</script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.3/dist/mermaid.min.js"></script>
+  <script>
+    (function () {
+      if (!window.mermaid) return;
+      var media = window.matchMedia('(prefers-color-scheme: dark)');
+      var root = document.documentElement;
+      var forced = root.getAttribute('data-theme');
+      var dark = forced ? forced === 'dark' : media.matches;
+      var css = getComputedStyle(root);
+      function token(name) { return css.getPropertyValue(name).trim(); }
+      var palette = dark
+        ? { node: '#2a2433', cluster: '#1d1a23', clusterLine: '#4a4455', note: '#2f2740', teal: '#14363c' }
+        : { node: '#fdeedd', cluster: '#ffffff', clusterLine: '#d9d3cc', note: '#fff6ea', teal: '#e1f0f2' };
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        securityLevel: 'strict',
+        fontFamily: token('--font'),
+        themeVariables: {
+          darkMode: dark,
+          background: token('--surface'),
+          fontFamily: token('--font'),
+          fontSize: '14px',
+          textColor: token('--text'),
+          primaryColor: palette.node,
+          primaryTextColor: token('--text'),
+          primaryBorderColor: token('--accent'),
+          secondaryColor: palette.teal,
+          secondaryTextColor: token('--text'),
+          secondaryBorderColor: token('--speak'),
+          tertiaryColor: palette.cluster,
+          tertiaryTextColor: token('--text'),
+          tertiaryBorderColor: palette.clusterLine,
+          lineColor: dark ? '#b7b1c0' : '#5f5a64',
+          clusterBkg: palette.cluster,
+          clusterBorder: palette.clusterLine,
+          titleColor: token('--text'),
+          edgeLabelBackground: token('--bg'),
+          noteBkgColor: palette.note,
+          noteTextColor: token('--text'),
+          noteBorderColor: token('--accent'),
+          actorBkg: palette.node,
+          actorBorder: token('--accent'),
+          actorTextColor: token('--text'),
+          actorLineColor: dark ? '#8f8899' : '#9b95a1',
+          signalColor: token('--text'),
+          signalTextColor: token('--text'),
+          labelBoxBkgColor: palette.cluster,
+          labelBoxBorderColor: palette.clusterLine,
+          labelTextColor: token('--text'),
+          loopTextColor: token('--text'),
+          activationBkgColor: palette.teal,
+          activationBorderColor: token('--speak'),
+          sequenceNumberColor: '#17151b',
+          stateBkg: palette.node,
+          stateLabelColor: token('--text'),
+          transitionColor: dark ? '#b7b1c0' : '#5f5a64',
+          transitionLabelColor: token('--text'),
+          compositeBackground: palette.cluster,
+          altBackground: palette.cluster
+        }
+      });
+      if (!forced) { media.addEventListener('change', function () { location.reload(); }); }
+    })();
+  </script>
 </body>
 </html>
