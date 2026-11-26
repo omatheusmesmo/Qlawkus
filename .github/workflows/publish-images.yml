@@ -188,6 +188,13 @@ jobs:
             echo "an agent turn failed before reaching the model" >&2
             exit 1
           fi
+          # What a native image says when it lacks a reflection registration: the JVM image never does.
+          native_failure="MissingReflectionRegistrationError|CreationException|No agent method found|no default \(no arg\) constructor"
+          if logged qlawkus-smoke "${native_failure}"; then
+            grep -m3 -E "${native_failure}" "${RUNNER_TEMP}/qlawkus-smoke.log" | cut -c1-400 >&2
+            echo "the image reports a missing reflection registration or a bean it cannot create" >&2
+            exit 1
+          fi
           docker rm -f qlawkus-smoke
           docker run -d --name qlawkus-uid --user 4321:0 "${IMAGE}"
           for _ in $(seq 1 90); do

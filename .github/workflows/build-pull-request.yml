@@ -41,11 +41,11 @@ jobs:
       - name: Build with Maven
         run: ./mvnw -B clean install -DskipTests -Dno-format -ntp
 
-      - name: Check Discord native reflection
+      - name: Check native reflection
         run: |
           ./mvnw -B -ntp -f integration-tests/messaging/pom.xml package -DskipTests \
             -Dquarkus.native.enabled=true -Dquarkus.native.sources-only=true
-          bash scripts/check-discord-native-reflection.sh integration-tests/messaging/target/native-sources/*-runner.jar
+          bash scripts/check-native-reflection.sh integration-tests/messaging/target/native-sources/*-runner.jar
 
       - name: Check the images share one runtime user
         run: scripts/check-image-runtime-user.sh
