@@ -65,6 +65,15 @@ class DiscordProcessor {
         reflection.produce(ReflectiveClassBuildItem.builder(payloads)
                 .reason("Discord4J Jackson payloads")
                 .constructors().methods().fields().build());
+        String[] frames = index.getIndex().getKnownClasses().stream()
+                .map(ClassInfo::name)
+                .filter(DiscordProcessor::isGatewayFrame)
+                .map(DotName::toString)
+                .sorted()
+                .toArray(String[]::new);
+        reflection.produce(ReflectiveClassBuildItem.builder(frames)
+                .reason("Discord4J gateway and voice frames and the deserializers Jackson builds for them")
+                .constructors().methods().fields().build());
         reflection.produce(ReflectiveClassBuildItem.builder(
                 HeartbeatConverter.class, OpcodeConverter.class, PossibleFilter.class, ClassSerializer.class)
                 .constructors().build());
@@ -72,8 +81,14 @@ class DiscordProcessor {
                 .constructors().methods().fields().build());
         reflection.produce(ReflectiveClassBuildItem.builder(
                 "com.github.benmanes.caffeine.cache.SI", "com.github.benmanes.caffeine.cache.PW")
-                .reason("Caffeine cache constructors used by Discord4J")
-                .constructors().build());
+                .reason("Caffeine cache constructors and factory fields used by Discord4J")
+                .constructors().fields().build());
+    }
+
+    private static boolean isGatewayFrame(DotName type) {
+        String name = type.toString();
+        return (name.startsWith("discord4j.gateway.json.") || name.startsWith("discord4j.voice.json."))
+                && !name.endsWith("package-info");
     }
 
     private static boolean isGeneratedPayload(DotName type) {

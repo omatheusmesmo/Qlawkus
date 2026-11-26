@@ -186,7 +186,7 @@ quarkus.otel.sdk.disabled=false
 quarkus.otel.exporter.otlp.endpoint=http://collector:4317
 ----
 
-Both are runtime properties, so this is a toggle and a restart rather than a rebuild. With the SDK on, log records go out over the same OTLP connection as the spans, each stamped with its trace and span (`quarkus.otel.logs.enabled`, which the extension sets because it is fixed at build time).
+Both are runtime properties, so this is a toggle and a restart rather than a rebuild. The extension also sets `quarkus.otel.exporter.otlp.protocol=grpc`, because the endpoint above is the gRPC port and Quarkus 3 would otherwise export over `http/protobuf` and fill the log with `InvalidLineSeparatorException` warnings; a collector that only takes OTLP/HTTP (port 4318) needs `quarkus.otel.exporter.otlp.protocol=http/protobuf` as well. With the SDK on, log records go out over the same OTLP connection as the spans, each stamped with its trace and span (`quarkus.otel.logs.enabled`, which the extension sets because it is fixed at build time).
 
 Metrics need no such gate: a Prometheus registry only exposes a scrape endpoint and reaches out to nothing.
 
