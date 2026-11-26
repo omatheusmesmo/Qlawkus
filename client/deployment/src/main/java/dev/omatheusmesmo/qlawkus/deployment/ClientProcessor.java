@@ -2,6 +2,7 @@ package dev.omatheusmesmo.qlawkus.deployment;
 
 import dev.langchain4j.skills.FileSystemSkill;
 import dev.langchain4j.skills.FileSystemSkillLoader;
+import dev.omatheusmesmo.qlawkus.agent.QlawkusAgent;
 import dev.omatheusmesmo.qlawkus.composition.BuildTime;
 import dev.omatheusmesmo.qlawkus.composition.CompositionManifest;
 import dev.omatheusmesmo.qlawkus.composition.CompositionPaths;
@@ -262,6 +263,15 @@ class ClientProcessor {
         transformers.produce(new AnnotationsTransformerBuildItem(AnnotationTransformation.forClasses()
                 .whenClass(clazz -> implementations.contains(clazz.name()))
                 .transform(context -> context.add(Metered.class))));
+    }
+
+    /**
+     * langchain4j-agentic validates a declarative agent by reflecting on its interface for the {@code @Agent}
+     * method and the supplier statics, which a native image answers only for registered types.
+     */
+    @BuildStep
+    ReflectiveClassBuildItem registerQlawkusAgentForReflection() {
+        return ReflectiveClassBuildItem.builder(QlawkusAgent.class).methods().build();
     }
 
     @BuildStep
