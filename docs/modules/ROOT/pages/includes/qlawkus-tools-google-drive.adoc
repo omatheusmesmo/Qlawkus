@@ -70,5 +70,26 @@ endif::add-copy-button-to-env-var[]
 |string
 |`+++id,name,mimeType,modifiedTime,size,webViewLink+++`
 
+a|icon:lock[title=Fixed at build time] [[qlawkus-tools-google-drive_qlawkus-google-drive-trash-needs-approval]] [.property-path]##link:#qlawkus-tools-google-drive_qlawkus-google-drive-trash-needs-approval[`+++qlawkus.google.drive.trash-needs-approval+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.google.drive.trash-needs-approval+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether `trashFile` waits for the owner's approval before it runs. Files go to the Drive trash, where the owner can still restore them, but the agent should not decide alone to move one. `untrashFile` never waits.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_GOOGLE_DRIVE_TRASH_NEEDS_APPROVAL+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_GOOGLE_DRIVE_TRASH_NEEDS_APPROVAL+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
 |===
 

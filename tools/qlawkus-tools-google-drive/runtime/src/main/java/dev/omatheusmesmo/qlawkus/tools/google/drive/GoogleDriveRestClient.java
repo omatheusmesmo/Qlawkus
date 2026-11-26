@@ -7,6 +7,7 @@ import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DriveFile;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DriveFileList;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DrivePermission;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DrivePermissionRequest;
+import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DriveTrashRequest;
 import io.quarkus.rest.client.reactive.ClientExceptionMapper;
 import io.smallrye.faulttolerance.api.ExponentialBackoff;
 import org.eclipse.microprofile.faulttolerance.Retry;
@@ -14,6 +15,7 @@ import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -47,6 +49,13 @@ public interface GoogleDriveRestClient {
     @Path("/{fileId}")
     DriveFile getFile(
             @PathParam("fileId") String fileId,
+            @QueryParam("fields") String fields);
+
+    @PATCH
+    @Path("/{fileId}")
+    DriveFile updateFile(
+            @PathParam("fileId") String fileId,
+            DriveTrashRequest request,
             @QueryParam("fields") String fields);
 
     @POST

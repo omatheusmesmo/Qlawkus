@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.it.google;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
+import dev.omatheusmesmo.qlawkus.approval.ApprovalPolicy;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.DriveTool;
 import io.quarkiverse.wiremock.devservice.ConnectWireMock;
@@ -11,6 +12,9 @@ import org.junit.jupiter.api.Test;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
@@ -22,6 +26,9 @@ class DriveWireMockTest {
     @Inject
     @QlawTool
     DriveTool driveTool;
+
+    @Inject
+    ApprovalPolicy approvalPolicy;
 
     @Test
     void listDriveFiles_returnsFileList() {
@@ -113,5 +120,59 @@ class DriveWireMockTest {
         String result = driveTool.shareFile("file-1", "colleague@example.com", null);
 
         assertTrue(result.contains("colleague@example.com"), "Should confirm sharing. Got: " + result);
+    }
+
+    @Test
+    void trashFile_marksTheFileTrashedAndNeverDeletesIt() {
+        wiremock.register(WireMock.patch(urlPathEqualTo("/drive/v3/files/file-1"))
+                .withRequestBody(equalToJson("{\"trashed\":true}"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("""
+                                {"id": "file-1", "name": "report.pdf", "trashed": true}
+                                """)));
+
+        String result = driveTool.trashFile("file-1");
+
+        assertTrue(result.contains("report.pdf") && result.contains("trash"), "Should confirm the move. Got: " + result);
+        wiremock.verifyThat(1, patchRequestedFor(urlPathEqualTo("/drive/v3/files/file-1")));
+        wiremock.verifyThat(0, WireMock.deleteRequestedFor(urlPathEqualTo("/drive/v3/files/file-1")));
+    }
+
+    @Test
+    void untrashFile_restoresTheFile() {
+        wiremock.register(WireMock.patch(urlPathEqualTo("/drive/v3/files/file-1"))
+                .withRequestBody(equalToJson("{\"trashed\":false}"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("""
+                                {"id": "file-1", "name": "report.pdf", "trashed": false}
+                                """)));
+
+        String result = driveTool.untrashFile("file-1");
+
+        assertTrue(result.contains("report.pdf") && result.contains("restored"), "Should confirm the restore. Got: " + result);
+    }
+
+    @Test
+    void trashFile_unknownIdSaysSoInsteadOfThrowing() {
+        wiremock.register(WireMock.patch(urlPathEqualTo("/drive/v3/files/missing"))
+                .willReturn(aResponse().withStatus(404)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"error\":{\"code\":404,\"message\":\"File not found: missing.\"}}")));
+
+        String result = driveTool.trashFile("missing");
+
+        assertTrue(result.contains("Not found"), "Should say the file was not found. Got: " + result);
+        assertFalse(result.contains("Exception"), "Should not leak a stack trace. Got: " + result);
+    }
+
+    @Test
+    void onlyTrashFileWaitsForTheOwnerByDefault() {
+        assertTrue(approvalPolicy.requires("trashFile"));
+        assertFalse(approvalPolicy.requires("untrashFile"));
+        assertFalse(approvalPolicy.requires("listDriveFiles"));
     }
 }
