@@ -5,6 +5,7 @@ import dev.omatheusmesmo.qlawkus.http.TransientHttpException;
 import dev.omatheusmesmo.qlawkus.tools.google.auth.GoogleAuthHeadersFilter;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEvent;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventList;
+import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.CalendarEventPatch;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.FreeBusyRequest;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.model.FreeBusyResponse;
 import io.quarkus.rest.client.reactive.ClientExceptionMapper;
@@ -13,7 +14,9 @@ import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -52,6 +55,27 @@ public interface GoogleCalendarRestClient {
     CalendarEvent createEvent(
             @PathParam("calendarId") String calendarId,
             CalendarEvent event);
+
+    @GET
+    @Path("/calendars/{calendarId}/events/{eventId}")
+    CalendarEvent getEvent(
+            @PathParam("calendarId") String calendarId,
+            @PathParam("eventId") String eventId);
+
+    @PATCH
+    @Path("/calendars/{calendarId}/events/{eventId}")
+    CalendarEvent patchEvent(
+            @PathParam("calendarId") String calendarId,
+            @PathParam("eventId") String eventId,
+            @QueryParam("sendUpdates") String sendUpdates,
+            CalendarEventPatch patch);
+
+    @DELETE
+    @Path("/calendars/{calendarId}/events/{eventId}")
+    void deleteEvent(
+            @PathParam("calendarId") String calendarId,
+            @PathParam("eventId") String eventId,
+            @QueryParam("sendUpdates") String sendUpdates);
 
     @POST
     @Path("/freeBusy")

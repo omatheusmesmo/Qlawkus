@@ -137,17 +137,23 @@ The xref:console.adoc[Console] onboarding wizard can run this same authorization
 |`modifyEmailLabels` |Modify labels (mark read/unread, archive, apply labels).
 |===
 
-=== Calendar (4 tools)
+=== Calendar (6 tools)
 
 [cols="1,3",options="header"]
 |===
 |Tool |Description
 
-|`listEvents` |List upcoming events for the next N days.
+|`listEvents` |List upcoming events for the next N days. Each event shows its `ID`, which the tools below need.
 |`createEvent` |Create an event (summary, start/end times, optional location and attendees).
+|`updateEvent` |Change an existing event. Only the fields you give change; `attendeeEmails` replaces the whole guest list, and moving an event needs both start and end. Guests are notified.
+|`deleteEvent` |Cancel an event and notify its guests.
 |`checkAvailability` |Check availability for a given date. Returns busy time ranges.
 |`suggestFocusTime` |Find available focus time slots of at least 2 hours on a given date.
 |===
+
+`updateEvent` and `deleteEvent` take the event's `currentTitle` next to its id. The owner sees the title when approving, and the call is refused, with nothing changed, when it is not the title of the event behind that id. That keeps a wrong or invented id from touching another event.
+
+Because both notify the guests, they wait for the owner's approval by default (see xref:approvals.adoc[Owner Approvals]). Set `qlawkus.google.calendar.require-approval=false` to let the agent run them directly. Cancelling is not recoverable from the agent's side, and an event that is already gone is reported as such.
 
 === Drive (4 tools)
 

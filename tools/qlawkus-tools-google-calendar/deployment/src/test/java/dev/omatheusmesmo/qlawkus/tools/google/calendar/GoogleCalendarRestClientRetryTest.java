@@ -63,4 +63,22 @@ class GoogleCalendarRestClientRetryTest {
 
         wiremock.verifyThat(1, WireMock.postRequestedFor(WireMock.urlEqualTo("/calendar/v3/freeBusy")));
     }
+
+    @Test
+    void aTransientFailureWhileDeletingAnEventIsRetried() {
+        wiremock.register(WireMock.delete(WireMock.urlPathEqualTo("/calendar/v3/calendars/primary/events/evt-1"))
+                .inScenario("delete")
+                .whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(WireMock.aResponse().withStatus(503))
+                .willSetStateTo("second attempt"));
+        wiremock.register(WireMock.delete(WireMock.urlPathEqualTo("/calendar/v3/calendars/primary/events/evt-1"))
+                .inScenario("delete")
+                .whenScenarioStateIs("second attempt")
+                .willReturn(WireMock.aResponse().withStatus(204)));
+
+        client.deleteEvent("primary", "evt-1", "all");
+
+        wiremock.verifyThat(2, WireMock.deleteRequestedFor(
+                WireMock.urlPathEqualTo("/calendar/v3/calendars/primary/events/evt-1")));
+    }
 }
