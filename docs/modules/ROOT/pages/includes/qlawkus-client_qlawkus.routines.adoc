@@ -1,0 +1,200 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-routines-weekly-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-routines-weekly-enabled[`+++qlawkus.routines.weekly.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.routines.weekly.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the weekly report runs. Read on every firing, so it can be switched without a restart.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ROUTINES_WEEKLY_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ROUTINES_WEEKLY_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-client_qlawkus-routines-weekly-cron]] [.property-path]##link:#qlawkus-client_qlawkus-routines-weekly-cron[`+++qlawkus.routines.weekly.cron+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.routines.weekly.cron+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cron expression of the weekly report, in the zone below. Read at startup, so changing it needs a restart.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ROUTINES_WEEKLY_CRON+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ROUTINES_WEEKLY_CRON+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++0 0 16 ? * FRI+++`
+
+a| [[qlawkus-client_qlawkus-routines-weekly-time-zone]] [.property-path]##link:#qlawkus-client_qlawkus-routines-weekly-time-zone[`+++qlawkus.routines.weekly.time-zone+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.routines.weekly.time-zone+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+IANA time zone the cron is read in. Defaults to the agent's own time zone, `qlawkus.agent.timezone`. Read at startup.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ROUTINES_WEEKLY_TIME_ZONE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ROUTINES_WEEKLY_TIME_ZONE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++${qlawkus.agent.timezone}+++`
+
+a| [[qlawkus-client_qlawkus-routines-weekly-prompt]] [.property-path]##link:#qlawkus-client_qlawkus-routines-weekly-prompt[`+++qlawkus.routines.weekly.prompt+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.routines.weekly.prompt+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+What to ask the agent instead of the built-in instruction. The date, the reply contract and the rule that nothing is recorded without the owner's answer still apply.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ROUTINES_WEEKLY_PROMPT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ROUTINES_WEEKLY_PROMPT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-client_qlawkus-routines-morning-enabled]] [.property-path]##link:#qlawkus-client_qlawkus-routines-morning-enabled[`+++qlawkus.routines.morning.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.routines.morning.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the Monday briefing runs. Read on every firing, so it can be switched without a restart.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ROUTINES_MORNING_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ROUTINES_MORNING_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a| [[qlawkus-client_qlawkus-routines-morning-cron]] [.property-path]##link:#qlawkus-client_qlawkus-routines-morning-cron[`+++qlawkus.routines.morning.cron+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.routines.morning.cron+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Cron expression of the Monday briefing, in the zone below. Read at startup, so changing it needs a restart.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ROUTINES_MORNING_CRON+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ROUTINES_MORNING_CRON+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++0 0 8 ? * MON+++`
+
+a| [[qlawkus-client_qlawkus-routines-morning-time-zone]] [.property-path]##link:#qlawkus-client_qlawkus-routines-morning-time-zone[`+++qlawkus.routines.morning.time-zone+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.routines.morning.time-zone+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+IANA time zone the cron is read in. Defaults to the agent's own time zone, `qlawkus.agent.timezone`. Read at startup.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ROUTINES_MORNING_TIME_ZONE+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ROUTINES_MORNING_TIME_ZONE+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|`+++${qlawkus.agent.timezone}+++`
+
+a| [[qlawkus-client_qlawkus-routines-morning-abandoned-after-days]] [.property-path]##link:#qlawkus-client_qlawkus-routines-morning-abandoned-after-days[`+++qlawkus.routines.morning.abandoned-after-days+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.routines.morning.abandoned-after-days+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Days without any activity after which an open pull request counts as abandoned.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ROUTINES_MORNING_ABANDONED_AFTER_DAYS+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ROUTINES_MORNING_ABANDONED_AFTER_DAYS+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++14+++`
+
+a| [[qlawkus-client_qlawkus-routines-morning-prompt]] [.property-path]##link:#qlawkus-client_qlawkus-routines-morning-prompt[`+++qlawkus.routines.morning.prompt+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.routines.morning.prompt+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+What to ask the agent instead of the built-in instruction. The date and the reply contract still apply, and the abandoned-after threshold is still stated.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_ROUTINES_MORNING_PROMPT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_ROUTINES_MORNING_PROMPT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+|===
+
