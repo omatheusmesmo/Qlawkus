@@ -60,6 +60,10 @@ ENV QLAWKUS_WORKSPACE_ROOT=/home/default/workspace
 RUN mkdir -p /home/default \
     && chown 185:0 /home/default /work \
     && chmod g+rwX /home/default /work
+# The ubi-minimal base has no passwd entry for uid 185, and a native image takes user.home from passwd
+# (not from HOME), so it resolved to "?" and ~/.qlawkus (keystore, state, facts) landed in /work/?,
+# outside the volume mounted at /home/default. The JVM image gets this entry from its openjdk base.
+RUN echo "default:x:185:0:default:/home/default:/sbin/nologin" >> /etc/passwd
 COPY --from=build --chown=185:0 /native-app/ /work/
 
 EXPOSE 8080
