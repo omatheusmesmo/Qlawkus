@@ -27,4 +27,12 @@ public interface GoogleDriveConfig {
      */
     @WithDefault("id,name,mimeType,modifiedTime,size,webViewLink")
     String fields();
+
+    /**
+     * Whether {@code trashFile} waits for the owner's approval before it runs. Files go to the Drive
+     * trash, where the owner can still restore them, but the agent should not decide alone to move
+     * one. {@code untrashFile} never waits.
+     */
+    @WithDefault("true")
+    boolean trashNeedsApproval();
 }

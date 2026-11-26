@@ -155,7 +155,7 @@ The xref:console.adoc[Console] onboarding wizard can run this same authorization
 
 Because both notify the guests, they wait for the owner's approval by default (see xref:approvals.adoc[Owner Approvals]). Set `qlawkus.google.calendar.require-approval=false` to let the agent run them directly. Cancelling is not recoverable from the agent's side, and an event that is already gone is reported as such.
 
-=== Drive (4 tools)
+=== Drive (6 tools)
 
 [cols="1,3",options="header"]
 |===
@@ -165,7 +165,11 @@ Because both notify the guests, they wait for the owner's approval by default (s
 |`uploadFile` |Upload a text file (name, content, optional MIME type).
 |`downloadFile` |Download a text file by file ID.
 |`shareFile` |Share a file with a user (file ID, email, role).
+|`trashFile` |Move a file to the Drive trash. Waits for the owner's approval by default.
+|`untrashFile` |Restore a file from the Drive trash.
 |===
+
+There is no permanent delete, on purpose: it has no undo. `trashFile` only sets the trash flag, so the file stays recoverable from `untrashFile` or the Drive trash until Drive empties it. Because the agent should not decide alone to move a file, `trashFile` is gated by the xref:approvals.adoc[owner approvals] unless you set `qlawkus.google.drive.trash-needs-approval=false`; `untrashFile` never waits.
 
 === Sheets (3 tools)
 

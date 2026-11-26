@@ -10,6 +10,7 @@ import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DriveFile;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DriveFileList;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DrivePermission;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DrivePermissionRequest;
+import dev.omatheusmesmo.qlawkus.tools.google.drive.model.DriveTrashRequest;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -124,6 +125,34 @@ public class DriveTool {
         } catch (Exception e) {
             Log.errorf(e, "Failed to share Drive file %s", fileId);
             return GoogleApiDiagnostics.diagnose("share Drive file", e);
+        }
+    }
+
+    @Tool("Move a Google Drive file to the trash. The file is not deleted: it can be restored with untrashFile or from the Drive trash.")
+    public String trashFile(
+            @P("Google Drive file ID") String fileId) {
+
+        try {
+            DriveFile file = apiExecutor.executeWithAuthRetry(() ->
+                    driveClient.updateFile(fileId, new DriveTrashRequest(true), "id,name,trashed"));
+            return "File '" + file.name() + "' (ID: " + fileId + ") moved to trash.";
+        } catch (Exception e) {
+            Log.errorf(e, "Failed to trash Drive file %s", fileId);
+            return GoogleApiDiagnostics.diagnose("trash Drive file", e);
+        }
+    }
+
+    @Tool("Restore a Google Drive file from the trash by its file ID.")
+    public String untrashFile(
+            @P("Google Drive file ID") String fileId) {
+
+        try {
+            DriveFile file = apiExecutor.executeWithAuthRetry(() ->
+                    driveClient.updateFile(fileId, new DriveTrashRequest(false), "id,name,trashed"));
+            return "File '" + file.name() + "' (ID: " + fileId + ") restored from trash.";
+        } catch (Exception e) {
+            Log.errorf(e, "Failed to untrash Drive file %s", fileId);
+            return GoogleApiDiagnostics.diagnose("untrash Drive file", e);
         }
     }
 

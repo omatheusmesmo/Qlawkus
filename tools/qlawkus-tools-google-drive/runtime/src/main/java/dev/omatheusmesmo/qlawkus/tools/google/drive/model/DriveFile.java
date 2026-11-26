@@ -9,6 +9,7 @@ public record DriveFile(
         String mimeType,
         String modifiedTime,
         Long size,
-        String webViewLink
+        String webViewLink,
+        Boolean trashed
 ) {
 }

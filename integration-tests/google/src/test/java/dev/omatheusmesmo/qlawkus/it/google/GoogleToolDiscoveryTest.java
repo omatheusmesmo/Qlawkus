@@ -78,6 +78,8 @@ class GoogleToolDiscoveryTest {
         assertTrue(toolNames.contains("uploadFile"), "Should provide uploadFile tool. Got: " + toolNames);
         assertTrue(toolNames.contains("downloadFile"), "Should provide downloadFile tool. Got: " + toolNames);
         assertTrue(toolNames.contains("shareFile"), "Should provide shareFile tool. Got: " + toolNames);
+        assertTrue(toolNames.contains("trashFile"), "Should provide trashFile tool. Got: " + toolNames);
+        assertTrue(toolNames.contains("untrashFile"), "Should provide untrashFile tool. Got: " + toolNames);
         assertTrue(toolNames.contains("readSheet"), "Should provide readSheet tool. Got: " + toolNames);
         assertTrue(toolNames.contains("writeSheet"), "Should provide writeSheet tool. Got: " + toolNames);
         assertTrue(toolNames.contains("updateCell"), "Should provide updateCell tool. Got: " + toolNames);
