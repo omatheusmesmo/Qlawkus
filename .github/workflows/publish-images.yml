@@ -184,3 +184,11 @@ jobs:
             exit 1
           fi
           docker rm -f qlawkus-smoke
+          docker run -d --name qlawkus-uid --user 4321:0 "${IMAGE}"
+          for _ in $(seq 1 90); do
+            if docker logs qlawkus-uid 2>&1 | grep -q "instance lock on"; then break; fi
+            sleep 2
+          done
+          docker logs qlawkus-uid 2>&1 | grep -q "instance lock on /home/default/.qlawkus" \
+            || { docker logs qlawkus-uid 2>&1 | grep -E "instance lock on" >&2; echo "with another uid the state is not under /home/default" >&2; exit 1; }
+          docker rm -f qlawkus-uid

@@ -60,13 +60,13 @@ ENV QLAWKUS_WORKSPACE_ROOT=/home/default/workspace
 RUN mkdir -p /home/default \
     && chown 185:0 /home/default /work \
     && chmod g+rwX /home/default /work
-# The ubi-minimal base has no passwd entry for uid 185, and a native image takes user.home from passwd
-# (not from HOME), so it resolved to "?" and ~/.qlawkus (keystore, state, facts) landed in /work/?,
-# outside the volume mounted at /home/default. The JVM image gets this entry from its openjdk base.
-RUN echo "default:x:185:0:default:/home/default:/sbin/nologin" >> /etc/passwd
 COPY --from=build --chown=185:0 /native-app/ /work/
 
 EXPOSE 8080
 USER 185
 
-ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]
+# A native image takes user.home from the passwd entry, not from HOME, and the base has none for uid 185
+# (or for any uid the container is started with), so it resolved to "?" and ~/.qlawkus (keystore, state,
+# facts) landed in /work/?, outside the volume at /home/default. The JVM falls back to HOME, so only this
+# image needs user.home set from it at start, which keeps it right for whatever uid and HOME it runs with.
+ENTRYPOINT ["sh", "-c", "exec ./application -Dquarkus.http.host=0.0.0.0 -Duser.home=\"${HOME}\" \"$@\"", "sh"]
