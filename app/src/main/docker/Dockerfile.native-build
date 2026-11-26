@@ -17,7 +17,7 @@ ARG QLAWKUS_COMPOSITION=full
 
 # --- Build stage: Mandrel builder, native reactor build ----------------------
 # The Mandrel builder ships no Maven but has curl+unzip, so the mvnw wrapper works.
-# Full reactor (matches CI): a partial -pl app -am build skips the *-deployment
+# The reactor is installed in full: a partial -pl app -am build skips the *-deployment
 # modules the extension-descriptor check needs from a fresh local repo.
 FROM quay.io/quarkus/ubi10-quarkus-mandrel-builder-image:jdk-25.0.5.1 AS build
 USER root
@@ -32,8 +32,14 @@ RUN --mount=type=cache,target=/root/.m2 \
     elif [ "${QLAWKUS_COMPOSITION}" != "full" ]; then \
       echo "QLAWKUS_COMPOSITION must be image or full, got ${QLAWKUS_COMPOSITION}" >&2; exit 1; \
     fi
+# The native profile turns quarkus.native.enabled on for every packaging=quarkus module, so running
+# it over the reactor compiled a native executable for each integration test module and the docs
+# site (18 native-image runs, about 80 minutes). The reactor is installed as plain jars first, and
+# only the app is then compiled to native, against those installed artifacts.
 RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw -B -e -DskipTests -DskipITs -Pnative install
+    ./mvnw -B -e -DskipTests -DskipITs install
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw -B -e -DskipTests -DskipITs -Pnative -pl app package
 
 # The attachments capability brings Quarkus AWT. Copy its native support files
 # when the build emits them.
