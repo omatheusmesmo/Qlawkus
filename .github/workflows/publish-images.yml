@@ -158,37 +158,42 @@ jobs:
         env:
           IMAGE: ${{ steps.meta.outputs.tags }}
         run: |
+          # The shell runs with pipefail, and grep -q (or head) leaves a pipe as soon as it matches, so
+          # `docker logs | grep -q` fails with SIGPIPE whenever the log is longer than the pipe buffer, even
+          # though the line is there. Each check therefore reads a snapshot file.
+          snapshot() { docker logs "$1" > "${RUNNER_TEMP}/$1.log" 2>&1; }
+          logged() { snapshot "$1"; grep -q -E "$2" "${RUNNER_TEMP}/$1.log"; }
           IMAGE="$(head -n1 <<< "${IMAGE}")"
           docker run -d --name qlawkus-smoke -p 8742:8080 "${IMAGE}"
           for _ in $(seq 1 90); do
-            if docker logs qlawkus-smoke 2>&1 | grep -q "setup token"; then break; fi
+            if logged qlawkus-smoke "setup token"; then break; fi
             sleep 2
           done
           curl -fsS http://localhost:8742/q/health/live
-          docker logs qlawkus-smoke 2>&1 | grep -q "setup token" \
-            || { docker logs qlawkus-smoke; echo "no setup token in the log" >&2; exit 1; }
+          logged qlawkus-smoke "setup token" \
+            || { cat "${RUNNER_TEMP}/qlawkus-smoke.log"; echo "no setup token in the log" >&2; exit 1; }
           status="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8742/console/first-run)"
           [ "${status}" = "200" ] || { echo "first-run page answered ${status}" >&2; exit 1; }
-          token="$(docker logs qlawkus-smoke 2>&1 | grep -o 'setup token [A-Za-z0-9_-]*' | head -n1 | awk '{print $3}')"
+          token="$(grep -o -m1 'setup token [A-Za-z0-9_-]*' "${RUNNER_TEMP}/qlawkus-smoke.log" | awk '{print $3}')"
           password="smoke-test-password-1"
           status="$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:8742/console/first-run \
             -d "token=${token}" --data-urlencode "password=${password}" --data-urlencode "confirm=${password}")"
           [ "${status}" = "200" ] || { echo "setting the password answered ${status}" >&2; exit 1; }
           docker exec qlawkus-smoke test -f /home/default/.qlawkus/secrets.p12 \
-            || { docker logs qlawkus-smoke | grep -E "instance lock on" >&2; echo "the keystore is not under /home/default, so it would not survive a new container" >&2; exit 1; }
+            || { snapshot qlawkus-smoke; grep -E "instance lock on" "${RUNNER_TEMP}/qlawkus-smoke.log" >&2; echo "the keystore is not under /home/default, so it would not survive a new container" >&2; exit 1; }
           curl -s -o /dev/null -m 60 -u "qlawkus:${password}" -X POST http://localhost:8742/api/chat/sync \
             -H 'Content-Type: application/json' -d '{"message":"ping"}' || true
-          if docker logs qlawkus-smoke 2>&1 | grep -q -E "is not writable|Error injecting"; then
-            docker logs qlawkus-smoke 2>&1 | grep -E "is not writable|Error injecting" | head -n3 >&2
+          if logged qlawkus-smoke "is not writable|Error injecting"; then
+            grep -m3 -E "is not writable|Error injecting" "${RUNNER_TEMP}/qlawkus-smoke.log" >&2
             echo "an agent turn failed before reaching the model" >&2
             exit 1
           fi
           docker rm -f qlawkus-smoke
           docker run -d --name qlawkus-uid --user 4321:0 "${IMAGE}"
           for _ in $(seq 1 90); do
-            if docker logs qlawkus-uid 2>&1 | grep -q "instance lock on"; then break; fi
+            if logged qlawkus-uid "instance lock on"; then break; fi
             sleep 2
           done
-          docker logs qlawkus-uid 2>&1 | grep -q "instance lock on /home/default/.qlawkus" \
-            || { docker logs qlawkus-uid 2>&1 | grep -E "instance lock on" >&2; echo "with another uid the state is not under /home/default" >&2; exit 1; }
+          logged qlawkus-uid "instance lock on /home/default/.qlawkus" \
+            || { grep -E "instance lock on" "${RUNNER_TEMP}/qlawkus-uid.log" >&2; echo "with another uid the state is not under /home/default" >&2; exit 1; }
           docker rm -f qlawkus-uid
