@@ -12,6 +12,7 @@ import dev.omatheusmesmo.qlawkus.messaging.MessagingProvider;
 import dev.omatheusmesmo.qlawkus.messaging.MessagingResponse;
 import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
 import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressSink;
+import discord4j.common.ReactorResources;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
@@ -42,6 +43,7 @@ import jakarta.enterprise.event.Observes;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import reactor.netty.resources.ConnectionProvider;
 import reactor.util.retry.Retry;
 
 import java.net.URI;
@@ -51,11 +53,28 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 @ApplicationScoped
 public class DiscordProviderAdapter implements MessagingProvider {
 
-    private static final Retry SEND_RETRY = Retry.fixedDelay(1, Duration.ofMillis(250))
+    /**
+     * Idle time after which the HTTP pool drops a connection. Discord's edge closes idle connections
+     * on its own, and a task that fires once a day found the pool full of connections already reset
+     * (observed as {@code Connection reset by peer} on the first write). Evicting well before that
+     * means the next request opens a fresh connection instead of reusing a dead one.
+     */
+    static final Duration HTTP_MAX_IDLE_TIME = Duration.ofSeconds(20);
+
+    /** How often the pool looks for connections past {@link #HTTP_MAX_IDLE_TIME}, in the background. */
+    static final Duration HTTP_EVICT_INTERVAL = Duration.ofSeconds(10);
+
+    /**
+     * Retries a send whose connection failed. Several pooled connections can be stale at once, so a
+     * single retry is not enough; only I/O failures are retried, so a refusal from Discord is never
+     * repeated. Every send carries one enforced nonce, which makes a retry after a lost reply safe.
+     */
+    private static final Retry SEND_RETRY = Retry.backoff(3, Duration.ofMillis(250))
             .filter(failure -> FailureChain.first(failure, IOException.class).isPresent())
             .onRetryExhaustedThrow((spec, signal) -> signal.failure());
 
@@ -95,6 +114,7 @@ public class DiscordProviderAdapter implements MessagingProvider {
                 Intent.DIRECT_MESSAGES);
 
         var login = DiscordClientBuilder.create(config.botToken().get())
+                .setReactorResources(reactorResources())
                 // Discord4j's request queue already retries 429s automatically; 5xx needs this
                 // explicit opt-in.
                 .onClientResponse(ResponseFunction.retryOnceOnErrorStatus(500, 502, 503, 504))
@@ -103,6 +123,14 @@ public class DiscordProviderAdapter implements MessagingProvider {
                 .setEnabledIntents(intents)
                 .login();
         connect(login);
+    }
+
+    static ReactorResources reactorResources() {
+        ConnectionProvider pool = ConnectionProvider.builder("discord4j")
+                .maxIdleTime(HTTP_MAX_IDLE_TIME)
+                .evictInBackground(HTTP_EVICT_INTERVAL)
+                .build();
+        return ReactorResources.builder().httpClient(ReactorResources.newHttpClient(pool)).build();
     }
 
     synchronized void connect(Mono<GatewayDiscordClient> login) {
@@ -392,9 +420,8 @@ public class DiscordProviderAdapter implements MessagingProvider {
         }
 
         var channel = gateway.getRestClient().getChannelById(Snowflake.of(channelId));
-        // Discord applies the same nonce to both attempts, even if the first reply was lost after acceptance.
         var request = MessageCreateRequest.builder().content(text)
-                .nonce(UUID.randomUUID().toString().substring(0, 25)).enforceNonce(true).build();
+                .nonce(newNonce()).enforceNonce(true).build();
         return Uni.createFrom().completionStage(() -> Mono.defer(() -> channel.createMessage(request))
                 .retryWhen(SEND_RETRY)
                 .switchIfEmpty(Mono.error(new IllegalStateException("Discord createMessage returned no message")))
@@ -407,10 +434,9 @@ public class DiscordProviderAdapter implements MessagingProvider {
         if (gateway == null) {
             return Uni.createFrom().item(false);
         }
-        return Uni.createFrom().completionStage(() -> gateway.getChannelById(Snowflake.of(channelId))
-                .ofType(MessageChannel.class)
-                .flatMap(channel -> channel.createMessage(MessageCreateSpec.builder().content(text)
-                        .addComponent(DiscordApprovalButtons.row(requestId)).build()))
+        return Uni.createFrom().completionStage(() -> createMessage(gateway, channelId,
+                () -> MessageCreateSpec.builder().content(text)
+                        .addComponent(DiscordApprovalButtons.row(requestId)).build())
                 .switchIfEmpty(Mono.error(new IllegalStateException("Discord did not acknowledge the prompt")))
                 .toFuture()).replaceWith(true);
     }
@@ -465,15 +491,31 @@ public class DiscordProviderAdapter implements MessagingProvider {
         }
     }
 
+    private static String newNonce() {
+        return UUID.randomUUID().toString().substring(0, 25);
+    }
+
+    /**
+     * Creates a message with one enforced nonce across every attempt. The spec is built per attempt
+     * because a file body is a stream that a failed attempt may already have consumed.
+     */
+    private static Mono<Message> createMessage(GatewayDiscordClient gateway, String channelId,
+            Supplier<MessageCreateSpec> spec) {
+        String nonce = newNonce();
+        return Mono.defer(() -> gateway.getChannelById(Snowflake.of(channelId))
+                .ofType(MessageChannel.class)
+                .flatMap(channel -> channel.createMessage(spec.get().withNonce(nonce).withEnforceNonce(true))))
+                .retryWhen(SEND_RETRY);
+    }
+
     @Override
     public Uni<Void> sendFile(String channelId, String filename, String mediaType, byte[] bytes) {
         GatewayDiscordClient gateway = gatewayClient;
         if (gateway == null) {
             return Uni.createFrom().failure(new IllegalStateException("Discord Gateway not connected"));
         }
-        return Uni.createFrom().completionStage(() -> gateway.getChannelById(Snowflake.of(channelId))
-                .ofType(MessageChannel.class)
-                .flatMap(channel -> channel.createMessage(voiceMessage(bytes, filename)))
+        return Uni.createFrom().completionStage(() -> createMessage(gateway, channelId,
+                () -> voiceMessage(bytes, filename))
                 .switchIfEmpty(Mono.error(new IllegalStateException("Discord did not acknowledge the file")))
                 .toFuture()).replaceWithVoid();
     }
@@ -485,11 +527,8 @@ public class DiscordProviderAdapter implements MessagingProvider {
             return Uni.createFrom().failure(new IllegalStateException("Discord Gateway not connected"));
         }
 
-        return Uni.createFrom().completionStage(
-                gateway.getChannelById(Snowflake.of(channelId))
-                        .ofType(MessageChannel.class)
-                        .flatMap(channel -> channel.createMessage(voiceMessage(audio, filename)))
-                        .toFuture())
+        return Uni.createFrom().completionStage(() -> createMessage(gateway, channelId,
+                () -> voiceMessage(audio, filename)).toFuture())
                 .replaceWithVoid();
     }
 
