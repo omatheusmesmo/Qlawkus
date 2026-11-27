@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.artifacts;
 
+import dev.omatheusmesmo.qlawkus.tool.access.AccessClass;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccess;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
@@ -33,6 +35,7 @@ public class ArtifactTool {
         this.delivery = delivery;
     }
 
+    @ToolAccess(AccessClass.CREATE)
     @Tool("Register a generated UTF-8 Markdown, text or CSV file when the owner asks for a downloadable file. "
             + "Create the file in the workspace first. Returns the artifact ID, file name, media type, byte size, "
             + "expiration and authenticated download URL. Registration alone does not send the file to chat. "

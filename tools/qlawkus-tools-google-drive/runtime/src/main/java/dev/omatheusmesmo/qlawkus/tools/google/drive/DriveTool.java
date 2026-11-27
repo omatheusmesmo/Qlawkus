@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.google.drive;
 
+import dev.omatheusmesmo.qlawkus.tool.access.AccessClass;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccess;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.Logged;
@@ -67,6 +69,7 @@ public class DriveTool {
         }
     }
 
+    @ToolAccess(AccessClass.CREATE)
     @Tool("Upload a text file to Google Drive. Provide file name and text content.")
     public String uploadFile(
             @P("File name, e.g. 'report.txt'") String fileName,

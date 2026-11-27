@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.google.auth;
 
+import dev.omatheusmesmo.qlawkus.tool.access.AccessClass;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccess;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.Logged;
 import dev.omatheusmesmo.qlawkus.tool.QlawTool;
@@ -59,6 +61,7 @@ public class GoogleAuthTool {
                 + "Call startGoogleAuthorization to begin the authorization flow.";
     }
 
+    @ToolAccess(AccessClass.CREATE)
     @Tool("""
             Builds a Google OAuth authorization URL the user must visit to grant the app access to their \
             Google account (Calendar, Gmail, Drive, Sheets, Storage, etc). Use this when any Google API \

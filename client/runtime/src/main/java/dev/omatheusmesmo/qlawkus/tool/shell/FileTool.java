@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tool.shell;
 
+import dev.omatheusmesmo.qlawkus.tool.access.AccessClass;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccess;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.P;
 import dev.omatheusmesmo.qlawkus.config.FileConfig;
@@ -205,6 +207,7 @@ public class FileTool {
         return entries;
     }
 
+    @ToolAccess(AccessClass.CREATE)
     @Tool("Create a directory (and parent directories) within the workspace. " +
             "Parameter: path (required) — directory path relative to workspace root")
     public FileResult makeDirectory(String path) {

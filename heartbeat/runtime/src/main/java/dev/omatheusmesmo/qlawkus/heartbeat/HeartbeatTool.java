@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.heartbeat;
 
+import dev.omatheusmesmo.qlawkus.tool.access.AccessClass;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccess;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
@@ -27,6 +29,7 @@ public class HeartbeatTool {
         this.auth = auth;
     }
 
+    @ToolAccess(AccessClass.READ)
     @Tool("Show heartbeat state, budgets and known notification providers. The heartbeat is an autonomous read-only check, "
             + "and scheduled reminders use scheduleTask.")
     public String heartbeatStatus() {
@@ -36,6 +39,7 @@ public class HeartbeatTool {
         return describe(service.status());
     }
 
+    @ToolAccess(AccessClass.UPDATE)
     @Tool("Save heartbeat settings only when the owner requests them in this conversation. The heartbeat checks for missed "
             + "or invalid schedules and whether curated memory exists. Put that choice in the instructions, and use "
             + "heartbeatStatus to find a provider already accepted for this owner. Do not reuse a task prompt as a heartbeat.")

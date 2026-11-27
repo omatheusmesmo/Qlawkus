@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.skillhub;
 
+import dev.omatheusmesmo.qlawkus.tool.access.AccessClass;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccess;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.approval.ApprovedExecution;
@@ -222,6 +224,7 @@ public class SkillHubTool {
         .collect(Collectors.joining("\n"));
   }
 
+  @ToolAccess(AccessClass.CREATE)
   @Tool("""
       Publish one of your own skills so it can be shared: renders it to a SKILL.md under the \
       configured publish directory. This does NOT push to any registry - the owner reviews the file \

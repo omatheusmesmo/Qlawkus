@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tool.shell;
 
+import dev.omatheusmesmo.qlawkus.tool.access.AccessClass;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccess;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.dto.SessionInfo;
 import dev.omatheusmesmo.qlawkus.dto.SessionOutput;
@@ -46,6 +48,7 @@ public class InteractiveShellTool {
         }
     }
 
+    @ToolAccess(AccessClass.EXECUTE)
     @Tool("Send input to an interactive PTY session (appended with newline by default). "
             + "Parameters: sessionId (required) — the session ID, "
             + "input (required) — the text to send to the PTY stdin")

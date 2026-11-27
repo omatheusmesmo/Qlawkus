@@ -21,6 +21,11 @@ import dev.omatheusmesmo.qlawkus.tool.QlawToolProvider;
 import dev.omatheusmesmo.qlawkus.agent.ReplyLanguageResolver;
 import dev.omatheusmesmo.qlawkus.agent.PromptReplyLanguageDecision;
 import dev.omatheusmesmo.qlawkus.tool.QlawToolProviderSupplier;
+import dev.omatheusmesmo.qlawkus.tool.access.AccessClass;
+import dev.omatheusmesmo.qlawkus.tool.access.AccessSource;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccessEntry;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccessRecorder;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccessRegistry;
 import dev.omatheusmesmo.qlawkus.tool.shell.PtyShutdownListener;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.AnnotationsTransformerBuildItem;
@@ -37,6 +42,7 @@ import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.ApplicationArchivesBuildItem;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.pkg.builditem.OutputTargetBuildItem;
 import io.quarkus.deployment.builditem.RunTimeConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.ShutdownListenerBuildItem;
 import io.quarkus.deployment.builditem.StaticInitConfigBuilderBuildItem;
@@ -54,7 +60,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
@@ -370,6 +379,37 @@ class ClientProcessor {
             items.add(AdditionalBeanBuildItem.unremovableOf(className));
         }
         return items;
+    }
+
+    /**
+     * Classifies every {@code @Tool} of every {@code @QlawTool} bean (see {@link ToolAccessScanner}),
+     * writes the report next to the build output, logs how many tools landed in each class, and bakes
+     * the result into the {@link ToolAccessRegistry} bean. It only records: nothing at runtime reads it
+     * yet.
+     */
+    @BuildStep
+    @Record(ExecutionTime.STATIC_INIT)
+    SyntheticBeanBuildItem toolAccess(ToolAccessRecorder recorder, CombinedIndexBuildItem combinedIndex,
+            OutputTargetBuildItem output) {
+        List<ToolAccessEntry> entries = ToolAccessScanner.scan(combinedIndex.getIndex());
+        Path report = ToolAccessReport.write(output.getOutputDirectory(), entries);
+        Map<AccessClass, Long> perClass = entries.stream()
+                .collect(Collectors.groupingBy(ToolAccessEntry::accessClass, TreeMap::new, Collectors.counting()));
+        long fallbacks = entries.stream().filter(entry -> entry.source() == AccessSource.FALLBACK).count();
+        Log.infof("Tool access classes: %d tools %s, %d without a recognised verb (report: %s)", entries.size(),
+                perClass, fallbacks, report);
+        entries.forEach(entry -> Log.debugf("Tool access: %s %s (%s) from %s", entry.tool(), entry.accessClass(),
+                entry.source(), entry.origin()));
+
+        return SyntheticBeanBuildItem.configure(ToolAccessRegistry.class)
+                .scope(Singleton.class)
+                .runtimeValue(recorder.create(
+                        entries.stream().map(ToolAccessEntry::tool).toList(),
+                        entries.stream().map(ToolAccessEntry::accessClass).toList(),
+                        entries.stream().map(ToolAccessEntry::source).toList(),
+                        entries.stream().map(ToolAccessEntry::origin).toList()))
+                .unremovable()
+                .done();
     }
 
     @BuildStep
