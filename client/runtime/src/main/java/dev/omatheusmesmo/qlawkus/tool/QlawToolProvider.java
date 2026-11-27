@@ -16,6 +16,8 @@ import dev.omatheusmesmo.qlawkus.approval.ApprovalToolExecutor;
 import dev.omatheusmesmo.qlawkus.approval.ApprovedToolExecutors;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
 import dev.omatheusmesmo.qlawkus.metrics.MeteredToolExecutor;
+import dev.omatheusmesmo.qlawkus.permission.PermissionLevel;
+import dev.omatheusmesmo.qlawkus.permission.ToolPermissions;
 import dev.omatheusmesmo.qlawkus.tool.quarantine.QuarantineToolExecutor;
 import dev.omatheusmesmo.qlawkus.tool.quarantine.ToolQuarantine;
 import dev.omatheusmesmo.qlawkus.tool.shell.SecretRedactor;
@@ -57,6 +59,9 @@ public class QlawToolProvider implements ToolProvider, ApprovedToolExecutors {
     ToolQuarantine quarantine;
 
     @Inject
+    ToolPermissions permissions;
+
+    @Inject
     ApprovalGate approvals;
 
     @Inject
@@ -82,7 +87,10 @@ public class QlawToolProvider implements ToolProvider, ApprovedToolExecutors {
      * not run. Tools an external contributor supplies are not gated: the resume path can only rebuild a
      * {@code @QlawTool} executor by name. The quarantine sits under the gate so that a call the owner
      * refused, or that is still waiting, never counts as the tool failing, and a quarantined tool is
-     * left out of the catalog here, on every turn, rather than rejected when the model calls it.
+     * left out of the catalog here, on every turn, rather than rejected when the model calls it. A tool
+     * the permission matrix denies is left out the same way, including the tools an external contributor
+     * supplies; {@code ask} is enforced by the gate for {@code @QlawTool} tools only, as for every other
+     * approval.
      */
     @Override
     public ToolProviderResult provideTools(ToolProviderRequest request) {
@@ -95,6 +103,9 @@ public class QlawToolProvider implements ToolProvider, ApprovedToolExecutors {
                 List<ToolSpecification> specs = ToolSpecifications.toolSpecificationsFrom(beanClass);
                 for (ToolSpecification spec : specs) {
                     if (quarantine != null && quarantine.isQuarantined(spec.name())) {
+                        continue;
+                    }
+                    if (isDenied(spec.name())) {
                         continue;
                     }
                     Method toolMethod = findToolMethod(beanClass, spec);
@@ -120,6 +131,9 @@ public class QlawToolProvider implements ToolProvider, ApprovedToolExecutors {
                     continue;
                 }
                 contribution.tools().forEach((spec, executor) -> {
+                    if (isDenied(spec.name())) {
+                        return;
+                    }
                     if (quarantine == null) {
                         add(builder, names, spec, executor, false);
                     } else if (!quarantine.isQuarantined(spec.name())) {
@@ -130,6 +144,10 @@ public class QlawToolProvider implements ToolProvider, ApprovedToolExecutors {
             }
         }
         return builder.build();
+    }
+
+    private boolean isDenied(String toolName) {
+        return permissions != null && permissions.levelOf(toolName) == PermissionLevel.DENY;
     }
 
     private void add(ToolProviderResult.Builder builder, Set<String> names, ToolSpecification spec,

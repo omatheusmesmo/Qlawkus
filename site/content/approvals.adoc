@@ -17,13 +17,13 @@ Only `@QlawTool` tools are gated, and a tool is gated for one of two reasons: it
 qlawkus.approval.tools=sendEmail,deleteFile
 ----
 
-An extension asks for the gate by publishing an `ApprovalRequirement` bean (`boolean requires(String toolName)`). The Skill Hub does so for its writing tools and the MCP client for `configureMcpConnection`, both only while their own `approval-mode` is `hitl` (see <<The hitl modes of Skill Hub and MCP>>). The skill scripts do the same for `runInstalledSkillScript`: every run of a script that a Skill Hub install wrote is gated whatever the hub's mode is (see xref:skills.adoc#_skills_with_scripts[Skills with scripts]). The Google Calendar tools do so for `updateEvent` and `deleteEvent`, which notify the event's guests, unless `qlawkus.google.calendar.require-approval` is set to `false`. The Google Drive extension does so for `trashFile` unless `qlawkus.google.drive.trash-needs-approval` is `false`. A requirement can only add tools to the gated set, never remove one the operator named.
+An extension asks for the gate by publishing an `ApprovalRequirement` bean (`boolean requires(String toolName)`). The Skill Hub does so for its writing tools and the MCP client for `configureMcpConnection`, both only while their own `approval-mode` is `hitl` (see <<The hitl modes of Skill Hub and MCP>>). The skill scripts do the same for `runInstalledSkillScript`: every run of a script that a Skill Hub install wrote is gated whatever the hub's mode is (see xref:skills.adoc#_skills_with_scripts[Skills with scripts]). A requirement can only add tools to the gated set, never remove one the operator named. The permission matrix (see <<Tool permissions>>) is a third source: a tool whose cell says `ask` is gated the same way, and like the other two it can only add. The Google Calendar and Drive extensions used to publish a requirement for `updateEvent`, `deleteEvent` and `trashFile`; they now suggest matrix defaults instead, with the same switches (`qlawkus.google.calendar.require-approval` and `qlawkus.google.drive.trash-needs-approval`).
 
 Tools declared directly on the AI service (the memory and skill tools, for example) are **not gated**. The gate sits in the tool chain of each `@QlawTool`, so a tool that must be approved has to be one of those. Gating is by name, not by the kind of action: nothing is gated by default, and reads and reversible local operations stay unguarded unless you name them.
 
 == Access classes
 
-Every `@QlawTool` tool also has an **access class** that says what it does to the world. The class is worked out when the application is built, and nothing reads it at runtime yet: no tool is gated, hidden or changed because of its class. It is groundwork for gating by kind of action instead of by name.
+Every `@QlawTool` tool also has an **access class** that says what it does to the world. The class is worked out when the application is built, and the permission matrix (see <<Tool permissions>>) reads it to decide whether a tool runs, asks or is hidden.
 
 |===
 | Class | The tool
@@ -65,6 +65,81 @@ public String sendInput(String sessionId, String input) { ... }
 Two tools with the same name fail the build, naming both beans, because the model and the access lookup address a tool by name alone.
 
 Each build writes the result to `target/qlawkus-tool-access.tsv` (tool, class, how it was reached, and the bean and method) and logs how many tools landed in each class and how many fell back to `EXECUTE`. How it was reached is `DECLARED` (`@ToolAccess`), `INFERRED` (the verb) or `FALLBACK` (no annotation and no known verb). The class of every tool of the shipped extensions is also pinned by a test, so a new or reclassified tool shows in a diff before it merges. Tools that come from a remote MCP server are not `@QlawTool` tools and have no class here.
+
+== Tool permissions
+
+The permission matrix lets the owner say "reads are free, deletes ask, nothing may run a shell" instead of listing tool names. Each cell is one operation (an access class) within one **group** and holds one of three levels:
+
+|===
+| Level | Effect
+
+| `allow` | The tool runs.
+| `ask` | The call waits for the owner, through the gate described above.
+| `deny` | The tool is not offered to the model at all, the same way a quarantined tool is left out of the catalog, so the model does not see it and keep trying.
+|===
+
+With nothing configured every cell is `allow`: the extension keeps its behaviour, and the only tools that ask are the ones that already did.
+
+=== Groups
+
+A tool's group comes from where its bean lives. It is the first package segment after `dev.omatheusmesmo.qlawkus` once a leading `tool` or `tools` and a following `google` are dropped: `calendar`, `drive`, `gmail`, `sheets`, `storage` and `auth` for the Google tools, `shell` for the shell, file and patch tools, `skillhub`, `mcp`, `task`, `heartbeat`, `brag` and so on. A tool that has no build-time class, such as one a remote MCP server supplies, is in the `external` group and is treated as `execute`. `/permissions explain <tool>` and the matrix show the group and class of every tool.
+
+=== Precedence
+
+The most specific entry wins:
+
+. the exception for the exact tool name
+. the cell for the tool's group and operation
+. the default for the operation (a preset fills these)
+. what an extension suggests for its own group and operation
+. `allow`
+
+Within one level a change made at runtime wins over the configuration. The extension suggestions are the weakest voice: they apply only where the owner has set neither the group's cell nor the operation's default, so any choice made, a preset included, replaces them. That is how the Calendar `update` and `delete` cells and the Drive `delete` cell still ask by default while `require-approval` and `trash-needs-approval` are on.
+
+`qlawkus.approval.tools` and the `ApprovalRequirement` beans of the Skill Hub, the MCP client and the skill scripts keep working and can only add `ask`: a matrix `allow` never lifts a tool they gate.
+
+=== Presets
+
+|===
+| Preset | read | create | update | delete | send | execute
+
+| `readonly` | allow | deny | deny | deny | deny | deny
+| `ask-writes` | allow | allow | ask | ask | ask | ask
+| `trusted` | allow | allow | allow | allow | allow | allow
+|===
+
+Applying a preset replaces every runtime change (group cells and tool exceptions included) with its six operation defaults.
+
+=== Configuring it
+
+[source,properties]
+----
+qlawkus.permissions.preset=ask-writes
+qlawkus.permissions.default.delete=ask
+qlawkus.permissions.group.calendar.delete=deny
+qlawkus.permissions.tool.deleteEvent=ask
+----
+
+Operation defaults set explicitly override the preset. A misspelt operation or preset stops the start instead of being ignored. The reference distribution ships `qlawkus.permissions.default.delete=ask` and `qlawkus.permissions.default.send=ask`: the agent asks before it deletes or sends anything, and reads, creates and updates run directly. The full reference is in xref:config-reference.adoc#_tool_permissions[Configuration Reference].
+
+=== Changing it
+
+One service, `PermissionService`, is the only writer, and the surfaces below are thin frontends over it. No tool exposes it, so the model has no path to a change. The owner's changes are kept in `permissions/state.json` under `qlawkus.agent.state.root` and take effect at once, without a restart; they win over the configuration at the same level and survive restarts. They are always stored as files, whichever `qlawkus.cognition.backend` is active.
+
+**Tightening is free, loosening is confirmed.** `allow` to `ask`, `ask` to `deny` and `allow` to `deny` apply at once for everyone. Loosening (`deny` to `ask`, `ask` to `allow`, `deny` to `allow`, or a preset or reset that loosens any cell) is applied at once only when the authenticated admin asks. When it comes from a chat it is recorded as an owner approval request and applied exactly once when the owner decides it, through the same `/approve <id>` and `/deny <id>` as any gated call. The approval re-checks that the cell still holds the level it was asked against (a preset or reset checks the policy revision), so a stale approval changes nothing and is reported as failed.
+
+* **Chat.** `/permissions` shows the matrix, `/permissions calendar delete ask` sets a cell, `/permissions default send ask` sets an operation default, `/permissions tool deleteEvent deny` sets a tool exception, `/permissions preset readonly` applies a preset and `/permissions explain deleteEvent` says why a tool is decided as it is. The command is read before the model runs, and the sender must pass the same allowlist as every other message. The outcome of an approved change is announced in the chat without a model turn.
+* **Admin REST**, all `@Authenticated`: `GET /api/admin/permissions` (the matrix), `PUT /api/admin/permissions/cells/{group}/{operation}` and `PUT /api/admin/permissions/tools/{tool}` with `{"level": "ask"}`, `POST /api/admin/permissions/presets/{name}`, `POST /api/admin/permissions/reset`, `GET /api/admin/permissions/explain/{tool}` and `GET /api/admin/permissions/audit`. A rejected change answers `400` with an `error` message. The group `default` in a cell path addresses the operation default.
+
+`explain` names the cell that decided and, when `qlawkus.approval.tools` or an extension also gates the tool, says so.
+
+=== Audit log
+
+Every applied change is recorded in `permissions/audit.json`: who asked (the admin API user or the chat account), when, the channel, what changed, the level before and after, and, for a chat request, which owner decision released it and its approval request id. It keeps the latest `qlawkus.permissions.audit-retention` entries (500 by default) and is returned by `GET /api/admin/permissions/audit`, newest first.
+
+=== What it does not cover
+
+`deny` and the matrix `ask` apply to `@QlawTool` tools. The tools an external contributor supplies (remote MCP tools) can be hidden with `deny` but cannot be gated with `ask`, for the reason given under <<Limits>>. A tool approved earlier and still pending when its cell becomes `deny` does not run: the approval fails with a message saying the policy denied it.
 
 == How a gated call is handled
 
@@ -162,7 +237,7 @@ The files hold the exact arguments and the results of executed calls, so they ar
 
 == Configuration
 
-The full reference is in xref:config-reference.adoc#_approval[Configuration Reference]. The four properties:
+The full reference is in xref:config-reference.adoc#_approval[Configuration Reference] (the permission matrix has its own table under <<Tool permissions>>). The four approval properties:
 
 [cols="2,1,3"]
 |===
@@ -179,8 +254,8 @@ The full reference is in xref:config-reference.adoc#_approval[Configuration Refe
 * Tools declared on the AI service are not gated. Only `@QlawTool` tools are.
 * Tools contributed by an external source (the remote tools of MCP servers, through `QlawToolContributor`) are not gated. The resume path can only rebuild a `@QlawTool` executor by name, so an approved remote call could not be released, and a gate that records a request it cannot execute would be worse than none. Control which servers are connected instead: `configureMcpConnection` is gated in `hitl`, and the console and admin API are owner-only.
 * Slack has no approval buttons (see <<Buttons>>).
-* Gating is by tool name, not by access class (see <<Access classes>>, which only records the class for now). A tool that performs several actions is gated as one.
-* The model cannot approve, and no tool exposes an approval path.
+* A tool has one access class, the most consequential thing it can do, so a tool that performs several actions is gated as one (see <<Access classes>>).
+* The model cannot approve, and no tool exposes an approval path or the permission service.
 * The approval queue is per instance, like the rest of the agent state. Qlawkus is single-instance.
 * Redaction protects the preview, the notices and the result summary. It cannot stop a tool that deliberately returns a secret from doing so.
 

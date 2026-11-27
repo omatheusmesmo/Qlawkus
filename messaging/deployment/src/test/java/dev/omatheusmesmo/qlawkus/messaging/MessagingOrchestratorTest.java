@@ -11,6 +11,7 @@ import dev.omatheusmesmo.qlawkus.cognition.ConversationControl;
 import dev.omatheusmesmo.qlawkus.cognition.VoiceResponsePreference;
 import dev.omatheusmesmo.qlawkus.config.AgentConfig;
 import dev.omatheusmesmo.qlawkus.messaging.auth.MessagingAuthService;
+import dev.omatheusmesmo.qlawkus.messaging.permission.PermissionCommands;
 import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressRouter;
 import dev.omatheusmesmo.qlawkus.messaging.progress.ToolProgressSettings;
 import dev.omatheusmesmo.qlawkus.messaging.tts.TtsConfig;
@@ -100,6 +101,32 @@ class MessagingOrchestratorTest {
 
         verify(agentService).chatSync(any(), eq("hello"));
         verify(notificationService).send("telegram", "chat-1", "Hi there!", ConversationId.SHARED);
+    }
+
+    @Test
+    void process_permissionsCommand_isAnsweredBeforeTheModelAndNeverReachesIt() {
+        when(authService.isAuthorized(any())).thenReturn(true);
+        PermissionCommands permissionCommands = Mockito.mock(PermissionCommands.class);
+        when(permissionCommands.handle(any(), any())).thenReturn("calendar delete: allow -> ask");
+        orchestrator.permissionCommands = permissionCommands;
+
+        orchestrator.process(MessagingMessage.text("telegram", "chat-1", "user-1", "/permissions calendar delete ask"))
+                .await().indefinitely();
+
+        verifyNoInteractions(agentService);
+        verify(notificationService).send(eq("telegram"), eq("chat-1"), eq("calendar delete: allow -> ask"), any());
+    }
+
+    @Test
+    void process_permissionsCommandFromAnUnauthorizedSender_reachesNothing() {
+        when(authService.isAuthorized(any())).thenReturn(false);
+        PermissionCommands permissionCommands = Mockito.mock(PermissionCommands.class);
+        orchestrator.permissionCommands = permissionCommands;
+
+        orchestrator.process(MessagingMessage.text("telegram", "chat-1", "user-1", "/permissions preset trusted"))
+                .await().indefinitely();
+
+        verifyNoInteractions(permissionCommands, agentService);
     }
 
     @Test

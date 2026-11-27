@@ -10,6 +10,7 @@ import dev.langchain4j.service.tool.ToolExecutionResult;
 import dev.langchain4j.service.tool.ToolExecutor;
 import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import java.util.function.Predicate;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class ApprovalToolExecutorTest {
@@ -104,6 +105,12 @@ class ApprovalToolExecutorTest {
             this.arguments = rawArguments;
             this.memoryId = memoryId;
             return "pending-text";
+        }
+
+        @Override
+        public Optional<String> requestOwnerAction(String action, String arguments, String preview,
+                AgentDeliveryContext.Snapshot origin) {
+            return Optional.empty();
         }
 
         @Override

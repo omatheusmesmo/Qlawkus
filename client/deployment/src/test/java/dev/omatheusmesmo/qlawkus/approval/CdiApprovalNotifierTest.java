@@ -1,6 +1,7 @@
 package dev.omatheusmesmo.qlawkus.approval;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -60,6 +61,29 @@ class CdiApprovalNotifierTest {
 
         verify(results, never()).fireAsync(any());
         verify(prompts, never()).fireAsync(any());
+    }
+
+    @Test
+    void theOutcomeOfAnOwnerActionIsAnnouncedInTheChatAndNeverResumesTheModel() {
+        ApprovalRequest executed = new ApprovalRequest(ID, OwnerAction.PREFIX + "permissions", "{}", "hash",
+                "Permission change", null, "telegram", "42", ApprovalStatus.EXECUTED, NOW, NOW.plusSeconds(60), NOW,
+                "owner", "calendar delete is now ask");
+
+        notifier.decided(executed);
+
+        ArgumentCaptor<WorkflowResultReadyEvent> text = ArgumentCaptor.forClass(WorkflowResultReadyEvent.class);
+        verify(results).fireAsync(text.capture());
+        assertEquals("telegram", text.getValue().providerId());
+        assertTrue(text.getValue().response().contains("calendar delete is now ask"));
+        verify(outcomes, never()).fireAsync(any());
+    }
+
+    @Test
+    void theOutcomeOfAToolCallStillResumesTheModel() {
+        notifier.decided(request(ApprovalStatus.EXECUTED, "telegram", "42"));
+
+        verify(outcomes).fireAsync(any(ApprovalOutcomeEvent.class));
+        verify(results, never()).fireAsync(any());
     }
 
     private static ApprovalRequest request(ApprovalStatus status, String provider, String chat) {

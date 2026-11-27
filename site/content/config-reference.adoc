@@ -46,6 +46,9 @@ include::includes/qlawkus-client_qlawkus.skill-scripts.adoc[]
 === Approval
 include::includes/qlawkus-client_qlawkus.approval.adoc[]
 
+=== Tool permissions
+include::includes/qlawkus-client_qlawkus.permissions.adoc[]
+
 === Tool quarantine
 include::includes/qlawkus-client_qlawkus.tool.adoc[]
 
