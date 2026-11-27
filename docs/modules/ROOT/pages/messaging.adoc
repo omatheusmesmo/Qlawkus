@@ -120,6 +120,10 @@ If login fails, Qlawkus logs the cause at WARN and retries in the background wit
 When SmallRye Health is installed, `/q/health/ready` includes the `discord-gateway` check with `data.status` set to `connected`, `degraded` or `disabled`.
 A disconnected Discord adapter reports `degraded` while its readiness check stays `UP`, so HTTP and other messaging channels can continue to serve requests.
 
+Discord closes HTTP connections that sit idle, so a reply that follows hours of silence (a daily scheduled task, for example) could find a dead connection and fail with `Connection reset by peer`.
+Qlawkus closes its own idle Discord connections after 20 seconds, and retries a reply, an approval prompt or a file up to three more times with a short backoff when the connection itself fails.
+Each message carries a single nonce across those attempts, so Discord never posts it twice, and a refusal from Discord (a missing permission, for example) is not retried.
+
 == Telegram Bot
 
 === 1. Create a Telegram Bot

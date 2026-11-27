@@ -45,11 +45,13 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -214,6 +216,76 @@ class DiscordProviderAdapterTest {
         assertTrue(attempts.getFirst().enforceNonce().get());
         assertTrue(attempts.getLast().enforceNonce().get());
         assertEquals("hello", attempts.getLast().content().get());
+    }
+
+    /**
+     * After hours of idle the pool can hand out several connections Discord already closed, so one retry
+     * is not enough: both attempts of the old policy hit a reset and the reply was lost.
+     */
+    @Test
+    void send_survivesConsecutiveResetsFromStalePooledConnections() {
+        RestChannel channel = mockRestChannel();
+        when(channel.createMessage(any(MessageCreateRequest.class)))
+                .thenReturn(Mono.error(new IOException("Connection reset by peer")),
+                        Mono.error(new IOException("Connection reset by peer")),
+                        Mono.just(Mockito.mock(MessageData.class)));
+
+        adapter.send("123", "hello").await().atMost(Duration.ofSeconds(5));
+
+        var request = ArgumentCaptor.forClass(MessageCreateRequest.class);
+        verify(channel, Mockito.times(3)).createMessage(request.capture());
+        assertEquals(1, request.getAllValues().stream().map(attempt -> attempt.nonce().get()).distinct().count());
+    }
+
+    @Test
+    void send_givesUpWithTheConnectionFailureOnceTheRetriesAreSpent() {
+        RestChannel channel = mockRestChannel();
+        when(channel.createMessage(any(MessageCreateRequest.class)))
+                .thenReturn(Mono.error(new IOException("Connection reset by peer")));
+
+        var failure = assertThrows(CompletionException.class,
+                () -> adapter.send("123", "hello").await().atMost(Duration.ofSeconds(10)));
+
+        assertInstanceOf(IOException.class, failure.getCause());
+        verify(channel, Mockito.times(4)).createMessage(any(MessageCreateRequest.class));
+    }
+
+    @Test
+    void sendApprovalPrompt_retriesAConnectionResetWithTheSameNonce() {
+        var gateway = mockGateway();
+        MessageChannel channel = Mockito.mock(MessageChannel.class);
+        when(gateway.getChannelById(Snowflake.of("123"))).thenReturn(Mono.just(channel));
+        when(channel.createMessage(any(MessageCreateSpec.class)))
+                .thenReturn(Mono.error(new IOException("Connection reset by peer")),
+                        Mono.just(Mockito.mock(Message.class)));
+        adapter.connect(Mono.just(gateway));
+
+        assertTrue(adapter.sendApprovalPrompt("123", "req-1", "Approve?").await().atMost(Duration.ofSeconds(5)));
+
+        var spec = ArgumentCaptor.forClass(MessageCreateSpec.class);
+        verify(channel, Mockito.times(2)).createMessage(spec.capture());
+        assertEquals(spec.getAllValues().getFirst().nonce(), spec.getAllValues().getLast().nonce());
+        assertTrue(spec.getAllValues().getLast().enforceNonce().get());
+    }
+
+    @Test
+    void sendFile_retriesAConnectionResetWithAFreshReadableBody() throws IOException {
+        var gateway = mockGateway();
+        MessageChannel channel = Mockito.mock(MessageChannel.class);
+        when(gateway.getChannelById(Snowflake.of("123"))).thenReturn(Mono.just(channel));
+        when(channel.createMessage(any(MessageCreateSpec.class)))
+                .thenReturn(Mono.error(new IOException("Connection reset by peer")),
+                        Mono.just(Mockito.mock(Message.class)));
+        byte[] report = "item,count\nbooks,2\n".getBytes(StandardCharsets.UTF_8);
+        adapter.connect(Mono.just(gateway));
+
+        adapter.sendFile("123", "report.csv", "text/csv", report).await().atMost(Duration.ofSeconds(5));
+
+        var spec = ArgumentCaptor.forClass(MessageCreateSpec.class);
+        verify(channel, Mockito.times(2)).createMessage(spec.capture());
+        try (var stream = spec.getAllValues().getLast().files().getFirst().inputStream()) {
+            assertArrayEquals(report, stream.readAllBytes());
+        }
     }
 
     @Test

@@ -17,6 +17,8 @@ Discord uses Discord4J with the matched `discord-json` and `discord-json-api` ve
 `DiscordProcessor` registers generated Jackson payloads for native reflection.
 The PR build checks the generated metadata in the messaging integration app before native compilation.
 `DiscordProviderAdapter` retries failed Gateway logins with capped backoff, and the optional `discord-gateway` readiness check reports a disconnected bot as degraded while staying UP.
+Discord's edge resets idle connections, so the adapter hands Discord4J a `ReactorResources` whose pool evicts idle connections in the background (`HTTP_MAX_IDLE_TIME`, `HTTP_EVICT_INTERVAL`); the stock client keeps them forever and a once-a-day task found only dead ones.
+`SEND_RETRY` (3 retries, backoff, `IOException` only) covers `send`, `sendApprovalPrompt`, `sendFile` and `sendVoice`; each send builds one enforced nonce and the file spec is rebuilt per attempt because its body stream is consumed by a failed one. Telegram already retries through `@Retry(maxRetries = 3)` on `TelegramBotClient`.
 The messaging allowlist (`qlawkus.messaging.auth.allowed-users.<provider>`) is fail-closed like the admin auth: a missing or empty list rejects every sender, and `*` is the explicit allow-all; `MessagingAllowlistStartupWarnings` logs a WARN per active channel that has no list or accepts `*`.
 
 ## attachments/
