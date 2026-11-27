@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tool.shell;
 
+import dev.omatheusmesmo.qlawkus.tool.access.AccessClass;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccess;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.config.FileConfig;
@@ -34,6 +36,7 @@ public class ApplyPatchTool {
     @Inject
     WorkspaceConfinement confinement;
 
+    @ToolAccess(AccessClass.DELETE)
     @Tool("Apply a multi-file workspace patch in one step (add, update, delete, or move files). "
             + "Envelope: Begin Patch … End Patch. "
             + "Add File: <path> then file content; "

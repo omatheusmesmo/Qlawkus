@@ -28,6 +28,7 @@
     <module>brag</module>
     <module>code-review</module>
     <module>messaging</module>
+    <module>tool-access</module>
     <module>live-provider</module>
   </modules>
 </project>

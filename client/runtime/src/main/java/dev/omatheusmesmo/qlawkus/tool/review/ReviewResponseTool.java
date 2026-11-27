@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tool.review;
 
+import dev.omatheusmesmo.qlawkus.tool.access.AccessClass;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccess;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.dto.CommandResult;
@@ -47,6 +49,7 @@ public class ReviewResponseTool {
     @QlawTool
     ShellTool shellTool;
 
+    @ToolAccess(AccessClass.SEND)
     @Tool("""
             Submit a review on a GitHub Pull Request using 'gh pr review'.
             Parameters:

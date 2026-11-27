@@ -19,3 +19,12 @@ Buttons: `CdiApprovalNotifier` fires `ApprovalPromptEvent` for PENDING requests,
 A Telegram webhook callback needs the configured secret header (403 otherwise).
 Slack has no buttons (no interactivity endpoint).
 Documented in `site/content/approvals.adoc`.
+
+## Access classes (`client/runtime/.../tool/access`, `ToolAccessScanner` in `client/deployment`)
+
+Step 1 of #607 and **no behaviour change**: nothing gates, hides or reads a class yet; the policy matrix is step 2.
+`ClientProcessor.toolAccess` runs `ToolAccessScanner` over the combined Jandex index: every `@Tool` method (own and inherited) of a `@QlawTool` class gets an `AccessClass` from, in order, `@ToolAccess` on the method, `@ToolAccess` on the bean, the leading camelCase word of the method name (`AccessClassInference`), else `EXECUTE` with source `FALLBACK`.
+The result is written to `target/qlawkus-tool-access.tsv`, summarised in the log, and baked into the `ToolAccessRegistry` synthetic bean through `ToolAccessRecorder` (parallel lists, so it is bytecode-serializable and needs no reflection natively). `ToolAccessRegistry.classOf(tool)` returns `EXECUTE` for a name it does not know, which is what a remote MCP tool will be until step 4.
+Traps: the scan reads only the index, so a tool is classified by its declared name (`@Tool(name = ...)` when given, else the method name) and a build-time `IllegalStateException` fails the build on a duplicate name; `@ToolAccess` is for names that lie, not a tag every tool must carry (16 of the 87 tools carry one today: verbs such as `upload`, `apply`, `configure`, `make` and `modify` are ambiguous, and `heartbeatStatus` leads with a noun); keep the verb table small and add a verb only when every tool starting with it agrees.
+The scanner tests need `@QlawTool` fixtures that must not be indexed by the `@QuarkusTest` application of `client/deployment` (they would become beans and join the tool catalog), so they live in `integration-tests/tool-access`, a plain JUnit module with no Quarkus application and nothing to build natively. It also holds the snapshot (`tool-access.snapshot`: tool, class, source) over every extension that declares tools; add the extension's runtime artifact to its pom when a new one declares tools, and refresh with `-Dqlawkus.tool-access.update=true`, reviewing the diff.
+Documented in `site/content/approvals.adoc`.

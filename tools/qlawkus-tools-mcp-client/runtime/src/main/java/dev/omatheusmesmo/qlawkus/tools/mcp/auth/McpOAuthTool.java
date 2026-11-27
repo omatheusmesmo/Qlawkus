@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.mcp.auth;
 
+import dev.omatheusmesmo.qlawkus.tool.access.AccessClass;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccess;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.P;
@@ -19,6 +21,7 @@ public class McpOAuthTool {
     @Inject McpOAuthService oauth;
     @Inject ObjectMapper json;
 
+    @ToolAccess(AccessClass.CREATE)
     @Tool("Begin browser OAuth authorization for a configured MCP connection. Return its authorizationUrl to the owner "
             + "to open and approve. The owner completes login and consent; tokens remain in the vault and are renewed automatically. "
             + "The browser must be able to authenticate to this Qlawkus console for the callback.")
@@ -29,6 +32,7 @@ public class McpOAuthTool {
         }
     }
 
+    @ToolAccess(AccessClass.READ)
     @Tool("Check MCP OAuth authorization status without exposing tokens or contacting the provider.")
     public String mcpAuthorizationStatus(@P("Configured MCP connection id") String id) {
         try { return json.writeValueAsString(oauth.status(connection(id))); }
@@ -37,6 +41,7 @@ public class McpOAuthTool {
         }
     }
 
+    @ToolAccess(AccessClass.DELETE)
     @Tool("Disable an MCP connection, remove its OAuth tokens from the vault and attempt provider token revocation. "
             + "remoteRevoked=false means local access is removed but remote revocation was unavailable or unsupported.")
     public String disconnectMcpAuthorization(@P("Configured MCP connection id") String id) {

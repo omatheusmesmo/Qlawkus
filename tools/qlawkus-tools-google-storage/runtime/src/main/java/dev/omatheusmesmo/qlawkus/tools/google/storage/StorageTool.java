@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.google.storage;
 
+import dev.omatheusmesmo.qlawkus.tool.access.AccessClass;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccess;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.Logged;
@@ -63,6 +65,7 @@ public class StorageTool {
         }
     }
 
+    @ToolAccess(AccessClass.UPDATE)
     @Tool("Upload a text object to a Google Cloud Storage bucket. Provide bucket name, object name, and text content.")
     public String uploadObject(
             @P("GCS bucket name") String bucketName,

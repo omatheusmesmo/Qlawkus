@@ -1,5 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.google.gmail;
 
+import dev.omatheusmesmo.qlawkus.tool.access.AccessClass;
+import dev.omatheusmesmo.qlawkus.tool.access.ToolAccess;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.omatheusmesmo.qlawkus.agent.Logged;
@@ -197,6 +199,7 @@ public class GmailTool {
         }
     }
 
+    @ToolAccess(AccessClass.UPDATE)
     @Tool("Modify labels on a Gmail message. Use to mark as read/unread, archive, or apply custom labels. Common label IDs: UNREAD, INBOX, STARRED, IMPORTANT, TRASH, SPAM.")
     public String modifyEmailLabels(
         @P("The Gmail message ID") String messageId,

@@ -21,6 +21,51 @@ An extension asks for the gate by publishing an `ApprovalRequirement` bean (`boo
 
 Tools declared directly on the AI service (the memory and skill tools, for example) are **not gated**. The gate sits in the tool chain of each `@QlawTool`, so a tool that must be approved has to be one of those. Gating is by name, not by the kind of action: nothing is gated by default, and reads and reversible local operations stay unguarded unless you name them.
 
+== Access classes
+
+Every `@QlawTool` tool also has an **access class** that says what it does to the world. The class is worked out when the application is built, and nothing reads it at runtime yet: no tool is gated, hidden or changed because of its class. It is groundwork for gating by kind of action instead of by name.
+
+|===
+| Class | The tool
+
+| `READ` | Looks at something and changes nothing.
+| `CREATE` | Makes something new.
+| `UPDATE` | Changes something that already exists.
+| `DELETE` | Removes or cancels something.
+| `SEND` | Delivers something to a third party, or gives a third party access.
+| `EXECUTE` | Runs a command or a script.
+|===
+
+A tool carries one class: the most consequential effect it can have. A tool that can add, edit and delete files is `DELETE`.
+
+The build reads the class from the verb at the start of the method name, so a tool named for what it does needs nothing written on it:
+
+|===
+| Leading verb | Class
+
+| `list`, `get`, `read`, `search`, `find`, `fetch`, `check`, `query`, `download`, `glob`, `grep`, `generate`, `analyze`, `suggest`, `test` | `READ`
+| `create`, `add`, `schedule`, `save`, `install` | `CREATE`
+| `update`, `set`, `edit`, `rename`, `write`, `untrash` | `UPDATE`
+| `delete`, `remove`, `cancel`, `trash` | `DELETE`
+| `send`, `share`, `invite`, `post`, `reply` | `SEND`
+| `run`, `exec`, `shell` | `EXECUTE`
+|===
+
+Only the whole first word counts (`listEvents` is a read, `fileList` and `listing` are not). A method whose first word is none of these is `EXECUTE`: the most restrictive class, so a tool the build cannot place is never treated as harmless.
+
+Where the verb is missing from the table or says something other than what the tool does (`heartbeatStatus` only reads, `sendInput` types into a shell, `uploadFile` creates, `applyPatch` can delete), put `@ToolAccess` on the method, or on the bean when every tool of it agrees. A method annotation wins over the bean annotation, and either wins over the verb:
+
+[source,java]
+----
+@ToolAccess(AccessClass.EXECUTE)
+@Tool("Send keystrokes to an interactive shell session")
+public String sendInput(String sessionId, String input) { ... }
+----
+
+Two tools with the same name fail the build, naming both beans, because the model and the access lookup address a tool by name alone.
+
+Each build writes the result to `target/qlawkus-tool-access.tsv` (tool, class, how it was reached, and the bean and method) and logs how many tools landed in each class and how many fell back to `EXECUTE`. How it was reached is `DECLARED` (`@ToolAccess`), `INFERRED` (the verb) or `FALLBACK` (no annotation and no known verb). The class of every tool of the shipped extensions is also pinned by a test, so a new or reclassified tool shows in a diff before it merges. Tools that come from a remote MCP server are not `@QlawTool` tools and have no class here.
+
 == How a gated call is handled
 
 When the model calls a gated tool:
@@ -134,7 +179,7 @@ The full reference is in xref:config-reference.adoc#_approval[Configuration Refe
 * Tools declared on the AI service are not gated. Only `@QlawTool` tools are.
 * Tools contributed by an external source (the remote tools of MCP servers, through `QlawToolContributor`) are not gated. The resume path can only rebuild a `@QlawTool` executor by name, so an approved remote call could not be released, and a gate that records a request it cannot execute would be worse than none. Control which servers are connected instead: `configureMcpConnection` is gated in `hitl`, and the console and admin API are owner-only.
 * Slack has no approval buttons (see <<Buttons>>).
-* Gating is by tool name. A tool that performs several actions is gated as one.
+* Gating is by tool name, not by access class (see <<Access classes>>, which only records the class for now). A tool that performs several actions is gated as one.
 * The model cannot approve, and no tool exposes an approval path.
 * The approval queue is per instance, like the rest of the agent state. Qlawkus is single-instance.
 * Redaction protects the preview, the notices and the result summary. It cannot stop a tool that deliberately returns a secret from doing so.
