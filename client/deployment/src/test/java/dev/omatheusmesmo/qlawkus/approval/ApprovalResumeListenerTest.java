@@ -17,6 +17,7 @@ import dev.omatheusmesmo.qlawkus.agent.AgentDeliveryContext;
 import dev.omatheusmesmo.qlawkus.agent.AgentRunner;
 import dev.omatheusmesmo.qlawkus.agent.WorkflowResultReadyEvent;
 import dev.omatheusmesmo.qlawkus.metrics.AgentMeters;
+import dev.omatheusmesmo.qlawkus.permission.PermissionLevel;
 import jakarta.enterprise.event.Event;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -171,7 +172,7 @@ class ApprovalResumeListenerTest {
         });
         ApprovalService created = new ApprovalService(store, new FixedConfig(), tools, notifier, text -> text,
                 Runnable::run, new AgentDeliveryContext(), AgentMeters.disabled(), Clock.fixed(START,
-                        ZoneOffset.UTC));
+                        ZoneOffset.UTC), List.of(), tool -> PermissionLevel.ALLOW);
         created.recover();
         return created;
     }

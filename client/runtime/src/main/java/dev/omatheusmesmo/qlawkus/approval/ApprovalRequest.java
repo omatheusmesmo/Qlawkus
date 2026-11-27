@@ -1,5 +1,6 @@
 package dev.omatheusmesmo.qlawkus.approval;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.time.Instant;
 import java.util.regex.Pattern;
@@ -35,6 +36,12 @@ public record ApprovalRequest(
     /** Whether {@code candidate} has the shape of an id this store generates. */
     public static boolean isValidId(String candidate) {
         return candidate != null && ID.matcher(candidate).matches();
+    }
+
+    /** Whether this records an {@link OwnerAction} rather than a tool call. */
+    @JsonIgnore
+    public boolean isOwnerAction() {
+        return toolName != null && toolName.startsWith(OwnerAction.PREFIX);
     }
 
     /** Moves to {@code next}, recording who decided and when. The result summary is kept. */

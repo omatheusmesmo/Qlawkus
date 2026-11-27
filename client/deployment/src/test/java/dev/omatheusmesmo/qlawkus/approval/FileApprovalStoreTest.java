@@ -46,6 +46,19 @@ class FileApprovalStoreTest {
     }
 
     @Test
+    void anOwnerActionRequestRoundTripsThroughTheFileLikeAnyOther() {
+        ApprovalRequest action = new ApprovalRequest(ID, OwnerAction.PREFIX + "permissions", "{}", "hash",
+                "Permission change", null, "telegram", "42", ApprovalStatus.PENDING, NOW, NOW.plusSeconds(60), null,
+                null, null);
+        new FileApprovalStore(root, 10).create(action);
+
+        ApprovalRequest reloaded = new FileApprovalStore(root, 10).find(ID).orElseThrow();
+
+        assertTrue(reloaded.isOwnerAction());
+        assertEquals(action, reloaded);
+    }
+
+    @Test
     void aTransitionAppliesOnlyWhileTheRecordStillHasTheExpectedStatus() {
         FileApprovalStore store = new FileApprovalStore(root, 10);
         store.create(pending(ID));

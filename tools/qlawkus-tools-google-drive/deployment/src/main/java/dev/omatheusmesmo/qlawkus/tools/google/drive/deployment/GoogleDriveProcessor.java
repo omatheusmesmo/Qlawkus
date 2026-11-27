@@ -1,7 +1,7 @@
 package dev.omatheusmesmo.qlawkus.tools.google.drive.deployment;
 
 import dev.omatheusmesmo.qlawkus.tools.google.drive.DriveTool;
-import dev.omatheusmesmo.qlawkus.tools.google.drive.GoogleDriveApprovalRequirement;
+import dev.omatheusmesmo.qlawkus.tools.google.drive.GoogleDrivePermissionDefaults;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.GoogleDriveConfig;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.GoogleDriveRestClient;
 import dev.omatheusmesmo.qlawkus.tools.google.drive.GoogleDriveDownloadClient;
@@ -38,7 +38,7 @@ class GoogleDriveProcessor {
         return AdditionalBeanBuildItem.builder()
                 .addBeanClass(DriveTool.class)
                 .addBeanClass(GoogleDriveConfig.class)
-                .addBeanClass(GoogleDriveApprovalRequirement.class)
+                .addBeanClass(GoogleDrivePermissionDefaults.class)
                 .addBeanClass(GoogleDriveRestClient.class)
                 .addBeanClass(GoogleDriveDownloadClient.class)
                 .addBeanClass(GoogleDriveUploadClient.class)

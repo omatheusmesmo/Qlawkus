@@ -1,6 +1,6 @@
 package dev.omatheusmesmo.qlawkus.tools.google.calendar.deployment;
 
-import dev.omatheusmesmo.qlawkus.tools.google.calendar.CalendarApprovalRequirement;
+import dev.omatheusmesmo.qlawkus.tools.google.calendar.CalendarPermissionDefaults;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.CalendarTool;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.GoogleCalendarConfig;
 import dev.omatheusmesmo.qlawkus.tools.google.calendar.GoogleCalendarRestClient;
@@ -38,7 +38,7 @@ class GoogleCalendarProcessor {
         }
         return AdditionalBeanBuildItem.builder()
                 .addBeanClass(CalendarTool.class)
-                .addBeanClass(CalendarApprovalRequirement.class)
+                .addBeanClass(CalendarPermissionDefaults.class)
                 .addBeanClass(GoogleCalendarConfig.class)
                 .addBeanClass(GoogleCalendarRestClient.class)
                 .addBeanClass(TimezoneNormalizer.class)

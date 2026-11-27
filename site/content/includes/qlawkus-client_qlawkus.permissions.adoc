@@ -1,0 +1,116 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[qlawkus-client_qlawkus-permissions-preset]] [.property-path]##link:#qlawkus-client_qlawkus-permissions-preset[`+++qlawkus.permissions.preset+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.permissions.preset+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+A preset that fills the default of every operation: `readonly` (read only), `ask-writes` (read and create freely, ask before update, delete, send and execute) or `trusted` (allow everything). Operation defaults set explicitly below override the preset.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_PERMISSIONS_PRESET+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_PERMISSIONS_PRESET+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
+a| [[qlawkus-client_qlawkus-permissions-default-defaults]] [.property-path]##link:#qlawkus-client_qlawkus-permissions-default-defaults[`+++qlawkus.permissions.default."defaults"+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.permissions.default."defaults"+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The level for an operation in any group, keyed by operation: `read`, `create`, `update`, `delete`, `send` or `execute`. The value is `allow`, `ask` or `deny`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_PERMISSIONS_DEFAULT__DEFAULTS_+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_PERMISSIONS_DEFAULT__DEFAULTS_+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`allow`, `ask`, `deny`
+|
+
+a| [[qlawkus-client_qlawkus-permissions-group-group]] [.property-path]##link:#qlawkus-client_qlawkus-permissions-group-group[`+++qlawkus.permissions.group."group"+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.permissions.group."group"+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The level for one operation of one group, keyed by group and then operation, for example `qlawkus.permissions.group.calendar.delete=deny`. It wins over the operation default.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_PERMISSIONS_GROUP__GROUP_+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_PERMISSIONS_GROUP__GROUP_+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`allow`, `ask`, `deny`
+|
+
+a| [[qlawkus-client_qlawkus-permissions-tool-tool]] [.property-path]##link:#qlawkus-client_qlawkus-permissions-tool-tool[`+++qlawkus.permissions.tool."tool"+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.permissions.tool."tool"+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The level for one tool by the name the model sees, for example `qlawkus.permissions.tool.deleteEvent=ask`. It wins over the group and the operation.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_PERMISSIONS_TOOL__TOOL_+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_PERMISSIONS_TOOL__TOOL_+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`allow`, `ask`, `deny`
+|
+
+a| [[qlawkus-client_qlawkus-permissions-audit-retention]] [.property-path]##link:#qlawkus-client_qlawkus-permissions-audit-retention[`+++qlawkus.permissions.audit-retention+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++qlawkus.permissions.audit-retention+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+How many changes the audit log keeps. The oldest are dropped first.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QLAWKUS_PERMISSIONS_AUDIT_RETENTION+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QLAWKUS_PERMISSIONS_AUDIT_RETENTION+++`
+endif::add-copy-button-to-env-var[]
+--
+|int
+|`+++500+++`
+
+|===
+

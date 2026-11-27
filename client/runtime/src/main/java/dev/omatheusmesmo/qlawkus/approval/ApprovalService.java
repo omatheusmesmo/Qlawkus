@@ -11,9 +11,12 @@ import io.quarkus.logging.Log;
 import io.quarkus.runtime.Startup;
 import io.quarkus.scheduler.Scheduled;
 import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
+import dev.omatheusmesmo.qlawkus.permission.PermissionLevel;
+import dev.omatheusmesmo.qlawkus.permission.ToolPermissions;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import java.security.SecureRandom;
 import java.time.Clock;
@@ -76,18 +79,22 @@ public class ApprovalService implements ApprovalGate {
     private final AgentDeliveryContext delivery;
     private final AgentMeters meters;
     private final Clock clock;
+    private final Iterable<OwnerAction> ownerActions;
+    private final ToolPermissions permissions;
     private final SecureRandom random = new SecureRandom();
 
     @Inject
     public ApprovalService(ApprovalStore store, ApprovalConfig config, ApprovedToolExecutors tools,
-            ApprovalNotifier notifier, SecretRedactor redactor, AgentDeliveryContext delivery, AgentMeters meters) {
+            ApprovalNotifier notifier, SecretRedactor redactor, AgentDeliveryContext delivery, AgentMeters meters,
+            Instance<OwnerAction> ownerActions, ToolPermissions permissions) {
         this(store, config, tools, notifier, redactor::redact, ApprovalService::runOnWorker, delivery, meters,
-                Clock.systemUTC());
+                Clock.systemUTC(), ownerActions, permissions);
     }
 
     ApprovalService(ApprovalStore store, ApprovalConfig config, ApprovedToolExecutors tools,
             ApprovalNotifier notifier, UnaryOperator<String> redactor, Executor executor,
-            AgentDeliveryContext delivery, AgentMeters meters, Clock clock) {
+            AgentDeliveryContext delivery, AgentMeters meters, Clock clock, Iterable<OwnerAction> ownerActions,
+            ToolPermissions permissions) {
         this.store = store;
         this.config = config;
         this.tools = tools;
@@ -97,11 +104,16 @@ public class ApprovalService implements ApprovalGate {
         this.delivery = delivery;
         this.meters = meters;
         this.clock = clock;
+        this.ownerActions = ownerActions;
+        this.permissions = permissions;
     }
 
     @Override
     public String requestApproval(String toolName, String rawArguments, String memoryId,
             AgentDeliveryContext.Snapshot origin) {
+        if (toolName != null && toolName.startsWith(OwnerAction.PREFIX)) {
+            return refused("that name is reserved for the owner's own actions");
+        }
         String canonical;
         try {
             canonical = ApprovalBinding.canonicalArguments(rawArguments);
@@ -124,6 +136,29 @@ public class ApprovalService implements ApprovalGate {
         Log.infof("Approval request %s created for tool %s", request.id(), toolName);
         notifier.notifyOrigin(request, ownerNotice(request));
         return modelNotice(request);
+    }
+
+    @Override
+    public Optional<String> requestOwnerAction(String action, String arguments, String preview,
+            AgentDeliveryContext.Snapshot origin) {
+        if (action == null || !action.startsWith(OwnerAction.PREFIX)) {
+            throw new IllegalArgumentException("An owner action name starts with " + OwnerAction.PREFIX);
+        }
+        String canonical = ApprovalBinding.canonicalArguments(arguments);
+        if (pendingCount() >= config.maxPending()) {
+            meters.approvalRequest(AgentMeters.APPROVAL_REFUSED);
+            return Optional.empty();
+        }
+        Instant now = clock.instant();
+        String shown = bounded(preview);
+        ApprovalRequest request = new ApprovalRequest(newId(), action, canonical,
+                ApprovalBinding.hash(action, canonical), shown, null, origin.providerId(), origin.chatId(), PENDING,
+                now, now.plus(config.expiry()), null, null, null);
+        store.create(request);
+        meters.approvalRequest(AgentMeters.APPROVAL_CREATED);
+        Log.infof("Approval request %s created for owner action %s", request.id(), action);
+        notifier.notifyOrigin(request, ownerNotice(request));
+        return Optional.of(request.id());
     }
 
     /**
@@ -248,6 +283,16 @@ public class ApprovalService implements ApprovalGate {
         AgentDeliveryContext.Snapshot previous = delivery.snapshot();
         delivery.set(running.memoryId(), running.providerId(), running.chatId());
         try {
+            Optional<OwnerAction> action = ownerAction(running.toolName());
+            if (running.isOwnerAction()) {
+                if (action.isEmpty()) {
+                    return new Settlement(FAILED, "no handler for this action; not run");
+                }
+                return new Settlement(EXECUTED, bounded(redactor.apply(action.get().run(running))));
+            }
+            if (permissions.levelOf(running.toolName()) == PermissionLevel.DENY) {
+                return new Settlement(FAILED, "denied by the permission policy since it was asked; not run");
+            }
             Optional<ToolExecutor> executorOfTool = tools.unguardedExecutor(running.toolName());
             if (executorOfTool.isEmpty()) {
                 return new Settlement(FAILED, "the tool is not registered; not run");
@@ -264,6 +309,15 @@ public class ApprovalService implements ApprovalGate {
         } finally {
             delivery.restore(previous);
         }
+    }
+
+    private Optional<OwnerAction> ownerAction(String name) {
+        for (OwnerAction action : ownerActions) {
+            if (action.name().equals(name)) {
+                return Optional.of(action);
+            }
+        }
+        return Optional.empty();
     }
 
     private ApprovalRequest decideApproval(ApprovalRequest request, Instant now, String actor) {
@@ -314,6 +368,11 @@ public class ApprovalService implements ApprovalGate {
     }
 
     private static String ownerNotice(ApprovalRequest request) {
+        if (request.isOwnerAction()) {
+            return "Approval needed: " + request.preview() + " (request " + request.id() + ").\n"
+                    + "Reply /approve " + request.id() + " to apply it, or /deny " + request.id() + " to refuse. "
+                    + "It expires at " + request.expiresAt() + ".";
+        }
         return "Approval needed for " + request.toolName() + " (request " + request.id() + ").\n"
                 + "Preview: " + request.preview() + "\n"
                 + "Reply /approve " + request.id() + " to run it, or /deny " + request.id() + " to refuse. "
